@@ -31,6 +31,18 @@ Route::get('/empresas', EmpresasIndex::class)->name('empresas.index');
 Route::get('/empresas/crear', EmpresasCreate::class)->name('empresas.create');
 Route::get('/empresas/{empresa}/editar', EmpresasEdit::class)->name('empresas.edit');
 
+// Especialidades
+Route::get('/especialidades', \App\Livewire\Admin\Especialidades\Index::class)->name('especialidades.index');
+Route::get('/especialidades/crear', \App\Livewire\Admin\Especialidades\Create::class)->name('especialidades.create');
+Route::get('/especialidades/{especialidad}/editar', \App\Livewire\Admin\Especialidades\Edit::class)->name('especialidades.edit');
+Route::get('/especialidades/{especialidad}', \App\Livewire\Admin\Especialidades\Show::class)->name('especialidades.show');
+
+// Subespecialidades
+Route::get('/subespecialidades', \App\Livewire\Admin\Subespecialidades\Index::class)->name('subespecialidades.index');
+Route::get('/subespecialidades/crear', \App\Livewire\Admin\Subespecialidades\Create::class)->name('subespecialidades.create');
+Route::get('/subespecialidades/{subespecialidad}/editar', \App\Livewire\Admin\Subespecialidades\Edit::class)->name('subespecialidades.edit');
+Route::get('/subespecialidades/{subespecialidad}', \App\Livewire\Admin\Subespecialidades\Show::class)->name('subespecialidades.show');
+
 // Países
 Route::get('/paises', \App\Livewire\Admin\Paises\PaisIndex::class)->name('paises.index');
 Route::get('/paises/crear', \App\Livewire\Admin\Paises\Create::class)->name('paises.create');

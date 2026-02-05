@@ -26,11 +26,11 @@
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Color Primario</label>
-                                        <input type="color" class="form-control form-control-color" wire:model="primary_color">
+                                        <input type="color" class="form-control form-control-color" wire:model.live="primary_color">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Tema</label>
-                                        <select class="form-select" wire:model="theme">
+                                        <select class="form-select" wire:model.live="theme">
                                             <option value="light">Claro</option>
                                             <option value="dark">Oscuro</option>
                                             <option value="system">Sistema</option>
@@ -38,13 +38,13 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Estilo</label>
-                                        <select class="form-select" wire:model="skin">
+                                        <select class="form-select" wire:model.live="skin">
                                             <option value="0">Por Defecto</option>
                                             <option value="1">Con Bordes</option>
                                         </select>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" wire:model="semi_dark">
+                                        <input class="form-check-input" type="checkbox" wire:model.live="semi_dark">
                                         <label class="form-check-label">Menú Semi-Oscuro</label>
                                     </div>
                                 </div>
@@ -60,21 +60,21 @@
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Tipo de Layout</label>
-                                        <select class="form-select" wire:model="layout_type">
+                                        <select class="form-select" wire:model.live="layout_type">
                                             <option value="vertical">Vertical</option>
                                             <option value="horizontal">Horizontal</option>
                                         </select>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Ancho de Contenido</label>
-                                        <select class="form-select" wire:model="content_layout">
+                                        <select class="form-select" wire:model.live="content_layout">
                                             <option value="compact">Compacto</option>
                                             <option value="wide">Ancho</option>
                                         </select>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Dirección de Texto</label>
-                                        <select class="form-select" wire:model="text_direction">
+                                        <select class="form-select" wire:model.live="text_direction">
                                             <option value="ltr">Izquierda a Derecha</option>
                                             <option value="rtl">Derecha a Izquierda</option>
                                         </select>
@@ -92,7 +92,7 @@
                                 <div class="card-body">
                                     <div class="mb-3">
                                         <label class="form-label">Tipo de Navbar</label>
-                                        <select class="form-select" wire:model="navbar_type">
+                                        <select class="form-select" wire:model.live="navbar_type">
                                             <option value="sticky">Pegajoso</option>
                                             <option value="static">Estático</option>
                                             <option value="hidden">Oculto</option>
@@ -100,21 +100,21 @@
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Tipo de Header</label>
-                                        <select class="form-select" wire:model="header_type">
+                                        <select class="form-select" wire:model.live="header_type">
                                             <option value="static">Estático</option>
                                             <option value="fixed">Fijo</option>
                                         </select>
                                     </div>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" wire:model="menu_collapsed">
+                                        <input class="form-check-input" type="checkbox" wire:model.live="menu_collapsed">
                                         <label class="form-check-label">Menú Colapsado</label>
                                     </div>
                                     <div class="form-check mb-2">
-                                        <input class="form-check-input" type="checkbox" wire:model="footer_fixed">
+                                        <input class="form-check-input" type="checkbox" wire:model.live="footer_fixed">
                                         <label class="form-check-label">Footer Fijo</label>
                                     </div>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" wire:model="dropdown_on_hover">
+                                        <input class="form-check-input" type="checkbox" wire:model.live="dropdown_on_hover">
                                         <label class="form-check-label">Dropdown al Pasar Mouse</label>
                                     </div>
                                 </div>

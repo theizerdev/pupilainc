@@ -74,6 +74,23 @@
         <div>Dashboard</div>
       </a>
     </li>
+      @can('access especialidades')
+      <li class="menu-item {{ request()->routeIs('admin.especialidades.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.especialidades.index') }}" class="menu-link">
+          <i class="menu-icon tf-icons ri ri-home-4-line"></i>
+        <div>Especialidades</div>
+        </a>
+      </li>
+      @endcan
+
+      @can('access subespecialidades')
+      <li class="menu-item {{ request()->routeIs('admin.subespecialidades.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.subespecialidades.index') }}" class="menu-link">
+          <i class="menu-icon tf-icons ri ri-list-settings-line"></i>
+        <div>Subespecialidades</div>
+        </a>
+      </li>
+      @endcan
 
     @canany(['access conceptos pago', 'access cajas'])
     <!-- Pagos y Finanzas -->
@@ -135,6 +152,7 @@
           </a>
         </li>
         @endcan
+      
        
       </ul>
     </li>
