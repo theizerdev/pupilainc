@@ -80,7 +80,11 @@
                                     Costo Promedio
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    {{ format_money($stats['promedio_costo']) }}
+                                    @if($stats['promedio_costo'] > 0)
+                                        {{ format_money($stats['promedio_costo']) }}
+                                    @else
+                                        <span class="text-muted">Sin datos</span>
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-auto">
@@ -106,7 +110,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="especialidad_id">Especialidad:</label>
-                            <select class="form-control" id="especialidad_id" wire:model="especialidad_id">
+                            <select class="form-control" id="especialidad_id" wire:model.change="especialidad_id">
                                 <option value="">Todas las especialidades</option>
                                 @foreach($especialidades as $especialidad)
                                     <option value="{{ $especialidad->id }}">{{ $especialidad->nombre }}</option>
@@ -118,7 +122,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="empresa_id">Empresa:</label>
-                            <select class="form-control" id="empresa_id" wire:model="empresa_id">
+                            <select class="form-control" id="empresa_id" wire:model.change="empresa_id">
                                 <option value="">Todas las empresas</option>
                                 @foreach($empresas as $empresa)
                                     <option value="{{ $empresa->id }}">{{ $empresa->razon_social }}</option>
@@ -130,7 +134,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="status">Estado:</label>
-                            <select class="form-control" id="status" wire:model="status">
+                            <select class="form-control" id="status" wire:model.change="status">
                                 <option value="">Todos los estados</option>
                                 <option value="1">Activo</option>
                                 <option value="0">Inactivo</option>
@@ -202,7 +206,13 @@
                                     <td>{{ $subespecialidad->especialidad->nombre ?? '-' }}</td>
                                     <td>{{ $subespecialidad->empresa->razon_social ?? '-' }}</td>
                                     <td>{{ $subespecialidad->sucursal->nombre ?? '-' }}</td>
-                                    <td>{{ format_money($subespecialidad->costo_consulta) }}</td>
+                                    <td>
+                                        @if($subespecialidad->costo_consulta > 0)
+                                            {{ format_money($subespecialidad->costo_consulta) }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $subespecialidad->duracion_consulta }} min</td>
                                     <td>
                                         <span class="badge badge-{{ $subespecialidad->status ? 'success' : 'secondary' }}">
@@ -247,7 +257,7 @@
                 </div>
 
                 <div class="mt-3">
-                    {{ $subespecialidades->links() }}
+                    {{ $subespecialidades->links('livewire.pagination') }}
                 </div>
             </div>
         </div>

@@ -71,6 +71,7 @@
                                     </div>
                                 </div>
 
+                                @if(auth()->user()->hasRole('Super Administrador'))
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="empresa_id">Empresa *</label>
@@ -87,8 +88,10 @@
                                         @enderror
                                     </div>
                                 </div>
+                                @endif
                             </div>
 
+                            @if(auth()->user()->hasRole('Super Administrador'))
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -107,6 +110,18 @@
                                         @enderror
                                     </div>
                                 </div>
+                            @else
+                            <!-- Información de empresa y sucursal para usuarios normales -->
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Esta subespecialidad se registrará automáticamente para:
+                                <ul class="mb-0 mt-2">
+                                    <li><strong>Empresa:</strong> {{ auth()->user()->empresa->razon_social ?? 'No definida' }}</li>
+                                    <li><strong>Sucursal:</strong> {{ auth()->user()->sucursal->nombre ?? 'No definida' }}</li>
+                                </ul>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                            @endif
 
                                 <div class="col-md-6">
                                     <div class="form-group">

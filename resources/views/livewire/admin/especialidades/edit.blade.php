@@ -51,6 +51,7 @@
                                 </div>
                             </div>
 
+                            @if(auth()->user()->hasRole('Super Administrador'))
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -87,6 +88,17 @@
                                     </div>
                                 </div>
                             </div>
+                            @else
+                            <!-- Información de empresa y sucursal para usuarios normales -->
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Esta especialidad pertenece a:
+                                <ul class="mb-0 mt-2">
+                                    <li><strong>Empresa:</strong> {{ $especialidad->empresa->razon_social ?? 'No definida' }}</li>
+                                    <li><strong>Sucursal:</strong> {{ $especialidad->sucursal->nombre ?? 'No definida' }}</li>
+                                </ul>
+                                <small class="text-muted">Solo los Super Administradores pueden cambiar la empresa y sucursal.</small>
+                            </div>
+                            @endif
 
                             <div class="row">
                                 <div class="col-md-6">

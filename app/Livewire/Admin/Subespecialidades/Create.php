@@ -26,19 +26,28 @@ class Create extends Component
     public $sucursal_id;
     public $status = true;
 
-    protected $rules = [
-        'nombre' => 'required|string|max:255',
-        'descripcion' => 'nullable|string|max:1000',
-        'codigo' => 'nullable|string|max:10|unique:subespecialidades',
-        'color' => 'required|string|max:7',
-        'costo_consulta' => 'required|numeric|min:0',
-        'duracion_consulta' => 'required|integer|min:15|max:240',
-        'requiere_cita_previa' => 'boolean',
-        'especialidad_id' => 'required|exists:especialidades,id',
-        'empresa_id' => 'required|exists:empresas,id',
-        'sucursal_id' => 'required|exists:sucursales,id',
-        'status' => 'boolean'
-    ];
+    protected function rules()
+    {
+        $rules = [
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string|max:1000',
+            'codigo' => 'nullable|string|max:10|unique:subespecialidades',
+            'color' => 'required|string|max:7',
+            'costo_consulta' => 'required|numeric|min:0',
+            'duracion_consulta' => 'required|integer|min:15|max:240',
+            'requiere_cita_previa' => 'boolean',
+            'especialidad_id' => 'required|exists:especialidades,id',
+            'status' => 'boolean'
+        ];
+
+        // Solo requerir empresa_id y sucursal_id para super administradores
+        if (auth()->user()->hasRole('Super Administrador')) {
+            $rules['empresa_id'] = 'required|exists:empresas,id';
+            $rules['sucursal_id'] = 'required|exists:sucursales,id';
+        }
+
+        return $rules;
+    }
 
     public function mount()
     {
@@ -78,7 +87,11 @@ class Create extends Component
             $validated['codigo'] = Subespecialidad::generateCodigo();
         }
 
-        $validated['user_id'] = auth()->id();
+        // Para usuarios normales, usar automáticamente su empresa y sucursal
+        if (!auth()->user()->hasRole('Super Administrador')) {
+            $validated['empresa_id'] = auth()->user()->empresa_id;
+            $validated['sucursal_id'] = auth()->user()->sucursal_id;
+        }
 
         try {
             Subespecialidad::create($validated);

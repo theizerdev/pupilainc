@@ -226,7 +226,7 @@
                                                 @endcan
                                                 @can('delete especialidades')
                                                 <button type="button" class="dropdown-item text-danger"
-                                                        wire:click="deleteEmpresa({{ $especialidad->id }})"
+                                                        wire:click="deleteEspecialidad({{ $especialidad->id }})"
                                                         wire:confirm="¿Estás seguro de eliminar esta especialidad?">
                                                     <i class="ri ri-delete-bin-line me-1"></i> Eliminar
                                                 </button>
@@ -245,7 +245,7 @@
                 </div>
 
                 <div class="mt-3">
-                    {{ $especialidades->links() }}
+                      {{ $especialidades->links('livewire.pagination') }}
                 </div>
             </div>
         </div>

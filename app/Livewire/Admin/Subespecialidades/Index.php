@@ -134,8 +134,9 @@ class Index extends Component
     {
         $query = Subespecialidad::forUser();
         
-        // Obtener el promedio y asegurar que sea un número válido
-        $avgCost = $query->avg('costo_consulta');
+        // Calcular el promedio solo de subespecialidades con costo_consulta válido
+        $subespecialidadesConCosto = $query->whereNotNull('costo_consulta')->where('costo_consulta', '>', 0);
+        $avgCost = $subespecialidadesConCosto->avg('costo_consulta');
         $promedioCosto = is_numeric($avgCost) ? round((float)$avgCost, 2) : 0;
         
         return [

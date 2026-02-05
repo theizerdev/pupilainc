@@ -145,6 +145,14 @@ class Index extends Component
         ];
     }
 
+    public function deleteEspecialidad($especialidad)
+    {
+        $especialidad = Especialidad::find($especialidad);
+        $especialidad->delete();
+
+         session()->flash('success', 'Estado actualizado exitosamente.');
+    }
+
     public function render()
     {
         return view('livewire.admin.especialidades.index', [

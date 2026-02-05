@@ -30,7 +30,7 @@ class Edit extends Component
 
     protected function rules()
     {
-        return [
+        $rules = [
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string|max:1000',
             'codigo' => 'required|string|max:10|unique:subespecialidades,codigo,' . $this->subespecialidad->id,
@@ -39,10 +39,16 @@ class Edit extends Component
             'duracion_consulta' => 'required|integer|min:15|max:240',
             'requiere_cita_previa' => 'boolean',
             'especialidad_id' => 'required|exists:especialidades,id',
-            'empresa_id' => 'required|exists:empresas,id',
-            'sucursal_id' => 'required|exists:sucursales,id',
             'status' => 'boolean'
         ];
+
+        // Solo requerir empresa_id y sucursal_id para super administradores
+        if (auth()->user()->hasRole('Super Administrador')) {
+            $rules['empresa_id'] = 'required|exists:empresas,id';
+            $rules['sucursal_id'] = 'required|exists:sucursales,id';
+        }
+
+        return $rules;
     }
 
     public function mount(Subespecialidad $subespecialidad)
@@ -80,7 +86,7 @@ class Edit extends Component
         $this->validate();
         
         try {
-            $this->subespecialidad->update([
+            $data = [
                 'nombre' => $this->nombre,
                 'descripcion' => $this->descripcion,
                 'codigo' => $this->codigo,
@@ -89,10 +95,16 @@ class Edit extends Component
                 'duracion_consulta' => $this->duracion_consulta,
                 'requiere_cita_previa' => $this->requiere_cita_previa,
                 'especialidad_id' => $this->especialidad_id,
-                'empresa_id' => $this->empresa_id,
-                'sucursal_id' => $this->sucursal_id,
                 'status' => $this->status,
-            ]);
+            ];
+            
+            // Solo super administradores pueden cambiar empresa y sucursal
+            if (auth()->user()->hasRole('Super Administrador')) {
+                $data['empresa_id'] = $this->empresa_id;
+                $data['sucursal_id'] = $this->sucursal_id;
+            }
+            
+            $this->subespecialidad->update($data);
             
             session()->flash('success', 'Subespecialidad actualizada exitosamente.');
             
