@@ -17,6 +17,7 @@ class Register extends Component
 {
     public $name = '';
     public $email = '';
+    public $phone = '';
     public $password = '';
     public $password_confirmation = '';
     public $terms = false;
@@ -35,6 +36,7 @@ class Register extends Component
         return [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
+            'phone' => 'nullable|string|max:20|regex:/^[0-9+()]+$/',
             'password' => 'required|string|confirmed|min:8',
             'terms' => 'required|accepted',
         ];
@@ -159,6 +161,7 @@ class Register extends Component
         $user = User::create([
             'name' => $this->name,
             'email' => $this->email,
+            'phone' => $this->phone,
             'password' => Hash::make($this->password),
         ]);
 

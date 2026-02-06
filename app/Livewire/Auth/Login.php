@@ -23,7 +23,7 @@ class Login extends Component
     // Define un oyente para el evento 'set-coordinates'
     protected $listeners = ['setCoordinates' => 'setCoordinates'];
 
-    // Propiedades para manejar errores de validación
+    // Propiedades para manejar errores de validaciรณn
     public $errors = [];
 
     public function rules()
@@ -79,44 +79,65 @@ class Login extends Component
         // Obtener el usuario autenticado
         $user = Auth::user();
 
-        // Verificar si el usuario es el super administrador (id = 1)
+        // Verificar roles y redirigir según corresponda
         if ($user->id === 1) {
+            // Super Administrador
+            $this->trackUserLogin();
+            request()->session()->regenerate();
+            return redirect()->route('superadmin.dashboard');
+        }
+
+        // Verificar si el usuario es un médico
+        $medico = \App\Models\Medico::where('user_id', $user->id)->first();
+        if ($medico) {
             // Registrar la sesión activa
             $this->trackUserLogin();
 
             // Regenerar sesión para prevenir session fixation
             request()->session()->regenerate();
 
-            // Redirigir al dashboard de super administrador
-            return redirect()->route('superadmin.dashboard');
+            // Redirigir al dashboard del médico
+            return redirect()->route('doctor.dashboard', ['id' => $medico->id]);
+        }
+
+        // Verificar si el usuario tiene rol de administrador
+        if ($user->hasRole('admin')) {
+            // Registrar la sesión activa
+            $this->trackUserLogin();
+
+            // Regenerar sesión para prevenir session fixation
+            request()->session()->regenerate();
+
+            // Redirigir al dashboard de administrador
+            return redirect()->route('admin.dashboard');
         }
 
         // Verificar si el usuario tiene 2FA habilitado
         if ($user->two_factor_enabled) {
-            // Cerrar la sesión temporalmente
+            // Cerrar la sesiรณn temporalmente
             Auth::logout();
 
-            // Guardar información del usuario en la sesión para la verificación 2FA
+            // Guardar informaciรณn del usuario en la sesiรณn para la verificaciรณn 2FA
             session([
                 '2fa:user:id' => $user->id,
                 '2fa:user:email' => $user->email
             ]);
 
-            // Redirigir a la página de verificación 2FA
+            // Redirigir a la pรกgina de verificaciรณn 2FA
             return redirect()->route('two-factor.login');
         }
 
-        // Registrar la sesión activa
+        // Registrar la sesiรณn activa
         $this->trackUserLogin();
 
-        // Regenerar sesión para prevenir session fixation
+        // Regenerar sesiรณn para prevenir session fixation
         request()->session()->regenerate();
 
         return redirect()->intended('/');
     }
 
     /**
-     * Registrar la sesión activa del usuario
+     * Registrar la sesiรณn activa del usuario
      */
     private function trackUserLogin()
     {
@@ -125,14 +146,14 @@ class Login extends Component
         $sessionId = $request->session()->getId();
         $ipAddress = $request->ip();
 
-        // Obtener información de geolocalización (preferir datos de la sesión si existen)
+        // Obtener informaciรณn de geolocalizaciรณn (preferir datos de la sesiรณn si existen)
         $locationData = $this->getLocationData($ipAddress);
 
-        // Marcar cualquier sesión existente como no actual
+        // Marcar cualquier sesiรณn existente como no actual
         ActiveSession::where('user_id', $user->id)
             ->update(['is_current' => false]);
 
-        // Verificar si ya existe un registro para esta sesión
+        // Verificar si ya existe un registro para esta sesiรณn
         $activeSession = ActiveSession::where('user_id', $user->id)
             ->where('session_id', $sessionId)
             ->first();
@@ -150,10 +171,10 @@ class Login extends Component
         ];
 
         if ($activeSession) {
-            // Actualizar la sesión existente
+            // Actualizar la sesiรณn existente
             $activeSession->update($sessionData);
         } else {
-            // Crear un nuevo registro de sesión
+            // Crear un nuevo registro de sesiรณn
             $sessionData['user_id'] = $user->id;
             $sessionData['session_id'] = $sessionId;
             ActiveSession::create($sessionData);
@@ -161,7 +182,7 @@ class Login extends Component
     }
 
     /**
-     * Obtener información de geolocalización basada en coordenadas
+     * Obtener informaciรณn de geolocalizaciรณn basada en coordenadas
      */
     private function getLocationData($ipAddress)
     {
@@ -174,7 +195,7 @@ class Login extends Component
 
         // Verificar si hay coordenadas en el componente
         if ($this->latitude && $this->longitude) {
-            // Usar coordenadas del componente y hacer geocodificación inversa
+            // Usar coordenadas del componente y hacer geocodificaciรณn inversa
             return $this->reverseGeocode($this->latitude, $this->longitude);
         }
 
@@ -185,7 +206,7 @@ class Login extends Component
         }
 
         // Si no hay coordenadas disponibles, usar valores predeterminados
-        $locationData['location'] = 'Ubicación desconocida';
+        $locationData['location'] = 'Ubicaciรณn desconocida';
         return $locationData;
     }
 
@@ -201,7 +222,7 @@ class Login extends Component
         ];
 
         try {
-            // Usar Nominatim para geocodificación inversa con las coordenadas
+            // Usar Nominatim para geocodificaciรณn inversa con las coordenadas
             $url = "https://nominatim.openstreetmap.org/reverse?format=json&lat={$lat}&lon={$lon}&addressdetails=1";
 
             // Configurar contexto para la solicitud con User-Agent requerido
@@ -224,20 +245,20 @@ class Login extends Component
                 $locationData['location'] = "Lat: {$lat}, Lon: {$lon}";
             }
         } catch (\Exception $e) {
-            \Log::warning("Error obteniendo geolocalización para coordenadas ({$lat}, {$lon}): " . $e->getMessage());
+            \Log::warning("Error obteniendo geolocalizaciรณn para coordenadas ({$lat}, {$lon}): " . $e->getMessage());
             $locationData['location'] = "Lat: {$lat}, Lon: {$lon}";
         }
 
         return $locationData;
     }
 
-    // Método para verificar si un campo tiene error
+    // Mรฉtodo para verificar si un campo tiene error
     public function hasError($field)
     {
         return isset($this->errors[$field]) && !empty($this->errors[$field]);
     }
 
-    // Método para obtener los mensajes de error de un campo
+    // Mรฉtodo para obtener los mensajes de error de un campo
     public function getError($field)
     {
         return $this->hasError($field) ? $this->errors[$field][0] : '';

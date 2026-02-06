@@ -19,6 +19,8 @@ class Edit extends Component
     public User $user;
     public $name;
     public $email;
+    public $phone;
+    public $whatsapp_verification_enabled;
     public $password;
     public $password_confirmation;
     public $empresa_id;
@@ -34,6 +36,8 @@ class Edit extends Component
         $this->name = $user->name;
         $this->username = $user->username; // Cargar username para mostrar
         $this->email = $user->email;
+        $this->phone = $user->phone;
+        $this->whatsapp_verification_enabled = $user->whatsapp_verification_enabled;
         $this->empresa_id = $user->empresa_id;
         $this->sucursal_id = $user->sucursal_id;
         $this->status = $user->status;
@@ -49,6 +53,8 @@ class Edit extends Component
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $this->user->id],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()]+$/'],
+            'whatsapp_verification_enabled' => ['boolean'],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'empresa_id' => ['required', 'exists:empresas,id'],
             'sucursal_id' => ['required', 'exists:sucursales,id'],
@@ -82,6 +88,8 @@ class Edit extends Component
         $data = [
             'name' => $this->name,
             'email' => $this->email,
+            'phone' => $this->phone,
+            'whatsapp_verification_enabled' => $this->whatsapp_verification_enabled,
             'empresa_id' => $this->empresa_id,
             'sucursal_id' => $this->sucursal_id,
             'status' => $this->status

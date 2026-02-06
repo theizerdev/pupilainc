@@ -60,9 +60,13 @@
         <!-- /Logo -->
 
         <div class="card-body mt-1">
-          <h4 class="mb-1">{{ __('auth_ui.verify_email_title') }} ✉️</h4>
+          <h4 class="mb-1">{{ __('auth_ui.verify_email_title') }} @if(Auth::user()->phone && Auth::user()->whatsapp_verification_enabled) 📱 @else ✉️ @endif</h4>
           <p class="text-start mb-5">
-            {{ __('auth_ui.verify_email_subtitle') }} <span class="fw-medium">{{ Auth::user()->email }}</span>.
+            @if(Auth::user()->phone && Auth::user()->whatsapp_verification_enabled)
+              Se enviará un código de verificación a tu WhatsApp al número <span class="fw-medium">{{ Auth::user()->phone }}</span>.
+            @else
+              {{ __('auth_ui.verify_email_subtitle') }} <span class="fw-medium">{{ Auth::user()->email }}</span>.
+            @endif
           </p>
 
           @if (session('resent'))

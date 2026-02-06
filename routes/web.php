@@ -16,13 +16,19 @@ Route::get('/lang/{locale}', function ($locale) {
 
 Route::get('/', function () {
    if (\Auth::check() && \Auth::user()->id == 1) {
-
-    return redirect()->to('superadmin/dashboard');
-   } else {
-    # code...
-    return redirect()->to('admin/dashboard');
+      return redirect()->to('superadmin/dashboard');
+   } elseif (\Auth::check()) {
+      // Verificar si es médico
+      $medico = \App\Models\Medico::where('user_id', \Auth::user()->id)->first();
+      if ($medico) {
+         return redirect()->to('admin/doctor/' . $medico->id . '/dashboard');
+      }
+      // Verificar si es administrador
+      if (\Auth::user()->hasRole('Administrador')) {
+         return redirect()->to('admin/dashboard');
+      }
    }
-
+   return redirect()->to('admin/dashboard');
 })->middleware('auth');
 
 // Rutas de autenticación con Livewire
@@ -68,6 +74,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
         Route::get('/dashboard', \App\Livewire\Admin\Dashboard::class)->name('dashboard');
         require __DIR__.'/admin.php';
    });
+});
+
+// Doctor routes
+Route::group(['prefix' => 'admin/doctor', 'as' => 'doctor.', 'middleware' => ['auth', 'verified']], function () {
+    Route::get('/{id}/dashboard', \App\Livewire\Doctor\Dashboard::class)->name('dashboard');
 });
 
 Route::get('/admin/template-customization', \App\Livewire\Admin\TemplateCustomization\Index::class)

@@ -95,6 +95,20 @@
                 <div class="valid-feedback d-block">This email is available!</div>
               @endif
             </div>
+            <div class="form-floating form-floating-outline mb-5 form-control-validation">
+              <input
+                type="tel"
+                class="form-control @if($hasError('phone')) is-invalid @endif"
+                id="phone"
+                name="phone"
+                wire:model="phone"
+                placeholder="{{ __('Teléfono') }}" />
+              <label for="phone">{{ __('Teléfono (opcional)') }}</label>
+              @if($hasError('phone'))
+                <div class="invalid-feedback d-block">{{ $getError('phone') }}</div>
+              @endif
+              <div class="form-text">Ingresa tu número de WhatsApp para recibir códigos de verificación</div>
+            </div>
             <div class="mb-5">
               <div class="form-password-toggle form-control-validation">
                 <div class="input-group input-group-merge">

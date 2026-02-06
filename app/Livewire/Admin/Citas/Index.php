@@ -10,7 +10,7 @@ use App\Models\Subespecialidad;
 use App\Models\MedicoHorario;
 use App\Models\TipoConsulta;
 use App\Services\CitaNotificationService;
-use Livewire\Component;
+use Livewire\Component; 
 use App\Traits\HasDynamicLayout;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;

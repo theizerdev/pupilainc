@@ -6,8 +6,13 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Mail\VerificationCodeMail;
+use App\Services\WhatsAppService;
+use App\Models\Medico;  
 
 class VerifyCode extends Component
 {
@@ -17,6 +22,7 @@ class VerifyCode extends Component
     public $errors = [];
     public $canResend = true;
     public $resendCountdown = 0;
+    public $codigoPais;
 
     // Reglas de validación
     protected $rules = [
@@ -84,15 +90,40 @@ class VerifyCode extends Component
         // Generar un nuevo código y obtener el código en texto plano
         $plainCode = Auth::user()->generateVerificationCode();
         
-        // Enviar el código por correo
-        Mail::to(Auth::user()->email)->send(new VerificationCodeMail($plainCode));
+         $user = Auth::user();
+         $telefono = $this->formatearTelefono($user->phone);
+        
+        // Verificar si el usuario tiene teléfono y WhatsApp habilitado
+        $hasWhatsApp = !empty($telefono) && $user->whatsapp_verification_enabled;
+        
+        if ($hasWhatsApp) {
+            // Enviar por WhatsApp
+            try {
+                $whatsAppService = new WhatsAppService();
+                $mensaje = "🔐 *Código de Verificación* 🔐\n\n";
+                $mensaje .= "Tu código de verificación es: *{$plainCode}*\n\n";
+                $mensaje .= "Este código expira en 15 minutos.\n\n";
+                $mensaje .= "Si no solicitaste este código, por favor ignora este mensaje.";
+                
+                $whatsAppService->sendMessage($telefono, $mensaje);
+                
+                session()->flash('resent', 'Se ha enviado un nuevo código de verificación a tu WhatsApp.');
+            } catch (\Exception $e) {
+                // Si falla WhatsApp, enviar por correo como respaldo
+                Mail::to($user->email)->send(new VerificationCodeMail($plainCode));
+                session()->flash('resent', 'Se ha enviado un nuevo código de verificación a tu correo electrónico (WhatsApp no disponible).');
+            }
+        } else {
+            // Enviar por correo si no tiene teléfono o WhatsApp deshabilitado
+            Mail::to($user->email)->send(new VerificationCodeMail($plainCode));
+            session()->flash('resent', 'Se ha enviado un nuevo código de verificación a tu correo electrónico.');
+        }
         
         $this->resent = true;
         $this->canResend = false;
         // Limpiar campos de código
         $this->codeInputs = ['', '', '', '', '', ''];
         $this->code = '';
-        session()->flash('resent', 'Se ha enviado un nuevo código de verificación a tu correo electrónico.');
         
         // Iniciar contador regresivo
         $this->resendCountdown = 300; // 5 minutos en segundos
@@ -155,6 +186,49 @@ class VerifyCode extends Component
     public function getError($field)
     {
         return $this->hasError($field) ? $this->errors[$field][0] : '';
+    }
+
+       protected function formatearTelefono(string $telefono): string
+    {
+        $limpio = preg_replace('/\D/', '', $telefono);
+
+        if (str_starts_with($limpio, '0')) {
+            $limpio = substr($limpio, 1);
+        }
+
+        $codigo = $this->obtenerCodigoPais();
+
+        if (!str_starts_with($limpio, $codigo) && strlen($limpio) >= 7 && strlen($limpio) <= 12) {
+            $limpio = $codigo . $limpio;
+        }
+
+        return '+' . $limpio;
+    }
+
+     protected function obtenerCodigoPais(): string
+    {
+        if ($this->codigoPais !== null) {
+            return $this->codigoPais;
+        }
+
+        $this->codigoPais = '58';
+
+        $empId = auth()->user()->empresa_id;
+        if (!$empId && auth()->check() && auth()->user()->empresa_id) {
+            $empId = auth()->user()->empresa_id;
+        }
+
+        if ($empId) {
+            $empresa = DB::table('empresas')->where('id', $empId)->first();
+            if ($empresa && $empresa->pais_id) {
+                $pais = DB::table('pais')->where('id', $empresa->pais_id)->first();
+                if ($pais && $pais->codigo_telefonico) {
+                    $this->codigoPais = ltrim($pais->codigo_telefonico, '+');
+                }
+            }
+        }
+
+        return $this->codigoPais;
     }
 
     public function render()
