@@ -125,7 +125,7 @@ class WhatsAppService
     /**
      * Enviar mensaje de texto
      */
-    public function sendMessage(string $to, string $message)
+    public function sendMessage(string $to, string $message, bool $isWelcome = false)
     {
         try {
             $response = Http::timeout($this->timeout)
@@ -133,7 +133,8 @@ class WhatsAppService
                 ->post("{$this->baseUrl}/api/whatsapp/send", [
                     'to' => $to,
                     'message' => $message,
-                    'type' => 'text'
+                    'type' => 'text',
+                    'isWelcome' => $isWelcome,
                 ]);
 
             if ($response->successful()) {

@@ -87,6 +87,15 @@
       </li>
       @endcan
        
+      @can('access medicos')
+      <li class="menu-item {{ request()->routeIs('admin.medicos.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.medicos.index') }}" class="menu-link">
+          
+        <div>Médicos</div>
+        </a>
+      </li>
+      @endcan
+       
       </ul>
     </li>
     @endcan

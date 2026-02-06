@@ -27,6 +27,7 @@ class WhatsAppService {
     this.maxReconnectAttempts = 5;
     this.connectionState = 'disconnected';
     this.lastSeen = null;
+    this.messageTimeout = 30000; // 30 segundos timeout para mensajes
   }
 
   async initialize() {
@@ -40,14 +41,22 @@ class WhatsAppService {
       const { version, isLatest } = await fetchLatestBaileysVersion();
       logger.whatsapp(`Usando Baileys v${version.join('.')}, es la última: ${isLatest}`);
       
-
-      
       // Conectar
       await this.connect();
       
     } catch (error) {
       logger.error('Error inicializando WhatsApp service:', error);
       throw error;
+    }
+  }
+
+  async clearSession() {
+    try {
+      await fs.rm(this.sessionPath, { recursive: true, force: true });
+      logger.whatsapp(`Sesión limpiada: ${this.sessionPath}`);
+      await this.ensureSessionDirectory();
+    } catch (error) {
+      logger.error('Error limpiando sesión:', error);
     }
   }
 
@@ -99,249 +108,120 @@ class WhatsAppService {
         browser: Browsers.macOS('Desktop'),
         printQRInTerminal: false,
         generateHighQualityLinkPreview: true,
-        syncFullHistory: false,
         markOnlineOnConnect: true,
+        connectTimeoutMs: 60000,
+        keepAliveIntervalMs: 30000,
+        // Configuración adicional para mejor estabilidad
+        retryRequestDelayMs: 250,
+        maxMsgRetryCount: 5,
+        msgRetryCounterMap: {},
+        // Manejo de eventos
         logger: {
           trace: () => {},
           debug: () => {},
           info: () => {},
-          warn: () => {},
-          error: () => {},
+          warn: (msg) => logger.warn('Baileys warn:', msg),
+          error: (msg) => logger.error('Baileys error:', msg),
           child: () => ({
             trace: () => {},
             debug: () => {},
             info: () => {},
-            warn: () => {},
-            error: () => {},
+            warn: (msg) => logger.warn('Baileys warn:', msg),
+            error: (msg) => logger.error('Baileys error:', msg),
             child: () => ({})
           })
-        },
-        getMessage: async (key) => {
-          return { conversation: 'Mensaje no disponible' };
         }
       });
 
-      // Configurar event handlers
-      this.setupEventHandlers(saveCreds);
+      // Manejar eventos de conexión
+      this.sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        
+        if (qr) {
+          logger.whatsapp('QR Code recibido');
+          this.qrCode = qr;
+          this.connectionState = 'qr_ready';
+          this.io.emit('qr', { qr });
+        }
+        
+        if (connection === 'close') {
+          this.isConnected = false;
+          this.isConnecting = false;
+          this.connectionState = 'disconnected';
+          
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+          logger.whatsapp(`Conexión cerrada, razón: ${statusCode}, reconectar: ${shouldReconnect}`);
+          
+          if (!shouldReconnect) {
+            logger.whatsapp('Sesión expirada (loggedOut). Limpiando sesión para permitir nuevo QR...');
+            await this.clearSession();
+          } else if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.reconnectAttempts++;
+            logger.whatsapp(`Intentando reconexión ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+            setTimeout(() => this.connect(), 5000 * this.reconnectAttempts);
+          }
+        } else if (connection === 'open') {
+          this.isConnected = true;
+          this.isConnecting = false;
+          this.connectionState = 'connected';
+          this.reconnectAttempts = 0;
+          this.qrCode = null;
+          this.lastSeen = new Date();
+          
+          logger.whatsapp('✅ WhatsApp conectado exitosamente');
+          this.io.emit('connected', { 
+            user: this.sock.user,
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+
+      // Manejar mensajes entrantes
+      this.sock.ev.on('messages.upsert', async (m) => {
+        const message = m.messages[0];
+        if (!message.key.fromMe && m.type === 'notify') {
+          logger.message('received', {
+            from: message.key.remoteJid,
+            message: message.message,
+            timestamp: new Date().toISOString()
+          });
+          
+          this.io.emit('message', {
+            id: message.key.id,
+            from: message.key.remoteJid,
+            message: message.message,
+            timestamp: message.messageTimestamp
+          });
+        }
+      });
+
+      // Manejar actualizaciones de credenciales
+      this.sock.ev.on('creds.update', saveCreds);
       
     } catch (error) {
-      logger.error('Error conectando a WhatsApp:', error);
       this.isConnecting = false;
-      this.connectionState = 'error';
+      logger.error('Error en conexión de WhatsApp:', error);
       throw error;
     }
   }
 
-  setupEventHandlers(saveCreds) {
-    // Manejo de actualizaciones de conexión
-    this.sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect, qr } = update;
-      
-      logger.whatsapp('Actualización de conexión:', { 
-        connection, 
-        lastDisconnect: lastDisconnect?.error?.output?.statusCode 
-      });
-
-      if (qr) {
-        await this.handleQRCode(qr);
-      }
-
-      if (connection === 'close') {
-        await this.handleDisconnection(lastDisconnect);
-      } else if (connection === 'open') {
-        await this.handleConnection();
-      }
-    });
-
-    // Guardar credenciales cuando cambien
-    this.sock.ev.on('creds.update', saveCreds);
-
-    // Manejo de mensajes entrantes
-    this.sock.ev.on('messages.upsert', async (messageUpdate) => {
-      await this.handleIncomingMessages(messageUpdate);
-    });
-
-    // Manejo de actualizaciones de mensajes (entregado, leído, etc.)
-    this.sock.ev.on('messages.update', async (messageUpdates) => {
-      await this.handleMessageUpdates(messageUpdates);
-    });
-
-    // Manejo de presencia (en línea, escribiendo, etc.)
-    this.sock.ev.on('presence.update', async (presenceUpdate) => {
-      logger.whatsapp('Actualización de presencia:', presenceUpdate);
-    });
-
-    // Manejo de contactos
-    this.sock.ev.on('contacts.upsert', async (contacts) => {
-      logger.whatsapp(`Contactos actualizados: ${contacts.length}`);
-    });
-
-    // Manejo de chats
-    this.sock.ev.on('chats.upsert', async (chats) => {
-      logger.whatsapp(`Chats actualizados: ${chats.length}`);
-    });
-  }
-
-  async handleQRCode(qr) {
-    try {
-      this.qrCode = await QRCode.toDataURL(qr);
-      this.connectionState = 'qr_ready';
-      
-      logger.whatsapp('Código QR generado');
-      
-      // Emitir QR a clientes conectados
-      this.io.emit('qr-code', {
-        qr: this.qrCode,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Mostrar QR en terminal para desarrollo
-      if (process.env.NODE_ENV === 'development') {
-        const QRTerminal = require('qrcode-terminal');
-        QRTerminal.generate(qr, { small: true });
-      }
-      
-    } catch (error) {
-      logger.error('Error generando código QR:', error);
+  formatPhoneNumber(number) {
+    // Remover caracteres no numéricos
+    let cleaned = number.replace(/\D/g, '');
+    
+    // Si empieza con 58 (Venezuela), agregar @s.whatsapp.net
+    if (cleaned.startsWith('58')) {
+      return `${cleaned}@s.whatsapp.net`;
     }
-  }
-
-  async handleConnection() {
-    this.isConnected = true;
-    this.isConnecting = false;
-    this.connectionState = 'connected';
-    this.qrCode = null;
-    this.reconnectAttempts = 0;
-    this.lastSeen = new Date();
     
-    logger.whatsapp('✅ Conectado a WhatsApp exitosamente');
-    
-    // Emitir estado de conexión
-    this.io.emit('connection-status', {
-      status: 'connected',
-      timestamp: new Date().toISOString(),
-      user: this.sock.user
-    });
-    
-
-    
-
-  }
-
-  async handleDisconnection(lastDisconnect) {
-    this.isConnected = false;
-    this.isConnecting = false;
-    this.qrCode = null;
-    
-    const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-    const reason = lastDisconnect?.error?.output?.statusCode;
-    
-    logger.whatsapp('Desconectado de WhatsApp:', { 
-      reason, 
-      shouldReconnect,
-      reconnectAttempts: this.reconnectAttempts 
-    });
-    
-    this.connectionState = shouldReconnect ? 'reconnecting' : 'disconnected';
-    
-    // Emitir estado de desconexión
-    this.io.emit('connection-status', {
-      status: this.connectionState,
-      reason,
-      timestamp: new Date().toISOString()
-    });
-    
-    if (shouldReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      
-      logger.whatsapp(`Reintentando conexión en ${delay}ms (intento ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-      
-      setTimeout(() => {
-        this.connect();
-      }, delay);
-    } else {
-      this.connectionState = 'disconnected';
-      logger.whatsapp('Máximo de reintentos alcanzado o sesión cerrada');
-      
-
+    // Si empieza con 0, removerlo y agregar @s.whatsapp.net
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
     }
-  }
-
-  async handleIncomingMessages(messageUpdate) {
-    const { messages, type } = messageUpdate;
     
-    for (const message of messages) {
-      if (message.key.fromMe) continue; // Ignorar mensajes propios
-      
-      logger.message('received', {
-        from: message.key.remoteJid,
-        messageType: Object.keys(message.message || {})[0],
-        timestamp: message.messageTimestamp
-      });
-      
-      // Procesar mensaje
-      await this.processIncomingMessage(message);
-      
-
-    }
-  }
-
-  async handleMessageUpdates(messageUpdates) {
-    for (const update of messageUpdates) {
-      logger.message('updated', {
-        messageId: update.key.id,
-        status: update.update?.status,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Actualizar estado en base de datos
-      await Message.update(
-        { status: update.update?.status || 'delivered' },
-        { where: { messageId: update.key.id } }
-      );
-    }
-  }
-
-  async processIncomingMessage(message) {
-    try {
-      // Ignorar mensajes de estado y mensajes sin contenido
-      if (message.key.remoteJid === 'status@broadcast' || !message.message) {
-        return;
-      }
-
-      // Extraer información del mensaje
-      const messageInfo = {
-        id: message.key.id,
-        from: message.key.remoteJid,
-        timestamp: message.messageTimestamp,
-        message: message.message,
-        pushName: message.pushName
-      };
-      
-      // Validar que el mensaje tenga contenido
-      const messageContent = JSON.stringify(messageInfo.message);
-      if (!messageContent || messageContent === 'null') {
-        return;
-      }
-      
-      // Guardar en base de datos
-      await Message.create({
-        messageId: messageInfo.id,
-        from: messageInfo.from,
-        to: this.sock.user?.id || 'self',
-        message: messageContent,
-        type: 'text',
-        status: 'delivered',
-        companyId: 1
-      });
-      
-      // Emitir a clientes conectados
-      this.io.emit('message-received', messageInfo);
-      
-    } catch (error) {
-      logger.error('Error procesando mensaje entrante:', error);
-    }
+    // Por defecto, agregar @s.whatsapp.net
+    return `${cleaned}@s.whatsapp.net`;
   }
 
   async sendMessage(to, content, options = {}) {
@@ -361,13 +241,20 @@ class WhatsAppService {
         messageContent = content;
       }
       
-      // Enviar mensaje
-      const result = await this.sock.sendMessage(jid, messageContent, options);
+      // Crear promesa con timeout
+      const sendPromise = this.sock.sendMessage(jid, messageContent, options);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timed Out')), this.messageTimeout)
+      );
+      
+      // Enviar mensaje con timeout
+      const result = await Promise.race([sendPromise, timeoutPromise]);
       
       logger.message('sent', {
         to: jid,
         messageId: result.key.id,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        companyId: options.companyId
       });
       
       // Guardar en base de datos
@@ -388,55 +275,105 @@ class WhatsAppService {
       };
       
     } catch (error) {
-      logger.error('Error enviando mensaje:', error);
+      logger.error('Error sending WhatsApp message:', {
+        error: error.message,
+        to: to,
+        companyId: options.companyId,
+        stack: error.stack
+      });
+      
+      // Si es timeout, intentar reconectar
+      if (error.message === 'Timed Out') {
+        logger.warn('Message timeout detected, checking connection...');
+        await this.checkAndReconnect();
+      }
+      
       throw error;
     }
   }
 
-  formatPhoneNumber(phone) {
-    // Limpiar número
-    let cleaned = phone.replace(/\D/g, '');
-    
-    // Agregar código de país si no lo tiene
-    if (!cleaned.startsWith('58') && cleaned.length === 10) {
-      cleaned = '58' + cleaned;
+  async checkAndReconnect() {
+    try {
+      if (!this.isConnected) {
+        logger.info('WhatsApp disconnected, attempting to reconnect...');
+        await this.connect();
+      }
+    } catch (error) {
+      logger.error('Error during reconnection attempt:', error);
     }
-    
-    // Agregar sufijo de WhatsApp
-    return cleaned + '@s.whatsapp.net';
+  }
+
+  async disconnect() {
+    try {
+      if (this.sock) {
+        await this.sock.logout();
+        this.isConnected = false;
+        this.connectionState = 'disconnected';
+        logger.whatsapp('WhatsApp desconectado');
+      }
+    } catch (error) {
+      logger.error('Error disconnecting WhatsApp:', error);
+      throw error;
+    }
+  }
+
+  async forceReset() {
+    try {
+      logger.whatsapp('Forzando reinicio completo del servicio...');
+      
+      // Forzar desconexión
+      if (this.sock) {
+        try {
+          await this.sock.logout();
+          await this.sock.end();
+        } catch (error) {
+          logger.warn('Error durante logout forzado:', error.message);
+        }
+        this.sock = null;
+      }
+      
+      // Reiniciar todas las variables de estado
+      this.isConnected = false;
+      this.isConnecting = false;
+      this.connectionState = 'disconnected';
+      this.qrCode = null;
+      this.reconnectAttempts = 0;
+      this.lastSeen = null;
+      
+      // Pequeña pausa para asegurar limpieza
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      logger.whatsapp('✅ Servicio reiniciado completamente');
+      
+    } catch (error) {
+      logger.error('Error forzando reinicio:', error);
+      throw error;
+    }
   }
 
   getStatus() {
     return {
-      isConnected: this.isConnected,
+      connected: this.isConnected,
       connectionState: this.connectionState,
-      qrCode: this.qrCode,
       user: this.sock?.user || null,
+      qr: this.qrCode,
       lastSeen: this.lastSeen,
-      reconnectAttempts: this.reconnectAttempts
+      reconnectAttempts: this.reconnectAttempts,
+      messageTimeout: this.messageTimeout
     };
   }
 
-  getQRCode() {
-    return this.qrCode;
-  }
-
-  async logout() {
-    if (this.sock) {
-      await this.sock.logout();
-      logger.whatsapp('Sesión cerrada exitosamente');
-    }
-  }
-
   async shutdown() {
-    logger.whatsapp('Cerrando servicio WhatsApp...');
-    
-    if (this.sock) {
-      this.sock.end();
+    try {
+      logger.whatsapp('Apagando servicio WhatsApp...');
+      if (this.sock) {
+        await this.sock.end();
+      }
+      logger.whatsapp('Servicio WhatsApp apagado');
+    } catch (error) {
+      logger.error('Error shutting down WhatsApp service:', error);
+      throw error;
     }
-    
-
-    logger.whatsapp('Servicio WhatsApp cerrado');
   }
 }
 

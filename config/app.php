@@ -185,4 +185,14 @@ return [
         // 'Example' => App\Facades\Example::class,
     ])->toArray(),
 
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | This value is the URL of the WhatsApp API service.
+    |
+    */
+    'whatsapp_api_url' => env('WHATSAPP_API_URL', 'http://localhost:3001'),
+
 ];

@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const antiBlockProtection = require('../middleware/antiBlockProtection');
+const QRCode = require('qrcode');
 
 class WhatsAppController {
   async getStatus(req, res) {
@@ -71,6 +72,31 @@ class WhatsAppController {
     }
   }
 
+  async forceReset(req, res) {
+    try {
+      const whatsappService = req.app.locals.whatsappService;
+      
+      if (!whatsappService) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WhatsApp service not initialized' 
+        });
+      }
+
+      logger.info('🔄 Forzando reinicio completo...', { company: req.company.name });
+      await whatsappService.forceReset();
+      
+      res.json({ 
+        success: true, 
+        message: 'WhatsApp service reset successfully',
+        company: req.company.name
+      });
+    } catch (error) {
+      logger.error('Error forcing reset:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
   async getQRCode(req, res) {
     try {
       // Acceder a la instancia global del servicio WhatsApp
@@ -85,19 +111,20 @@ class WhatsAppController {
       }
       
       const status = whatsappService.getStatus();
-      const qr = status.qrCode;
+      const qrRaw = status.qr;
       
-      if (qr) {
+      if (qrRaw) {
+        const qrDataUrl = await QRCode.toDataURL(qrRaw, { width: 300, margin: 2 });
         res.json({ 
           success: true, 
-          qr, 
+          qr: qrDataUrl, 
           company: req.company.name,
           message: 'QR code available'
         });
       } else {
         res.json({ 
           success: false, 
-          error: 'QR code not available. Connection status: ' + status.connectionState,
+          error: 'QR code not available. Connection status: ' + (status.connectionState || 'unknown'),
           company: req.company.name,
           connectionState: status.connectionState
         });
@@ -110,7 +137,7 @@ class WhatsAppController {
 
   async sendMessage(req, res) {
     try {
-      const { to, message, type = 'text', mediaUrl } = req.body;
+      const { to, message, type = 'text', mediaUrl, isWelcome = false } = req.body;
       const whatsappService = req.app.locals.whatsappService;
       
       if (!whatsappService) {
@@ -122,20 +149,28 @@ class WhatsAppController {
 
       // 🔒 PROTECCIÓN ANTI-BLOQUEO CRÍTICA
       try {
-        await antiBlockProtection.protectMessage(req.company.id, to, message);
+        if (isWelcome) {
+          // Para mensajes de bienvenida, usar protección especial
+          await antiBlockProtection.protectWelcomeMessage(req.company.id, to, message);
+        } else {
+          // Para mensajes normales, usar protección completa
+          await antiBlockProtection.protectMessage(req.company.id, to, message);
+        }
       } catch (protectionError) {
         logger.warn(`Message blocked by anti-block protection: ${protectionError.message}`, {
           companyId: req.company.id,
           companyName: req.company.name,
           to,
-          reason: protectionError.message
+          reason: protectionError.message,
+          isWelcome
         });
         
         return res.status(429).json({ 
           success: false, 
           error: protectionError.message,
           code: 'ANTI_BLOCK_PROTECTION',
-          company: req.company.name
+          company: req.company.name,
+          isWelcome
         });
       }
 
@@ -151,7 +186,8 @@ class WhatsAppController {
         company: req.company.name,
         antiBlock: {
           protected: true,
-          message: 'Mensaje validado y protegido contra bloqueo'
+          message: isWelcome ? 'Mensaje de bienvenida enviado' : 'Mensaje validado y protegido contra bloqueo',
+          isWelcome: isWelcome
         }
       });
     } catch (error) {

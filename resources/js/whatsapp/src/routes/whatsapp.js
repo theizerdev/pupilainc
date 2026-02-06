@@ -16,6 +16,7 @@ router.use(validateApiKey);
 router.get('/status', WhatsAppController.getStatus);
 router.post('/connect', WhatsAppController.connect);
 router.delete('/disconnect', WhatsAppController.disconnect);
+router.post('/force-reset', WhatsAppController.forceReset);
 router.get('/qr', WhatsAppController.getQRCode);
 router.post('/send', rateLimitByCompany, WhatsAppController.sendMessage);
 router.post('/send-document', rateLimitByCompany, WhatsAppController.upload.single('document'), WhatsAppController.sendDocument);

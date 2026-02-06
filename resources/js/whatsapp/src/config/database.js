@@ -5,7 +5,7 @@ const sequelize = new Sequelize({
   dialect: 'mysql',
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
-  database: process.env.DB_NAME || 'vargas',
+  database: process.env.DB_NAME || 'larawhatsapp', // Cambiado a larawhatsapp
   username: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || '',
   logging: false,

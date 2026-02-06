@@ -146,6 +146,20 @@ class RolesAndPermissionsSeeder extends Seeder
             'edit subespecialidades',
             'delete subespecialidades',
             ],
+            // Módulo de médicos
+            'medicos' => [
+                'access medicos',
+                'create medicos',
+                'edit medicos',
+                'delete medicos',
+                'view medicos',
+                'activate medicos',
+                'deactivate medicos',
+                'assign especialidades',
+                'assign subespecialidades',
+                'view medicos schedule',
+                'edit medicos schedule',
+            ],
         ];
 
         // Crear permisos organizados por módulos
@@ -161,6 +175,9 @@ class RolesAndPermissionsSeeder extends Seeder
         // Crear roles y asignar permisos
         $superAdminRole = Role::firstOrCreate(['name' => 'Super Administrador']);
         $adminRole = Role::firstOrCreate(['name' => 'Administrador']);
+        $doc = Role::firstOrCreate(['name' => 'Médico']);
+        $enf = Role::firstOrCreate(['name' => 'Enfermeria']);
+        $sec = Role::firstOrCreate(['name' => 'Recepcion']);
 
         // Asignar todos los permisos al Super Administrador
         $superAdminRole->syncPermissions(Permission::all());

@@ -43,6 +43,11 @@ Route::get('/subespecialidades/crear', \App\Livewire\Admin\Subespecialidades\Cre
 Route::get('/subespecialidades/{subespecialidad}/editar', \App\Livewire\Admin\Subespecialidades\Edit::class)->name('subespecialidades.edit');
 Route::get('/subespecialidades/{subespecialidad}', \App\Livewire\Admin\Subespecialidades\Show::class)->name('subespecialidades.show');
 
+// Médicos
+Route::get('/medicos', \App\Livewire\Admin\Medicos\Index::class)->name('medicos.index');
+Route::get('/medicos/crear', \App\Livewire\Admin\Medicos\Create::class)->name('medicos.create');
+Route::get('/medicos/{medico}/editar', \App\Livewire\Admin\Medicos\Edit::class)->name('medicos.edit');
+
 // Países
 Route::get('/paises', \App\Livewire\Admin\Paises\PaisIndex::class)->name('paises.index');
 Route::get('/paises/crear', \App\Livewire\Admin\Paises\Create::class)->name('paises.create');

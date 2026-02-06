@@ -133,17 +133,19 @@ class AntiBlockProtection {
       throw new Error('Número destinatario inválido');
     }
     
-    // Formato WhatsApp básico
+    // Formato WhatsApp JID
     const whatsappPattern = /^\d{10,15}@s\.whatsapp\.net$/;
     const groupPattern = /^\d{10,20}@g\.us$/;
+    // Formato teléfono directo (con o sin +)
+    const phonePattern = /^\+?\d{10,15}$/;
     
-    if (!whatsappPattern.test(to) && !groupPattern.test(to)) {
+    if (!whatsappPattern.test(to) && !groupPattern.test(to) && !phonePattern.test(to)) {
       throw new Error('Formato de número WhatsApp inválido');
     }
     
     // Prevenir números de prueba comunes
     const testNumbers = ['1234567890', '0000000000', '1111111111', '9999999999'];
-    const numberOnly = to.replace(/@.*$/, '');
+    const numberOnly = to.replace(/[@+].*$/, '').replace(/\D/g, '');
     
     if (testNumbers.some(test => numberOnly.includes(test))) {
       throw new Error('Número de prueba no permitido');
@@ -179,6 +181,45 @@ class AntiBlockProtection {
       return true;
     } catch (error) {
       logger.warn(`Anti-block: Message blocked - ${error.message}`, {
+        companyId,
+        to,
+        error: error.message
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Método especial para mensajes de bienvenida - menos restricciones
+   */
+  async protectWelcomeMessage(companyId, to, message) {
+    try {
+      // Para mensajes de bienvenida, solo validar destinatario y contenido básico
+      this.validateRecipient(to);
+      
+      // Validación más relajada del contenido
+      if (!message || typeof message !== 'string') {
+        throw new Error('Mensaje inválido');
+      }
+      
+      if (message.length < 2 || message.length > 4096) {
+        throw new Error('Mensaje con longitud inválida');
+      }
+      
+      // No aplicar límites de horario ni de cantidad para mensajes de bienvenida
+      // pero sí aplicar un delay mínimo
+      await this.checkAndDelay(companyId, to, message);
+      
+      logger.info(`Anti-block: Welcome message validated for ${to}`, {
+        companyId,
+        to,
+        messageLength: message.length,
+        type: 'welcome'
+      });
+      
+      return true;
+    } catch (error) {
+      logger.warn(`Anti-block: Welcome message blocked - ${error.message}`, {
         companyId,
         to,
         error: error.message
