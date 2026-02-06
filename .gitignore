@@ -276,6 +276,7 @@ Thumbs.db
 /resources/js/whatsapp/.imports/
 
 # WhatsApp Storage Files - Extensiones comunes (excluyendo package.json)
+/resources/js/whatsapp/storage/sessions/*.json
 /resources/js/whatsapp/**/*.db
 /resources/js/whatsapp/**/*.sqlite
 /resources/js/whatsapp/**/*.log
