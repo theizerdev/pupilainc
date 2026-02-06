@@ -177,6 +177,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'edit citas',
                 'delete citas',
             ],
+          
         ];
 
         // Crear permisos organizados por módulos
@@ -221,7 +222,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'edit citas',
             'delete citas',
             'access activity log',
-            'view activity log'
+            'view activity log',
         ])->get();
         $doc->syncPermissions($medicoPermissions);
 
@@ -238,7 +239,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'create citas',
             'edit citas',
             'access activity log',
-            'view activity log'
+            'view activity log',
+            'access tipo consultas',
+            'create tipo consultas',
+            'edit tipo consultas',
+            'delete tipo consultas',
         ])->get();
         $enf->syncPermissions($enfermeriaPermissions);
 
@@ -260,7 +265,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'view conceptos pago',
             'access series',
             'access cajas',
-            'view cajas'
+            'view cajas',
+            'access tipo consultas',
+            'create tipo consultas',
+            'edit tipo consultas',
+            'delete tipo consultas',
         ])->get();
         $sec->syncPermissions($recepcionPermissions);
 

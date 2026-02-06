@@ -583,7 +583,7 @@ class Create extends Component
             return redirect()->route('admin.tipo-consultas.index');
         } catch (\Throwable $th) {
             //throw $th;
-            dd($th);
+           // dd($th);
             $this->dispatch('notify', [
                     'type' => 'warning',
                     'message' => "Algo salió mal, por favor intenta de nuevo.",

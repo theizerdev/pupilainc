@@ -137,6 +137,13 @@
          </ul>
       </li>
       @endcan
+      @can('access tipo-consultas')
+        <li class="menu-item {{ request()->routeIs('admin.tipo-consultas*') ? 'active' : '' }}">
+              <a href="{{ route('admin.tipo-consultas.index') }}" class="menu-link">
+                <div>Tipos de Consultas</div>
+              </a>
+        </li>
+    @endcan
        
 
       @canany(['access conceptos pago', 'access cajas'])

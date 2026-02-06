@@ -15,7 +15,7 @@
 
         <!-- Form -->
         <div class="row">
-            <div class="col-lg-8">
+            <div class="col-lg-12">
                 <div class="card shadow">
                     <div class="card-header py-3">
                         <h6 class="m-0 font-weight-bold text-primary">Información del Tipo de Consulta</h6>
@@ -191,88 +191,11 @@
                         </form>
                     </div>
                 </div>
-            </div>
+           
 
-            <div class="col-lg-4">
-                <!-- Preview Card -->
-                <div class="card shadow">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Vista Previa</h6>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="mb-3">
-                            <span class="badge" style="background-color: {{ $color }}; color: white; font-size: 1.2em;">
-                                <i class="fas {{ $icono }}"></i> {{ $codigo ?: 'TDC001' }}
-                            </span>
-                        </div>
-                        <h5>{{ $nombre ?: 'Nombre de Tipo de Consulta' }}</h5>
-                        <p class="text-muted">{{ $descripcion ?: 'Descripción del tipo de consulta' }}</p>
-                        
-                        <hr>
-                        
-                        <div class="row text-left">
-                            <div class="col-6">
-                                <strong>Costo:</strong>
-                            </div>
-                            <div class="col-6 text-right">
-                                ${{ number_format($costo_consulta, 2) }}
-                            </div>
-                        </div>
-                        
-                        <div class="row text-left">
-                            <div class="col-6">
-                                <strong>Duración:</strong>
-                            </div>
-                            <div class="col-6 text-right">
-                                {{ $duracion_consulta }} min
-                            </div>
-                        </div>
-                        
-                        <div class="row text-left">
-                            <div class="col-6">
-                                <strong>Cita previa:</strong>
-                            </div>
-                            <div class="col-6 text-right">
-                                {{ $requiere_cita_previa ? 'Sí' : 'No' }}
-                            </div>
-                        </div>
-                        
-                        <div class="row text-left">
-                            <div class="col-6">
-                                <strong>Estado:</strong>
-                            </div>
-                            <div class="col-6 text-right">
-                                <span class="badge badge-{{ $status ? 'success' : 'secondary' }}">
-                                    {{ $status ? 'Activo' : 'Inactivo' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+           
 
-                <!-- Quick Stats -->
-                @if($empresa_id && $sucursal_id)
-                <div class="card shadow mt-4">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">Ubicación</h6>
-                    </div>
-                    <div class="card-body">
-                        @foreach($empresas as $empresa)
-                            @if($empresa->id == $empresa_id)
-                                <p><strong>Empresa:</strong> {{ $empresa->razon_social }}</p>
-                                @break
-                            @endif
-                        @endforeach
-                        
-                        @foreach($sucursales as $sucursal)
-                            @if($sucursal->id == $sucursal_id)
-                                <p><strong>Sucursal:</strong> {{ $sucursal->nombre }}</p>
-                                @break
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-                @endif
+               
             </div>
         </div>
     </div>
