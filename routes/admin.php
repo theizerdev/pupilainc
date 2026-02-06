@@ -37,6 +37,12 @@ Route::get('/especialidades/crear', \App\Livewire\Admin\Especialidades\Create::c
 Route::get('/especialidades/{especialidad}/editar', \App\Livewire\Admin\Especialidades\Edit::class)->name('especialidades.edit');
 Route::get('/especialidades/{especialidad}', \App\Livewire\Admin\Especialidades\Show::class)->name('especialidades.show');
 
+// Tipos de Consulta
+Route::get('/tipo-consultas', \App\Livewire\Admin\TipoConsultas\Index::class)->name('tipo-consultas.index');
+Route::get('/tipo-consultas/crear', \App\Livewire\Admin\TipoConsultas\Create::class)->name('tipo-consultas.create');
+Route::get('/tipo-consultas/{tipoConsulta}/editar', \App\Livewire\Admin\TipoConsultas\Edit::class)->name('tipo-consultas.edit');
+Route::get('/tipo-consultas/{tipoConsulta}', \App\Livewire\Admin\TipoConsultas\Show::class)->name('tipo-consultas.show');
+
 // Subespecialidades
 Route::get('/subespecialidades', \App\Livewire\Admin\Subespecialidades\Index::class)->name('subespecialidades.index');
 Route::get('/subespecialidades/crear', \App\Livewire\Admin\Subespecialidades\Create::class)->name('subespecialidades.create');

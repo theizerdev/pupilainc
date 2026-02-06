@@ -13,17 +13,85 @@
         .slots-container { max-height: 200px; overflow-y: auto; }
         .cascade-arrow { text-align: center; color: #aaa; font-size: .75rem; margin: 2px 0; }
 
-        /* Citas: Adulto (azul) vs Menor de edad (morado) */
-        .fc-event.cita-adulto { background-color: rgba(59, 130, 246, 0.16) !important; border-left: 3px solid #3B82F6 !important; color: #3B82F6 !important; }
-        .fc-event.cita-adulto .fc-event-time,
-        .fc-event.cita-adulto .fc-event-title { color: #3B82F6 !important; }
-        .fc-event.cita-menor { background-color: rgba(139, 92, 246, 0.16) !important; border-left: 3px solid #8B5CF6 !important; color: #8B5CF6 !important; }
-        .fc-event.cita-menor .fc-event-time,
-        .fc-event.cita-menor .fc-event-title { color: #8B5CF6 !important; }
+        /* ========== Compact calendar events ========== */
+        .fc .fc-event {
+            border-radius: 4px !important;
+            border-left: 4px solid transparent !important;
+            transition: box-shadow 0.15s ease;
+        }
+        .fc .fc-event:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 10;
+        }
 
-        /* Leyenda */
+        /* Month view: ultra compact */
+        .fc .fc-daygrid-event {
+            padding: 1px 4px !important;
+            margin-bottom: 1px !important;
+        }
+        .fc .fc-daygrid-event .fc-event-time {
+            font-size: 0.68rem;
+            font-weight: 600;
+        }
+        .fc .fc-daygrid-event .fc-event-title {
+            font-size: 0.70rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Week/Day view: compact */
+        .fc .fc-timegrid-event .fc-event-main {
+            padding: 2px 5px !important;
+        }
+        .fc .fc-timegrid-event .fc-event-time {
+            font-size: 0.70rem;
+            font-weight: 600;
+        }
+        .fc .fc-timegrid-event .fc-event-title {
+            font-size: 0.72rem;
+        }
+        .fc .fc-timegrid-event .fc-event-subtitle {
+            font-size: 0.65rem;
+            opacity: 0.75;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* List view */
+        .fc .fc-list-event-title {
+            font-size: 0.85rem;
+        }
+
+        /* Leyendas y sidebar */
         .calendar-legend { font-size: 0.8rem; }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .legend-bar { width: 4px; height: 16px; border-radius: 2px; display: inline-block; }
+
+        /* Médicos con citas sidebar */
+        .medico-item {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .medico-item:hover {
+            background: rgba(var(--bs-primary-rgb), 0.08);
+        }
+        .medico-item.active {
+            background: rgba(var(--bs-primary-rgb), 0.12);
+            font-weight: 600;
+        }
+
+        /* Tipo consulta legend */
+        .tipo-consulta-item {
+            display: flex;
+            align-items: center;
+            padding: 3px 0;
+            font-size: 0.8rem;
+        }
     </style>
     @endpush
 
@@ -85,6 +153,31 @@
                             <label class="form-check-label" for="select-no_asistio">No Asistió</label>
                         </div>
                     </div>
+
+                    <!-- Tipo de Consulta Legend -->
+                    @if($tiposConsulta->isNotEmpty())
+                        <hr class="mb-5 mx-n4 mt-3" />
+                        <div class="mb-4 ms-1"><h5>Tipo de Consulta</h5></div>
+                        <div class="ms-3 mb-3">
+                            @foreach($tiposConsulta as $tipo)
+                                <div class="tipo-consulta-item mb-2">
+                                    <span class="legend-bar me-2" style="background-color: {{ $tipo->color }};"></span>
+                                    <small>{{ $tipo->nombre }}</small>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <!-- Médicos con citas -->
+                    <hr class="mb-5 mx-n4 mt-3" />
+                    <div class="mb-3 ms-1 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Médicos con Citas</h5>
+                    </div>
+                    <div id="medicos-con-citas" class="ms-1" style="max-height: 200px; overflow-y: auto;">
+                        <small class="text-muted">Cargando...</small>
+                    </div>
+
+                    <!-- Tipo de paciente -->
                     <hr class="mb-5 mx-n4 mt-3" />
                     <div class="mb-4 ms-1"><h5>Tipo de Paciente</h5></div>
                     <div class="calendar-legend ms-3">
@@ -177,6 +270,19 @@
                             <div class="form-control-validation d-none">
                                 <input type="hidden" id="eventStartDate" name="eventStartDate" />
                                 <input type="hidden" id="eventEndDate" name="eventEndDate" />
+                            </div>
+
+                            <!-- Tipo de Consulta -->
+                            <div class="form-floating form-floating-outline mb-5">
+                                <select class="select2 form-select" id="eventTipoConsulta" name="eventTipoConsulta">
+                                    <option value="">Sin tipo de consulta</option>
+                                    @foreach($tiposConsulta as $tipo)
+                                        <option value="{{ $tipo->id }}" data-color="{{ $tipo->color }}">
+                                            {{ $tipo->nombre }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <label for="eventTipoConsulta">Tipo de Consulta</label>
                             </div>
 
                             <!-- Motivo -->

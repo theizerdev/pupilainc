@@ -25,6 +25,8 @@ function initCitasCalendar(events) {
     const selectAll = document.querySelector('.select-all');
     const filterInputs = Array.from(document.querySelectorAll('.input-filter'));
     const inlineCalendar = document.querySelector('.inline-calendar');
+    const medicosConCitasContainer = document.getElementById('medicos-con-citas');
+    var selectedMedicoFilter = null;
 
     if (!calendarEl) return;
 
@@ -49,6 +51,7 @@ function initCitasCalendar(events) {
     const eventSubespecialidad = $('#eventSubespecialidad');
     const eventMedico = $('#eventMedico');
     const eventEstado = $('#eventEstado');
+    const eventTipoConsulta = $('#eventTipoConsulta');
     const eventFecha = document.getElementById('eventFecha');
     const subespecialidadContainer = document.getElementById('subespecialidadContainer');
     const slotsContainer = document.getElementById('slotsContainer');
@@ -117,6 +120,22 @@ function initCitasCalendar(events) {
             templateResult: renderEstadoBadge,
             templateSelection: renderEstadoBadge,
             minimumResultsForSearch: -1,
+            escapeMarkup: function(es) { return es; }
+        });
+    }
+
+    if (eventTipoConsulta.length) {
+        function renderTipoConsultaOption(option) {
+            if (!option.id) return option.text;
+            var color = $(option.element).data('color') || '#6c757d';
+            return "<span style='display:inline-block;width:12px;height:12px;border-radius:3px;background:" + color + ";margin-right:8px;vertical-align:middle;'></span>" + option.text;
+        }
+        eventTipoConsulta.select2({
+            placeholder: 'Sin tipo de consulta',
+            dropdownParent: eventTipoConsulta.parent(),
+            allowClear: true,
+            templateResult: renderTipoConsultaOption,
+            templateSelection: renderTipoConsultaOption,
             escapeMarkup: function(es) { return es; }
         });
     }
@@ -416,9 +435,50 @@ function initCitasCalendar(events) {
     function fetchEvents(info, successCallback) {
         var calendars = selectedCalendars();
         var selectedEvents = currentEvents.filter(function (event) {
-            return calendars.includes(event.extendedProps.calendar);
+            var matchEstado = calendars.includes(event.extendedProps.calendar);
+            var matchMedico = !selectedMedicoFilter || String(event.extendedProps.medico_id) === String(selectedMedicoFilter);
+            return matchEstado && matchMedico;
         });
         successCallback(selectedEvents);
+        updateMedicosConCitas();
+    }
+
+    function updateMedicosConCitas() {
+        if (!medicosConCitasContainer) return;
+        var medicoMap = {};
+        var calendars = selectedCalendars();
+        currentEvents.forEach(function(ev) {
+            if (!calendars.includes(ev.extendedProps.calendar)) return;
+            var mid = ev.extendedProps.medico_id;
+            var mname = ev.extendedProps.medico_full || ev.extendedProps.medico || '';
+            if (mid && mname) {
+                if (!medicoMap[mid]) medicoMap[mid] = { nombre: mname, count: 0 };
+                medicoMap[mid].count++;
+            }
+        });
+
+        var medicos = Object.keys(medicoMap).map(function(id) {
+            return { id: id, nombre: medicoMap[id].nombre, count: medicoMap[id].count };
+        }).sort(function(a, b) { return b.count - a.count; });
+
+        if (medicos.length === 0) {
+            medicosConCitasContainer.innerHTML = '<small class="text-muted">Sin citas en el período</small>';
+            return;
+        }
+
+        var html = '';
+        if (selectedMedicoFilter) {
+            html += '<div class="medico-item mb-1 text-primary" onclick="window._clearMedicoFilter()" style="cursor:pointer;font-size:0.75rem;">' +
+                '<i class="fas fa-times me-1"></i> Limpiar filtro</div>';
+        }
+        medicos.forEach(function(m) {
+            var isActive = selectedMedicoFilter && String(selectedMedicoFilter) === String(m.id);
+            html += '<div class="medico-item d-flex justify-content-between align-items-center mb-1' + (isActive ? ' active' : '') + '" onclick="window._filterByMedico(\'' + m.id + '\')">' +
+                '<span><i class="fas fa-user-md me-1 text-muted" style="font-size:0.7rem;"></i>' + m.nombre + '</span>' +
+                '<span class="badge bg-label-primary rounded-pill" style="font-size:0.65rem;">' + m.count + '</span>' +
+                '</div>';
+        });
+        medicosConCitasContainer.innerHTML = html;
     }
 
     function resetValues() {
@@ -430,6 +490,7 @@ function initCitasCalendar(events) {
         if (fechaFlatpickr) fechaFlatpickr.clear();
         if (eventPaciente.length) eventPaciente.val('').trigger('change.select2');
         if (eventEstado.length) eventEstado.val('pendiente').trigger('change');
+        if (eventTipoConsulta.length) eventTipoConsulta.val('').trigger('change.select2');
         resetCascadeFrom(2);
         eventToUpdate = null;
     }
@@ -454,6 +515,7 @@ function initCitasCalendar(events) {
         if (eventMotivo) eventMotivo.value = ep.motivo || '';
         if (eventNotas) eventNotas.value = ep.notas || '';
         if (eventEstado.length) eventEstado.val(ep.estado || 'pendiente').trigger('change');
+        if (eventTipoConsulta.length) eventTipoConsulta.val(ep.tipo_consulta_id || '').trigger('change.select2');
         if (start) start.setDate(eventToUpdate.start, true, 'Y-m-d H:i');
         if (end) {
             eventToUpdate.end !== null
@@ -554,32 +616,56 @@ function initCitasCalendar(events) {
         initialDate: new Date(),
         navLinks: true,
         eventClassNames: function (arg) {
-            var ep = arg.event.extendedProps;
-            var classes = [];
-            classes.push(ep.es_menor ? 'cita-menor' : 'cita-adulto');
-            return classes;
+            return [];
         },
         eventContent: function(arg) {
             var ep = arg.event.extendedProps;
             var timeText = arg.timeText || '';
             var html = '';
-            var menorBadge = ep.es_menor ? ' <span style="font-size:0.65em;" title="Menor de edad">👶</span>' : '';
+            var menorIcon = ep.es_menor ? '<span style="font-size:0.6em;margin-left:2px;" title="Menor de edad">👶</span>' : '';
+            var tipoTag = ep.tipo_consulta_nombre ? '<span style="font-size:0.6em;opacity:0.7;margin-left:3px;">(' + ep.tipo_consulta_nombre + ')</span>' : '';
+
             if (arg.view.type === 'listMonth') {
-                html = '<div>' +
-                    '<strong>' + arg.event.title + menorBadge + '</strong>' +
-                    '<br><small class="text-muted">Dr(a). ' + (ep.medico || '') + '</small>' +
-                    '<br><small>' + (ep.motivo || '') + '</small>' +
+                html = '<div style="line-height:1.4;">' +
+                    '<strong style="font-size:0.85rem;">' + arg.event.title + menorIcon + '</strong>' + tipoTag +
+                    '<br><small class="text-muted"><i class="fas fa-user-md" style="font-size:0.65em;"></i> ' + (ep.medico || '') + '</small>' +
+                    (ep.motivo ? '<br><small class="text-muted">' + ep.motivo + '</small>' : '') +
                     '</div>';
-            } else {
-                html = '<div class="fc-event-main-frame">' +
+            } else if (arg.view.type === 'dayGridMonth') {
+                html = '<div class="fc-event-main-frame" style="line-height:1.2;">' +
                     '<div class="fc-event-time">' + timeText + '</div>' +
                     '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title fc-sticky">' + arg.event.title + menorBadge + '</div>' +
-                        '<div class="fc-event-subtitle" style="font-size:0.7em;opacity:0.8;">Dr(a). ' + (ep.medico || '') + '</div>' +
+                        '<div class="fc-event-title fc-sticky">' + arg.event.title + menorIcon + '</div>' +
+                    '</div>' +
+                    '</div>';
+            } else {
+                html = '<div class="fc-event-main-frame" style="line-height:1.3;">' +
+                    '<div class="fc-event-time">' + timeText + '</div>' +
+                    '<div class="fc-event-title-container">' +
+                        '<div class="fc-event-title fc-sticky">' + arg.event.title + menorIcon + '</div>' +
+                        '<div class="fc-event-subtitle"><i class="fas fa-user-md" style="font-size:0.6em;"></i> ' + (ep.medico || '') + '</div>' +
                     '</div>' +
                     '</div>';
             }
             return { html: html };
+        },
+        eventDidMount: function(info) {
+            var ep = info.event.extendedProps || {};
+            if (ep.tipo_consulta_color) {
+                info.el.style.borderLeftColor = ep.tipo_consulta_color;
+            } else if (ep.es_menor) {
+                info.el.style.borderLeftColor = '#8B5CF6';
+            } else {
+                info.el.style.borderLeftColor = '#3B82F6';
+            }
+            var tooltipParts = [
+                ep.paciente || info.event.title,
+                'Dr(a). ' + (ep.medico_full || ep.medico || ''),
+                'Estado: ' + (ep.estado_label || ep.estado || ''),
+            ];
+            if (ep.tipo_consulta_nombre) tooltipParts.push('Tipo: ' + ep.tipo_consulta_nombre);
+            if (ep.motivo) tooltipParts.push('Motivo: ' + ep.motivo);
+            info.el.title = tooltipParts.join('\n');
         },
         dateClick: function (info) {
             var dateOnly = info.dateStr.substring(0, 10);
@@ -614,7 +700,7 @@ function initCitasCalendar(events) {
                 comp.call('updateCitaFechas', parseInt(info.event.id), startStr, endStr);
             }
         },
-        datesSet: modifyToggler,
+        datesSet: function() { modifyToggler(); updateMedicosConCitas(); },
         viewDidMount: modifyToggler
     });
 
@@ -690,7 +776,8 @@ function initCitasCalendar(events) {
                         end: eventEndDate.value,
                         motivo: eventMotivo ? eventMotivo.value : '',
                         notas: eventNotas ? eventNotas.value : '',
-                        estado: eventEstado.val() || 'pendiente'
+                        estado: eventEstado.val() || 'pendiente',
+                        tipo_consulta_id: eventTipoConsulta.val() || ''
                     };
 
                     var comp = getLivewireComponent();
@@ -711,7 +798,8 @@ function initCitasCalendar(events) {
                         end: eventEndDate.value,
                         motivo: eventMotivo ? eventMotivo.value : '',
                         notas: eventNotas ? eventNotas.value : '',
-                        estado: eventEstado.val() || 'pendiente'
+                        estado: eventEstado.val() || 'pendiente',
+                        tipo_consulta_id: eventTipoConsulta.val() || ''
                     };
 
                     var comp = getLivewireComponent();
@@ -814,4 +902,18 @@ function initCitasCalendar(events) {
             window.showToast(data.type, data.message, data.duration || 5000);
         }
     });
+
+    window._filterByMedico = function(medicoId) {
+        if (selectedMedicoFilter === medicoId) {
+            selectedMedicoFilter = null;
+        } else {
+            selectedMedicoFilter = medicoId;
+        }
+        calendar.refetchEvents();
+    };
+
+    window._clearMedicoFilter = function() {
+        selectedMedicoFilter = null;
+        calendar.refetchEvents();
+    };
 }

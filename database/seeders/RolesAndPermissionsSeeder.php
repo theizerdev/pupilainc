@@ -140,6 +140,13 @@ class RolesAndPermissionsSeeder extends Seeder
                 'delete especialidades',
             ],
 
+            'tipo-consultas' => [
+                'access tipo-consultas',
+                'create tipo-consultas',
+                'edit tipo-consultas',
+                'delete tipo-consultas',
+            ],
+
             'subespecialidades' => [
             'access subespecialidades',
             'create subespecialidades',
@@ -157,6 +164,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'deactivate medicos',
                 'assign especialidades',
                 'assign subespecialidades',
+                'assign tipo-consultas',
                 'view medicos schedule',
                 'edit medicos schedule',
             ],
@@ -198,7 +206,63 @@ class RolesAndPermissionsSeeder extends Seeder
         ])->get();
         $adminRole->syncPermissions($adminPermissions);
 
-    
+        // Asignar permisos al rol de Médico
+        $medicoPermissions = Permission::whereIn('name', [
+            'access dashboard',
+            'dashboard.alerts',
+            'access especialidades',
+            'access subespecialidades',
+            'access tipo-consultas',
+            'access medicos',
+            'view medicos',
+            'view medicos schedule',
+            'access citas',
+            'create citas',
+            'edit citas',
+            'delete citas',
+            'access activity log',
+            'view activity log'
+        ])->get();
+        $doc->syncPermissions($medicoPermissions);
+
+        // Asignar permisos al rol de Enfermería
+        $enfermeriaPermissions = Permission::whereIn('name', [
+            'access dashboard',
+            'dashboard.alerts',
+            'access especialidades',
+            'access subespecialidades',
+            'access tipo-consultas',
+            'access medicos',
+            'view medicos',
+            'access citas',
+            'create citas',
+            'edit citas',
+            'access activity log',
+            'view activity log'
+        ])->get();
+        $enf->syncPermissions($enfermeriaPermissions);
+
+        // Asignar permisos al rol de Recepción
+        $recepcionPermissions = Permission::whereIn('name', [
+            'access dashboard',
+            'dashboard.alerts',
+            'access especialidades',
+            'access subespecialidades',
+            'access tipo-consultas',
+            'access medicos',
+            'view medicos',
+            'access citas',
+            'create citas',
+            'edit citas',
+            'access activity log',
+            'view activity log',
+            'access conceptos pago',
+            'view conceptos pago',
+            'access series',
+            'access cajas',
+            'view cajas'
+        ])->get();
+        $sec->syncPermissions($recepcionPermissions);
 
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Paciente;
 use App\Models\Especialidad;
 use App\Models\Subespecialidad;
 use App\Models\MedicoHorario;
+use App\Models\TipoConsulta;
 use App\Services\CitaNotificationService;
 use Livewire\Component;
 use App\Traits\HasDynamicLayout;
@@ -28,6 +29,7 @@ class Index extends Component
     public $motivo = '';
     public $notas = '';
     public $estado = 'pendiente';
+    public $tipo_consulta_id = '';
 
     public $filtroEstados = [];
     public $filtroMedico = '';
@@ -51,6 +53,7 @@ class Index extends Component
             'motivo' => 'required|string|max:255',
             'notas' => 'nullable|string|max:1000',
             'estado' => 'required|in:' . implode(',', Cita::ESTADOS),
+            'tipo_consulta_id' => 'nullable|exists:tipo_consultas,id',
         ];
     }
 
@@ -78,7 +81,7 @@ class Index extends Component
 
     protected function fetchEventos()
     {
-        $citas = Cita::with(['paciente', 'medico'])
+        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
            
             ->when($this->filtroMedico, function ($q) {
                 $q->porMedico($this->filtroMedico);
@@ -265,6 +268,7 @@ class Index extends Component
             $this->motivo = $eventData['motivo'] ?? $this->motivo;
             $this->notas = $eventData['notas'] ?? $this->notas;
             $this->estado = $eventData['estado'] ?? $this->estado;
+            $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
         }
 
         $this->validate();
@@ -298,6 +302,7 @@ class Index extends Component
             'motivo' => $this->motivo,
             'notas' => $this->notas,
             'estado' => $this->estado,
+            'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
         ];
 
         if ($this->citaId) {
@@ -417,7 +422,7 @@ class Index extends Component
 
     public function resetForm()
     {
-        $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas']);
+        $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
         $this->estado = 'pendiente';
         $this->resetValidation();
     }
@@ -507,6 +512,13 @@ class Index extends Component
         ];
     }
 
+    public function getTiposConsultaProperty()
+    {
+        return TipoConsulta::activos()
+            ->orderBy('nombre')
+            ->get();
+    }
+
     public function render()
     {
         return view('livewire.admin.citas.index', [
@@ -516,6 +528,7 @@ class Index extends Component
             'estados' => Cita::ESTADOS,
             'estadoLabels' => Cita::ESTADO_LABELS,
             'estadoColores' => Cita::ESTADO_COLORES,
+            'tiposConsulta' => $this->tiposConsulta,
         ])->layout($this->getLayout());
     }
 }

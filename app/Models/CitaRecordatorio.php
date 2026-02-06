@@ -13,7 +13,7 @@ class CitaRecordatorio extends Model
     protected $table = 'cita_recordatorios';
 
     const TIPOS = ['24h', '2h', 'personalizado'];
-    const ESTADOS = ['pendiente', 'enviado', 'fallido'];
+    const ESTADOS = ['pendiente', 'enviado', 'fallido', 'cancelado'];
     const CANALES = ['whatsapp', 'email', 'sms'];
 
     protected $fillable = [
@@ -25,6 +25,7 @@ class CitaRecordatorio extends Model
         'canal',
         'mensaje',
         'error_mensaje',
+        'intentos',
         'confirmacion_respuesta',
         'fecha_respuesta'
     ];
@@ -67,6 +68,19 @@ class CitaRecordatorio extends Model
             'estado' => 'fallido',
             'fecha_envio_real' => now(),
             'error_mensaje' => $error
+        ]);
+    }
+
+    public function scopeCancelados($query)
+    {
+        return $query->where('estado', 'cancelado');
+    }
+
+    public function marcarComoCancelado(string $motivo = 'Cancelado manualmente'): void
+    {
+        $this->update([
+            'estado' => 'cancelado',
+            'error_mensaje' => $motivo,
         ]);
     }
 

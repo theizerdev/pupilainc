@@ -3,28 +3,33 @@
 namespace App\Livewire\Admin\Citas;
 
 use App\Models\Cita;
+use App\Models\Medico;
 use App\Services\CitaReagendamientoService;
 use Carbon\Carbon;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\HasDynamicLayout;
 
 class Reagendamiento extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicLayout;
 
     public $search = '';
-    public $estado = 'cancelada';
+    public $estado = '';
     public $fechaDesde = '';
     public $fechaHasta = '';
     public $medicoId = '';
 
+    public $stats = [];
+
     public $mostrarModalReagendamiento = false;
     public $citaSeleccionada = null;
     public $horariosDisponibles = [];
+    public $diasBusqueda = 7;
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'estado' => ['except' => 'cancelada'],
+        'estado' => ['except' => ''],
         'fechaDesde' => ['except' => ''],
         'fechaHasta' => ['except' => ''],
         'medicoId' => ['except' => ''],
@@ -36,31 +41,88 @@ class Reagendamiento extends Component
     {
         $this->fechaDesde = now()->subMonth()->format('Y-m-d');
         $this->fechaHasta = now()->format('Y-m-d');
+        $this->calcularStats();
     }
 
-    public function updatingSearch()
+    public function updated($name)
     {
+        if (in_array($name, ['search', 'estado', 'fechaDesde', 'fechaHasta', 'medicoId'])) {
+            $this->resetPage();
+        }
+    }
+
+    public function calcularStats()
+    {
+        $empresaId = auth()->user()->empresa_id;
+
+        $baseQuery = fn() => Cita::where('empresa_id', $empresaId);
+
+        $this->stats = [
+            'canceladas' => $baseQuery()->where('estado', 'cancelada')
+                ->when($this->fechaDesde, fn($q) => $q->whereDate('fecha_inicio', '>=', $this->fechaDesde))
+                ->when($this->fechaHasta, fn($q) => $q->whereDate('fecha_inicio', '<=', $this->fechaHasta))
+                ->count(),
+            'no_asistidas' => $baseQuery()->where('estado', 'no_asistio')
+                ->when($this->fechaDesde, fn($q) => $q->whereDate('fecha_inicio', '>=', $this->fechaDesde))
+                ->when($this->fechaHasta, fn($q) => $q->whereDate('fecha_inicio', '<=', $this->fechaHasta))
+                ->count(),
+            'reagendables' => $baseQuery()->whereIn('estado', ['cancelada', 'no_asistio'])
+                ->when($this->fechaDesde, fn($q) => $q->whereDate('fecha_inicio', '>=', $this->fechaDesde))
+                ->when($this->fechaHasta, fn($q) => $q->whereDate('fecha_inicio', '<=', $this->fechaHasta))
+                ->count(),
+            'reagendadas' => $baseQuery()->where('motivo', 'like', '%[Re-agendada]%')
+                ->when($this->fechaDesde, fn($q) => $q->whereDate('fecha_inicio', '>=', $this->fechaDesde))
+                ->when($this->fechaHasta, fn($q) => $q->whereDate('fecha_inicio', '<=', $this->fechaHasta))
+                ->count(),
+        ];
+    }
+
+    public function getHayFiltrosActivosProperty(): bool
+    {
+        return $this->search !== ''
+            || $this->estado !== ''
+            || $this->medicoId !== ''
+            || $this->fechaDesde !== now()->subMonth()->format('Y-m-d')
+            || $this->fechaHasta !== now()->format('Y-m-d');
+    }
+
+    public function filtrarPorEstado(?string $estado = null)
+    {
+        $this->estado = $estado ?: '';
         $this->resetPage();
+    }
+
+    public function limpiarFiltros()
+    {
+        $this->reset(['search', 'estado', 'medicoId']);
+        $this->fechaDesde = now()->subMonth()->format('Y-m-d');
+        $this->fechaHasta = now()->format('Y-m-d');
+        $this->resetPage();
+        $this->calcularStats();
     }
 
     public function render()
     {
+        $empresaId = auth()->user()->empresa_id;
+
         $citas = Cita::with(['paciente', 'medico', 'especialidad'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->whereHas('paciente', function ($q2) {
-                        $q2->where('nombre', 'like', '%' . $this->search . '%')
-                          ->orWhere('apellido', 'like', '%' . $this->search . '%')
-                          ->orWhere('cedula', 'like', '%' . $this->search . '%');
+                    $q->whereHas('paciente', function ($sub) {
+                        $sub->where('nombre', 'like', '%' . $this->search . '%')
+                            ->orWhere('apellido', 'like', '%' . $this->search . '%')
+                            ->orWhere('cedula', 'like', '%' . $this->search . '%');
                     })
-                    ->orWhereHas('medico', function ($q2) {
-                        $q2->where('nombre', 'like', '%' . $this->search . '%')
-                          ->orWhere('apellido', 'like', '%' . $this->search . '%');
+                    ->orWhereHas('medico', function ($sub) {
+                        $sub->where('nombre', 'like', '%' . $this->search . '%')
+                            ->orWhere('apellido', 'like', '%' . $this->search . '%');
                     });
                 });
             })
             ->when($this->estado, function ($query) {
                 $query->where('estado', $this->estado);
+            }, function ($query) {
+                $query->whereIn('estado', ['cancelada', 'no_asistio']);
             })
             ->when($this->medicoId, function ($query) {
                 $query->where('medico_id', $this->medicoId);
@@ -71,27 +133,33 @@ class Reagendamiento extends Component
             ->when($this->fechaHasta, function ($query) {
                 $query->whereDate('fecha_inicio', '<=', $this->fechaHasta);
             })
-            ->where('empresa_id', auth()->user()->empresa_id)
+            ->where('empresa_id', $empresaId)
             ->orderBy('fecha_inicio', 'desc')
             ->paginate(15);
 
+        $medicos = Medico::where('empresa_id', $empresaId)
+            ->where('status', true)
+            ->orderBy('nombres')
+            ->get();
+
         return view('livewire.admin.citas.reagendamiento', [
             'citas' => $citas,
+            'medicos' => $medicos,
             'estados' => [
-                'cancelada' => 'Canceladas',
-                'no_asistio' => 'No Asistidas',
+                '' => 'Canceladas / No asistidas',
+                'cancelada' => 'Solo Canceladas',
+                'no_asistio' => 'Solo No Asistidas',
                 'pendiente' => 'Pendientes',
                 'confirmada' => 'Confirmadas',
             ],
-        ]);
+        ])->layout($this->getLayout());
     }
 
     public function buscarHorariosDisponibles($citaId)
     {
         try {
-            $cita = Cita::findOrFail($citaId);
-            
-            // Verificar que la cita pertenezca a la empresa
+            $cita = Cita::with(['paciente', 'medico', 'especialidad'])->findOrFail($citaId);
+
             if ($cita->empresa_id !== auth()->user()->empresa_id) {
                 $this->dispatch('notify', [
                     'type' => 'error',
@@ -101,28 +169,34 @@ class Reagendamiento extends Component
                 return;
             }
 
-            $service = CitaReagendamientoService::forCompany(
-                auth()->user()->empresa_id
-            );
+            $service = CitaReagendamientoService::forCompany(auth()->user()->empresa_id);
 
             $this->citaSeleccionada = $cita;
-            $this->horariosDisponibles = $service->buscarHorariosDisponibles($cita);
+            $this->horariosDisponibles = $service->buscarHorariosDisponibles($cita, $this->diasBusqueda);
             $this->mostrarModalReagendamiento = true;
 
             if (empty($this->horariosDisponibles)) {
                 $this->dispatch('notify', [
                     'type' => 'warning',
-                    'message' => 'No se encontraron horarios disponibles para re-agendar esta cita.',
+                    'message' => 'No se encontraron horarios disponibles en los próximos ' . $this->diasBusqueda . ' días.',
                     'duration' => 5000
                 ]);
             }
-
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
                 'message' => 'Error al buscar horarios: ' . $e->getMessage(),
                 'duration' => 5000
             ]);
+        }
+    }
+
+    public function ampliarBusqueda()
+    {
+        $this->diasBusqueda = min($this->diasBusqueda + 7, 60);
+
+        if ($this->citaSeleccionada) {
+            $this->buscarHorariosDisponibles($this->citaSeleccionada->id);
         }
     }
 
@@ -138,9 +212,7 @@ class Reagendamiento extends Component
                 return;
             }
 
-            $service = CitaReagendamientoService::forCompany(
-                auth()->user()->empresa_id
-            );
+            $service = CitaReagendamientoService::forCompany(auth()->user()->empresa_id);
 
             $nuevaCita = $service->crearNuevaCita($this->citaSeleccionada, [
                 'fecha_hora' => $fechaHora,
@@ -148,7 +220,6 @@ class Reagendamiento extends Component
                 'duracion' => 30,
             ]);
 
-            // Programar recordatorios para la nueva cita
             $nuevaCita->programarRecordatorios();
 
             $this->dispatch('notify', [
@@ -158,8 +229,7 @@ class Reagendamiento extends Component
             ]);
 
             $this->cerrarModal();
-            $this->render(); // Recargar la lista
-
+            $this->calcularStats();
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -173,8 +243,7 @@ class Reagendamiento extends Component
     {
         try {
             $cita = Cita::findOrFail($citaId);
-            
-            // Verificar que la cita pertenezca a la empresa
+
             if ($cita->empresa_id !== auth()->user()->empresa_id) {
                 $this->dispatch('notify', [
                     'type' => 'error',
@@ -184,21 +253,17 @@ class Reagendamiento extends Component
                 return;
             }
 
-            $service = CitaReagendamientoService::forCompany(
-                auth()->user()->empresa_id
-            );
-
+            $service = CitaReagendamientoService::forCompany(auth()->user()->empresa_id);
             $nuevaCita = $service->reagendarAutomaticamente($cita);
 
             if ($nuevaCita) {
-                // Programar recordatorios para la nueva cita
                 $nuevaCita->programarRecordatorios();
-
                 $this->dispatch('notify', [
                     'type' => 'success',
                     'message' => 'Cita re-agendada automáticamente para ' . $nuevaCita->fecha_inicio->format('d/m/Y H:i'),
                     'duration' => 5000
                 ]);
+                $this->calcularStats();
             } else {
                 $this->dispatch('notify', [
                     'type' => 'warning',
@@ -206,9 +271,6 @@ class Reagendamiento extends Component
                     'duration' => 5000
                 ]);
             }
-
-            $this->render(); // Recargar la lista
-
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -221,10 +283,7 @@ class Reagendamiento extends Component
     public function procesarReagendamientosMasivos()
     {
         try {
-            $service = CitaReagendamientoService::forCompany(
-                auth()->user()->empresa_id
-            );
-
+            $service = CitaReagendamientoService::forCompany(auth()->user()->empresa_id);
             $fechaInicio = Carbon::parse($this->fechaDesde);
             $fechaFin = Carbon::parse($this->fechaHasta);
 
@@ -232,12 +291,11 @@ class Reagendamiento extends Component
 
             $this->dispatch('notify', [
                 'type' => 'success',
-                'message' => "Re-agendamiento masivo completado: {$resultados['exitosas']} exitosas, {$resultados['fallidas']} fallidas.",
-                'duration' => 5000
+                'message' => "Re-agendamiento masivo: {$resultados['exitosas']} exitosas, {$resultados['fallidas']} fallidas de {$resultados['total_procesadas']} procesadas.",
+                'duration' => 6000
             ]);
 
-            $this->render(); // Recargar la lista
-
+            $this->calcularStats();
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -252,5 +310,6 @@ class Reagendamiento extends Component
         $this->mostrarModalReagendamiento = false;
         $this->citaSeleccionada = null;
         $this->horariosDisponibles = [];
+        $this->diasBusqueda = 7;
     }
 }

@@ -143,12 +143,12 @@
            </li>
            <li class="menu-item {{ request()->routeIs('admin.citas.recordatorios') ? 'active' : '' }}">
               <a href="{{ route('admin.citas.recordatorios') }}" class="menu-link">
-                <div>📅 Recordatorios</div>
+                <div>Recordatorios</div>
               </a>
             </li>
             <li class="menu-item {{ request()->routeIs('admin.citas.reagendamiento') ? 'active' : '' }}">
               <a href="{{ route('admin.citas.reagendamiento') }}" class="menu-link">
-                <div>🔄 Re-agendamiento</div>
+                <div>Re-agendamiento</div>
               </a>
             </li>
          </ul>

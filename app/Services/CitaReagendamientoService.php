@@ -219,7 +219,7 @@ class CitaReagendamientoService
     /**
      * Crea una nueva cita basada en una cita anterior
      */
-    private function crearNuevaCita(Cita $citaAnterior, array $nuevoHorario): Cita
+    public function crearNuevaCita(Cita $citaAnterior, array $nuevoHorario): Cita
     {
         $nuevaFecha = Carbon::parse($nuevoHorario['fecha_hora']);
         $duracion = $citaAnterior->fecha_inicio->diffInMinutes($citaAnterior->fecha_fin);

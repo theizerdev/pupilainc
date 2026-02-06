@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use Illuminate\Support\Str;
 use App\Traits\Multitenantable;
 
 class Cita extends Model
@@ -59,6 +60,7 @@ class Cita extends Model
         'fecha_fin',
         'motivo',
         'estado',
+        'tipo_consulta_id',
         'notas',
         'color',
         'empresa_id',
@@ -114,6 +116,11 @@ class Cita extends Model
     public function recordatorios(): HasMany
     {
         return $this->hasMany(CitaRecordatorio::class);
+    }
+
+    public function tipoConsulta(): BelongsTo
+    {
+        return $this->belongsTo(TipoConsulta::class);
     }
 
     public function scopeActivas($query)
@@ -265,13 +272,14 @@ class Cita extends Model
     {
         return [
             'id' => $this->id,
-            'title' => $this->paciente->nombre_completo,
+            'title' => Str::limit($this->paciente->nombre_completo, 20, '...'),
             'start' => $this->fecha_inicio->toIso8601String(),
             'end' => $this->fecha_fin->toIso8601String(),
             'allDay' => false,
             'extendedProps' => [
                 'calendar' => $this->estado,
-                'medico' => $this->medico->nombre_completo,
+                'medico' => Str::limit($this->medico->nombre_completo, 20, '...'),
+                'medico_full' => $this->medico->nombre_completo,
                 'paciente' => $this->paciente->nombre_completo,
                 'paciente_id' => $this->paciente_id,
                 'medico_id' => $this->medico_id,
@@ -283,6 +291,9 @@ class Cita extends Model
                 'estado_label' => $this->nombre_estado,
                 'notas' => $this->notas,
                 'descripcion' => $this->motivo,
+                'tipo_consulta_id' => $this->tipo_consulta_id,
+                'tipo_consulta_nombre' => $this->tipoConsulta?->nombre,
+                'tipo_consulta_color' => $this->tipoConsulta?->color,
             ],
         ];
     }
