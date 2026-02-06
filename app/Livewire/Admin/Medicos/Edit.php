@@ -15,11 +15,10 @@ use Illuminate\Support\Facades\Hash;
 use App\Services\WhatsAppService;
 use Spatie\Permission\Models\Role;
 use Illuminate\Validation\Rule;
-use App\Traits\HasDynamicLayout;
 
 class Edit extends Component
 {
-    use WithFileUploads, HasDynamicLayout;
+    use WithFileUploads;
 
     // ID del médico que se está editando
     public $medico_id;
@@ -104,12 +103,6 @@ class Edit extends Component
 
     public function mount($medico)
     {
-         $medico = Medico::find($medico);
-
-        if (!$medico) {
-            abort(404);
-        }
-
         // Cargar datos del médico
         $this->medico_id = $medico->id;
         $this->user_id = $medico->user_id;
@@ -323,6 +316,6 @@ class Edit extends Component
             'subespecialidades' => $this->subespecialidades,
             'empresas' => $this->empresas,
             'sucursales' => $this->sucursales,
-         ])->layout($this->getLayout());
+        ]);
     }
 }

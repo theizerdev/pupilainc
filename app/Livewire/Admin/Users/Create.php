@@ -156,11 +156,17 @@ class Create extends Component
         // Enviar correo de bienvenida
         try {
             Mail::to($user->email)->send(new UserWelcomeMail($user, $plainPassword));
+            $mensajeCorreo = ' Se ha enviado un correo con las credenciales.';
         } catch (\Exception $e) {
             \Log::error('Error enviando correo de bienvenida: ' . $e->getMessage());
+            $mensajeCorreo = '';
         }
 
-        session()->flash('message', 'Usuario creado correctamente. Se ha enviado un correo con las credenciales.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Usuario '{$user->name}' creado exitosamente.{$mensajeCorreo}",
+            'duration' => 5000
+        ]);
 
         return redirect()->route('admin.users.index');
     }

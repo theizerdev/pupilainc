@@ -83,7 +83,11 @@ class Index extends Component
     public function deleteEmpresa($empresaId)
     {
         if (!Auth::user()->can('delete empresas')) {
-            session()->flash('error', 'No tienes permiso para eliminar empresas.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para eliminar empresas.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -91,15 +95,28 @@ class Index extends Component
 
         // Verificar si tiene sucursales asociadas
         if ($empresa->sucursales()->exists()) {
-            session()->flash('error', 'No se puede eliminar la empresa porque tiene sucursales asociadas.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No se puede eliminar la empresa porque tiene sucursales asociadas.',
+                'duration' => 4000
+            ]);
             return;
         }
 
         try {
+            $nombreEmpresa = $empresa->razon_social;
             $empresa->delete();
-            session()->flash('message', 'Empresa eliminada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Empresa '{$nombreEmpresa}' eliminada exitosamente.",
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar la empresa: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al eliminar la empresa: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

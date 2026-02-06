@@ -85,12 +85,20 @@ class Create extends Component
                 'status' => $this->status,
             ]);
             
-            session()->flash('success', 'Especialidad creada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Especialidad '{$this->nombre}' creada exitosamente.",
+                'duration' => 4000
+            ]);
             
             return redirect()->route('admin.especialidades.index');
             
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear la especialidad: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear la especialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

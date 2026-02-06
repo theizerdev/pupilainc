@@ -137,12 +137,21 @@ class Index extends Component
     {
         // Verificar permiso para eliminar sucursales
         if (!Auth::user()->can('delete sucursales')) {
-            session()->flash('error', 'No tienes permiso para eliminar sucursales.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para eliminar sucursales.',
+                'duration' => 4000
+            ]);
             return;
         }
 
+        $nombreSucursal = $sucursal->nombre;
         $sucursal->delete();
-        session()->flash('message', 'Sucursal eliminada correctamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Sucursal '{$nombreSucursal}' eliminada exitosamente.",
+            'duration' => 4000
+        ]);
         $this->resetPage();
     }
 

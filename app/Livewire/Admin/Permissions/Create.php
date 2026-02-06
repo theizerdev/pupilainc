@@ -50,7 +50,11 @@ class Create extends Component
             ]);
         });
 
-        session()->flash('message', 'Permiso creado exitosamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Permiso '{$this->name}' creado exitosamente.",
+            'duration' => 4000
+        ]);
         return redirect()->route('admin.permissions.index');
     }
 
@@ -59,7 +63,3 @@ class Create extends Component
         return view('livewire.admin.permissions.create')->layout($this->getLayout());
     }
 }
-
-
-
-

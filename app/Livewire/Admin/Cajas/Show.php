@@ -53,21 +53,33 @@ class Show extends Component
 
         if ($this->caja->cerrar($this->observaciones_cierre)) {
             $this->showCerrarModal = false;
-            session()->flash('message', 'Caja cerrada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Caja cerrada exitosamente.',
+                'duration' => 4000
+            ]);
             $this->caja->refresh();
             
             // Enviar notificación WhatsApp con el reporte Excel
             $this->enviarNotificacionCierreCaja();
         }
  else {
-            session()->flash('error', 'No se pudo cerrar la caja.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No se pudo cerrar la caja.',
+                'duration' => 4000
+            ]);
         }
     }
 
     public function recalcularMontos()
     {
         if ($this->caja->estado !== 'cerrada') {
-            session()->flash('error', 'Solo se pueden recalcular montos de cajas cerradas.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Solo se pueden recalcular montos de cajas cerradas.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -86,12 +98,20 @@ class Show extends Component
             // Recalcular los totales
             $this->caja->calcularTotales();
             
-            session()->flash('message', 'Montos recalculados exitosamente. El monto de cierre se ha actualizado.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Montos recalculados exitosamente. El monto de cierre se ha actualizado.',
+                'duration' => 4000
+            ]);
             $this->caja->refresh();
             $this->showRecalcularModal = false;
             
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al recalcular los montos: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al recalcular los montos: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
             $this->showRecalcularModal = false;
         }
     }

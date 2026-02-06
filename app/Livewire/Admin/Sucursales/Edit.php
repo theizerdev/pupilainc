@@ -51,19 +51,32 @@ class Edit extends Component
     {
         $this->validate();
 
-        $this->sucursal->update([
-            'empresa_id' => $this->empresa_id,
-            'nombre' => $this->nombre,
-            'telefono' => $this->telefono,
-            'direccion' => $this->direccion,
-            'latitud' => $this->latitud ?: null,
-            'longitud' => $this->longitud ?: null,
-            'status' => $this->status,
-        ]);
+        try {
+            $this->sucursal->update([
+                'empresa_id' => $this->empresa_id,
+                'nombre' => $this->nombre,
+                'telefono' => $this->telefono,
+                'direccion' => $this->direccion,
+                'latitud' => $this->latitud ?: null,
+                'longitud' => $this->longitud ?: null,
+                'status' => $this->status,
+            ]);
 
-        session()->flash('message', 'Sucursal actualizada correctamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Sucursal '{$this->nombre}' actualizada exitosamente.",
+                'duration' => 4000
+            ]);
 
-        return redirect()->route('admin.sucursales.index');
+            return redirect()->route('admin.sucursales.index');
+            
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar la sucursal: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
     }
 
     public function render()
@@ -71,6 +84,3 @@ class Edit extends Component
         return view('livewire.admin.sucursales.edit')->layout($this->getLayout());
     }
 }
-
-
-

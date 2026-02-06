@@ -193,6 +193,9 @@
 
             <!-- Content -->
             <div class="container-fluid flex-grow-1 container-p-y">
+              
+              <!-- Componente de notificaciones global -->
+              <x-notifications />
 
               {{ $slot }}
             </div>
@@ -259,9 +262,9 @@
 
     <!-- Accessibility improvements -->
     <script>
-      // Mejorar la navegación por teclado
+      // Mejorar la navegaciÃƒÂ³n por teclado
       document.addEventListener('DOMContentLoaded', function() {
-        // Añadir skip links para usuarios de teclado
+        // AÃƒÂ±adir skip links para usuarios de teclado
         const skipLink = document.createElement('a');
         skipLink.href = '#main-content';
         skipLink.className = 'sr-only sr-only-focusable';
@@ -295,5 +298,9 @@
         });
       });
     </script>
+    
+    <!-- Sistema de Notificaciones Global -->
+    <x-notifications />
+    
   </body>
 </html>

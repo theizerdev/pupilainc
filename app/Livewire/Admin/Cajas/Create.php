@@ -54,7 +54,11 @@ class Create extends Component
                 ->first();
 
             if ($cajaAbierta) {
-                session()->flash('error', 'Ya existe una caja abierta. Debe cerrarla antes de abrir una nueva.');
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'Ya existe una caja abierta. Debe cerrarla antes de abrir una nueva.',
+                    'duration' => 4000
+                ]);
                 return;
             }
 
@@ -84,11 +88,18 @@ class Create extends Component
                 );
             }
 
-            session()->flash('message', 'Caja abierta exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Caja abierta exitosamente.',
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.cajas.show', $caja);
         } catch (\Exception $e) {
-              dd($e);
-            session()->flash('error', 'Error al abrir la caja: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al abrir la caja: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

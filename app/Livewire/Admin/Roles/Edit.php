@@ -127,13 +127,21 @@ class Edit extends Component
     {
         // Verificar permiso para editar roles
         if (!Auth::user()->can('edit roles')) {
-            session()->flash('error', 'No tienes permiso para editar roles.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para editar roles.',
+                'duration' => 4000
+            ]);
             return;
         }
 
         // No permitir editar roles del sistema
         if (in_array($this->role->name, ['super-admin', 'admin', 'empresa-admin', 'user'])) {
-            session()->flash('error', 'No puedes editar roles del sistema.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No puedes editar roles del sistema.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -151,10 +159,18 @@ class Edit extends Component
                 $this->role->syncPermissions([]);
             }
 
-            session()->flash('message', 'Rol actualizado correctamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Rol '{$this->role->name}' actualizado exitosamente.",
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.roles.index');
         } catch (\Exception $e) {
-            session()->flash('error', 'Ocurrió un error al actualizar el rol: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Ocurrió un error al actualizar el rol: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
@@ -230,7 +246,3 @@ class Edit extends Component
         return view('livewire.admin.roles.edit')->layout($this->getLayout());
     }
 }
-
-
-
-

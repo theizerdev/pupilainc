@@ -66,12 +66,20 @@ class Edit extends Component
                 'guard_name' => $this->guard_name
             ]);
 
-            session()->flash('message', 'Permiso actualizado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Permiso '{$this->name}' actualizado exitosamente.",
+                'duration' => 4000
+            ]);
 
             return redirect()->route('admin.permissions.index');
 
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar el permiso: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar el permiso: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
@@ -80,7 +88,3 @@ class Edit extends Component
         return view('livewire.admin.permissions.edit')->layout($this->getLayout());
     }
 }
-
-
-
-

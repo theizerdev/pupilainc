@@ -116,7 +116,11 @@ class Create extends Component
     {
         // Verificar permiso para crear roles
         if (!Auth::user()->can('create roles')) {
-            session()->flash('error', 'No tienes permiso para crear roles.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para crear roles.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -132,10 +136,18 @@ class Create extends Component
                 $role->syncPermissions($permissions);
             }
 
-            session()->flash('message', 'Rol creado correctamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Rol '{$role->name}' creado exitosamente.",
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.roles.index');
         } catch (\Exception $e) {
-            session()->flash('error', 'Ocurrió un error al crear el rol: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Ocurrió un error al crear el rol: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
@@ -213,7 +225,3 @@ class Create extends Component
         return view('livewire.admin.roles.create')->layout($this->getLayout());
     }
 }
-
-
-
-

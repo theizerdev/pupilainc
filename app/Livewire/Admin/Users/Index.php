@@ -147,37 +147,63 @@ class Index extends Component
     public function toggleStatus(User $user)
     {
         if (!Auth::user()->can('edit users')) {
-            session()->flash('error', 'No tienes permiso para editar usuarios.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para editar usuarios.',
+                'duration' => 4000
+            ]);
             return;
         }
 
         if ($user->id === Auth::id()) {
-            session()->flash('error', 'No puedes desactivar tu propia cuenta.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No puedes desactivar tu propia cuenta.',
+                'duration' => 4000
+            ]);
             return;
         }
 
         $user->status = !$user->status;
         $user->save();
 
-        session()->flash('message', 'Estado de usuario actualizado correctamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Estado de usuario '{$user->name}' actualizado a " . ($user->status ? 'activo' : 'inactivo') . ".",
+            'duration' => 4000
+        ]);
     }
 
     public function delete(User $user)
     {
         // Verificar permiso para eliminar usuarios
         if (!Auth::user()->can('delete users')) {
-            session()->flash('error', 'No tienes permiso para eliminar usuarios.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para eliminar usuarios.',
+                'duration' => 4000
+            ]);
             return;
         }
 
         // No permitir eliminar al usuario actual
         if ($user->id === Auth::id()) {
-            session()->flash('error', 'No puedes eliminar tu propia cuenta.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No puedes eliminar tu propia cuenta.',
+                'duration' => 4000
+            ]);
             return;
         }
 
+        $nombreUsuario = $user->name;
         $user->delete();
-        session()->flash('message', 'Usuario eliminado correctamente.');
+        
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Usuario '{$nombreUsuario}' eliminado exitosamente.",
+            'duration' => 4000
+        ]);
         $this->resetPage();
     }
 

@@ -41,19 +41,32 @@ class Create extends Component
     {
         $this->validate();
 
-        Sucursal::create([
-            'empresa_id' => $this->empresa_id,
-            'nombre' => $this->nombre,
-            'telefono' => $this->telefono,
-            'direccion' => $this->direccion,
-            'latitud' => $this->latitud ?: null,
-            'longitud' => $this->longitud ?: null,
-            'status' => $this->status,
-        ]);
+        try {
+            Sucursal::create([
+                'empresa_id' => $this->empresa_id,
+                'nombre' => $this->nombre,
+                'telefono' => $this->telefono,
+                'direccion' => $this->direccion,
+                'latitud' => $this->latitud ?: null,
+                'longitud' => $this->longitud ?: null,
+                'status' => $this->status,
+            ]);
 
-        session()->flash('message', 'Sucursal creada correctamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Sucursal '{$this->nombre}' creada exitosamente.",
+                'duration' => 4000
+            ]);
 
-        return redirect()->route('admin.sucursales.index');
+            return redirect()->route('admin.sucursales.index');
+            
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear la sucursal: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
     }
 
     public function render()
@@ -61,6 +74,3 @@ class Create extends Component
         return view('livewire.admin.sucursales.create')->layout($this->getLayout());
     }
 }
-
-
-

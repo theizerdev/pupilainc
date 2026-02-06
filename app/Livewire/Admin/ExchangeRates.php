@@ -46,12 +46,24 @@ class ExchangeRates extends Component
 
             if ($success) {
                 $todayRate = ExchangeRate::getTodayRate();
-                session()->flash('success', "Tasa actualizada: USD = {$todayRate->usd_rate} Bs. (Fuente: {$todayRate->source})");
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => "Tasa actualizada: USD = {$todayRate->usd_rate} Bs. (Fuente: {$todayRate->source})",
+                    'duration' => 4000
+                ]);
             } else {
-                session()->flash('error', 'No se pudo obtener la tasa. Verifique la conexión a internet.');
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'No se pudo obtener la tasa. Verifique la conexión a internet.',
+                    'duration' => 5000
+                ]);
             }
         } catch (\Exception $e) {
-            session()->flash('error', 'Error técnico: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error técnico: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
 
         $this->refreshData();
@@ -124,7 +136,11 @@ class ExchangeRates extends Component
         $this->closeEditModal();
         $this->refreshData();
         
-        session()->flash('success', 'Tasa de cambio actualizada correctamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Tasa de cambio actualizada correctamente.',
+            'duration' => 4000
+        ]);
     }
     
     public function closeEditModal()

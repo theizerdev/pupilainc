@@ -269,14 +269,18 @@
                                                 <i class="ri ri-more-2-line"></i>
                                             </button>
                                             <div class="dropdown-menu">
-                                                
-                                                @can('edit medicos')
+                                                @can('admin.medicos.show')
+                                                <a class="dropdown-item" href="{{ route('admin.medicos.show', $medico) }}">
+                                                    <i class="ri ri-eye-line me-1"></i> Ver
+                                                </a>
+                                                @endcan
+                                                @can('admin.medicos.edit')
                                                 <a class="dropdown-item" href="{{ route('admin.medicos.edit', $medico) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar
                                                 </a>
                                                 @endcan
                                                 @if($medico->status)
-                                                    @can('edit medicos')
+                                                    @can('admin.medicos.edit')
                                                     <button type="button" class="dropdown-item text-warning"
                                                             wire:click="toggleStatus({{ $medico->id }})"
                                                             wire:confirm="¿Estás seguro de desactivar este médico?">
@@ -284,7 +288,7 @@
                                                     </button>
                                                     @endcan
                                                 @else
-                                                    @can('edit medicos')
+                                                    @can('admin.medicos.edit')
                                                     <button type="button" class="dropdown-item text-success"
                                                             wire:click="toggleStatus({{ $medico->id }})"
                                                             wire:confirm="¿Estás seguro de activar este médico?">
@@ -292,17 +296,7 @@
                                                     </button>
                                                     @endcan
                                                 @endif
-                                                
-                                                @if($medico->status && !empty($medico->telefono))
-                                                    @can('edit medicos')
-                                                    <button type="button" class="dropdown-item text-info"
-                                                            wire:click="sendWelcomeMessage({{ $medico->id }})"
-                                                            wire:confirm="¿Enviar mensaje de bienvenida por WhatsApp?">
-                                                        <i class="ri ri-whatsapp-line me-1"></i> Enviar Bienvenida
-                                                    </button>
-                                                    @endcan
-                                                @endif
-                                                     @can('delete medicos')
+                                                @can('admin.medicos.destroy')
                                                 <button type="button" class="dropdown-item text-danger"
                                                         wire:click="delete({{ $medico->id }})"
                                                         wire:confirm="¿Estás seguro de eliminar este médico?">

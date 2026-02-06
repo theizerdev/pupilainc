@@ -28,7 +28,11 @@ class Create extends Component
     {
         // Verificar permiso para crear conceptos de pago
         if (!auth()->user()->can('create conceptos_pago')) {
-            session()->flash('error', 'No tienes permiso para crear conceptos de pago.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para crear conceptos de pago.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -41,10 +45,18 @@ class Create extends Component
                 'activo' => $this->activo
             ]);
 
-            session()->flash('message', 'Concepto de pago creado correctamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Concepto de pago '{$this->nombre}' creado exitosamente.",
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.conceptos-pago.index');
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear el concepto de pago: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear el concepto de pago: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
@@ -53,6 +65,3 @@ class Create extends Component
         return view('livewire.admin.conceptos-pago.create')->layout($this->getLayout());
     }
 }
-
-
-

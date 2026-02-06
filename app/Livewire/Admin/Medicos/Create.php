@@ -161,7 +161,7 @@ class Create extends Component
             ]);
 
             // Asignar el rol de Médico
-            $rolMedico = Role::where('name', 'Médico')->first();
+            $rolMedico = Role::where('name', 'Medico')->first();
             if ($rolMedico) {
                 $user->assignRole($rolMedico);
             }
@@ -236,12 +236,20 @@ class Create extends Component
             // Enviar mensaje de WhatsApp de bienvenida
             $this->enviarMensajeBienvenida($user, $medico, $plainPassword);
 
-            session()->flash('success', 'Médico creado exitosamente. Se ha enviado un mensaje de bienvenida por WhatsApp.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Médico '{$medico->nombres} {$medico->apellidos}' creado exitosamente. Se ha enviado un mensaje de bienvenida por WhatsApp.",
+                'duration' => 5000
+            ]);
             
             return redirect()->route('admin.medicos.index');
 
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear el médico: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear el médico: ' . $e->getMessage(),
+                'duration' => 6000
+            ]);
         }
     }
 

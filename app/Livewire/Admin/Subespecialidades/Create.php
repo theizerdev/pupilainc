@@ -96,10 +96,18 @@ class Create extends Component
         try {
             Subespecialidad::create($validated);
             
-            session()->flash('success', 'Subespecialidad creada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Subespecialidad '{$this->nombre}' creada exitosamente.",
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.subespecialidades.index');
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear la subespecialidad: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear la subespecialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

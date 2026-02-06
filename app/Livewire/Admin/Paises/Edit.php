@@ -106,10 +106,18 @@ class Edit extends Component
                 'activo' => $this->activo,
             ]);
 
-            session()->flash('message', 'País actualizado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "País '{$this->nombre}' actualizado exitosamente.",
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.paises.index');
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar el país: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar el país: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

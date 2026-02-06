@@ -76,11 +76,20 @@ class Index extends Component
         
         try {
             $subespecialidad = Subespecialidad::findOrFail($id);
+            $nombreSubespecialidad = $subespecialidad->nombre;
             $subespecialidad->delete();
             
-            session()->flash('success', 'Subespecialidad eliminada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Subespecialidad '{$nombreSubespecialidad}' eliminada exitosamente.",
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar la subespecialidad: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al eliminar la subespecialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

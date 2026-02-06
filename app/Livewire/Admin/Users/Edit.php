@@ -103,7 +103,11 @@ class Edit extends Component
         // Sincronizar rol del usuario
         $user->syncRoles([$this->role]);
 
-        session()->flash('message', 'Usuario actualizado correctamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Usuario '{$user->name}' actualizado exitosamente.",
+            'duration' => 4000
+        ]);
 
         return redirect()->route('admin.users.index');
     }

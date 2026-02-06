@@ -66,7 +66,11 @@ class Index extends Component
     {
         // Verificar permiso para eliminar permisos
         if (!Auth::user()->can('delete permissions')) {
-            session()->flash('error', 'No tienes permiso para eliminar permisos.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para eliminar permisos.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -74,12 +78,21 @@ class Index extends Component
 
         // Verificar si el permiso está asignado a algún rol
         if ($permission->roles()->count() > 0) {
-            session()->flash('error', 'No se puede eliminar el permiso porque está asignado a roles.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No se puede eliminar el permiso porque está asignado a roles.',
+                'duration' => 4000
+            ]);
             return;
         }
 
+        $nombrePermiso = $permission->name;
         $permission->delete();
-        session()->flash('message', 'Permiso eliminado correctamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Permiso '{$nombrePermiso}' eliminado exitosamente.",
+            'duration' => 4000
+        ]);
     }
 
     public function clearFilters()

@@ -86,19 +86,36 @@
         </a>
       </li>
       @endcan
-       
-      @can('access medicos')
+              
+      </ul>
+    </li>
+    @endcan
+       @can('access medicos')
       <li class="menu-item {{ request()->routeIs('admin.medicos.*') ? 'active' : '' }}">
         <a href="{{ route('admin.medicos.index') }}" class="menu-link">
-          
+          <i class="menu-icon tf-icons ri ri-health-book-line"></i>
         <div>Médicos</div>
         </a>
       </li>
       @endcan
-       
-      </ul>
-    </li>
+
+    @can('access pacientes')
+      <li class="menu-item {{ request()->routeIs('admin.pacientes.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.pacientes.index') }}" class="menu-link">
+          <i class="menu-icon tf-icons ri ri-user-heart-line"></i>
+        <div>Pacientes</div>
+        </a>
+      </li>
     @endcan
+       @can('access citas')
+      <li class="menu-item {{ request()->routeIs('admin.citas.*') ? 'active' : '' }}">
+        <a href="{{ route('admin.citas.index') }}" class="menu-link">
+         <i class="menu-icon tf-icons ri ri-calendar-line"></i>
+        <div>Citas</div>
+        </a>
+      </li>
+      @endcan
+       
 
       @canany(['access conceptos pago', 'access cajas'])
     <!-- Pagos y Finanzas -->

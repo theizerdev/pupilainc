@@ -146,7 +146,11 @@ class Edit extends Component
         // Aplicar configuración regional para la empresa actualizada
         $this->applyRegionalConfigurationToEmpresa($this->empresa);
 
-        session()->flash('message', 'Empresa actualizada correctamente. Configuración regional actualizada.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Empresa '{$this->razon_social}' actualizada correctamente. Configuración regional actualizada.",
+            'duration' => 4000
+        ]);
 
         return redirect()->route('admin.empresas.index');
     }

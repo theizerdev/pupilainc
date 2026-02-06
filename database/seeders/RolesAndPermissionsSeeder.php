@@ -134,10 +134,10 @@ class RolesAndPermissionsSeeder extends Seeder
             ],
 
            'especialidades' => [
-            'access especialidades',
-            'create especialidades',
-            'edit especialidades',
-            'delete especialidades',
+                'access especialidades',
+                'create especialidades',
+                'edit especialidades',
+                'delete especialidades',
             ],
 
             'subespecialidades' => [
@@ -159,6 +159,15 @@ class RolesAndPermissionsSeeder extends Seeder
                 'assign subespecialidades',
                 'view medicos schedule',
                 'edit medicos schedule',
+            ],
+
+            // Módulo de citas
+       
+            'citas' => [
+                'access citas',
+                'create citas',
+                'edit citas',
+                'delete citas',
             ],
         ];
 

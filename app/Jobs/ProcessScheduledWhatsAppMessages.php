@@ -36,7 +36,7 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
 
         Log::info("Procesando {$messages->count()} mensajes programados de WhatsApp");
 
-        $whatsappService = app(WhatsAppService::class);
+        $defaultWhatsappService = app(WhatsAppService::class);
         $processed = 0;
         $failed = 0;
 
@@ -53,6 +53,11 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
                         $content = str_replace("{{{$key}}}", $value, $content);
                     }
                 }
+
+                // Usar WhatsApp por empresa si está disponible
+                $whatsappService = $message->empresa_id
+                    ? WhatsAppService::forCompany($message->empresa_id)
+                    : $defaultWhatsappService;
 
                 // Enviar mensaje
                 $result = $whatsappService->sendMessage(

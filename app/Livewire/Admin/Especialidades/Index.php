@@ -68,11 +68,20 @@ class Index extends Component
         
         try {
             $especialidad = Especialidad::findOrFail($id);
+            $nombreEspecialidad = $especialidad->nombre;
             $especialidad->delete();
             
-            session()->flash('success', 'Especialidad eliminada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Especialidad '{$nombreEspecialidad}' eliminada exitosamente.",
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar la especialidad: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al eliminar la especialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
@@ -148,9 +157,14 @@ class Index extends Component
     public function deleteEspecialidad($especialidad)
     {
         $especialidad = Especialidad::find($especialidad);
+        $nombreEspecialidad = $especialidad->nombre;
         $especialidad->delete();
 
-         session()->flash('success', 'Estado actualizado exitosamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Especialidad '{$nombreEspecialidad}' eliminada exitosamente.",
+            'duration' => 4000
+        ]);
     }
 
     public function render()

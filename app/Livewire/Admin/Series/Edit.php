@@ -58,7 +58,11 @@ class Edit extends Component
             'activo' => $this->activo
         ]);
 
-        session()->flash('message', 'Serie actualizada exitosamente');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Serie '{$this->serie_codigo}' actualizada exitosamente.",
+            'duration' => 4000
+        ]);
         return redirect()->route('admin.series.index');
     }
 
@@ -75,7 +79,3 @@ class Edit extends Component
         return view('livewire.admin.series.edit',compact('tipos'))->layout($this->getLayout());
     }
 }
-
-
-
-

@@ -101,6 +101,10 @@
 
             <!-- Content -->
             <div class="container-fluid flex-grow-1 container-p-y">
+              
+              <!-- Componente de notificaciones global -->
+              <x-notifications />
+
               {{ $slot }}
             </div>
             <!-- /Content -->

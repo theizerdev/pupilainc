@@ -82,10 +82,18 @@ class Create extends Component
                 'activo' => $this->activo,
             ]);
 
-            session()->flash('message', 'País creado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "País '{$this->nombre}' creado exitosamente.",
+                'duration' => 4000
+            ]);
             return redirect()->route('admin.paises.index');
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al crear el país: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear el país: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

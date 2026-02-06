@@ -7,7 +7,6 @@ use App\Models\Especialidad;
 use App\Models\Subespecialidad;
 use App\Models\Empresa;
 use App\Models\Sucursal;
-use App\Services\WhatsAppNotificationService;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Traits\HasDynamicLayout;
@@ -101,7 +100,7 @@ class Index extends Component
 
     public function toggleStatus($id)
     {
-        $this->authorize('edit medicos');
+        $this->authorize('admin.medicos.edit');
         
         try {
             $medico = Medico::findOrFail($id);
@@ -113,74 +112,6 @@ class Index extends Component
             session()->flash('error', 'Error al actualizar el estado: ' . $e->getMessage());
         }
     }
-
-    public function sendWelcomeMessage($id)
-    {
-        $this->authorize('edit medicos');
-        
-        try {
-            $medico = Medico::findOrFail($id);
-            
-            // Verificar que el médico tenga teléfono
-            if (empty($medico->telefono)) {
-                session()->flash('error', 'El médico no tiene número de teléfono registrado.');
-                return;
-            }
-            
-            // Obtener la empresa del médico
-            $empresa = $medico->empresa;
-            if (!$empresa || !$empresa->whatsapp_api_key) {
-                session()->flash('error', 'La empresa no tiene configurado el servicio de WhatsApp.');
-                return;
-            }
-            
-             $mensaje = $this->generateDoctorWelcomeMessage($medico);
-            $telefonoFormateado = $this->formatPhoneNumber($medico->telefono);
-            
-            $whatsappService = new \App\Services\WhatsAppService($empresa);
-            $whatsappResult = $whatsappService->sendMessage($telefonoFormateado, $mensaje, true);
-            $result['sent'] = $whatsappResult && ($whatsappResult['success'] ?? false);
-       } catch (\Exception $e) {
-             \Log::error('Error enviando notificación WhatsApp de bienvenida: ' . $e->getMessage());
-            $result['attempted'] = true;
-        }
-        
-        return $result;
-    }
-
-     /**
-     * Generar mensaje de bienvenida para médico
-     */
-    public function generateDoctorWelcomeMessage($medico)
-    {
-        $user = $medico->user;
-        $empresa = $medico->empresa;
-        $sucursal = $medico->sucursal ?? $user->sucursal ?? null;
-        $especialidades = $medico->especialidades->pluck('nombre')->implode(', ') ?: 'No asignada';
-        $empresaNombre = $empresa ? $empresa->razon_social : 'la empresa';
-
-        $mensaje = "🩺 ¡Bienvenido/a Dr./Dra. {$medico->nombres} {$medico->apellidos}!\n\n";
-        $mensaje .= "✅ Su cuenta ha sido creada exitosamente en nuestro sistema médico.\n\n";
-        $mensaje .= "📋 *Datos de acceso:*\n";
-        $mensaje .= "• Usuario: {$user->username}\n";
-        $mensaje .= "• Email: {$user->email}\n";
-        $mensaje .= "• Contraseña temporal: {$medico->documento_identidad}\n\n";
-        $mensaje .= "🏥 *Información institucional:*\n";
-        $mensaje .= "• Empresa: {$empresaNombre}\n";
-        if ($sucursal) {
-            $mensaje .= "• Sucursal: {$sucursal->nombre}\n";
-        }
-        $mensaje .= "• Especialidad: {$especialidades}\n\n";
-        $mensaje .= "🔐 *Importante:* Por seguridad, le recomendamos cambiar su contraseña al iniciar sesión.\n\n";
-        if ($empresa && $empresa->telefono) {
-            $mensaje .= "📱 ¿Preguntas? Contáctenos al {$empresa->telefono}\n\n";
-        }
-        $mensaje .= "¡Gracias por formar parte de nuestro equipo médico! 🏥✨";
-
-        return $mensaje;
-    }
-    
-
 
     public function getMedicosProperty()
     {
@@ -247,26 +178,6 @@ class Index extends Component
     public function getEspecialidadesProperty()
     {
         return Especialidad::forUser()->where('status', true)->orderBy('nombre')->get();
-    }
-
-
-   private function formatPhoneNumber($number)
-    {
-        $empresa = \DB::table('empresas')->where('id', 1)->first();
-        $pais = $empresa ? \DB::table('pais')->where('id', $empresa->pais_id)->first() : null;
-        $codigoPais = $pais ? $pais->codigo_telefonico : '58';
-        
-        $cleaned = preg_replace('/[^0-9]/', '', $number);
-        
-        if (strlen($cleaned) > 10 && str_starts_with($cleaned, $codigoPais)) {
-            return $cleaned;
-        }
-        
-        if (str_starts_with($cleaned, '0')) {
-            $cleaned = substr($cleaned, 1);
-        }
-        
-        return $codigoPais . $cleaned;
     }
 
     public function render()

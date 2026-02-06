@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use App\Traits\Multitenantable;
@@ -55,7 +56,7 @@ class Especialidad extends Model
 
     public function medicos()
     {
-        return $this->belongsToMany(User::class, 'medico_especialidad', 'especialidad_id', 'medico_id')
+        return $this->belongsToMany(Medico::class, 'medico_especialidad', 'especialidad_id', 'medico_id')
             ->withPivot('tarifa_consulta', 'horario_atencion', 'status')
             ->withTimestamps();
     }

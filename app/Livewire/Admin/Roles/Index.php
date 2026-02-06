@@ -62,7 +62,11 @@ class Index extends Component
     public function deleteRole($roleId)
     {
         if (!Auth::user()->can('delete roles')) {
-            session()->flash('error', 'No tienes permiso para eliminar roles.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para eliminar roles.',
+                'duration' => 4000
+            ]);
             return;
         }
 
@@ -70,15 +74,28 @@ class Index extends Component
 
         // Verificar si es un rol del sistema
         if (in_array($role->name, ['admin', 'super-admin'])) {
-            session()->flash('error', 'No se pueden eliminar roles del sistema.');
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No se pueden eliminar roles del sistema.',
+                'duration' => 4000
+            ]);
             return;
         }
 
         try {
+            $nombreRol = $role->name;
             $role->delete();
-            session()->flash('message', 'Rol eliminado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Rol '{$nombreRol}' eliminado exitosamente.",
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar el rol: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al eliminar el rol: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

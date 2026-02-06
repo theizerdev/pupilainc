@@ -143,11 +143,19 @@ class Create extends Component
                 ]
             );
 
-            session()->flash('message', 'Empresa creada correctamente. Configuración regional aplicada y sincronizada con WhatsApp API.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Empresa '{$this->razon_social}' creada correctamente. Configuración regional aplicada y sincronizada con WhatsApp API.",
+                'duration' => 5000
+            ]);
             
         } catch (\Exception $e) {
             // Si falla la sincronización, igual mostrar mensaje de éxito pero con advertencia
-            session()->flash('message', 'Empresa creada correctamente. Configuración regional aplicada. Nota: No se pudo sincronizar automáticamente con WhatsApp API.');
+            $this->dispatch('notify', [
+                'type' => 'warning',
+                'message' => "Empresa '{$this->razon_social}' creada correctamente. Configuración regional aplicada. Nota: No se pudo sincronizar automáticamente con WhatsApp API.",
+                'duration' => 5000
+            ]);
             \Log::error('Error sincronizando empresa nueva con WhatsApp API', [
                 'empresa_id' => $empresa->id,
                 'error' => $e->getMessage()

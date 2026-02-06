@@ -48,6 +48,11 @@ Route::get('/medicos', \App\Livewire\Admin\Medicos\Index::class)->name('medicos.
 Route::get('/medicos/crear', \App\Livewire\Admin\Medicos\Create::class)->name('medicos.create');
 Route::get('/medicos/{medico}/editar', \App\Livewire\Admin\Medicos\Edit::class)->name('medicos.edit');
 
+// Pacientes
+Route::get('/pacientes', \App\Livewire\Admin\Pacientes\Index::class)->name('pacientes.index');
+Route::get('/pacientes/crear', \App\Livewire\Admin\Pacientes\Create::class)->name('pacientes.create');
+Route::get('/pacientes/{paciente}/editar', \App\Livewire\Admin\Pacientes\Edit::class)->name('pacientes.edit');
+
 // Países
 Route::get('/paises', \App\Livewire\Admin\Paises\PaisIndex::class)->name('paises.index');
 Route::get('/paises/crear', \App\Livewire\Admin\Paises\Create::class)->name('paises.create');
@@ -167,5 +172,8 @@ Route::get('/whatsapp', \App\Livewire\Admin\Whatsapp\Index::class)->name('whatsa
 Route::get('/conceptos-pago', ConceptosPagoIndex::class)->name('conceptos-pago.index');
 Route::get('/conceptos-pago/crear', ConceptosPagoCreate::class)->name('conceptos-pago.create');
 Route::get('/conceptos-pago/{concepto}/editar', ConceptosPagoEdit::class)->name('conceptos-pago.edit');
+
+// Citas Médicas
+Route::get('/citas', \App\Livewire\Admin\Citas\Index::class)->name('citas.index');
 
 // Estadísticas

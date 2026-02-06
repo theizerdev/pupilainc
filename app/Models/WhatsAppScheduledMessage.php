@@ -24,7 +24,10 @@ class WhatsAppScheduledMessage extends Model
         'error_message',
         'attempts',
         'max_attempts',
-        'created_by'
+        'created_by',
+        'cita_id',
+        'empresa_id',
+        'notification_type'
     ];
 
     protected $casts = [
@@ -51,6 +54,16 @@ class WhatsAppScheduledMessage extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function cita(): BelongsTo
+    {
+        return $this->belongsTo(Cita::class);
+    }
+
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(Empresa::class);
+    }
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending')
@@ -72,6 +85,16 @@ class WhatsAppScheduledMessage extends Model
     public function scopeSent($query)
     {
         return $query->where('status', 'sent');
+    }
+
+    public function scopeParaCita($query, $citaId)
+    {
+        return $query->where('cita_id', $citaId);
+    }
+
+    public function scopePendientesDeCita($query, $citaId)
+    {
+        return $query->where('cita_id', $citaId)->where('status', 'pending');
     }
 
     public function canRetry(): bool
@@ -108,6 +131,13 @@ class WhatsAppScheduledMessage extends Model
                 'status' => 'pending',
                 'error_message' => null
             ]);
+        }
+    }
+
+    public function cancelar(): void
+    {
+        if ($this->status === 'pending') {
+            $this->update(['status' => 'cancelled']);
         }
     }
 }

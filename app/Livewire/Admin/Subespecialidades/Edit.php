@@ -106,12 +106,20 @@ class Edit extends Component
             
             $this->subespecialidad->update($data);
             
-            session()->flash('success', 'Subespecialidad actualizada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Subespecialidad '{$this->nombre}' actualizada exitosamente.",
+                'duration' => 4000
+            ]);
             
             return redirect()->route('admin.subespecialidades.index');
             
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar la subespecialidad: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar la subespecialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

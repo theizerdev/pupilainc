@@ -116,12 +116,20 @@ class Edit extends Component
             
             $this->especialidad->update($data);
             
-            session()->flash('success', 'Especialidad actualizada exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Especialidad '{$this->nombre}' actualizada exitosamente.",
+                'duration' => 4000
+            ]);
             
             return redirect()->route('admin.especialidades.index');
             
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar la especialidad: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar la especialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

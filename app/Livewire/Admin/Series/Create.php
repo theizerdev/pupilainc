@@ -114,7 +114,11 @@ class Create extends Component
             'sucursal_id' => $this->sucursal_id
         ]);
 
-        session()->flash('message', 'Serie creada exitosamente');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Serie '{$this->serie}' creada exitosamente.",
+            'duration' => 4000
+        ]);
         return redirect()->route('admin.series.index');
     }
 
@@ -131,7 +135,3 @@ class Create extends Component
         return view('livewire.admin.series.create',compact('tipos'))->layout($this->getLayout());
     }
 }
-
-
-
-
