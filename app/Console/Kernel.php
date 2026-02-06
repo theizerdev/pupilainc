@@ -23,6 +23,9 @@ class Kernel extends ConsoleKernel
         Commands\WhatsAppRetryStatus::class,
         Commands\DevRetryWhatsApp::class, // Comando de desarrollo
         Commands\TestStudentWhatsAppNotification::class, // Comando de prueba para notificaciones de estudiantes
+        Commands\ProcesarRecordatoriosCitas::class, // Procesar recordatorios de citas médicas
+        Commands\TestRecordatoriosCitas::class, // Comando de prueba para recordatorios
+        Commands\VerificarRecordatoriosCitas::class, // Verificar estado de recordatorios
     ];
 
     /**
@@ -63,6 +66,22 @@ class Kernel extends ConsoleKernel
                     ->retryable()
                     ->exists();
             });
+
+        // Procesar recordatorios de citas cada 15 minutos
+        if (auth()->check()) {
+            $schedule->command('citas:procesar-recordatorios')
+            ->everyFifteenMinutes()
+            ->timezone(auth()->user()->empresa->pais->zona_horaria)
+            ->withoutOverlapping()
+            ->onOneServer();
+        } else {
+            $schedule->command('citas:procesar-recordatorios')
+            ->everyFifteenMinutes()
+            ->timezone('America/Caracas')
+            ->withoutOverlapping()
+            ->onOneServer();
+        }
+        
     }
 
     /**

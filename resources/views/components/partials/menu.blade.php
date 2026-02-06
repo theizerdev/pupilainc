@@ -125,11 +125,33 @@
       </li>
     @endcan
       @can('access citas')
-      <li class="menu-item {{ request()->routeIs('admin.citas.*') ? 'active' : '' }}">
-        <a href="{{ route('admin.citas.index') }}" class="menu-link">
+      <li class="menu-item {{ request()->routeIs('admin.citas.*') ? 'active open' : '' }}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
          <i class="menu-icon tf-icons ri ri-calendar-line"></i>
         <div>Citas</div>
         </a>
+        <ul class="menu-sub">
+           <li class="menu-item {{ request()->routeIs('admin.citas.index') ? 'active' : '' }}">
+             <a href="{{ route('admin.citas.index') }}" class="menu-link">
+               <div>Gestión de Citas</div>
+             </a>
+           </li>
+           <li class="menu-item {{ request()->routeIs('admin.citas.analytics') ? 'active' : '' }}">
+             <a href="{{ route('admin.citas.analytics') }}" class="menu-link">
+               <div>Analytics</div>
+             </a>
+           </li>
+           <li class="menu-item {{ request()->routeIs('admin.citas.recordatorios') ? 'active' : '' }}">
+              <a href="{{ route('admin.citas.recordatorios') }}" class="menu-link">
+                <div>📅 Recordatorios</div>
+              </a>
+            </li>
+            <li class="menu-item {{ request()->routeIs('admin.citas.reagendamiento') ? 'active' : '' }}">
+              <a href="{{ route('admin.citas.reagendamiento') }}" class="menu-link">
+                <div>🔄 Re-agendamiento</div>
+              </a>
+            </li>
+         </ul>
       </li>
       @endcan
        

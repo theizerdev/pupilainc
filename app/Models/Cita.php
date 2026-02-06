@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use App\Traits\Multitenantable;
@@ -110,6 +111,11 @@ class Cita extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function recordatorios(): HasMany
+    {
+        return $this->hasMany(CitaRecordatorio::class);
+    }
+
     public function scopeActivas($query)
     {
         return $query->whereNotIn('estado', [self::ESTADO_CANCELADA, self::ESTADO_NO_ASISTIO]);
@@ -184,6 +190,70 @@ class Cita extends Model
     {
         $this->update(['estado' => $nuevoEstado]);
         return $this;
+    }
+
+    public function programarRecordatorios(): void
+    {
+        // Limpiar recordatorios existentes
+        $this->recordatorios()->delete();
+
+        // Solo programar para citas activas futuras
+        if (!$this->activas()->exists() || $this->fecha_inicio <= now()) {
+            return;
+        }
+
+        // Recordatorio 24 horas antes
+        if ($this->fecha_inicio->subDay() > now()) {
+            $this->recordatorios()->create([
+                'tipo' => '24h',
+                'fecha_envio_programado' => $this->fecha_inicio->copy()->subDay(),
+                'canal' => 'whatsapp',
+                'mensaje' => $this->generarMensajeRecordatorio('24h')
+            ]);
+        }
+
+        // Recordatorio 2 horas antes
+        if ($this->fecha_inicio->subHours(2) > now()) {
+            $this->recordatorios()->create([
+                'tipo' => '2h',
+                'fecha_envio_programado' => $this->fecha_inicio->copy()->subHours(2),
+                'canal' => 'whatsapp',
+                'mensaje' => $this->generarMensajeRecordatorio('2h')
+            ]);
+        }
+    }
+
+    public function generarMensajeRecordatorio(string $tipo): string
+    {
+        $fecha = $this->fecha_inicio->format('d/m/Y H:i');
+        $medico = $this->medico->nombre_completo;
+        $especialidad = $this->especialidad->nombre;
+        $sucursal = $this->sucursal->nombre;
+
+        switch ($tipo) {
+            case '24h':
+                return "🩺 *Recordatorio de Cita Médica*\n\n" .
+                       "Hola {$this->paciente->nombre_completo},\n\n" .
+                       "Le recordamos que tiene una cita médica programada para mañana:\n\n" .
+                       "📅 *Fecha:* {$fecha}\n" .
+                       "👨‍⚕️ *Médico:* {$medico}\n" .
+                       "🏥 *Especialidad:* {$especialidad}\n" .
+                       "🏢 *Sucursal:* {$sucursal}\n\n" .
+                       "Por favor confirme su asistencia respondiendo *SI* o *NO*";
+
+            case '2h':
+                return "⏰ *Próxima Cita Médica*\n\n" .
+                       "Hola {$this->paciente->nombre_completo},\n\n" .
+                       "Su cita médica es en 2 horas:\n\n" .
+                       "📅 *Fecha:* {$fecha}\n" .
+                       "👨‍⚕️ *Médico:* {$medico}\n" .
+                       "🏥 *Especialidad:* {$especialidad}\n" .
+                       "🏢 *Sucursal:* {$sucursal}\n\n" .
+                       "¡Lo esperamos! 🏥";
+
+            default:
+                return "Recordatorio de cita médica el {$fecha} con {$medico}";
+        }
     }
 
     public function tieneConflicto()

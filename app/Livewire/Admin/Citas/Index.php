@@ -311,7 +311,8 @@ class Index extends Component
             }
 
             if ($fechaAnterior !== $cita->fecha_inicio->toDateTimeString()) {
-                $this->reprogramarRecordatorios($cita);
+                // Reprogramar recordatorios si cambió la fecha
+                $cita->programarRecordatorios();
             }
 
             $this->dispatch('show-toast', [
@@ -323,6 +324,9 @@ class Index extends Component
             $cita = Cita::create($data);
 
             $this->notificarNuevaCita($cita);
+
+            // Programar recordatorios automáticamente
+            $cita->programarRecordatorios();
 
             $this->dispatch('show-toast', [
                 'type' => 'success',
