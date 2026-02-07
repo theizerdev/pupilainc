@@ -19,7 +19,9 @@ class Tutor extends Model
         'documento_identidad',
         'parentesco',
         'edad',
-        'telefono'
+        'telefono',
+        'email',
+        'direccion'
     ];
 
     protected $casts = [

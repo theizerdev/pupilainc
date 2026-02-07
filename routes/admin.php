@@ -56,8 +56,8 @@ Route::get('/medicos/{medico}/editar', \App\Livewire\Admin\Medicos\Edit::class)-
 
 // Pacientes
 Route::get('/pacientes', \App\Livewire\Admin\Pacientes\Index::class)->name('pacientes.index');
-Route::get('/pacientes/crear', \App\Livewire\Admin\Pacientes\Create::class)->name('pacientes.create');
-Route::get('/pacientes/{paciente}/editar', \App\Livewire\Admin\Pacientes\Edit::class)->name('pacientes.edit');
+Route::get('/pacientes/crear', \App\Livewire\Admin\Pacientes\Wizard::class)->name('pacientes.create');
+Route::get('/pacientes/{pacienteId}/editar', \App\Livewire\Admin\Pacientes\Wizard::class)->name('pacientes.edit');
 
 // Países
 Route::get('/paises', \App\Livewire\Admin\Paises\PaisIndex::class)->name('paises.index');

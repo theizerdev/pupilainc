@@ -177,6 +177,13 @@ class RolesAndPermissionsSeeder extends Seeder
                 'edit citas',
                 'delete citas',
             ],
+
+             'pacientes' => [
+                'access pacientes',
+                'create pacientes',
+                'edit pacientes',
+                'delete pacientes',
+            ],
           
         ];
 

@@ -172,7 +172,7 @@
       }
     }
   </style>
-
+    @livewireStyles
     @stack('styles')
   </head>
 
@@ -259,7 +259,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     @stack('scripts')
-
+    @livewireScripts
     <!-- Accessibility improvements -->
     <script>
       // Mejorar la navegaciÃƒÂ³n por teclado

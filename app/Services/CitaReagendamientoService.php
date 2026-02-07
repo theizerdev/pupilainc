@@ -154,7 +154,7 @@ class CitaReagendamientoService
         $horariosDisponibles = [];
         
         // Obtener horario de trabajo del médico para este día
-        $diaSemana = $fecha->dayOfWeek; // 0 = Domingo, 1 = Lunes, etc.
+        $diaSemana = $fecha->dayOfWeekIso;
         $horarioMedico = MedicoHorario::where('medico_id', $medico->id)
             ->where('dia_semana', $diaSemana)
             ->where('activo', true)

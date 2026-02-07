@@ -253,19 +253,18 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="fas fa-chart-line me-2 text-primary"></i>
-                        Citas por Día - Últimos 7 días
+                        Citas por Período
                     </h5>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-download me-2"></i>Exportar</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="fas fa-expand me-2"></i>Ampliar</a></li>
-                        </ul>
+                    <div class="d-flex align-items-center gap-2">
+                        <select class="form-select form-select-sm" wire:model.live="dateRange" style="width: auto;">
+                            <option value="week">Semanal</option>
+                            <option value="month">Mes</option>
+                            <option value="quarter">Trimestral</option>
+                            <option value="semester">Semestral</option>
+                        </select>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body" wire:ignore>
                     <div class="chart-container">
                         <canvas id="citasChart"></canvas>
                     </div>
@@ -288,15 +287,15 @@
                         <div class="cita-item">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6 class="mb-1">{{ $cita->paciente->nombre ?? 'Paciente' }}</h6>
+                                    <h6 class="mb-1">{{ $cita->paciente->nombre_completo ?? 'Paciente' }}</h6>
                                     <small class="text-muted">
                                         <i class="fas fa-user-md me-1"></i>
-                                        {{ $cita->medico->nombre ?? 'Médico' }}
+                                        {{ $cita->medico->nombre_completo ?? 'Médico' }}
                                     </small>
                                 </div>
                                 <div class="text-end">
-                                    <div class="fw-bold">{{ \Carbon\Carbon::parse($cita->hora)->format('H:i') }}</div>
-                                    <small class="text-muted">{{ \Carbon\Carbon::parse($cita->fecha)->format('d/m') }}</small>
+                                    <div class="fw-bold">{{ $cita->fecha_inicio->format('H:i') }}</div>
+                                    <small class="text-muted">{{ $cita->fecha_inicio->format('d/m') }}</small>
                                 </div>
                             </div>
                         </div>
@@ -503,56 +502,66 @@
 
     @push('scripts')
     <script>
-        // Gráfico de Citas
-        const citasCtx = document.getElementById('citasChart').getContext('2d');
-        new Chart(citasCtx, {
-            type: 'line',
-            data: {
-                labels: @json($citasChartData['labels']),
-                datasets: [{
-                    label: 'Citas',
-                    data: @json($citasChartData['data']),
-                    borderColor: '#667eea',
-                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#667eea',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+        let citasChart = null;
+
+        function initCitasChart(labels, data) {
+            const canvas = document.getElementById('citasChart');
+            if (!canvas) return;
+
+            if (citasChart) {
+                citasChart.data.labels = labels;
+                citasChart.data.datasets[0].data = data;
+                citasChart.update();
+                return;
+            }
+
+            citasChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Citas',
+                        data: data,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0,0,0,0.1)'
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
                         }
                     },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
-                elements: {
-                    point: {
-                        hoverRadius: 8
+                    elements: {
+                        point: { hoverRadius: 8 }
                     }
                 }
-            }
+            });
+        }
+
+        initCitasChart(@json($citasChartData['labels']), @json($citasChartData['data']));
+
+        Livewire.on('chartDataUpdated', (params) => {
+            const chartData = params[0].citasChartData;
+            initCitasChart(chartData.labels, chartData.data);
         });
 
-        // Auto-refresh cada 5 minutos
         setInterval(() => {
             @this.loadDashboardData();
         }, 300000);

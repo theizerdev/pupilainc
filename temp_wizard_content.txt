@@ -1,0 +1,58 @@
+<div>
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
+    @section('title', $this->getPageTitle())
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-user-injured me-2"></i>{{ $this->getPageTitle() }}
+        </h2>
+        <a href="{{ route('admin.pacientes.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Progreso del registro</h5>
+                <span class="badge bg-primary">Paso {{ $pasoActual }} de {{ $pasoTotal }}</span>
+            </div>
+
+            <div class="progress mb-3" style="height: 8px;">
+                <div class="progress-bar bg-primary" role="progressbar"
+                     style="width: {{ ($pasoActual / $pasoTotal) * 100 }}%"></div>
+            </div>
+
+            <!-- Wizard Steps Indicators -->
+            <div class="d-flex justify-content-between">
+                <div class="text-center">
+                    <div class="step-indicator {{ $pasoActual >= 1 ? 'active' : '' }}">
+                        <i class="fas fa-camera"></i>
+                        <small class="d-block mt-1">Foto</small>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <div class="step-indicator {{ $pasoActual >= 2 ? 'active' : '' }}">
+                        <i class="fas fa-user"></i>
+                        <small class="d-block mt-1">Datos Personales</small>
+                    </div>
+                </div>
+                @if($esMenorEdad)
+                <div class="text-center">
+                    <div class="step-indicator {{ $pasoActual >= 3 ? 'active' : '' }}">
+                        <i class="fas fa-user-friends"></i>
+                        <small class="d-block mt-1">Tutor</small>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="card">
+        <div class="card-body">

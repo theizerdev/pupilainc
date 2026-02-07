@@ -1,4 +1,7 @@
 <div>
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
  
     <script>
         // Función para mostrar loading en el switch
@@ -233,9 +236,16 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-sm me-2">
-                                                <span class="avatar-initial rounded-circle bg-primary">
-                                                    {{ substr($paciente->nombres, 0, 1) }}{{ substr($paciente->apellidos, 0, 1) }}
-                                                </span>
+                                                @if($paciente->foto)
+                                                    <img src="{{ filter_var($paciente->foto, FILTER_VALIDATE_URL) ? $paciente->foto : \Illuminate\Support\Facades\Storage::url($paciente->foto) }}" 
+                                                         alt="{{ $paciente->nombres }}" 
+                                                         class="avatar-img rounded-circle"
+                                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                                @else
+                                                    <span class="avatar-initial rounded-circle bg-primary">
+                                                        {{ substr($paciente->nombres, 0, 1) }}{{ substr($paciente->apellidos, 0, 1) }}
+                                                    </span>
+                                                @endif
                                             </div>
                                             <div>
                                                 <div class="fw-semibold">{{ $paciente->nombres }} {{ $paciente->apellidos }}</div>
@@ -294,7 +304,7 @@
                                             <div class="dropdown-menu">
                                                 
                                                 @can('edit pacientes')
-                                                <a class="dropdown-item" href="{{ route('admin.pacientes.edit', $paciente) }}">
+                                                <a class="dropdown-item" href="{{ route('admin.pacientes.edit', $paciente->id) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar
                                                 </a>
                                                 @endcan

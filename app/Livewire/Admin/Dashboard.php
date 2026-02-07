@@ -24,6 +24,7 @@ class Dashboard extends Component
     public $recentCitas = [];
     public $citasChartData = [];
     public $ingresosChartData = [];
+    public $dateRange = 'week';
 
     public function mount()
     {
@@ -56,28 +57,82 @@ class Dashboard extends Component
             ->get();
 
         $this->loadChartData();
+
+        $this->dispatch('chartDataUpdated', [
+            'citasChartData' => $this->citasChartData,
+        ]);
+    }
+
+    public function updatedDateRange()
+    {
+        $this->loadChartData();
+        $this->dispatch('chartDataUpdated', [
+            'citasChartData' => $this->citasChartData,
+        ]);
     }
 
     public function loadChartData()
     {
-        // Datos para gráfico de citas por día (últimos 7 días)
-        $citasPorDia = Cita::selectRaw('DATE(fecha_inicio) as fecha, COUNT(*) as total')
-            ->whereDate('fecha_inicio', '>=', Carbon::now()->subDays(6))
-            ->groupBy('fecha')
-            ->orderBy('fecha')
-            ->get();
+        switch ($this->dateRange) {
+            case 'week':
+                $citasPorPeriodo = Cita::selectRaw('DATE(fecha_inicio) as fecha, COUNT(*) as total')
+                    ->whereDate('fecha_inicio', '>=', Carbon::now()->subDays(6))
+                    ->groupBy('fecha')
+                    ->orderBy('fecha')
+                    ->get();
+
+                $labels = [];
+                $data = [];
+                for ($i = 6; $i >= 0; $i--) {
+                    $date = Carbon::now()->subDays($i);
+                    $labels[] = $date->format('D d/m');
+                    $found = $citasPorPeriodo->firstWhere('fecha', $date->format('Y-m-d'));
+                    $data[] = $found ? $found->total : 0;
+                }
+                break;
+
+            case 'month':
+                $labels = [];
+                $data = [];
+                for ($i = 3; $i >= 0; $i--) {
+                    $start = Carbon::now()->subWeeks($i)->startOfWeek();
+                    $end = Carbon::now()->subWeeks($i)->endOfWeek();
+                    $labels[] = 'Sem ' . $start->format('d/m');
+                    $data[] = Cita::whereDate('fecha_inicio', '>=', $start)
+                        ->whereDate('fecha_inicio', '<=', $end)
+                        ->count();
+                }
+                break;
+
+            case 'quarter':
+                $labels = [];
+                $data = [];
+                for ($i = 2; $i >= 0; $i--) {
+                    $month = Carbon::now()->subMonths($i);
+                    $labels[] = $month->translatedFormat('M Y');
+                    $data[] = Cita::whereMonth('fecha_inicio', $month->month)
+                        ->whereYear('fecha_inicio', $month->year)
+                        ->count();
+                }
+                break;
+
+            case 'semester':
+                $labels = [];
+                $data = [];
+                for ($i = 5; $i >= 0; $i--) {
+                    $month = Carbon::now()->subMonths($i);
+                    $labels[] = $month->translatedFormat('M');
+                    $data[] = Cita::whereMonth('fecha_inicio', $month->month)
+                        ->whereYear('fecha_inicio', $month->year)
+                        ->count();
+                }
+                break;
+        }
 
         $this->citasChartData = [
-            'labels' => $citasPorDia->pluck('fecha')->map(fn($fecha) => Carbon::parse($fecha)->format('d/m'))->toArray(),
-            'data' => $citasPorDia->pluck('total')->toArray()
+            'labels' => $labels,
+            'data' => $data,
         ];
-
-        // Datos para gráfico de ingresos por mes (últimos 6 meses)
-        $ingresosPorMes = 0;
-
-        $meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        
-        
     }
 
     public function render()

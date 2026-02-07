@@ -26,6 +26,11 @@ class Paciente extends Model
         'direccion',
         'nickname',
         'fecha_nacimiento',
+        'genero',
+        'estado_civil',
+        'ocupacion',
+        'nacionalidad',
+        'foto',
         'status',
         'empresa_id',
         'sucursal_id'

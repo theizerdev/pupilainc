@@ -423,7 +423,7 @@
                         <div class="text-center py-4">
                             <i class="fas fa-calendar-times text-muted" style="font-size: 3rem;"></i>
                             <p class="text-muted mt-3 mb-0">No tienes citas programadas para hoy</p>
-                            <a href="{{ route('admin.citas.create') }}" class="btn btn-success mt-2">
+                            <a href="{{ route('admin.citas.index') }}" class="btn btn-success mt-2">
                                 <i class="fas fa-plus me-1"></i>
                                 Agendar Nueva Cita
                             </a>

@@ -70,10 +70,12 @@ class Empresa extends Model
         parent::boot();
         
         static::creating(function ($empresa) {
-            if (!$empresa->api_key) {
-                $empresa->api_key = self::generateApiKey();
+            if (!$empresa->whatsapp_api_key) {
+                $empresa->whatsapp_api_key = self::generateApiKey();
             }
+           
         });
+
     }
 
     public static function generateApiKey(): string

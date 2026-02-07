@@ -147,7 +147,10 @@ class Create extends Component
         $validated = $this->validate();
 
         try {
-            $plainPassword = $validated['password'] ?: $validated['documento_identidad'];
+           
+          \DB::beginTransaction();
+
+           $plainPassword = $validated['password'] ?: $validated['documento_identidad'];
 
             // Crear el usuario
             $user = User::create([
@@ -158,6 +161,7 @@ class Create extends Component
                 'empresa_id' => auth()->user()->hasRole('Super Administrador') ? $validated['empresa_id'] : auth()->user()->empresa_id,
                 'sucursal_id' => auth()->user()->hasRole('Super Administrador') ? $validated['sucursal_id'] : auth()->user()->sucursal_id,
                 'status' => true,
+                'phone' => $validated['telefono'],
             ]);
 
             // Asignar el rol de Médico
@@ -241,10 +245,12 @@ class Create extends Component
                 'message' => "Médico '{$medico->nombres} {$medico->apellidos}' creado exitosamente. Se ha enviado un mensaje de bienvenida por WhatsApp.",
                 'duration' => 5000
             ]);
+              \DB::commit();
             
             return redirect()->route('admin.medicos.index');
 
         } catch (\Exception $e) {
+            \DB::rollback();
             $this->dispatch('notify', [
                 'type' => 'error',
                 'message' => 'Error al crear el médico: ' . $e->getMessage(),
@@ -342,24 +348,45 @@ class Create extends Component
         }
     }
 
-    private function formatearTelefono($telefono)
+    
+    protected function formatearTelefono(string $telefono): string
     {
-        // Eliminar espacios y caracteres no numéricos
-        $telefono = preg_replace('/[^0-9]/', '', $telefono);
-        
-        // Si es un número peruano (9 dígitos y empieza con 9), agregar +51
-        if (strlen($telefono) === 9 && $telefono[0] === '9') {
-            return '+51' . $telefono;
+        $limpio = preg_replace('/\D/', '', $telefono);
+
+        if (str_starts_with($limpio, '0')) {
+            $limpio = substr($limpio, 1);
         }
-        
-        // Si ya tiene código de país, dejarlo así
-        if (strlen($telefono) > 10) {
-            return '+' . $telefono;
+
+        $codigo = $this->obtenerCodigoPais();
+
+        if (!str_starts_with($limpio, $codigo) && strlen($limpio) >= 7 && strlen($limpio) <= 12) {
+            $limpio = $codigo . $limpio;
         }
-        
-        // Por defecto, retornar el número limpio
-        return $telefono;
+
+        return '+' . $limpio;
     }
+
+      protected function obtenerCodigoPais(): string
+    {
+       
+        $empId = auth()->user()->empresa_id;
+        if (!$empId && auth()->check() && auth()->user()->empresa_id) {
+            $empId = auth()->user()->empresa_id;
+        }
+
+        if ($empId) {
+            $empresa = \DB::table('empresas')->where('id', $empId)->first();
+            if ($empresa && $empresa->pais_id) {
+                $pais = \DB::table('pais')->where('id', $empresa->pais_id)->first();
+                if ($pais && $pais->codigo_telefonico) {
+                    $codigoPais = ltrim($pais->codigo_telefonico, '+');
+                }
+            }
+        }
+
+        return $codigoPais;
+    }
+
 
     private function crearMensajeBienvenida($user, $medico, $plainPassword = null)
     {
