@@ -242,11 +242,7 @@
                                                 <i class="ri ri-more-2-line"></i>
                                             </button>
                                             <div class="dropdown-menu">
-                                                @can('view users')
-                                                <a class="dropdown-item" href="{{ route('admin.users.show', $user) }}">
-                                                    <i class="ri ri-eye-line me-1"></i> Ver
-                                                </a>
-                                                @endcan
+                                               
                                                 @can('edit users')
                                                 <a class="dropdown-item" href="{{ route('admin.users.edit', $user) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar

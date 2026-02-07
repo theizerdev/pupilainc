@@ -275,3 +275,159 @@ if (!function_exists('format_datetime')) {
         }
     }
 }
+
+// ===== HELPERS PARA SISTEMA DE SECTORES DE PERMISOS =====
+
+if (!function_exists('getPermissionSectors')) {
+    /**
+     * Obtener todos los sectores disponibles
+     */
+    function getPermissionSectors(): array
+    {
+        return [
+            'medico' => [
+                'name' => '🏥 Médico',
+                'description' => 'Gestión de pacientes, médicos, citas y especialidades',
+                'color' => 'blue',
+                'modules' => ['tipo-consultas', 'pacientes', 'medicos', 'citas', 'especialidades', 'subespecialidades']
+            ],
+            'administracion' => [
+                'name' => '💰 Administración',
+                'description' => 'Gestión financiera, cajas, pagos y tasas de cambio',
+                'color' => 'green',
+                'modules' => ['cajas', 'pagos', 'conceptos_pago', 'exchange-rates', 'series', 'reglas_mora']
+            ],
+            'configuracion' => [
+                'name' => '⚙️ Configuración',
+                'description' => 'Configuración del sistema, empresas, usuarios y roles',
+                'color' => 'purple',
+                'modules' => ['empresas', 'sucursales', 'paises', 'users', 'roles', 'permissions', 'personalizacion']
+            ],
+            'monitoreo' => [
+                'name' => '📊 Monitoreo',
+                'description' => 'Monitoreo del sistema, actividad y respaldos',
+                'color' => 'orange',
+                'modules' => ['sesiones', 'actividad', 'respaldo', 'monitoreo_sistema', 'notificaciones']
+            ],
+            'comunicaciones' => [
+                'name' => '📱 Comunicaciones',
+                'description' => 'WhatsApp, mensajes y plantillas',
+                'color' => 'teal',
+                'icon' => 'ri-whatsapp-line',
+                'modules' => ['whatsapp', 'whatsapp templates', 'whatsapp messages']
+            ],
+            'sistema' => [
+                'name' => '🔧 Sistema',
+                'description' => 'Configuraciones del sistema y API',
+                'color' => 'gray',
+                'icon' => 'ri-tools-line',
+                'modules' => ['system', 'api', 'jwt']
+            ]
+        ];
+    }
+}
+
+if (!function_exists('getSectorPermissions')) {
+    /**
+     * Obtener permisos por sector
+     */
+    function getSectorPermissions(string $sector): \Illuminate\Support\Collection
+    {
+        return \Spatie\Permission\Models\Permission::where('sector', $sector)
+            ->orderBy('module')
+            ->orderBy('name')
+            ->get();
+    }
+}
+
+if (!function_exists('getUserSectors')) {
+    /**
+     * Obtener sectores a los que tiene acceso un usuario
+     */
+    function getUserSectors($user): array
+    {
+        $permissions = $user->permissions()->pluck('sector')->unique()->filter()->values();
+        $sectors = getPermissionSectors();
+        
+        return $permissions->mapWithKeys(function ($sector) use ($sectors) {
+            return [$sector => $sectors[$sector] ?? ['name' => ucfirst($sector)]];
+        })->toArray();
+    }
+}
+
+if (!function_exists('hasSectorAccess')) {
+    /**
+     * Verificar si un usuario tiene acceso a un sector específico
+     */
+    function hasSectorAccess($user, string $sector): bool
+    {
+        return $user->permissions()->where('sector', $sector)->exists();
+    }
+}
+
+if (!function_exists('getSectorColor')) {
+    /**
+     * Obtener el color asociado a un sector
+     */
+    function getSectorColor(string $sector): string
+    {
+        $sectors = getPermissionSectors();
+        return $sectors[$sector]['color'] ?? 'gray';
+    }
+}
+
+if (!function_exists('getSectorIcon')) {
+    /**
+     * Obtener el icono/emoji asociado a un sector
+     */
+    function getSectorIcon(string $sector): string
+    {
+        $sectors = getPermissionSectors();
+        return explode(' ', $sectors[$sector]['name'])[0] ?? '📋';
+    }
+}
+
+if (!function_exists('formatSectorName')) {
+    /**
+     * Formatear el nombre de un sector para mostrar
+     */
+    function formatSectorName(string $sector, bool $withIcon = true): string
+    {
+        $sectors = getPermissionSectors();
+        $name = $sectors[$sector]['name'] ?? ucfirst($sector);
+        
+        if (!$withIcon) {
+            return str_replace(['🏥', '💰', '⚙️', '📊', '📱', '🔧'], '', $name);
+        }
+        
+        return $name;
+    }
+}
+
+if (!function_exists('getSectorStats')) {
+    /**
+     * Obtener estadísticas de permisos por sector
+     */
+    function getSectorStats(): array
+    {
+        $sectors = getPermissionSectors();
+        $stats = [];
+        
+        foreach ($sectors as $key => $sector) {
+            $totalPermissions = \Spatie\Permission\Models\Permission::where('sector', $key)->count();
+            $totalRoles = \Spatie\Permission\Models\Role::whereHas('permissions', function ($query) use ($key) {
+                $query->where('sector', $key);
+            })->count();
+            
+            $stats[$key] = [
+                'name' => $sector['name'],
+                'total_permissions' => $totalPermissions,
+                'total_roles' => $totalRoles,
+                'color' => $sector['color'],
+                'description' => $sector['description']
+            ];
+        }
+        
+        return $stats;
+    }
+}

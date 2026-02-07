@@ -188,11 +188,7 @@
                                                 <i class="ri ri-more-2-line"></i>
                                             </button>
                                             <div class="dropdown-menu">
-                                                @can('view empresas')
-                                                <a class="dropdown-item" href="{{ route('admin.empresas.show', $empresa) }}">
-                                                    <i class="ri ri-eye-line me-1"></i> Ver
-                                                </a>
-                                                @endcan
+                                               
                                                 @can('edit empresas')
                                                 <a class="dropdown-item" href="{{ route('admin.empresas.edit', $empresa) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar

@@ -13,52 +13,167 @@ class Create extends Component
 {
     use HasDynamicLayout;
 
-
     public $name;
     public $permissions = [];
     public $selectedPermissions = [];
-
-    // Propiedades para agrupar permisos por módulo
-    public $groupedPermissions = [];
-    public $moduleStates = []; // Para mantener el estado de los toggles
-    public $selectAll = false; // Para seleccionar todos los permisos
+    public $sectorPermissions = [];
+    public $sectorStates = [];
+    public $moduleStates = [];
+    public $selectAll = false;
+    public $activeSector = '';
+    public $sectors = [];
 
     public function mount()
     {
-        // Verificar permiso para crear roles
         if (!Auth::user()->can('create roles')) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 
-        // Cargar todos los permisos y agruparlos
         $this->loadPermissions();
     }
 
     public function loadPermissions()
     {
-        $allPermissions = Permission::all();
+        $allPermissions = Permission::orderBy('sector')
+            ->orderBy('module')
+            ->orderBy('name')
+            ->get();
 
-        // Agrupar permisos por módulo usando el campo module
+        $this->sectorPermissions = [];
+        $this->sectorStates = [];
+        $this->moduleStates = [];
+
         foreach ($allPermissions as $permission) {
+            $sector = $permission->sector ?? 'sistema';
             $module = $permission->module ?? 'general';
 
-            if (!isset($this->groupedPermissions[$module])) {
-                $this->groupedPermissions[$module] = [];
+            if (!isset($this->sectorPermissions[$sector])) {
+                $this->sectorPermissions[$sector] = [];
             }
 
-            $this->groupedPermissions[$module][] = $permission;
+            if (!isset($this->sectorPermissions[$sector][$module])) {
+                $this->sectorPermissions[$sector][$module] = [];
+            }
+
+            $this->sectorPermissions[$sector][$module][] = $permission;
         }
 
-        // Ordenar módulos alfabéticamente
-        ksort($this->groupedPermissions);
-
-        // Inicializar estados de módulos
-        foreach ($this->groupedPermissions as $module => $permissions) {
-            $this->moduleStates[$module] = false;
+        foreach ($this->sectorPermissions as $sector => $modules) {
+            $this->sectorStates[$sector] = false;
+            foreach ($modules as $module => $permissions) {
+                $this->moduleStates[$sector . '.' . $module] = false;
+            }
         }
 
-        // Inicializar el array de permisos seleccionados
+        $sectorKeys = array_keys($this->sectorPermissions);
+        $this->activeSector = !empty($sectorKeys) ? $sectorKeys[0] : '';
+
+        $this->sectors = getPermissionSectors();
+
         $this->selectedPermissions = [];
+    }
+
+    public function setActiveSector($sector)
+    {
+        $this->activeSector = $sector;
+    }
+
+    public function toggleSectorPermissions($sector)
+    {
+        if (!isset($this->sectorPermissions[$sector])) {
+            return;
+        }
+
+        $allSelected = $this->sectorStates[$sector] ?? false;
+
+        foreach ($this->sectorPermissions[$sector] as $module => $permissions) {
+            foreach ($permissions as $permission) {
+                if ($allSelected) {
+                    $key = array_search($permission->id, $this->selectedPermissions);
+                    if ($key !== false) {
+                        unset($this->selectedPermissions[$key]);
+                    }
+                } else {
+                    if (!in_array($permission->id, $this->selectedPermissions)) {
+                        $this->selectedPermissions[] = $permission->id;
+                    }
+                }
+            }
+        }
+
+        $this->selectedPermissions = array_values($this->selectedPermissions);
+        $this->updatedSelectedPermissions();
+    }
+
+    public function toggleModulePermissions($sector, $module)
+    {
+        if (!isset($this->sectorPermissions[$sector][$module])) {
+            return;
+        }
+
+        $moduleKey = $sector . '.' . $module;
+        $allSelected = $this->moduleStates[$moduleKey] ?? false;
+
+        foreach ($this->sectorPermissions[$sector][$module] as $permission) {
+            if ($allSelected) {
+                $key = array_search($permission->id, $this->selectedPermissions);
+                if ($key !== false) {
+                    unset($this->selectedPermissions[$key]);
+                }
+            } else {
+                if (!in_array($permission->id, $this->selectedPermissions)) {
+                    $this->selectedPermissions[] = $permission->id;
+                }
+            }
+        }
+
+        $this->selectedPermissions = array_values($this->selectedPermissions);
+        $this->updatedSelectedPermissions();
+    }
+
+    public function toggleSelectAll()
+    {
+        if ($this->selectAll) {
+            $this->selectedPermissions = [];
+        } else {
+            $this->selectedPermissions = [];
+            foreach ($this->sectorPermissions as $sector => $modules) {
+                foreach ($modules as $module => $permissions) {
+                    foreach ($permissions as $permission) {
+                        $this->selectedPermissions[] = $permission->id;
+                    }
+                }
+            }
+        }
+
+        $this->updatedSelectedPermissions();
+    }
+
+    public function updatedSelectedPermissions()
+    {
+        $totalPermissions = 0;
+
+        foreach ($this->sectorPermissions as $sector => $modules) {
+            $sectorAllSelected = true;
+
+            foreach ($modules as $module => $permissions) {
+                $moduleAllSelected = true;
+
+                foreach ($permissions as $permission) {
+                    $totalPermissions++;
+                    if (!in_array($permission->id, $this->selectedPermissions)) {
+                        $moduleAllSelected = false;
+                        $sectorAllSelected = false;
+                    }
+                }
+
+                $this->moduleStates[$sector . '.' . $module] = $moduleAllSelected;
+            }
+
+            $this->sectorStates[$sector] = $sectorAllSelected;
+        }
+
+        $this->selectAll = count($this->selectedPermissions) == $totalPermissions && $totalPermissions > 0;
     }
 
     public function rules()
@@ -79,42 +194,8 @@ class Create extends Component
         ];
     }
 
-    public function updatedSelectedPermissions()
-    {
-        // Actualizar estados de los módulos cuando se seleccionan permisos individualmente
-        foreach ($this->groupedPermissions as $module => $permissions) {
-            $this->checkModuleState($module);
-        }
-
-        // Verificar si todos los permisos están seleccionados
-        $allPermissions = [];
-        foreach ($this->groupedPermissions as $permissions) {
-            foreach ($permissions as $permission) {
-                $allPermissions[] = $permission->id;
-            }
-        }
-
-        $this->selectAll = count($this->selectedPermissions) == count($allPermissions);
-    }
-
-    public function checkModuleState($module)
-    {
-        $modulePermissions = $this->groupedPermissions[$module];
-        $allSelected = true;
-
-        foreach ($modulePermissions as $permission) {
-            if (!in_array($permission->id, $this->selectedPermissions)) {
-                $allSelected = false;
-                break;
-            }
-        }
-
-        $this->moduleStates[$module] = $allSelected;
-    }
-
     public function save()
     {
-        // Verificar permiso para crear roles
         if (!Auth::user()->can('create roles')) {
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -127,10 +208,8 @@ class Create extends Component
         $this->validate();
 
         try {
-            // Crear el rol
             $role = Role::create(['name' => $this->name]);
 
-            // Asignar permisos seleccionados
             if (!empty($this->selectedPermissions)) {
                 $permissions = Permission::whereIn('id', $this->selectedPermissions)->get();
                 $role->syncPermissions($permissions);
@@ -149,75 +228,6 @@ class Create extends Component
                 'duration' => 5000
             ]);
         }
-    }
-
-    public function toggleAllPermissions($module)
-    {
-        $modulePermissions = $this->groupedPermissions[$module];
-        $allSelected = true;
-
-        // Verificar si todos los permisos del módulo están seleccionados
-        foreach ($modulePermissions as $permission) {
-            if (!in_array($permission->id, $this->selectedPermissions)) {
-                $allSelected = false;
-                break;
-            }
-        }
-
-        // Si todos están seleccionados, deseleccionarlos; de lo contrario, seleccionarlos todos
-        if ($allSelected) {
-            foreach ($modulePermissions as $permission) {
-                $key = array_search($permission->id, $this->selectedPermissions);
-                if ($key !== false) {
-                    unset($this->selectedPermissions[$key]);
-                }
-            }
-        } else {
-            foreach ($modulePermissions as $permission) {
-                if (!in_array($permission->id, $this->selectedPermissions)) {
-                    $this->selectedPermissions[] = $permission->id;
-                }
-            }
-        }
-
-        // Reindexar el array
-        $this->selectedPermissions = array_values($this->selectedPermissions);
-
-        // Actualizar estado del módulo
-        $this->moduleStates[$module] = !$allSelected;
-
-        // Verificar estado de selección completa
-        $this->updatedSelectedPermissions();
-    }
-
-    public function toggleSelectAll()
-    {
-        if ($this->selectAll) {
-            // Deseleccionar todos
-            $this->selectedPermissions = [];
-
-            // Actualizar estados de módulos
-            foreach ($this->groupedPermissions as $module => $permissions) {
-                $this->moduleStates[$module] = false;
-            }
-        } else {
-            // Seleccionar todos
-            $this->selectedPermissions = [];
-            foreach ($this->groupedPermissions as $permissions) {
-                foreach ($permissions as $permission) {
-                    $this->selectedPermissions[] = $permission->id;
-                }
-            }
-
-            // Actualizar estados de módulos
-            foreach ($this->groupedPermissions as $module => $permissions) {
-                $this->moduleStates[$module] = true;
-            }
-        }
-
-        // Usar updatedSelectedPermissions para determinar el estado de selectAll
-        // Esto asegura consistencia con la lógica de verificación
-        $this->updatedSelectedPermissions();
     }
 
     public function render()

@@ -235,7 +235,7 @@ use Illuminate\Support\Facades\Storage;
                     <div class="d-flex justify-content-between align-items-center">
                         <!-- Paso 1: Foto -->
                         <div class="text-center flex-fill position-relative">
-                            <div class="{{ $pasoActual > 1 ? 'completed' : '' }}"></div>
+                            <div class=" {{ $pasoActual > 1 ? 'completed' : '' }}"></div>
                             <div class="step-indicator {{ $pasoActual >= 1 ? ($pasoActual === 1 ? 'current' : 'completed') : 'pending' }}"
                                  @if($pasoActual > 1) wire:click="irAPaso(1)" style="cursor: pointer;" @endif
                                  data-bs-toggle="tooltip" data-bs-placement="top" title="Foto del paciente">

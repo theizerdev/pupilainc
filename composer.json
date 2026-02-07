@@ -39,6 +39,7 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
+            "app/Helpers/SectorPermissionsHelper.php",
             "app/Helpers/helpers.php"
         ]
     },
