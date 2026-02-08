@@ -27,96 +27,6 @@ class EspecialidadesSubespecialidadesSeeder extends Seeder
         // Datos de especialidades y subespecialidades con códigos únicos
         $especialidadesData = [
             [
-                'nombre' => 'Medicina General',
-                'codigo' => 'MEDGEN',
-                'descripcion' => 'Atención médica primaria y preventiva',
-                'costo_consulta' => 30.00,
-                'duracion_consulta' => 30,
-                'color' => '#28a745',
-                'requiere_cita_previa' => false,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Medicina Familiar', 'codigo' => 'MEDFAM', 'descripcion' => 'Atención integral a la familia'],
-                    ['nombre' => 'Medicina Preventiva', 'codigo' => 'MEDPREV', 'descripcion' => 'Prevención de enfermedades'],
-                    ['nombre' => 'Medicina del Trabajo', 'codigo' => 'MEDTRA', 'descripcion' => 'Salud laboral y ocupacional'],
-                ]
-            ],
-            [
-                'nombre' => 'Pediatría',
-                'codigo' => 'PEDIA',
-                'descripcion' => 'Medicina infantil y del adolescente',
-                'costo_consulta' => 35.00,
-                'duracion_consulta' => 30,
-                'color' => '#17a2b8',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Pediatría General', 'codigo' => 'PEDGEN', 'descripcion' => 'Atención pediátrica básica'],
-                    ['nombre' => 'Neonatología', 'codigo' => 'NEONA', 'descripcion' => 'Atención del recién nacido'],
-                    ['nombre' => 'Pediatría del Desarrollo', 'codigo' => 'PEDDES', 'descripcion' => 'Desarrollo infantil y crecimiento'],
-                ]
-            ],
-            [
-                'nombre' => 'Ginecología y Obstetricia',
-                'codigo' => 'GINOBST',
-                'descripcion' => 'Salud de la mujer y obstetricia',
-                'costo_consulta' => 40.00,
-                'duracion_consulta' => 45,
-                'color' => '#e83e8c',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Ginecología General', 'codigo' => 'GINGEN', 'descripcion' => 'Salud ginecológica'],
-                    ['nombre' => 'Obstetricia', 'codigo' => 'OBSTET', 'descripcion' => 'Embarazo y parto'],
-                    ['nombre' => 'Ginecología Oncológica', 'codigo' => 'GINONC', 'descripcion' => 'Cancer ginecológico'],
-                ]
-            ],
-            [
-                'nombre' => 'Cardiología',
-                'codigo' => 'CARDIO',
-                'descripcion' => 'Enfermedades del corazón y sistema cardiovascular',
-                'costo_consulta' => 60.00,
-                'duracion_consulta' => 45,
-                'color' => '#dc3545',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Cardiología General', 'codigo' => 'CARDGEN', 'descripcion' => 'Enfermedades cardíacas'],
-                    ['nombre' => 'Cardiología Intervencionista', 'codigo' => 'CARDINT', 'descripcion' => 'Procedimientos cardíacos invasivos'],
-                    ['nombre' => 'Electrofisiología Cardíaca', 'codigo' => 'ELECTRO', 'descripcion' => 'Trastornos del ritmo cardíaco'],
-                ]
-            ],
-            [
-                'nombre' => 'Neurología',
-                'codigo' => 'NEURO',
-                'descripcion' => 'Enfermedades del sistema nervioso',
-                'costo_consulta' => 55.00,
-                'duracion_consulta' => 45,
-                'color' => '#6f42c1',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Neurología General', 'codigo' => 'NEUROGEN', 'descripcion' => 'Enfermedades neurológicas'],
-                    ['nombre' => 'Neurocirugía', 'codigo' => 'NEUROCIR', 'descripcion' => 'Cirugía del sistema nervioso'],
-                    ['nombre' => 'Neurología Pediátrica', 'codigo' => 'NEUROPED', 'descripcion' => 'Neurología infantil'],
-                ]
-            ],
-            [
-                'nombre' => 'Ortopedia',
-                'codigo' => 'ORTOP',
-                'descripcion' => 'Enfermedades del sistema musculoesquelético',
-                'costo_consulta' => 45.00,
-                'duracion_consulta' => 30,
-                'color' => '#fd7e14',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Ortopedia General', 'codigo' => 'ORTOGEN', 'descripcion' => 'Enfermedades ortopédicas'],
-                    ['nombre' => 'Traumatología', 'codigo' => 'TRAUMA', 'descripcion' => 'Lesiones traumáticas'],
-                    ['nombre' => 'Cirugía Ortopédica', 'codigo' => 'CIRORTO', 'descripcion' => 'Cirugía del aparato locomotor'],
-                ]
-            ],
-            [
                 'nombre' => 'Oftalmología',
                 'codigo' => 'OFtal',
                 'descripcion' => 'Enfermedades del ojo y su tratamiento',
@@ -126,101 +36,99 @@ class EspecialidadesSubespecialidadesSeeder extends Seeder
                 'requiere_cita_previa' => true,
                 'status' => true,
                 'subespecialidades' => [
-                    ['nombre' => 'Oftalmología General', 'codigo' => 'OFTALGEN', 'descripcion' => 'Enfermedades oculares'],
-                    ['nombre' => 'Cirugía Ocular', 'codigo' => 'CIRoftal', 'descripcion' => 'Cirugía del ojo'],
-                    ['nombre' => 'Optometría', 'codigo' => 'OPTOM', 'descripcion' => 'Corrección visual'],
+                    // Subespecialidades generales y diagnóstico
+                    ['nombre' => 'Oftalmología General', 'codigo' => 'OFTALGEN', 'descripcion' => 'Enfermedades oculares generales y consulta de rutina'],
+                    ['nombre' => 'Oftalmología Pediátrica', 'codigo' => 'OFTALPED', 'descripcion' => 'Enfermedades oculares en niños y adolescentes'],
+                    ['nombre' => 'Oftalmología Geriátrica', 'codigo' => 'OFTALGER', 'descripcion' => 'Enfermedades oculares en adultos mayores'],
+                    ['nombre' => 'Oftalmología Preventiva', 'codigo' => 'OFTALPREV', 'descripcion' => 'Prevención y detección temprana de enfermedades oculares'],
+                    
+                    // Segmento anterior
+                    ['nombre' => 'Córnea y Segmento Anterior', 'codigo' => 'CORNEA', 'descripcion' => 'Enfermedades de la córnea, conjuntiva y segmento anterior'],
+                    ['nombre' => 'Cirugía de Córnea', 'codigo' => 'CIRCORNEA', 'descripcion' => 'Cirugía refractiva y trasplante de córnea'],
+                    ['nombre' => 'Queratoplastia', 'codigo' => 'QUERATO', 'descripcion' => 'Trasplante de córnea'],
+                    ['nombre' => 'Crosslinking Corneal', 'codigo' => 'CROSSLINK', 'descripcion' => 'Tratamiento del queratocono'],
+                    
+                    // Cataratas y cirugía refractiva
+                    ['nombre' => 'Cirugía de Cataratas', 'codigo' => 'CIRCATAR', 'descripcion' => 'Cirugía de cataratas y lentes intraoculares'],
+                    ['nombre' => 'Cirugía Refractiva', 'codigo' => 'CIRREFRAC', 'descripcion' => 'Cirugía para corrección de miopía, hipermetropía y astigmatismo'],
+                    ['nombre' => 'LASIK', 'codigo' => 'LASIK', 'descripcion' => 'Cirugía LASIK para corrección de defectos refractivos'],
+                    ['nombre' => 'PRK', 'codigo' => 'PRK', 'descripcion' => 'Queratectomía fotorefractiva'],
+                    ['nombre' => 'Lentes Intraoculares Premium', 'codigo' => 'LENTESP', 'descripcion' => 'Lentes intraoculares multifocales y tóricos'],
+                    
+                    // Glaucoma
+                    ['nombre' => 'Glaucoma', 'codigo' => 'GLAUC', 'descripcion' => 'Diagnóstico y tratamiento del glaucoma'],
+                    ['nombre' => 'Cirugía de Glaucoma', 'codigo' => 'CIRGLAUC', 'descripcion' => 'Cirugía para control del glaucoma'],
+                    ['nombre' => 'Trabeculectomía', 'codigo' => 'TRABEC', 'descripcion' => 'Cirugía de drenaje para glaucoma'],
+                    ['nombre' => 'Implantes de Drenaje', 'codigo' => 'IMPLDREN', 'descripcion' => 'Implantes para control del glaucoma'],
+                    ['nombre' => 'Glaucoma Congénito', 'codigo' => 'GLAUCCONG', 'descripcion' => 'Glaucoma en niños'],
+                    
+                    // Retina y vítreo
+                    ['nombre' => 'Retina y Vítreo', 'codigo' => 'RETINA', 'descripcion' => 'Enfermedades de la retina y vítreo'],
+                    ['nombre' => 'Cirugía de Retina', 'codigo' => 'CIRRETINA', 'descripcion' => 'Cirugía de desprendimiento de retina y otras patologías'],
+                    ['nombre' => 'Desprendimiento de Retina', 'codigo' => 'DESPRENRET', 'descripcion' => 'Tratamiento del desprendimiento de retina'],
+                    ['nombre' => 'Degeneración Macular', 'codigo' => 'DEGMAC', 'descripcion' => 'Degeneración macular relacionada con la edad'],
+                    ['nombre' => 'Retinopatía Diabética', 'codigo' => 'RETDIAB', 'descripcion' => 'Complicaciones oculares de la diabetes'],
+                    ['nombre' => 'Oclusión Venosa Retiniana', 'codigo' => 'OCLUVEN', 'descripcion' => 'Oclusión de venas retinianas'],
+                    ['nombre' => 'Membrana Epirretiniana', 'codigo' => 'MEMBEPR', 'descripcion' => 'Membrana epirretiniana o pucker macular'],
+                    ['nombre' => 'Agujero Macular', 'codigo' => 'AGUMAC', 'descripcion' => 'Agujero macular'],
+                    
+                    // Uveítis e inflamación
+                    ['nombre' => 'Uveítis', 'codigo' => 'UVEIT', 'descripcion' => 'Inflamaciones del uvea'],
+                    ['nombre' => 'Inflamación Ocular', 'codigo' => 'INFLAMOC', 'descripcion' => 'Inflamaciones oculares diversas'],
+                    ['nombre' => 'Uveítis Anterior', 'codigo' => 'UVEITANT', 'descripcion' => 'Iritis y ciclitis'],
+                    ['nombre' => 'Uveítis Posterior', 'codigo' => 'UVEITPOST', 'descripcion' => 'Coroiditis y retinitis'],
+                    ['nombre' => 'Uveítis Intermedia', 'codigo' => 'UVEITINT', 'descripcion' => 'Pars planitis'],
+                    
+                    // Oculoplástica y vías lagrimales
+                    ['nombre' => 'Oculoplástica', 'codigo' => 'OCULOPL', 'descripcion' => 'Cirugía plástica y reconstructiva ocular'],
+                    ['nombre' => 'Blefaroplastía', 'codigo' => 'BLEFARO', 'descripcion' => 'Cirugía de párpados'],
+                    ['nombre' => 'Ptosis Palpebral', 'codigo' => 'PTOSIS', 'descripcion' => 'Caída del párpado'],
+                    ['nombre' => 'Entropión y Ectropión', 'codigo' => 'ENTRECP', 'descripcion' => 'Posición anormal de los párpados'],
+                    ['nombre' => 'Vías Lagrimales', 'codigo' => 'VIASLAG', 'descripcion' => 'Enfermedades del sistema lagrimal'],
+                    ['nombre' => 'Dacriocistorrinostomía', 'codigo' => 'DACRIO', 'descripcion' => 'Cirugía de vías lagrimales'],
+                    ['nombre' => 'Tumoraciones Oculares', 'codigo' => 'TUMOROC', 'descripcion' => 'Tumores del ojo y anexos'],
+                    
+                    // Neuroftalmología
+                    ['nombre' => 'Neuroftalmología', 'codigo' => 'NEUROFT', 'descripcion' => 'Relación entre el sistema nervioso y el ojo'],
+                    ['nombre' => 'Parálisis de Nervios Craneales', 'codigo' => 'PARALCR', 'descripcion' => 'Parálisis de nervios que controlan el ojo'],
+                    ['nombre' => 'Nistagmus', 'codigo' => 'NISTAG', 'descripcion' => 'Movimientos anormales del ojo'],
+                    ['nombre' => 'Papiledema', 'codigo' => 'PAPIL', 'descripcion' => 'Edema del disco óptico'],
+                    ['nombre' => 'Neuritis Óptica', 'codigo' => 'NEUROP', 'descripcion' => 'Inflamación del nervio óptico'],
+                    ['nombre' => 'Estados Vegetativos y Coma', 'codigo' => 'VEGCOM', 'descripcion' => 'Evaluación ocular en pacientes en coma'],
+                    
+                    // Estrabismo y motilidad ocular
+                    ['nombre' => 'Estrabismo', 'codigo' => 'ESTRAB', 'descripcion' => 'Desviación ocular'],
+                    ['nombre' => 'Cirugía de Estrabismo', 'codigo' => 'CIRSTRAB', 'descripcion' => 'Cirugía para corregir desviaciones oculares'],
+                    ['nombre' => 'Parálisis Oculomotora', 'codigo' => 'PARALOC', 'descripcion' => 'Parálisis de músculos oculares'],
+                    ['nombre' => 'Motilidad Ocular', 'codigo' => 'MOTILOC', 'descripcion' => 'Problemas de movimiento ocular'],
+                    ['nombre' => 'Diplopía', 'codigo' => 'DIPLOP', 'descripcion' => 'Visión doble'],
+                    
+                    // Óptica y refracción
+                    ['nombre' => 'Optometría', 'codigo' => 'OPTOM', 'descripcion' => 'Corrección visual y exámenes de refracción'],
+                    ['nombre' => 'Óptica Médica', 'codigo' => 'OPTICMED', 'descripcion' => 'Prescripción de lentes y dispositivos ópticos'],
+                    ['nombre' => 'Refracción Avanzada', 'codigo' => 'REFRAVAN', 'descripcion' => 'Exámenes refractivos especializados'],
+                    ['nombre' => 'Lentes de Contacto', 'codigo' => 'LENTCON', 'descripcion' => 'Adaptación de lentes de contacto'],
+                    ['nombre' => 'Lentes Progresivas', 'codigo' => 'LENTPROG', 'descripcion' => 'Lentes multifocales'],
+                    ['nombre' => 'Baja Visión', 'codigo' => 'BAJAVIS', 'descripcion' => 'Ayudas visuales para baja visión'],
+                    
+                    // Otras especialidades
+                    ['nombre' => 'Oftalmología Oncológica', 'codigo' => 'OFTALONC', 'descripcion' => 'Cáncer ocular y tratamiento'],
+                    ['nombre' => 'Oftalmología Traumatológica', 'codigo' => 'OFTALTRAU', 'descripcion' => 'Trauma ocular'],
+                    ['nombre' => 'Oftalmología Quemaduras', 'codigo' => 'OFTALQUEM', 'descripcion' => 'Quemaduras oculares'],
+                    ['nombre' => 'Oftalmología Quirúrgica Avanzada', 'codigo' => 'OFTALQUIRAV', 'descripcion' => 'Cirugías oculares complejas'],
+                    ['nombre' => 'Ecografía Ocular', 'codigo' => 'ECOGRAFOC', 'descripcion' => 'Ecografía del ojo'],
+                    ['nombre' => 'Angiografía Fluoresceínica', 'codigo' => 'ANGIOFLUO', 'descripcion' => 'Estudio de vasos sanguíneos oculares'],
+                    ['nombre' => 'Tomografía de Coherencia Óptica (OCT)', 'codigo' => 'OCT', 'descripcion' => 'Imágenes de alta resolución de la retina'],
+                    ['nombre' => 'Campimetría', 'codigo' => 'CAMPIM', 'descripcion' => 'Evaluación del campo visual'],
+                    ['nombre' => 'Electrofisiología Visual', 'codigo' => 'ELECTROF', 'descripcion' => 'Estudios eléctricos del sistema visual'],
+                    ['nombre' => 'Microscopía Confocal', 'codigo' => 'MICROCONF', 'descripcion' => 'Microscopía especializada de la córnea'],
+                    ['nombre' => 'Topografía Corneal', 'codigo' => 'TOPOCOR', 'descripcion' => 'Mapeo de la superficie corneal'],
+                    ['nombre' => 'Pachimetría Corneal', 'codigo' => 'PACHIM', 'descripcion' => 'Medición del grosor corneal'],
+                    ['nombre' => 'Biometría Ocular', 'codigo' => 'BIOMETOC', 'descripcion' => 'Medición de estructuras oculares'],
+                    ['nombre' => 'Medicina Ocular Basada en Evidencia', 'codigo' => 'MEDOCBASE', 'descripcion' => 'Tratamiento basado en evidencia científica'],
                 ]
             ],
-            [
-                'nombre' => 'Otorrinolaringología',
-                'codigo' => 'OTORRINO',
-                'descripcion' => 'Enfermedades de oído, nariz y garganta',
-                'costo_consulta' => 40.00,
-                'duracion_consulta' => 30,
-                'color' => '#6610f2',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Otorrinolaringología General', 'codigo' => 'OTORRGEN', 'descripcion' => 'Enfermedades ORL'],
-                    ['nombre' => 'Audiología', 'codigo' => 'AUDIO', 'descripcion' => 'Trastornos auditivos'],
-                    ['nombre' => 'Cirugía Cabeza y Cuello', 'codigo' => 'CIRCUE', 'descripcion' => 'Cirugía de cabeza y cuello'],
-                ]
-            ],
-            [
-                'nombre' => 'Dermatología',
-                'codigo' => 'DERMA',
-                'descripcion' => 'Enfermedades de la piel',
-                'costo_consulta' => 45.00,
-                'duracion_consulta' => 30,
-                'color' => '#ffc107',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Dermatología General', 'codigo' => 'DERMAGEN', 'descripcion' => 'Enfermedades de la piel'],
-                    ['nombre' => 'Dermatología Cosmética', 'codigo' => 'DERMACOS', 'descripcion' => 'Tratamientos estéticos'],
-                    ['nombre' => 'Dermatología Oncológica', 'codigo' => 'DERMAONC', 'descripcion' => 'Cáncer de piel'],
-                ]
-            ],
-            [
-                'nombre' => 'Psiquiatría',
-                'codigo' => 'PSIQUIA',
-                'descripcion' => 'Trastornos mentales y emocionales',
-                'costo_consulta' => 55.00,
-                'duracion_consulta' => 60,
-                'color' => '#6c757d',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Psiquiatría General', 'codigo' => 'PSIQUIGEN', 'descripcion' => 'Trastornos psiquiátricos'],
-                    ['nombre' => 'Psiquiatría Infantil', 'codigo' => 'PSIQUIPED', 'descripcion' => 'Psiquiatría pediátrica'],
-                    ['nombre' => 'Psicología Clínica', 'codigo' => 'PSICOLCLIN', 'descripcion' => 'Terapia psicológica'],
-                ]
-            ],
-            [
-                'nombre' => 'Endocrinología',
-                'codigo' => 'ENDOCRINO',
-                'descripcion' => 'Trastornos hormonales y metabólicos',
-                'costo_consulta' => 50.00,
-                'duracion_consulta' => 45,
-                'color' => '#007bff',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Endocrinología General', 'codigo' => 'ENDOGEN', 'descripcion' => 'Trastornos endocrinos'],
-                    ['nombre' => 'Diabetología', 'codigo' => 'DIABETO', 'descripcion' => 'Diabetes y metabolismo'],
-                    ['nombre' => 'Nutrición Clínica', 'codigo' => 'NUTRICLIN', 'descripcion' => 'Nutrición médica'],
-                ]
-            ],
-            [
-                'nombre' => 'Urología',
-                'codigo' => 'UROLOGIA',
-                'descripcion' => 'Enfermedades del sistema urinario y genital masculino',
-                'costo_consulta' => 55.00,
-                'duracion_consulta' => 30,
-                'color' => '#795548',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Urología General', 'codigo' => 'UROLOGEN', 'descripcion' => 'Enfermedades urológicas'],
-                    ['nombre' => 'Urología Oncológica', 'codigo' => 'UROLOGONC', 'descripcion' => 'Cáncer urológico'],
-                    ['nombre' => 'Andrología', 'codigo' => 'ANDROLOG', 'descripcion' => 'Salud masculina'],
-                ]
-            ],
-            [
-                'nombre' => 'Gastroenterología',
-                'codigo' => 'GASTRO',
-                'descripcion' => 'Enfermedades del sistema digestivo',
-                'costo_consulta' => 50.00,
-                'duracion_consulta' => 45,
-                'color' => '#ff9800',
-                'requiere_cita_previa' => true,
-                'status' => true,
-                'subespecialidades' => [
-                    ['nombre' => 'Gastroenterología General', 'codigo' => 'GASTROGEN', 'descripcion' => 'Enfermedades digestivas'],
-                    ['nombre' => 'Hepatología', 'codigo' => 'HEPATO', 'descripcion' => 'Enfermedades del hígado'],
-                    ['nombre' => 'Endoscopia Digestiva', 'codigo' => 'ENDOSDIG', 'descripcion' => 'Procedimientos endoscópicos'],
-                ]
-            ],
+           
         ];
 
         // Crear especialidades y subespecialidades

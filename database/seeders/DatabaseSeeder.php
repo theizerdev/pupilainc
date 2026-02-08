@@ -15,9 +15,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             // Nuevo sistema de roles y permisos por sectores
             SectorRolesAndPermissionsSeeder::class,
-            
-            // Seeders adicionales
-            WhatsAppPermissionsSeeder::class, // Agregar permisos específicos de WhatsApp
             PaisSeeder::class, // Agregar países antes que empresas
             EmpresaSeeder::class,
             SucursalSeeder::class,

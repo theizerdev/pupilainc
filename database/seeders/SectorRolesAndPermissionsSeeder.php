@@ -324,15 +324,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage notifications',
                     ]
                 ],
-                'whatsapp_monitoreo' => [
-                    'name' => 'WhatsApp (Monitoreo)',
-                    'permissions' => [
-                        'view whatsapp statistics',
-                        'export whatsapp reports',
-                        'view whatsapp retry statistics',
-                        'monitor whatsapp status',
-                    ]
-                ],
+               
             ],
 
             // 📱 SECTOR COMUNICACIONES (Adicional)
@@ -340,15 +332,8 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'whatsapp' => [
                     'name' => 'WhatsApp',
                     'permissions' => [
-                        'access whatsapp',
-                        'create whatsapp templates',
-                        'edit whatsapp templates',
-                        'delete whatsapp templates',
-                        'send whatsapp messages',
-                        'schedule whatsapp messages',
-                        'retry failed whatsapp messages',
-                        'manage whatsapp auto retry',
-                        'configure whatsapp',
+                        'access whatsapp'
+                       
                     ]
                 ],
             ],
