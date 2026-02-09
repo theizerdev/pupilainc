@@ -24,11 +24,13 @@ function initCitasCalendar(events) {
     const eventNotas = document.getElementById('eventNotas');
     const selectAll = document.querySelector('.select-all');
     const filterInputs = Array.from(document.querySelectorAll('.input-filter'));
-    const inlineCalendar = document.querySelector('.inline-calendar');
+   const inlineCalendar = document.querySelector('.inline-calendar');
     const medicosConCitasContainer = document.getElementById('medicos-con-citas');
+    const tiposConsultaContainer = document.getElementById('tipos-consulta-con-citas');
     var selectedMedicoFilter = null;
-
-    if (!calendarEl) return;
+    var selectedTipoConsultaFilter = null;
+    var psMedicos = null;
+    var psTiposConsulta = null;if (!calendarEl) return;
 
     const calendarColors = {
         pendiente: 'warning',
@@ -437,10 +439,13 @@ function initCitasCalendar(events) {
         var selectedEvents = currentEvents.filter(function (event) {
             var matchEstado = calendars.includes(event.extendedProps.calendar);
             var matchMedico = !selectedMedicoFilter || String(event.extendedProps.medico_id) === String(selectedMedicoFilter);
-            return matchEstado && matchMedico;
+            var matchTipoConsulta = !selectedTipoConsultaFilter || String(event.extendedProps.tipo_consulta_id) === String(selectedTipoConsultaFilter);
+            return matchEstado && matchMedico && matchTipoConsulta;
         });
         successCallback(selectedEvents);
         updateMedicosConCitas();
+        updateTiposConsultaConCitas();
+        updatePerfectScrollbars();
     }
 
     function updateMedicosConCitas() {
@@ -474,11 +479,97 @@ function initCitasCalendar(events) {
         medicos.forEach(function(m) {
             var isActive = selectedMedicoFilter && String(selectedMedicoFilter) === String(m.id);
             html += '<div class="medico-item d-flex justify-content-between align-items-center mb-1' + (isActive ? ' active' : '') + '" onclick="window._filterByMedico(\'' + m.id + '\')">' +
-                '<span><i class="fas fa-user-md me-1 text-muted" style="font-size:0.7rem;"></i>' + m.nombre + '</span>' +
+                '<span><i class="q me-1 text-muted" style="font-size:0.7rem;"></i>' + m.nombre + '</span>' +
                 '<span class="badge bg-label-primary rounded-pill" style="font-size:0.65rem;">' + m.count + '</span>' +
                 '</div>';
         });
         medicosConCitasContainer.innerHTML = html;
+        
+        // Inicializar o actualizar PerfectScrollbar para médicos
+        if (psMedicos) {
+            psMedicos.update();
+        } else if (medicosConCitasContainer && typeof PerfectScrollbar !== 'undefined') {
+            psMedicos = new PerfectScrollbar(medicosConCitasContainer, {
+                wheelPropagation: false,
+                suppressScrollX: true
+            });
+        }
+    }
+
+    function updateTiposConsultaConCitas() {
+        if (!tiposConsultaContainer) return;
+        var tipoMap = {};
+        var calendars = selectedCalendars();
+        currentEvents.forEach(function(ev) {
+            if (!calendars.includes(ev.extendedProps.calendar)) return;
+            if (selectedMedicoFilter && String(ev.extendedProps.medico_id) !== String(selectedMedicoFilter)) return;
+            var tid = ev.extendedProps.tipo_consulta_id;
+            var tname = ev.extendedProps.tipo_consulta_nombre || '';
+            var tcolor = ev.extendedProps.tipo_consulta_color || '#6c757d';
+            if (tid && tname) {
+                if (!tipoMap[tid]) tipoMap[tid] = { nombre: tname, count: 0, color: tcolor };
+                tipoMap[tid].count++;
+            }
+        });
+
+        var tipos = Object.keys(tipoMap).map(function(id) {
+            return { id: id, nombre: tipoMap[id].nombre, count: tipoMap[id].count, color: tipoMap[id].color };
+        }).sort(function(a, b) { return b.count - a.count; });
+
+        if (tipos.length === 0) {
+            tiposConsultaContainer.innerHTML = '<small class="text-muted">Sin citas en el período</small>';
+            return;
+        }
+
+        var html = '';
+        if (selectedTipoConsultaFilter) {
+            html += '<div class="tipo-consulta-item-sidebar mb-1 text-primary" onclick="window._clearTipoConsultaFilter()" style="cursor:pointer;font-size:0.75rem;">' +
+                '<i class="fas fa-times me-1"></i> Limpiar filtro</div>';
+        }
+        tipos.forEach(function(t) {
+            var isActive = selectedTipoConsultaFilter && String(selectedTipoConsultaFilter) === String(t.id);
+            html += '<div class="tipo-consulta-item-sidebar d-flex justify-content-between align-items-center mb-1' + (isActive ? ' active' : '') + '" onclick="window._filterByTipoConsulta(\'' + t.id + '\')">' +
+                '<div class="d-flex align-items-center">' +
+                '<div class="tipo-consulta-color-bar" style="background-color:' + t.color + '"></div>' +
+                '<span>' + t.nombre + '</span>' +
+                '</div>' +
+                '<span class="badge bg-label-primary rounded-pill" style="font-size:0.65rem;">' + t.count + '</span>' +
+                '</div>';
+        });
+        tiposConsultaContainer.innerHTML = html;
+        
+        // Inicializar o actualizar PerfectScrollbar para tipos de consulta
+        if (psTiposConsulta) {
+            psTiposConsulta.update();
+        } else if (tiposConsultaContainer && typeof PerfectScrollbar !== 'undefined') {
+            psTiposConsulta = new PerfectScrollbar(tiposConsultaContainer, {
+                wheelPropagation: false,
+                suppressScrollX: true
+            });
+        }
+    }
+
+    function applyTipoConsultaColors() {
+        // Aplicar colores a los eventos existentes
+        document.querySelectorAll('.fc-event').forEach(function(eventEl) {
+            var event = calendar.getEventById(eventEl.getAttribute('data-event-id'));
+            if (event && event.extendedProps.tipo_consulta_color) {
+                eventEl.style.borderLeftColor = event.extendedProps.tipo_consulta_color;
+                eventEl.style.borderLeftWidth = '4px';
+            }
+        });
+    }
+
+    function updatePerfectScrollbars() {
+        // Actualizar PerfectScrollbar después de cambios en el DOM
+        setTimeout(function() {
+            if (psMedicos) {
+                psMedicos.update();
+            }
+            if (psTiposConsulta) {
+                psTiposConsulta.update();
+            }
+        }, 100);
     }
 
     function resetValues() {
@@ -616,34 +707,54 @@ function initCitasCalendar(events) {
         initialDate: new Date(),
         navLinks: true,
         eventClassNames: function (arg) {
-            return [];
+            var classes = [];
+            var ep = arg.event.extendedProps;
+            
+            // Aplicar color del tipo de consulta como borde izquierdo
+            if (ep.tipo_consulta_color) {
+                classes.push('border-start');
+                classes.push('tipo-consulta-' + ep.tipo_consulta_id);
+            }
+            
+            return classes;
         },
         eventContent: function(arg) {
             var ep = arg.event.extendedProps;
+            console.log(ep)
             var timeText = arg.timeText || '';
             var html = '';
             var menorIcon = ep.es_menor ? '<span style="font-size:0.6em;margin-left:2px;" title="Menor de edad">👶</span>' : '';
+            var color = ep.tipo_consulta_color ? ep.tipo_consulta_color : '';
             var tipoTag = ep.tipo_consulta_nombre ? '<span style="font-size:0.6em;opacity:0.7;margin-left:3px;">(' + ep.tipo_consulta_nombre + ')</span>' : '';
-
+         
             if (arg.view.type === 'listMonth') {
                 html = '<div style="line-height:1.4;">' +
-                    '<strong style="font-size:0.85rem;">' + arg.event.title + menorIcon + '</strong>' + tipoTag +
-                    '<br><small class="text-muted"><i class="fas fa-user-md" style="font-size:0.65em;"></i> ' + (ep.medico || '') + '</small>' +
+                    '<strong style="font-size:0.85rem;">' + arg.event.title + '' + '</strong>' + tipoTag +
+                    '<br><small class="text-muted"><i class="q" style="font-size:0.65em;"></i> ' + (ep.medico || '') + '</small>' +
                     (ep.motivo ? '<br><small class="text-muted">' + ep.motivo + '</small>' : '') +
                     '</div>';
             } else if (arg.view.type === 'dayGridMonth') {
-                html = '<div class="fc-event-main-frame" style="line-height:1.2;">' +
-                    '<div class="fc-event-time">' + timeText + '</div>' +
-                    '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title fc-sticky">' + arg.event.title + menorIcon + '</div>' +
+              html = '<div class="fc-event-main-frame" style="line-height:1.2; display: flex; align-items: center; gap: 15px; padding: 4px; width: 100%; overflow: visible;">' +
+                // El punto ahora usa la clase y la variable, permitiendo que el CSS haga el efecto agua
+                '<div class="punto-agua" style="--color-punto: ' + color + ';"></div>' +
+                
+                '<div class="fc-event-title-container" style="display: flex; flex-direction: column; overflow: hidden;">' +
+                    '<div class="fc-event-title fc-sticky" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' 
+                        + arg.event.title + 
                     '</div>' +
-                    '</div>';
+                    '<div class="fc-event-title fc-sticky badge bg-label-primary" style="font-size: 70%; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' 
+                        + 'Dr. ' + ep.medico_full + 
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+
             } else {
                 html = '<div class="fc-event-main-frame" style="line-height:1.3;">' +
                     '<div class="fc-event-time">' + timeText + '</div>' +
                     '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title fc-sticky">' + arg.event.title + menorIcon + '</div>' +
-                        '<div class="fc-event-subtitle"><i class="fas fa-user-md" style="font-size:0.6em;"></i> ' + (ep.medico || '') + '</div>' +
+                        '<div class="fc-event-title fc-sticky">' + arg.event.title + '' + '</div>' +
+                        '<div class="fc-event-subtitle"><i class="q" style="font-size:0.6em;"></i> ' + (ep.medico || '') + '</div>' +
                     '</div>' +
                     '</div>';
             }
@@ -653,10 +764,7 @@ function initCitasCalendar(events) {
             var ep = info.event.extendedProps || {};
             if (ep.tipo_consulta_color) {
                 info.el.style.borderLeftColor = ep.tipo_consulta_color;
-            } else if (ep.es_menor) {
-                info.el.style.borderLeftColor = '#8B5CF6';
-            } else {
-                info.el.style.borderLeftColor = '#3B82F6';
+           
             }
             var tooltipParts = [
                 ep.paciente || info.event.title,
@@ -700,12 +808,33 @@ function initCitasCalendar(events) {
                 comp.call('updateCitaFechas', parseInt(info.event.id), startStr, endStr);
             }
         },
-        datesSet: function() { modifyToggler(); updateMedicosConCitas(); },
+        datesSet: function() { 
+            modifyToggler(); 
+            updateMedicosConCitas(); 
+            updateTiposConsultaConCitas(); 
+            updatePerfectScrollbars(); 
+        },
         viewDidMount: modifyToggler
     });
 
     calendar.render();
     modifyToggler();
+    applyTipoConsultaColors();
+    
+    // Inicializar PerfectScrollbar para los contenedores del sidebar
+    if (medicosConCitasContainer && typeof PerfectScrollbar !== 'undefined') {
+        psMedicos = new PerfectScrollbar(medicosConCitasContainer, {
+            wheelPropagation: false,
+            suppressScrollX: true
+        });
+    }
+    
+    if (tiposConsultaContainer && typeof PerfectScrollbar !== 'undefined') {
+        psTiposConsulta = new PerfectScrollbar(tiposConsultaContainer, {
+            wheelPropagation: false,
+            suppressScrollX: true
+        });
+    }
 
     var eventForm = document.getElementById('eventForm');
     if (eventForm && typeof FormValidation !== 'undefined') {
@@ -904,16 +1033,38 @@ function initCitasCalendar(events) {
     });
 
     window._filterByMedico = function(medicoId) {
-        if (selectedMedicoFilter === medicoId) {
-            selectedMedicoFilter = null;
-        } else {
-            selectedMedicoFilter = medicoId;
-        }
+        selectedMedicoFilter = (selectedMedicoFilter === medicoId) ? null : medicoId;
         calendar.refetchEvents();
+        setTimeout(function() {
+            applyTipoConsultaColors();
+            updatePerfectScrollbars();
+        }, 100);
     };
 
     window._clearMedicoFilter = function() {
         selectedMedicoFilter = null;
         calendar.refetchEvents();
+        setTimeout(function() {
+            applyTipoConsultaColors();
+            updatePerfectScrollbars();
+        }, 100);
+    };
+
+    window._filterByTipoConsulta = function(tipoConsultaId) {
+        selectedTipoConsultaFilter = (selectedTipoConsultaFilter === tipoConsultaId) ? null : tipoConsultaId;
+        calendar.refetchEvents();
+        setTimeout(function() {
+            applyTipoConsultaColors();
+            updatePerfectScrollbars();
+        }, 100);
+    };
+
+    window._clearTipoConsultaFilter = function() {
+        selectedTipoConsultaFilter = null;
+        calendar.refetchEvents();
+        setTimeout(function() {
+            applyTipoConsultaColors();
+            updatePerfectScrollbars();
+        }, 100);
     };
 }

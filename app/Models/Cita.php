@@ -124,6 +124,16 @@ class Cita extends Model
         return $this->belongsTo(TipoConsulta::class);
     }
 
+    public function confirmaciones()
+    {
+        return $this->hasMany(CitaConfirmacion::class);
+    }
+
+    public function ultimaConfirmacion()
+    {
+        return $this->hasOne(CitaConfirmacion::class)->latestOfMany();
+    }
+
     public function scopeActivas($query)
     {
         return $query->whereNotIn('estado', [self::ESTADO_CANCELADA, self::ESTADO_NO_ASISTIO]);
@@ -305,5 +315,38 @@ class Cita extends Model
             ->logOnly(['paciente_id', 'medico_id', 'especialidad_id', 'subespecialidad_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'estado', 'notas'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    // Método para iniciar confirmación automática
+    public function solicitarConfirmacion()
+    {
+        if ($this->estado !== self::ESTADO_PENDIENTE) {
+            return null;
+        }
+
+        $service = new \App\Services\CitaConfirmationService();
+        return $service->iniciarConfirmacion($this);
+    }
+
+    // Método para verificar si necesita confirmación
+    public function necesitaConfirmacion(): bool
+    {
+        return $this->estado === self::ESTADO_PENDIENTE && 
+               $this->fecha_inicio > now()->addHours(24);
+    }
+
+    // Sobreescribir método de creación para auto-confirmación
+    protected static function booted()
+    {
+        static::created(function ($cita) {
+            // Solo para citas futuras
+            if ($cita->necesitaConfirmacion()) {
+                // Delay de 1 hora para dar tiempo de procesamiento
+                \Illuminate\Support\Facades\Queue::later(
+                    now()->addHour(),
+                    new \App\Jobs\SendInitialConfirmation($cita)
+                );
+            }
+        });
     }
 }

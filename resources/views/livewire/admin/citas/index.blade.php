@@ -85,6 +85,51 @@
             font-weight: 600;
         }
 
+        /* Tipos de consulta sidebar */
+        .tipo-consulta-item-sidebar {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .tipo-consulta-item-sidebar:hover {
+            background: rgba(var(--bs-primary-rgb), 0.08);
+        }
+        .tipo-consulta-item-sidebar.active {
+            background: rgba(var(--bs-primary-rgb), 0.12);
+            font-weight: 600;
+        }
+        .tipo-consulta-color-bar {
+            width: 4px;
+            height: 16px;
+            border-radius: 2px;
+            margin-right: 8px;
+        }
+
+        /* Contenedores PerfectScrollbar */
+        .perfect-scrollbar-container {
+            position: relative;
+        }
+        
+        .perfect-scrollbar-container .ps__rail-y {
+            width: 6px;
+            background-color: transparent;
+        }
+        
+        .perfect-scrollbar-container .ps__thumb-y {
+            width: 6px;
+            background-color: rgba(var(--bs-primary-rgb), 0.3);
+            border-radius: 3px;
+        }
+        
+        .perfect-scrollbar-container .ps__thumb-y:hover {
+            background-color: rgba(var(--bs-primary-rgb), 0.5);
+        }
+        
         /* Tipo consulta legend */
         .tipo-consulta-item {
             display: flex;
@@ -92,6 +137,56 @@
             padding: 3px 0;
             font-size: 0.8rem;
         }
+       /* Animación de titilado constante */
+        /* Contenedor del punto */
+        .punto-agua {
+            position: relative;
+            width: 10px;
+            height: 10px;
+            flex-shrink: 0; /* Evita que el flexbox lo aplaste */
+            margin-left: 5px; /* Espacio para que la onda no se corte a la izquierda */
+        }
+
+        /* El punto sólido central */
+        .punto-agua::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-punto);
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        /* La onda expansiva (efecto agua) */
+        .punto-agua::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--color-punto);
+            border-radius: 50%;
+            z-index: 1;
+            animation: ripple 2s infinite cubic-bezier(0, 0.2, 0.8, 1);
+}
+
+@keyframes ripple {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(3.5); opacity: 0; }
+}
+
+/* Ajuste para el texto responsivo */
+.fc-event-title-container {
+    min-width: 0; /* Clave para que el elipsis funcione */
+    flex: 1;
+}
+
+
+
+
+
     </style>
     @endpush
 
@@ -102,25 +197,7 @@
                
                 <div class="px-4">
                     <div class="inline-calendar"></div>
-                    <hr class="mb-5 mx-n4 mt-3" />
-                    <div class="mb-4" id="citas-stats">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted">Hoy</small>
-                            <span class="badge bg-label-primary rounded-pill">{{ $stats['total_hoy'] }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted">Pendientes</small>
-                            <span class="badge bg-label-warning rounded-pill">{{ $stats['pendientes'] }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted">Confirmadas</small>
-                            <span class="badge bg-label-primary rounded-pill">{{ $stats['confirmadas'] }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Completadas hoy</small>
-                            <span class="badge bg-label-success rounded-pill">{{ $stats['completadas_hoy'] }}</span>
-                        </div>
-                    </div>
+                    
                     <hr class="mb-5 mx-n4 mt-3" />
                     <div class="mb-4 ms-1"><h5>Filtrar por Estado</h5></div>
                     <div class="form-check form-check-secondary mb-5 ms-3">
@@ -128,43 +205,40 @@
                         <label class="form-check-label" for="selectAll">Ver Todos</label>
                     </div>
                     <div class="app-calendar-events-filter text-heading">
-                        <div class="form-check form-check-warning mb-5 ms-3">
-                            <input class="form-check-input input-filter" type="checkbox" id="select-pendiente" data-value="pendiente" checked />
+                        <div class="form-check form-check-warning mb-5 ms-3" hidden>
+                            <input class="form-check-input input-filter" type="checkbox"  id="select-pendiente" data-value="pendiente" checked />
                             <label class="form-check-label" for="select-pendiente">Pendiente</label>
                         </div>
-                        <div class="form-check mb-5 ms-3">
+                        <div class="form-check mb-5 ms-3" hidden>
                             <input class="form-check-input input-filter" type="checkbox" id="select-confirmada" data-value="confirmada" checked />
                             <label class="form-check-label" for="select-confirmada">Confirmada</label>
                         </div>
-                        <div class="form-check form-check-info mb-5 ms-3">
+                        <div class="form-check form-check-info mb-5 ms-3" hidden>
                             <input class="form-check-input input-filter" type="checkbox" id="select-en_curso" data-value="en_curso" checked />
                             <label class="form-check-label" for="select-en_curso">En Curso</label>
                         </div>
-                        <div class="form-check form-check-success mb-5 ms-3">
+                        <div class="form-check form-check-success mb-5 ms-3" hidden>
                             <input class="form-check-input input-filter" type="checkbox" id="select-completada" data-value="completada" checked />
                             <label class="form-check-label" for="select-completada">Completada</label>
                         </div>
-                        <div class="form-check form-check-danger mb-5 ms-3">
+                        <div class="form-check form-check-danger mb-5 ms-3" hidden>
                             <input class="form-check-input input-filter" type="checkbox" id="select-cancelada" data-value="cancelada" checked />
                             <label class="form-check-label" for="select-cancelada">Cancelada</label>
                         </div>
-                        <div class="form-check form-check-secondary ms-3">
+                        <div class="form-check form-check-secondary ms-3" hidden>
                             <input class="form-check-input input-filter" type="checkbox" id="select-no_asistio" data-value="no_asistio" checked />
                             <label class="form-check-label" for="select-no_asistio">No Asistió</label>
                         </div>
                     </div>
 
-                    <!-- Tipo de Consulta Legend -->
-                    @if($tiposConsulta->isNotEmpty())
+                    <!-- Tipo de Consulta con filtro -->
+                    @if($this->tiposConsulta->isNotEmpty())
                         <hr class="mb-5 mx-n4 mt-3" />
-                        <div class="mb-4 ms-1"><h5>Tipo de Consulta</h5></div>
-                        <div class="ms-3 mb-3">
-                            @foreach($tiposConsulta as $tipo)
-                                <div class="tipo-consulta-item mb-2">
-                                    <span class="legend-bar me-2" style="background-color: {{ $tipo->color }};"></span>
-                                    <small>{{ $tipo->nombre }}</small>
-                                </div>
-                            @endforeach
+                        <div class="mb-3 ms-1 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Tipos de Consulta</h5>
+                        </div>
+                        <div id="tipos-consulta-con-citas" class="ms-1 perfect-scrollbar-container" style="max-height: 200px; position: relative;">
+                            <small class="text-muted">Cargando...</small>
                         </div>
                     @endif
 
@@ -173,23 +247,11 @@
                     <div class="mb-3 ms-1 d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Médicos con Citas</h5>
                     </div>
-                    <div id="medicos-con-citas" class="ms-1" style="max-height: 200px; overflow-y: auto;">
+                    <div id="medicos-con-citas" class="ms-1 perfect-scrollbar-container" style="max-height: 200px; position: relative;">
                         <small class="text-muted">Cargando...</small>
                     </div>
 
-                    <!-- Tipo de paciente -->
-                    <hr class="mb-5 mx-n4 mt-3" />
-                    <div class="mb-4 ms-1"><h5>Tipo de Paciente</h5></div>
-                    <div class="calendar-legend ms-3">
-                        <div class="d-flex align-items-center mb-3">
-                            <span class="legend-dot me-2" style="background-color: #3B82F6;"></span>
-                            <small>Adulto</small>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="legend-dot me-2" style="background-color: #8B5CF6;"></span>
-                            <small>Menor de edad</small>
-                        </div>
-                    </div>
+                   
                 </div>
             </div>
 

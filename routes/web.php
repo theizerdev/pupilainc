@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CitaConfirmationController;
 use App\Livewire\Dashboard;
 use App\Livewire\Auth\TwoFactorLogin;
 use App\Livewire\SuperAdmin\Dashboard as SuperAdminDashboard;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Session;
 
 
 Route::get('/lang/{locale}', function ($locale) {
@@ -85,6 +87,18 @@ Route::get('/admin/template-customization', \App\Livewire\Admin\TemplateCustomiz
     ->middleware(['auth'])
     ->name('admin.template-customization');
 
+// Rutas para confirmación de citas
+Route::prefix('citas')->group(function () {
+    Route::get('/confirmar/{token}', [CitaConfirmationController::class, 'confirmar'])
+         ->name('citas.confirmar');
+         
+    Route::get('/cancelar/{token}', [CitaConfirmationController::class, 'cancelar'])
+         ->name('citas.cancelar');
+});
+
+// Webhook para respuestas de WhatsApp
+Route::post('/webhook/whatsapp/confirmations', [CitaConfirmationController::class, 'webhookWhatsapp']);
+
 // Test WhatsApp API
 Route::get('/test-whatsapp', function () {
     try {
@@ -100,27 +114,6 @@ Route::get('/test-whatsapp', function () {
     }
 });
 
-// Test send message
-Route::get('/test-send-message', function () {
-    try {
-        $response = Http::withHeaders([
-            'X-API-Key' => 'test-api-key-vargas-centro',
-            'Content-Type' => 'application/json'
-        ])->timeout(30)->post('http://localhost:3001/api/whatsapp/send', [
-            'to' => '584121234567',
-            'message' => 'Mensaje de prueba desde Laravel',
-            'type' => 'text'
-        ]);
-        
-        return response()->json([
-            'success' => $response->successful(),
-            'status' => $response->status(),
-            'body' => $response->json()
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()]);
-    }
-});
 
 // Ruta de prueba para configuración regional
 Route::get('/test/regional-configuration', \App\Livewire\TestRegionalConfiguration::class)

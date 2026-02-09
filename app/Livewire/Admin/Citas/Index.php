@@ -328,15 +328,29 @@ class Index extends Component
             $data['created_by'] = auth()->id();
             $cita = Cita::create($data);
 
-            $this->notificarNuevaCita($cita);
+            // Notificar y capturar errores
+            $notificacion = $this->notificarNuevaCita($cita);
 
             // Programar recordatorios automáticamente
             $cita->programarRecordatorios();
 
-            $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Cita creada exitosamente.'
-            ]);
+            // Mostrar mensaje apropiado según el resultado de la notificación
+            if ($notificacion['success'] && empty($notificacion['errors'])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Cita creada exitosamente. Notificaciones enviadas.'
+                ]);
+            } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'Cita creada. ' . $notificacion['message']
+                ]);
+            } else {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
+                ]);
+            }
         }
 
         $this->resetForm();
@@ -376,13 +390,28 @@ class Index extends Component
     public function deleteCita($id)
     {
         $cita = Cita::findOrFail($id);
-        $this->notificarCancelacion($cita);
+        $notificacion = $this->notificarCancelacion($cita);
         $cita->delete();
         $this->resetForm();
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Cita eliminada exitosamente.'
-        ]);
+        
+        // Mostrar mensaje apropiado según el resultado de la notificación
+        if ($notificacion['success'] && empty($notificacion['errors'])) {
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cita eliminada exitosamente. Notificación de cancelación enviada.'
+            ]);
+        } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'Cita eliminada. ' . $notificacion['message']
+            ]);
+        } else {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Cita eliminada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
+            ]);
+        }
+        
         $this->dispatch('cita-saved');
     }
 
@@ -391,11 +420,26 @@ class Index extends Component
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);
-        $this->notificarCambioEstado($cita, $estadoAnterior);
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado]
-        ]);
+        $notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);
+        
+        // Mostrar mensaje apropiado según el resultado de la notificación
+        if ($notificacion['success'] && empty($notificacion['errors'])) {
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado] . '. Notificaciones enviadas.'
+            ]);
+        } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
+            $this->dispatch('show-toast', [
+                'type' => 'warning',
+                'message' => 'Estado actualizado. ' . $notificacion['message']
+            ]);
+        } else {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Estado actualizado pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
+            ]);
+        }
+        
         $this->dispatch('cita-saved');
     }
 
@@ -404,13 +448,25 @@ class Index extends Component
         $cita = Cita::findOrFail($citaId);
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
-            $sent = $service->enviarRecordatorio($cita);
-            $this->dispatch('show-toast', [
-                'type' => $sent ? 'success' : 'warning',
-                'message' => $sent
-                    ? 'Recordatorio enviado por WhatsApp.'
-                    : 'No se pudo enviar el recordatorio. Verifique la conexión de WhatsApp.'
-            ]);
+            $notificacion = $service->enviarRecordatorio($cita);
+            
+            // Mostrar mensaje apropiado según el resultado de la notificación
+            if ($notificacion['success'] && empty($notificacion['errors'])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Recordatorio enviado por WhatsApp.'
+                ]);
+            } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => $notificacion['message']
+                ]);
+            } else {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'No se pudo enviar el recordatorio: ' . implode(', ', $notificacion['errors'])
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error('Error enviando recordatorio', ['error' => $e->getMessage()]);
             $this->dispatch('show-toast', [
@@ -455,27 +511,37 @@ class Index extends Component
         return false;
     }
 
-    protected function notificarNuevaCita(Cita $cita): void
+    protected function notificarNuevaCita(Cita $cita): array
     {
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
-            $service->notificarNuevaCita($cita);
+            return $service->notificarNuevaCita($cita);
         } catch (\Exception $e) {
             Log::error('Error notificando nueva cita', ['error' => $e->getMessage()]);
+            return [
+                'success' => false,
+                'errors' => [$e->getMessage()],
+                'message' => 'Error al notificar nueva cita: ' . $e->getMessage()
+            ];
         }
     }
 
-    protected function notificarCambioEstado(Cita $cita, string $estadoAnterior): void
+    protected function notificarCambioEstado(Cita $cita, string $estadoAnterior): array
     {
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
             if ($cita->estado === Cita::ESTADO_CANCELADA) {
-                $service->notificarCancelacion($cita);
+                return $service->notificarCancelacion($cita);
             } else {
-                $service->notificarCambioEstado($cita, $estadoAnterior);
+                return $service->notificarCambioEstado($cita, $estadoAnterior);
             }
         } catch (\Exception $e) {
             Log::error('Error notificando cambio de estado', ['error' => $e->getMessage()]);
+            return [
+                'success' => false,
+                'errors' => [$e->getMessage()],
+                'message' => 'Error al notificar cambio de estado: ' . $e->getMessage()
+            ];
         }
     }
 
@@ -489,13 +555,18 @@ class Index extends Component
         }
     }
 
-    protected function notificarCancelacion(Cita $cita): void
+    protected function notificarCancelacion(Cita $cita): array
     {
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
-            $service->notificarCancelacion($cita);
+            return $service->notificarCancelacion($cita);
         } catch (\Exception $e) {
             Log::error('Error notificando cancelación', ['error' => $e->getMessage()]);
+            return [
+                'success' => false,
+                'errors' => [$e->getMessage()],
+                'message' => 'Error al notificar cancelación: ' . $e->getMessage()
+            ];
         }
     }
 

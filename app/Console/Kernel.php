@@ -81,7 +81,17 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->onOneServer();
         }
-        
+
+        // Procesar confirmaciones cada hora
+        $schedule->command('citas:process-confirmations')
+                 ->hourly()
+                 ->withoutOverlapping()
+                 ->appendOutputTo(storage_path('logs/confirmations.log'));
+
+        // Enviar recordatorios de citas
+        $schedule->job(new \App\Jobs\ProcessAppointmentConfirmations())
+                 ->dailyAt('08:00')
+                 ->withoutOverlapping();
     }
 
     /**
