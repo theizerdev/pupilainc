@@ -281,6 +281,7 @@ Thumbs.db
 /resources/js/whatsapp/**/*.log
 /resources/js/whatsapp/**/*.cache
 /resources/js/whatsapp/**/*.session
+/resources/js/whatsapp/storage/**
 /resources/js/whatsapp/**/*.data
 /resources/js/whatsapp/**/*.backup
 /resources/js/whatsapp/**/*.tmp
