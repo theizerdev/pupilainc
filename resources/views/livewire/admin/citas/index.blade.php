@@ -177,9 +177,36 @@
     100% { transform: scale(3.5); opacity: 0; }
 }
 
+/* Celdas del calendario más compactas y anchas */
+.fc .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
+    min-height: 60px !important;
+    padding: 2px 4px !important;
+}
+.fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
+    margin-top: 1px !important;
+}
+.fc .fc-daygrid-day-top {
+    padding: 2px 4px !important;
+}
+.fc td.fc-daygrid-day {
+    min-height: 60px !important;
+}
+.fc .fc-scrollgrid-sync-table {
+    width: 100% !important;
+}
+.fc .fc-col-header-cell {
+    padding: 4px 0 !important;
+}
+.fc .fc-daygrid-body {
+    width: 100% !important;
+}
+.fc .fc-daygrid-body table {
+    width: 100% !important;
+}
+
 /* Ajuste para el texto responsivo */
 .fc-event-title-container {
-    min-width: 0; /* Clave para que el elipsis funcione */
+    min-width: 0;
     flex: 1;
 }
 

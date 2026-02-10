@@ -446,7 +446,7 @@
 
         <!-- WhatsApp -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <a href="{{ route('admin.whatsapp.dashboard') }}" class="text-decoration-none">
+            <a href="{{ route('admin.whatsapp.index') }}" class="text-decoration-none">
                 <div class="module-card">
                     <div class="module-icon" style="background: linear-gradient(135deg, #25d366, #128c7e);">
                         <i class="fab fa-whatsapp"></i>

@@ -196,6 +196,35 @@ class WhatsAppService {
         }
       });
 
+      // Manejar actualizaciones de estado de mensajes (delivered, read)
+      this.sock.ev.on('messages.update', async (updates) => {
+        for (const update of updates) {
+          try {
+            const { key, update: msgUpdate } = update;
+            if (!key?.id || !msgUpdate?.status) continue;
+
+            const statusMap = {
+              2: 'sent',
+              3: 'delivered',
+              4: 'read',
+            };
+            const newStatus = statusMap[msgUpdate.status];
+            if (!newStatus) continue;
+
+            const [affectedRows] = await Message.update(
+              { status: newStatus },
+              { where: { messageId: key.id } }
+            );
+
+            if (affectedRows > 0) {
+              logger.whatsapp(`Mensaje ${key.id} actualizado a: ${newStatus}`);
+            }
+          } catch (err) {
+            logger.error('Error actualizando status de mensaje:', err.message);
+          }
+        }
+      });
+
       // Manejar actualizaciones de credenciales
       this.sock.ev.on('creds.update', saveCreds);
       

@@ -89,15 +89,16 @@ Route::get('/admin/template-customization', \App\Livewire\Admin\TemplateCustomiz
 
 // Rutas para confirmación de citas
 Route::prefix('citas')->group(function () {
-    Route::get('/confirmar/{token}', [CitaConfirmationController::class, 'confirmar'])
+    Route::get('/confirmar', [CitaConfirmationController::class, 'confirmar'])
          ->name('citas.confirmar');
-         
-    Route::get('/cancelar/{token}', [CitaConfirmationController::class, 'cancelar'])
+
+    Route::get('/cancelar', [CitaConfirmationController::class, 'cancelar'])
          ->name('citas.cancelar');
 });
 
 // Webhook para respuestas de WhatsApp
-Route::post('/webhook/whatsapp/confirmations', [CitaConfirmationController::class, 'webhookWhatsapp']);
+Route::post('/webhook/whatsapp/confirmations', [CitaConfirmationController::class, 'processWhatsAppResponse'])
+     ->name('webhook.whatsapp.confirmations');
 
 // Test WhatsApp API
 Route::get('/test-whatsapp', function () {

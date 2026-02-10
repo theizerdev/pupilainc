@@ -5,9 +5,10 @@
       <div class="card p-md-7 p-1">
         <!-- Logo -->
         <div class="app-brand justify-content-center mt-5">
+          <img src="/logo/thumbnail.jpg" alt=""  height="130px">
           <a href="{{ url('/') }}" class="app-brand-link gap-2">
            
-            <span class="app-brand-text demo text-heading fw-semibold">{{ config('app.name', 'Laravel') }}</span>
+            
           </a>
         </div>
         <!-- /Logo -->

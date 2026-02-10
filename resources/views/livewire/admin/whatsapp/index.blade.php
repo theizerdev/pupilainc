@@ -1,38 +1,65 @@
 <div>
-    <!-- Header con Estado Principal -->
+    <!-- Enhanced Header with Status Overview -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card card-border-shadow-{{ $statusColor }}">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="avatar avatar-lg">
-                                <span class="avatar-initial rounded-circle bg-label-{{ $statusColor }}">
-                                    <i class="{{ $statusIcon }} ri-24px"></i>
-                                </span>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-4">
+                        <div class="d-flex align-items-center gap-4">
+                            <div class="position-relative">
+                                <div class="avatar avatar-xl">
+                                    <span class="avatar-initial rounded-circle bg-label-{{ $statusColor }} p-3">
+                                        <i class="{{ $statusIcon }} ri-28px"></i>
+                                    </span>
+                                    @if($status === 'connected')
+                                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
+                                            <span class="visually-hidden">Connected</span>
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                             <div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <h4 class="mb-0">WhatsApp Business</h4>
-                                    <span class="badge bg-{{ $statusColor }}">{{ $statusText }}</span>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                    <h3 class="mb-0 fw-bold">WhatsApp Business</h3>
+                                    <span class="badge bg-{{ $statusColor }} fs-6 px-3 py-2">
+                                        <i class="{{ $statusIcon }} me-1"></i>{{ $statusText }}
+                                    </span>
                                 </div>
-                                @if($user)
-                                    <p class="mb-0 text-muted">
-                                        <i class="ri ri-phone-line me-1"></i>{{ $user['id'] ?? 'N/A' }}
-                                        <span class="mx-2">•</span>
-                                        <i class="ri ri-user-line me-1"></i>{{ $user['name'] ?? 'Usuario' }}
-                                    </p>
+                                
+                                @if($user && $status === 'connected')
+                                    <div class="d-flex flex-wrap align-items-center gap-3 text-muted">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ri ri-user-line me-2 text-primary"></i>
+                                            <span class="fw-medium">{{ $user['name'] ?? 'Usuario' }}</span>
+                                        </div>
+                                        <div class="d-flex align-items-center">
+                                            <i class="ri ri-phone-line me-2 text-success"></i>
+                                            <span>{{ $user['id'] ?? 'N/A' }}</span>
+                                        </div>
+                                        @if($lastSeen)
+                                            <div class="d-flex align-items-center">
+                                                <i class="ri ri-time-line me-2 text-info"></i>
+                                                <span>Última actividad: {{ \Carbon\Carbon::parse($lastSeen)->diffForHumans() }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 @elseif($connectionError)
-                                    <p class="mb-0 text-danger small">
-                                        <i class="ri ri-error-warning-line me-1"></i>{{ $connectionError }}
-                                    </p>
+                                    <div class="d-flex align-items-center text-danger">
+                                        <i class="ri ri-error-warning-line me-2"></i>
+                                        <span>{{ $connectionError }}</span>
+                                    </div>
                                 @else
-                                    <p class="mb-0 text-muted">No hay sesión activa de WhatsApp</p>
+                                    <p class="mb-0 text-muted">
+                                        <i class="ri ri-information-line me-2"></i>No hay sesión activa de WhatsApp
+                                    </p>
                                 @endif
                             </div>
                         </div>
-                        <div class="d-flex gap-2">
-                            <button wire:click="refresh" class="btn btn-label-primary" wire:loading.attr="disabled">
+                        
+                        <div class="d-flex flex-wrap gap-2">
+                            <button wire:click="refresh" 
+                                    class="btn btn-outline-primary" 
+                                    wire:loading.attr="disabled">
                                 <span wire:loading.remove wire:target="refresh">
                                     <i class="ri ri-refresh-line me-1"></i>Actualizar
                                 </span>
@@ -40,6 +67,19 @@
                                     <span class="spinner-border spinner-border-sm me-1"></span>Actualizando...
                                 </span>
                             </button>
+                            
+                            @if($status === 'connected')
+                                <button wire:click="testConnection" 
+                                        class="btn btn-outline-success" 
+                                        wire:loading.attr="disabled">
+                                    <span wire:loading.remove wire:target="testConnection">
+                                        <i class="ri ri-pulse-line me-1"></i>Test
+                                    </span>
+                                    <span wire:loading wire:target="testConnection">
+                                        <span class="spinner-border spinner-border-sm me-1"></span>Probando...
+                                    </span>
+                                </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -47,304 +87,478 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
+    <!-- Enhanced Stats Cards with Progress Bars -->
     @php
-        $totalMsgs = $stats['total'] > 0 ? $stats['total'] : 1;
-        $sentPercent = ($stats['sent'] / $totalMsgs) * 100;
-        $deliveredPercent = ($stats['delivered'] / $totalMsgs) * 100;
-        $readPercent = ($stats['read'] / $totalMsgs) * 100;
-        $failedPercent = ($stats['failed'] / $totalMsgs) * 100;
+        $totalMsgs = max($stats['total'], 1);
+        $sentPercent = round(($stats['sent'] / $totalMsgs) * 100, 1);
+        $deliveredPercent = round(($stats['delivered'] / $totalMsgs) * 100, 1);
+        $readPercent = round(($stats['read'] / $totalMsgs) * 100, 1);
+        $failedPercent = round(($stats['failed'] / $totalMsgs) * 100, 1);
+        $pendingPercent = round(($stats['pending'] / $totalMsgs) * 100, 1);
+        $successRate = $totalMsgs > 0 ? round((($stats['delivered'] + $stats['read']) / $totalMsgs) * 100, 1) : 0;
     @endphp
+    
     <div class="row g-4 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card card-border-shadow-primary h-100">
+        <!-- Summary Row -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm bg-gradient-primary text-white h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="avatar me-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1 text-white">Tasa de Éxito General</h4>
+                            <p class="mb-0 opacity-75">Mensajes entregados y leídos</p>
+                        </div>
+                        <div class="text-end">
+                            <h2 class="mb-0 fw-bold">{{ $successRate }}%</h2>
+                            <div class="progress mt-2" style="height: 8px; max-width: 150px;">
+                                <div class="progress-bar bg-white" style="width: {{ $successRate }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-4 mt-3 pt-3 border-top border-white border-opacity-25">
+                        <div>
+                            <h5 class="text-white mb-0">{{ $stats['total'] }}</h5>
+                            <small class="opacity-75">Total</small>
+                        </div>
+                        <div>
+                            <h5 class="text-white mb-0">{{ $todayMessages }}</h5>
+                            <small class="opacity-75">Hoy</small>
+                        </div>
+                        <div>
+                            <h5 class="text-white mb-0">{{ $stats['pending'] }}</h5>
+                            <small class="opacity-75">Pendientes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <div class="avatar avatar-lg mx-auto mb-2">
+                        <span class="avatar-initial rounded-circle bg-label-warning">
+                            <i class="ri ri-calendar-check-line ri-24px"></i>
+                        </span>
+                    </div>
+                    <h2 class="mb-1 fw-bold">{{ $todayMessages }}</h2>
+                    <p class="text-muted mb-0">Mensajes Hoy</p>
+                    <small class="text-muted">{{ now()->format('d/m/Y') }}</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Stat Cards -->
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="avatar">
                             <span class="avatar-initial rounded bg-label-primary">
                                 <i class="ri ri-send-plane-fill ri-24px"></i>
                             </span>
                         </div>
-                        <div>
+                        <div class="text-end">
                             <h4 class="mb-0">{{ $stats['sent'] }}</h4>
-                            <span class="text-muted small">Enviados</span>
+                            <small class="text-muted">Enviados</small>
                         </div>
                     </div>
-                    <div class="progress" style="height: 4px;">
+                    <div class="progress" style="height: 6px;">
                         <div class="progress-bar bg-primary" style="width: {{ $sentPercent }}%"></div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <small class="text-muted">{{ $sentPercent }}%</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-6 col-lg-3">
-            <div class="card card-border-shadow-success h-100">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="avatar me-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="avatar">
                             <span class="avatar-initial rounded bg-label-success">
                                 <i class="ri ri-check-double-fill ri-24px"></i>
                             </span>
                         </div>
-                        <div>
+                        <div class="text-end">
                             <h4 class="mb-0">{{ $stats['delivered'] }}</h4>
-                            <span class="text-muted small">Entregados</span>
+                            <small class="text-muted">Entregados</small>
                         </div>
                     </div>
-                    <div class="progress" style="height: 4px;">
+                    <div class="progress" style="height: 6px;">
                         <div class="progress-bar bg-success" style="width: {{ $deliveredPercent }}%"></div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <small class="text-muted">{{ $deliveredPercent }}%</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-6 col-lg-3">
-            <div class="card card-border-shadow-info h-100">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="avatar me-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="avatar">
                             <span class="avatar-initial rounded bg-label-info">
                                 <i class="ri ri-eye-fill ri-24px"></i>
                             </span>
                         </div>
-                        <div>
+                        <div class="text-end">
                             <h4 class="mb-0">{{ $stats['read'] }}</h4>
-                            <span class="text-muted small">Leídos</span>
+                            <small class="text-muted">Leídos</small>
                         </div>
                     </div>
-                    <div class="progress" style="height: 4px;">
+                    <div class="progress" style="height: 6px;">
                         <div class="progress-bar bg-info" style="width: {{ $readPercent }}%"></div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <small class="text-muted">{{ $readPercent }}%</small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="col-6 col-lg-3">
-            <div class="card card-border-shadow-danger h-100">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="avatar me-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="avatar">
                             <span class="avatar-initial rounded bg-label-danger">
                                 <i class="ri ri-error-warning-fill ri-24px"></i>
                             </span>
                         </div>
-                        <div>
+                        <div class="text-end">
                             <h4 class="mb-0">{{ $stats['failed'] }}</h4>
-                            <span class="text-muted small">Fallidos</span>
+                            <small class="text-muted">Fallidos</small>
                         </div>
                     </div>
-                    <div class="progress" style="height: 4px;">
+                    <div class="progress" style="height: 6px;">
                         <div class="progress-bar bg-danger" style="width: {{ $failedPercent }}%"></div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <small class="text-muted">{{ $failedPercent }}%</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tabs Navigation -->
-    <div class="nav-align-top mb-4">
-        <ul class="nav nav-pills nav-fill flex-column flex-sm-row mb-4" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button type="button"
-                        class="nav-link {{ $activeTab === 'dashboard' ? 'active' : '' }}"
-                        wire:click="setActiveTab('dashboard')">
-                    <i class="ri ri-dashboard-line me-1 ri-20px"></i>
-                    <span class="d-none d-sm-inline">Dashboard</span>
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button type="button"
-                        class="nav-link {{ $activeTab === 'conexion' ? 'active' : '' }}"
-                        wire:click="setActiveTab('conexion')">
-                    <i class="ri ri-link me-1 ri-20px"></i>
-                    <span class="d-none d-sm-inline">Conexión</span>
-                    @if($status !== 'connected')
-                        <span class="badge bg-danger ms-1">!</span>
-                    @endif
-                </button>
-            </li>
-            
-        </ul>
+    <!-- Daily Messages Chart -->
+    @if(count($dailyMessages) > 0)
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-transparent">
+                    <h5 class="card-title mb-0">
+                        <i class="ri ri-bar-chart-2-line me-2 text-primary"></i>Mensajes Últimos 7 Días
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-end justify-content-between" style="height: 150px;">
+                        @php
+                            $maxCount = max(array_column($dailyMessages, 'count'));
+                            $maxCount = max($maxCount, 1);
+                        @endphp
+                        @foreach($dailyMessages as $day)
+                            @php
+                                $barHeight = round(($day['count'] / $maxCount) * 120);
+                                $dayLabel = \Carbon\Carbon::parse($day['date'])->format('D');
+                                $dateLabel = \Carbon\Carbon::parse($day['date'])->format('d/m');
+                            @endphp
+                            <div class="text-center flex-fill px-1">
+                                <small class="d-block mb-1 fw-medium">{{ $day['count'] }}</small>
+                                <div class="bg-primary rounded-top mx-auto" 
+                                     style="width: 60%; height: {{ max($barHeight, 4) }}px; min-height: 4px;"
+                                     title="{{ $dateLabel }}: {{ $day['count'] }} mensajes"></div>
+                                <small class="d-block mt-1 text-muted">{{ $dayLabel }}</small>
+                                <small class="d-block text-muted" style="font-size: 0.65rem;">{{ $dateLabel }}</small>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Enhanced Tabs Navigation -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white pb-0">
+            <ul class="nav nav-pills nav-fill flex-column flex-sm-row mb-0" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link {{ $activeTab === 'dashboard' ? 'active' : '' }} py-3"
+                            wire:click="setActiveTab('dashboard')">
+                        <i class="ri ri-dashboard-line me-2 ri-20px"></i>
+                        <span class="d-none d-sm-inline">Dashboard</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link {{ $activeTab === 'conexion' ? 'active' : '' }} py-3"
+                            wire:click="setActiveTab('conexion')">
+                        <i class="ri ri-link me-2 ri-20px"></i>
+                        <span class="d-none d-sm-inline">Conexión</span>
+                        @if($status !== 'connected')
+                            <span class="badge bg-danger ms-2">!</span>
+                        @endif
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link {{ $activeTab === 'mensajes' ? 'active' : '' }} py-3 position-relative"
+                            wire:click="setActiveTab('mensajes')"
+                            @if($status !== 'connected') disabled @endif>
+                        <i class="ri ri-message-2-line me-2 ri-20px"></i>
+                        <span class="d-none d-sm-inline">Mensajes</span>
+                      
+                        @if($status !== 'connected')
+                            <i class="ri ri-lock-line ms-1 text-muted"></i>
+                        @endif
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link {{ $activeTab === 'conversaciones' ? 'active' : '' }} py-3"
+                            wire:click="setActiveTab('conversaciones')"
+                            @if($status !== 'connected') disabled @endif>
+                        <i class="ri ri-chat-3-line me-2 ri-20px"></i>
+                        <span class="d-none d-sm-inline">Conversaciones</span>
+                        @if($status !== 'connected')
+                            <i class="ri ri-lock-line ms-1 text-muted"></i>
+                        @endif
+                    </button>
+                </li>
+            </ul>
+        </div>
 
         <!-- Tab Content -->
         <div class="tab-content p-0">
             <!-- Dashboard Tab -->
             @if($activeTab === 'dashboard')
                 <div class="tab-pane fade show active">
-                    <div class="row g-4">
-                        <!-- Información de Cuenta -->
-                        @if($user && $status === 'connected')
-                            <div class="col-lg-4">
-                                <div class="card h-100">
-                                    <div class="card-header pb-0">
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <!-- Enhanced Account Info -->
+                            @if($user && $status === 'connected')
+                                <div class="col-lg-4">
+                                    <div class="card border-0 shadow-sm h-100">
+                                        <div class="card-header bg-transparent pb-0">
+                                            <h5 class="card-title mb-0">
+                                                <i class="ri ri-account-circle-line me-2 text-primary"></i>Cuenta Conectada
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="text-center mb-4">
+                                                <div class="avatar avatar-xxl mb-3">
+                                                    <span class="avatar-initial rounded-circle bg-success">
+                                                        <i class="ri ri-whatsapp-line ri-36px"></i>
+                                                    </span>
+                                                </div>
+                                                <h4 class="mb-1">{{ $user['name'] ?? 'Usuario' }}</h4>
+                                                <p class="text-muted mb-0">{{ $user['id'] ?? 'N/A' }}</p>
+                                            </div>
+
+                                            <div class="info-container">
+                                                <ul class="list-unstyled mb-0">
+                                                    <li class="py-2 border-bottom">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="fw-medium">Estado</span>
+                                                            <span class="badge bg-success">
+                                                                <i class="ri ri-checkbox-circle-fill me-1"></i>Activo
+                                                            </span>
+                                                        </div>
+                                                    </li>
+                                                    @if($lastSeen)
+                                                    <li class="py-2 border-bottom">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="fw-medium">Última actividad</span>
+                                                            <span class="text-muted">{{ \Carbon\Carbon::parse($lastSeen)->diffForHumans() }}</span>
+                                                        </div>
+                                                    </li>
+                                                    @endif
+                                                   
+                                                    <li class="py-2">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <span class="fw-medium">Plataforma</span>
+                                                            <span class="badge bg-label-info">WhatsApp Business</span>
+                                                        </div>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Enhanced Recent Messages -->
+                            <div class="{{ $user && $status === 'connected' ? 'col-lg-8' : 'col-12' }}">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
                                         <h5 class="card-title mb-0">
-                                            <i class="ri ri-account-circle-line me-2"></i>Cuenta Conectada
+                                            <i class="ri ri-chat-3-line me-2 text-primary"></i>Mensajes Recientes
                                         </h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="d-flex flex-column align-items-center text-center mb-4">
-                                            <div class="avatar avatar-xl mb-3">
-                                                <span class="avatar-initial rounded-circle bg-success">
-                                                    <i class="ri ri-whatsapp-line ri-36px"></i>
-                                                </span>
-                                            </div>
-                                            <h5 class="mb-1">{{ $user['name'] ?? 'Usuario' }}</h5>
-                                            <span class="text-muted">{{ $user['id'] ?? 'N/A' }}</span>
-                                        </div>
-
-                                        <div class="info-container">
-                                            <ul class="list-unstyled mb-0">
-                                                <li class="mb-3 d-flex align-items-center">
-                                                    <i class="ri ri-checkbox-circle-fill text-success me-2"></i>
-                                                    <span class="fw-medium me-1">Estado:</span>
-                                                    <span class="text-success">Activo</span>
-                                                </li>
-                                                @if($lastSeen)
-                                                <li class="mb-3 d-flex align-items-center">
-                                                    <i class="ri ri-time-line text-muted me-2"></i>
-                                                    <span class="fw-medium me-1">Última vez:</span>
-                                                    <span>{{ \Carbon\Carbon::parse($lastSeen)->diffForHumans() }}</span>
-                                                </li>
-                                                @endif
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Mensajes Recientes -->
-                        <div class="{{ $user && $status === 'connected' ? 'col-lg-8' : 'col-12' }}">
-                            <div class="card h-100">
-                                <div class="card-header d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">
-                                        <i class="ri ri-chat-3-line me-2"></i>Mensajes Recientes
-                                    </h5>
-                                    @if($status === 'connected')
-                                        <button class="btn btn-sm btn-primary" wire:click="setActiveTab('mensajes')">
-                                            <i class="ri ri-add-line me-1"></i>Nuevo
-                                        </button>
-                                    @endif
-                                </div>
-                                <div class="card-body p-0">
-                                    @if(count($messages) > 0)
-                                        <div class="table-responsive">
-                                            <table class="table table-hover mb-0">
-                                                <thead class="table-light">
-                                                    <tr>
-                                                        <th class="text-nowrap">Fecha</th>
-                                                        <th class="text-nowrap">Contacto</th>
-                                                        <th>Mensaje</th>
-                                                        <th class="text-center">Estado</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach($messages as $message)
-                                                        <tr>
-                                                            <td class="text-nowrap">
-                                                                <small class="text-muted">
-                                                                    {{ \Carbon\Carbon::parse($message['createdAt'] ?? now())->format('d/m H:i') }}
-                                                                </small>
-                                                            </td>
-                                                            <td>
-                                                                <div class="d-flex align-items-center">
-                                                                    @if(($message['status'] ?? '') === 'sent')
-                                                                        <span class="badge bg-label-primary me-2">
-                                                                            <i class="ri ri-arrow-right-up-line"></i>
-                                                                        </span>
-                                                                    @else
-                                                                        <span class="badge bg-label-success me-2">
-                                                                            <i class="ri ri-arrow-left-down-line"></i>
-                                                                        </span>
-                                                                    @endif
-                                                                    <span>{{ $message['to'] ?? $message['from'] ?? 'Desconocido' }}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <div class="text-truncate" style="max-width: 250px;">
-                                                                    {{ Str::limit($message['message'] ?? $message['body'] ?? '', 50) }}
-                                                                </div>
-                                                            </td>
-                                                            <td class="text-center">
-                                                                @php
-                                                                    $msgStatus = $message['status'] ?? 'unknown';
-                                                                    $badgeConfig = match($msgStatus) {
-                                                                        'sent' => ['class' => 'bg-primary', 'icon' => 'ri-check-line', 'label' => 'Enviado'],
-                                                                        'delivered' => ['class' => 'bg-success', 'icon' => 'ri-check-double-line', 'label' => 'Entregado'],
-                                                                        'read' => ['class' => 'bg-info', 'icon' => 'ri-eye-line', 'label' => 'Leído'],
-                                                                        'failed' => ['class' => 'bg-danger', 'icon' => 'ri-close-line', 'label' => 'Fallido'],
-                                                                        'pending' => ['class' => 'bg-warning', 'icon' => 'ri-time-line', 'label' => 'Pendiente'],
-                                                                        default => ['class' => 'bg-secondary', 'icon' => 'ri-question-line', 'label' => ucfirst($msgStatus)]
-                                                                    };
-                                                                @endphp
-                                                                <span class="badge {{ $badgeConfig['class'] }}" title="{{ $badgeConfig['label'] }}">
-                                                                    <i class="{{ $badgeConfig['icon'] }} me-1"></i>{{ $badgeConfig['label'] }}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    @else
-                                        <div class="text-center py-5">
-                                            <div class="avatar avatar-lg mb-3">
-                                                <span class="avatar-initial rounded-circle bg-label-secondary">
-                                                    <i class="ri ri-chat-off-line ri-24px"></i>
-                                                </span>
-                                            </div>
-                                            <h6 class="mb-1">No hay mensajes</h6>
-                                            <p class="text-muted mb-3">Los mensajes recientes aparecerán aquí</p>
+                                        <div class="d-flex gap-2">
                                             @if($status === 'connected')
-                                                <button class="btn btn-primary btn-sm" wire:click="setActiveTab('mensajes')">
-                                                    <i class="ri ri-send-plane-line me-1"></i>Enviar mensaje
-                                                </button>
-                                            @elseif($status !== 'connected')
-                                                <button class="btn btn-success btn-sm" wire:click="setActiveTab('conexion')">
-                                                    <i class="ri ri-link me-1"></i>Conectar WhatsApp
+                                                <button class="btn btn-sm btn-outline-primary" wire:click="setActiveTab('mensajes')">
+                                                    <i class="ri ri-add-line me-1"></i>Nuevo Mensaje
                                                 </button>
                                             @endif
+                                            <button class="btn btn-sm btn-outline-secondary" wire:click="loadMoreMessages">
+                                                <i class="ri ri-refresh-line me-1"></i>Actualizar
+                                            </button>
                                         </div>
-                                    @endif
+                                    </div>
+                                    <div class="card-body p-0">
+                                        @if(count($messages) > 0)
+                                            <div class="table-responsive">
+                                                <table class="table table-hover mb-0">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th class="text-nowrap">Fecha</th>
+                                                            <th class="text-nowrap">Contacto</th>
+                                                            <th>Mensaje</th>
+                                                            <th class="text-center">Tipo</th>
+                                                            <th class="text-center">Estado</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($messages as $message)
+                                                            <tr>
+                                                                <td class="text-nowrap">
+                                                                    <small class="text-muted">
+                                                                        {{ \Carbon\Carbon::parse($message['createdAt'] ?? now())->format('d/m/Y H:i') }}
+                                                                    </small>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="d-flex align-items-center">
+                                                                        @if(($message['direction'] ?? 'outgoing') === 'outgoing')
+                                                                            <span class="badge bg-label-primary me-2">
+                                                                                <i class="ri ri-arrow-right-up-line"></i>
+                                                                            </span>
+                                                                        @else
+                                                                            <span class="badge bg-label-success me-2">
+                                                                                <i class="ri ri-arrow-left-down-line"></i>
+                                                                            </span>
+                                                                        @endif
+                                                                        <span>{{ $message['to'] ?? $message['from'] ?? 'Desconocido' }}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="text-truncate" style="max-width: 250px;">
+                                                                        {{ Str::limit($message['message'] ?? $message['body'] ?? '', 60) }}
+                                                                    </div>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    @php
+                                                                        $msgType = $message['type'] ?? 'text';
+                                                                        $typeConfig = match($msgType) {
+                                                                            'text' => ['class' => 'bg-label-primary', 'icon' => 'ri-message-line', 'label' => 'Texto'],
+                                                                            'image' => ['class' => 'bg-label-success', 'icon' => 'ri-image-line', 'label' => 'Imagen'],
+                                                                            'document' => ['class' => 'bg-label-warning', 'icon' => 'ri-file-line', 'label' => 'Documento'],
+                                                                            'audio' => ['class' => 'bg-label-info', 'icon' => 'ri-volume-up-line', 'label' => 'Audio'],
+                                                                            default => ['class' => 'bg-label-secondary', 'icon' => 'ri-question-line', 'label' => ucfirst($msgType)]
+                                                                        };
+                                                                    @endphp
+                                                                    <span class="badge {{ $typeConfig['class'] }}" title="{{ $typeConfig['label'] }}">
+                                                                        <i class="{{ $typeConfig['icon'] }} me-1"></i>{{ $typeConfig['label'] }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="text-center">
+                                                                    @php
+                                                                        $msgStatus = $message['status'] ?? 'unknown';
+                                                                        $badgeConfig = match($msgStatus) {
+                                                                            'sent' => ['class' => 'bg-primary', 'icon' => 'ri-check-line', 'label' => 'Enviado'],
+                                                                            'delivered' => ['class' => 'bg-success', 'icon' => 'ri-check-double-line', 'label' => 'Entregado'],
+                                                                            'read' => ['class' => 'bg-info', 'icon' => 'ri-eye-line', 'label' => 'Leído'],
+                                                                            'failed' => ['class' => 'bg-danger', 'icon' => 'ri-close-line', 'label' => 'Fallido'],
+                                                                            'pending' => ['class' => 'bg-warning', 'icon' => 'ri-time-line', 'label' => 'Pendiente'],
+                                                                            'queued' => ['class' => 'bg-secondary', 'icon' => 'ri-inbox-line', 'label' => 'En cola'],
+                                                                            default => ['class' => 'bg-secondary', 'icon' => 'ri-question-line', 'label' => ucfirst($msgStatus)]
+                                                                        };
+                                                                    @endphp
+                                                                    <span class="badge {{ $badgeConfig['class'] }}" title="{{ $badgeConfig['label'] }}">
+                                                                        <i class="{{ $badgeConfig['icon'] }} me-1"></i>{{ $badgeConfig['label'] }}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @else
+                                            <div class="text-center py-5">
+                                                <div class="avatar avatar-lg mb-3">
+                                                    <span class="avatar-initial rounded-circle bg-label-secondary">
+                                                        <i class="ri ri-chat-off-line ri-24px"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="mb-2">No hay mensajes</h5>
+                                                <p class="text-muted mb-3">Los mensajes recientes aparecerán aquí</p>
+                                                <div class="d-flex justify-content-center gap-2">
+                                                    @if($status === 'connected')
+                                                        <button class="btn btn-primary" wire:click="setActiveTab('mensajes')">
+                                                            <i class="ri ri-send-plane-line me-1"></i>Enviar mensaje
+                                                        </button>
+                                                    @elseif($status !== 'connected')
+                                                        <button class="btn btn-success" wire:click="setActiveTab('conexion')">
+                                                            <i class="ri ri-link me-1"></i>Conectar WhatsApp
+                                                        </button>
+                                                    @endif
+                                                    <button class="btn btn-outline-secondary" wire:click="refresh">
+                                                        <i class="ri ri-refresh-line me-1"></i>Actualizar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Acciones Rápidas -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card bg-transparent shadow-none border">
-                                <div class="card-body">
-                                    <h6 class="mb-3">
-                                        <i class="ri ri-flashlight-line me-1"></i>Acciones Rápidas
-                                    </h6>
-                                    <div class="row g-3">
-                                        <div class="col-6 col-md-3">
-                                            <button class="btn btn-label-primary w-100 py-3" wire:click="setActiveTab('conexion')">
-                                                <i class="ri ri-link d-block ri-24px mb-1"></i>
-                                                <span class="d-block small">Conexión</span>
-                                            </button>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <button class="btn btn-label-success w-100 py-3"
-                                                    wire:click="setActiveTab('mensajes')"
-                                                    @if($status !== 'connected') disabled @endif>
-                                                <i class="ri ri-send-plane-line d-block ri-24px mb-1"></i>
-                                                <span class="d-block small">Enviar</span>
-                                            </button>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <button class="btn btn-label-info w-100 py-3" wire:click="refresh">
-                                                <i class="ri ri-refresh-line d-block ri-24px mb-1"></i>
-                                                <span class="d-block small">Actualizar</span>
-                                            </button>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                            <a href="{{ route('admin.dashboard') }}" class="btn btn-label-secondary w-100 py-3">
-                                                <i class="ri ri-arrow-left-line d-block ri-24px mb-1"></i>
-                                                <span class="d-block small">Volver</span>
-                                            </a>
+                        <!-- Enhanced Quick Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card border-0 bg-light-subtle">
+                                    <div class="card-body">
+                                        <h6 class="mb-3">
+                                            <i class="ri ri-flashlight-line me-2 text-primary"></i>Acciones Rápidas
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-6 col-md-3">
+                                                <button class="btn btn-outline-primary w-100 py-3" wire:click="setActiveTab('conexion')">
+                                                    <i class="ri ri-link d-block ri-24px mb-2"></i>
+                                                    <span class="d-block small fw-medium">Conexión</span>
+                                                    @if($status !== 'connected')
+                                                        <span class="badge bg-danger mt-1">Desconectado</span>
+                                                    @endif
+                                                </button>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <button class="btn btn-outline-success w-100 py-3"
+                                                        wire:click="setActiveTab('mensajes')"
+                                                        @if($status !== 'connected') disabled @endif>
+                                                    <i class="ri ri-send-plane-line d-block ri-24px mb-2"></i>
+                                                    <span class="d-block small fw-medium">Enviar</span>
+                                                    @if($status !== 'connected')
+                                                        <span class="badge bg-secondary mt-1">Bloqueado</span>
+                                                    @endif
+                                                </button>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <button class="btn btn-outline-info w-100 py-3" wire:click="exportStats">
+                                                    <i class="ri ri-file-download-line d-block ri-24px mb-2"></i>
+                                                    <span class="d-block small fw-medium">Exportar</span>
+                                                </button>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary w-100 py-3">
+                                                    <i class="ri ri-arrow-left-line d-block ri-24px mb-2"></i>
+                                                    <span class="d-block small fw-medium">Volver</span>
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -357,41 +571,88 @@
             <!-- Conexión Tab -->
             @if($activeTab === 'conexion')
                 <div class="tab-pane fade show active">
-                    <livewire:admin.whatsapp.conexion :key="'conexion-'.now()" />
+                    <div class="card-body p-4">
+                        <livewire:admin.whatsapp.conexion :key="'conexion-'.now()" />
+                    </div>
                 </div>
             @endif
 
             <!-- Mensajes Tab -->
             @if($activeTab === 'mensajes')
                 <div class="tab-pane fade show active">
-                    @if($status === 'connected')
-                        <livewire:admin.whatsapp.envio-mensajes :key="'envio-'.now()" />
-                    @else
-                        <div class="card">
-                            <div class="card-body text-center py-5">
-                                <div class="avatar avatar-lg mb-3">
+                    <div class="card-body p-4">
+                        @if($status === 'connected')
+                            <livewire:admin.whatsapp.envio-mensajes :key="'envio-'.now()" />
+                        @else
+                            <div class="text-center py-5">
+                                <div class="avatar avatar-xl mb-4">
                                     <span class="avatar-initial rounded-circle bg-label-warning">
-                                        <i class="ri ri-wifi-off-line ri-24px"></i>
+                                        <i class="ri ri-wifi-off-line ri-36px"></i>
                                     </span>
                                 </div>
-                                <h5 class="mb-2">WhatsApp no conectado</h5>
-                                <p class="text-muted mb-3">Necesitas conectar WhatsApp antes de enviar mensajes</p>
-                                <button class="btn btn-success" wire:click="setActiveTab('conexion')">
-                                    <i class="ri ri-link me-1"></i>Ir a Conexión
-                                </button>
+                                <h4 class="mb-3">WhatsApp no conectado</h4>
+                                <p class="text-muted mb-4 lead">
+                                    Necesitas conectar WhatsApp antes de enviar mensajes.<br>
+                                    La conexión es segura y se realiza mediante código QR.
+                                </p>
+                                <div class="d-flex justify-content-center gap-3">
+                                    <button class="btn btn-success btn-lg" wire:click="setActiveTab('conexion')">
+                                        <i class="ri ri-link me-2"></i>Ir a Conexión
+                                    </button>
+                                    <button class="btn btn-outline-secondary" wire:click="refresh">
+                                        <i class="ri ri-refresh-line me-1"></i>Reintentar
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    @endif
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            <!-- Conversaciones Tab -->
+            @if($activeTab === 'conversaciones')
+                <div class="tab-pane fade show active">
+                    <div class="card-body p-4">
+                        @if($status === 'connected')
+                            <livewire:admin.whatsapp.conversaciones :key="'conversaciones-'.now()" />
+                        @else
+                            <div class="text-center py-5">
+                                <div class="avatar avatar-xl mb-4">
+                                    <span class="avatar-initial rounded-circle bg-label-warning">
+                                        <i class="ri ri-wifi-off-line ri-36px"></i>
+                                    </span>
+                                </div>
+                                <h4 class="mb-3">WhatsApp no conectado</h4>
+                                <p class="text-muted mb-4 lead">
+                                    Necesitas conectar WhatsApp para acceder a las conversaciones.<br>
+                                    Las conversaciones se mostrarán aquí una vez conectado.
+                                </p>
+                                <div class="d-flex justify-content-center gap-3">
+                                    <button class="btn btn-success btn-lg" wire:click="setActiveTab('conexion')">
+                                        <i class="ri ri-link me-2"></i>Ir a Conexión
+                                    </button>
+                                    <button class="btn btn-outline-secondary" wire:click="refresh">
+                                        <i class="ri ri-refresh-line me-1"></i>Reintentar
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             @endif
         </div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div wire:loading.flex wire:target="refresh, loadDashboard" class="position-fixed top-0 start-0 w-100 h-100 justify-content-center align-items-center" style="background: rgba(255,255,255,0.7); z-index: 1050;">
-        <div class="text-center">
-            <div class="spinner-border text-primary mb-2" role="status"></div>
-            <p class="mb-0">Cargando...</p>
+    <!-- Enhanced Loading Overlay -->
+    <div wire:loading.flex wire:target="refresh, loadDashboard, testConnection, exportStats" 
+         class="position-fixed top-0 start-0 w-100 h-100 justify-content-center align-items-center" 
+         style="background: rgba(255,255,255,0.85); z-index: 1050;">
+        <div class="text-center bg-white rounded shadow-lg p-4">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <h5 class="mb-2">Procesando</h5>
+            <p class="text-muted mb-0">Por favor espere un momento</p>
         </div>
     </div>
 </div>
@@ -399,13 +660,93 @@
 @push('scripts')
 <script>
     document.addEventListener('livewire:init', () => {
+        // Handle notifications
         Livewire.on('notify', (data) => {
             if (typeof toastr !== 'undefined') {
                 toastr[data.type](data.message);
+            } else {
+                // Fallback to browser notification
+                console.log(`${data.type}: ${data.message}`);
             }
         });
+        
+        // Auto-refresh dashboard every 30 seconds when active
+        let refreshInterval;
+        const startAutoRefresh = () => {
+            refreshInterval = setInterval(() => {
+                @this.refresh();
+            }, 30000);
+        };
+        
+        const stopAutoRefresh = () => {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+                refreshInterval = null;
+            }
+        };
+        
+        // Start auto-refresh when dashboard is active
+        if (@this.activeTab === 'dashboard') {
+            startAutoRefresh();
+        }
+        
+        // Listen for tab changes
+        Livewire.on('tabChanged', (tab) => {
+            if (tab === 'dashboard') {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', stopAutoRefresh);
     });
-
-
 </script>
+@endpush
+
+@push('styles')
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #666cff 0%, #7367f0 100%) !important;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #666cff !important;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.text-truncate {
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .nav-pills .nav-link span:not(.d-none) {
+        font-size: 0.875rem;
+    }
+}
+</style>
 @endpush

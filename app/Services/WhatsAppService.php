@@ -85,6 +85,14 @@ class WhatsAppService
     }
 
     /**
+     * Obtener el ID de la empresa configurada
+     */
+    public function getCompanyId(): int
+    {
+        return $this->companyId;
+    }
+
+    /**
      * Obtener el estado de la conexión WhatsApp
      */
     public function getStatus()
@@ -295,11 +303,34 @@ class WhatsAppService
     }
 
     /**
-     * Obtiene el ID de la empresa actual
+     * Enviar mensaje interactivo con botones (WhatsApp Business API)
      */
-    public function getCompanyId(): int
+    public function sendInteractiveMessage(string $to, array $interactiveMessage)
     {
-        return $this->companyId;
+        try {
+            $response = Http::timeout($this->timeout)
+                ->withHeaders($this->getHeaders())
+                ->post("{$this->baseUrl}/api/whatsapp/send-interactive", [
+                    'to' => $to,
+                    'interactive' => $interactiveMessage,
+                ]);
+
+            if ($response->successful()) {
+                Log::info('WhatsApp mensaje interactivo enviado', [
+                    'company_id' => $this->companyId,
+                    'to' => $to,
+                    'message_id' => $response->json('messageId')
+                ]);
+            }
+
+            return $response->successful() ? $response->json() : null;
+        } catch (\Exception $e) {
+            Log::error('WhatsApp Send Interactive Message Error: ' . $e->getMessage(), [
+                'company_id' => $this->companyId,
+                'to' => $to
+            ]);
+            return null;
+        }
     }
 
     /**

@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\CitaConfirmacion;
 use App\Services\CitaConfirmationService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class CitaConfirmationController extends Controller
 {
@@ -17,167 +19,227 @@ class CitaConfirmationController extends Controller
     }
 
     /**
-     * Confirma una cita mediante enlace web
+     * Webhook para procesar respuestas de WhatsApp
      */
-    public function confirmar(Request $request, string $token)
+    public function processWhatsAppResponse(Request $request): JsonResponse
     {
         try {
-            $resultado = $this->confirmationService->procesarRespuesta($token, 'si');
-            
-            if ($resultado) {
-                return view('citas.confirmacion-exitosa', [
-                    'mensaje' => '¡Su cita ha sido confirmada exitosamente!'
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string',
+                'message' => 'required|string',
+                'timestamp' => 'nullable|date',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Datos inválidos',
+                    'details' => $validator->errors()
+                ], 400);
+            }
+
+            $telefono = $request->input('phone');
+            $mensaje = trim($request->input('message'));
+
+            Log::info('Procesando respuesta WhatsApp', [
+                'telefono' => $telefono,
+                'mensaje' => $mensaje
+            ]);
+
+            // Buscar confirmación pendiente para este número
+            $confirmacion = CitaConfirmacion::where('destinatario', $telefono)
+                                           ->where('estado', CitaConfirmacion::ESTADO_PENDIENTE)
+                                           ->latest()
+                                           ->first();
+
+            if (!$confirmacion) {
+                Log::info('No se encontró confirmación pendiente', ['telefono' => $telefono]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No hay confirmaciones pendientes para este número'
+                ]);
+            }
+
+            // Procesar la respuesta
+            $procesado = $this->confirmationService->procesarRespuesta(
+                $confirmacion->token_confirmacion,
+                $mensaje
+            );
+
+            if ($procesado) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Respuesta procesada correctamente',
+                    'cita_id' => $confirmacion->cita_id,
+                    'estado' => $confirmacion->estado
                 ]);
             } else {
-                return view('citas.confirmacion-error', [
-                    'mensaje' => 'La confirmación ya expiró o no es válida.'
-                ]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se pudo procesar la respuesta'
+                ], 400);
             }
+
         } catch (\Exception $e) {
-            Log::error('Error confirmando cita web', [
-                'token' => $token,
-                'error' => $e->getMessage()
+            Log::error('Error procesando respuesta WhatsApp', [
+                'error' => $e->getMessage(),
+                'telefono' => $request->input('phone', 'unknown')
             ]);
-            
-            return view('citas.confirmacion-error', [
-                'mensaje' => 'Ocurrió un error al procesar su confirmación.'
-            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error interno del servidor'
+            ], 500);
         }
     }
 
     /**
-     * Cancela una cita mediante enlace web
+     * Confirmar cita vía enlace (GET)
      */
-    public function cancelar(Request $request, string $token)
+    public function confirmar(Request $request): JsonResponse
     {
         try {
-            $resultado = $this->confirmationService->procesarRespuesta($token, 'no');
-            
-            if ($resultado) {
-                return view('citas.cancelacion-exitosa', [
-                    'mensaje' => 'Su cita ha sido cancelada. Puede reprogramar llamando a nuestra central.'
+            $token = $request->query('token');
+
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Token requerido'
+                ], 400);
+            }
+
+            $procesado = $this->confirmationService->procesarRespuesta($token, 'SI');
+
+            if ($procesado) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cita confirmada exitosamente'
                 ]);
             } else {
-                return view('citas.confirmacion-error', [
-                    'mensaje' => 'La solicitud ya expiró o no es válida.'
-                ]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se pudo confirmar la cita'
+                ], 400);
             }
+
         } catch (\Exception $e) {
-            Log::error('Error cancelando cita web', [
-                'token' => $token,
-                'error' => $e->getMessage()
+            Log::error('Error confirmando cita', [
+                'error' => $e->getMessage(),
+                'token' => $request->query('token')
             ]);
-            
-            return view('citas.confirmacion-error', [
-                'mensaje' => 'Ocurrió un error al procesar su solicitud.'
-            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error interno del servidor'
+            ], 500);
         }
     }
 
     /**
-     * Endpoint para recibir respuestas por WhatsApp
+     * Cancelar cita vía enlace (GET)
      */
-    public function webhookWhatsapp(Request $request)
+    public function cancelar(Request $request): JsonResponse
     {
         try {
-            $data = $request->all();
-            
-            // Validar que es un mensaje de WhatsApp
-            if (!isset($data['messages']) || !is_array($data['messages'])) {
-                return response()->json(['status' => 'ignored']);
+            $token = $request->query('token');
+
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Token requerido'
+                ], 400);
             }
 
-            foreach ($data['messages'] as $message) {
-                $this->procesarMensajeWhatsApp($message);
+            $procesado = $this->confirmationService->procesarRespuesta($token, 'NO');
+
+            if ($procesado) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cita cancelada exitosamente'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No se pudo cancelar la cita'
+                ], 400);
             }
 
-            return response()->json(['status' => 'processed']);
         } catch (\Exception $e) {
-            Log::error('Error procesando webhook WhatsApp', [
-                'data' => $request->all(),
+            Log::error('Error cancelando cita', [
+                'error' => $e->getMessage(),
+                'token' => $request->query('token')
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener estadísticas de confirmaciones
+     */
+    public function estadisticas(Request $request): JsonResponse
+    {
+        try {
+            $dias = $request->query('dias', 30);
+            $estadisticas = $this->confirmationService->obtenerEstadisticas($dias);
+
+            return response()->json([
+                'success' => true,
+                'data' => $estadisticas
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo estadísticas', [
                 'error' => $e->getMessage()
             ]);
-            
-            return response()->json(['status' => 'error'], 500);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error interno del servidor'
+            ], 500);
         }
     }
 
     /**
-     * Procesa mensajes individuales de WhatsApp
+     * Reintentar envío de confirmaciones pendientes
      */
-    protected function procesarMensajeWhatsApp(array $message): void
+    public function reintentarPendientes(Request $request): JsonResponse
     {
-        $telefono = $message['from'] ?? null;
-        $texto = trim(strtolower($message['text']['body'] ?? ''));
+        try {
+            $confirmaciones = CitaConfirmacion::pendientes()
+                                             ->where('intentos', '<', 3)
+                                             ->get();
 
-        if (!$telefono || !$texto) {
-            return;
-        }
+            $reintentadas = 0;
+            $fallidas = 0;
 
-        // Buscar confirmación pendiente para este número
-        $confirmacion = CitaConfirmacion::where('destinatario', $telefono)
-                                       ->where('estado', CitaConfirmacion::ESTADO_PENDIENTE)
-                                       ->latest()
-                                       ->first();
-
-        if ($confirmacion) {
-            $this->confirmationService->procesarRespuesta($confirmacion->token_confirmacion, $texto);
-        }
-    }
-
-    /**
-     * Reintenta envío de confirmaciones pendientes
-     */
-    public function reintentarPendientes()
-    {
-        $confirmaciones = CitaConfirmacion::pendientes()
-                                         ->where('intentos', '<', 3)
-                                         ->where('fecha_envio', '<', now()->subHours(2))
-                                         ->get();
-
-        $reintentados = 0;
-        foreach ($confirmaciones as $confirmacion) {
-            if ($this->confirmationService->reintentarConfirmacion($confirmacion)) {
-                $reintentados++;
+            foreach ($confirmaciones as $confirmacion) {
+                if ($this->confirmationService->reintentarConfirmacion($confirmacion)) {
+                    $reintentadas++;
+                } else {
+                    $fallidas++;
+                }
             }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Reintentos procesados: {$reintentadas} exitosos, {$fallidas} fallidos",
+                'reintentadas' => $reintentadas,
+                'fallidas' => $fallidas
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error reintentando confirmaciones', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error interno del servidor'
+            ], 500);
         }
-
-        return response()->json([
-            'message' => "Se reintentaron {$reintentados} confirmaciones",
-            'total_procesadas' => $confirmaciones->count()
-        ]);
-    }
-
-    /**
-     * Marca confirmaciones expiradas
-     */
-    public function procesarExpiradas()
-    {
-        $expiradas = CitaConfirmacion::expiradas()->get();
-        
-        foreach ($expiradas as $confirmacion) {
-            $confirmacion->update(['estado' => CitaConfirmacion::ESTADO_SIN_RESPUESTA]);
-            
-            // Opcional: cancelar la cita asociada
-            $cita = $confirmacion->cita;
-            if ($cita && $cita->estado === Cita::ESTADO_PENDIENTE) {
-                $cita->update(['estado' => Cita::ESTADO_CANCELADA]);
-            }
-        }
-
-        return response()->json([
-            'message' => "Se procesaron {$expiradas->count()} confirmaciones expiradas"
-        ]);
-    }
-
-    /**
-     * Obtiene estadísticas de confirmaciones
-     */
-    public function estadisticas(Request $request)
-    {
-        $dias = $request->get('dias', 30);
-        $estadisticas = $this->confirmationService->obtenerEstadisticas($dias);
-
-        return response()->json($estadisticas);
     }
 }

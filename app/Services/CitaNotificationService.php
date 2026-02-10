@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Models\Cita;
+use App\Models\CitaConfirmacion;
 use App\Models\Paciente;
 use App\Models\WhatsAppScheduledMessage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
 class CitaNotificationService
 {
@@ -73,17 +75,29 @@ class CitaNotificationService
 
     // ===== NOTIFICACIONES AL CREAR CITA =====
 
-    public function notificarNuevaCita(Cita $cita): bool
+    public function notificarNuevaCita(Cita $cita): array
     {
-        $cita->loadMissing(['paciente.tutor', 'medico']);
+        $cita->loadMissing(['paciente.tutor', 'medico', 'especialidad']);
 
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        $mensajePaciente = $this->construirMensajeNuevaCita($cita);
         $resultado = false;
+        $errores = [];
+
+        // Crear confirmación y enviar mensaje unificado (notificación + confirmación)
+        
+            $confirmacion = $this->crearConfirmacion($cita);
+            if ($confirmacion) {
+                $mensajePaciente = $this->construirMensajeNuevaCitaConConfirmacion($cita, $confirmacion);
+            } else {
+                $mensajePaciente = $this->construirMensajeNuevaCita($cita);
+            }
+        
 
         foreach ($telefonos as $telefono) {
             if ($this->enviar($telefono, $mensajePaciente)) {
                 $resultado = true;
+            } else {
+                $errores[] = "No se pudo enviar notificación al paciente: {$telefono}";
             }
         }
 
@@ -92,12 +106,19 @@ class CitaNotificationService
             $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
             if ($this->enviar($telefonoMedico, $mensajeMedico)) {
                 $resultado = true;
+            } else {
+                $errores[] = "No se pudo enviar notificación al médico: {$telefonoMedico}";
             }
         }
 
         $this->programarRecordatorios($cita);
 
-        return $resultado;
+        return [
+            'success' => $resultado,
+            'errors' => $errores,
+            'message' => $resultado ? 'Notificaciones enviadas correctamente' : 'Error al enviar algunas notificaciones',
+            'confirmacion_incluida' => !empty($confirmacion),
+        ];
     }
 
     // ===== PROGRAMAR RECORDATORIOS =====
@@ -285,6 +306,89 @@ class CitaNotificationService
             ]);
             return false;
         }
+    }
+
+    // ===== CONFIRMACIÓN INTEGRADA =====
+
+    protected function crearConfirmacion(Cita $cita): ?CitaConfirmacion
+    {
+        try {
+            CitaConfirmacion::where('cita_id', $cita->id)
+                ->where('estado', CitaConfirmacion::ESTADO_PENDIENTE)
+                ->update(['estado' => CitaConfirmacion::ESTADO_SIN_RESPUESTA]);
+
+            $telefono = $cita->paciente->es_menor && $cita->paciente->tutor
+                ? $cita->paciente->tutor->telefono
+                : $cita->paciente->telefono;
+
+            return CitaConfirmacion::create([
+                'cita_id' => $cita->id,
+                'metodo' => CitaConfirmacion::METODO_WHATSAPP,
+                'destinatario' => $telefono,
+                'mensaje_enviado' => 'Incluido en notificación de nueva cita',
+                'token_confirmacion' => bin2hex(random_bytes(20)),
+                'empresa_id' => $cita->empresa_id,
+                'sucursal_id' => $cita->sucursal_id,
+                'created_by' => auth()->id(),
+                'fecha_envio' => now(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error creando confirmación integrada', [
+                'cita_id' => $cita->id,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
+    protected function construirMensajeNuevaCitaConConfirmacion(Cita $cita, CitaConfirmacion $confirmacion): string
+    {
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+        $esMenor = $cita->paciente->es_menor;
+        if (!$esMenor) 
+            {
+              $saludo = "Estimado(a) *{$cita->paciente->nombre_completo}*";
+            }
+            else
+          {
+            $saludo = "Estimado representante de *{$cita->paciente->nombre_completo}*";
+          }
+
+        $urlConfirmar = route('citas.confirmar', [
+            'token' => $confirmacion->token_confirmacion,
+            'expires' => now()->addHours(24)->timestamp,
+            'signature' => hash_hmac('sha256', $confirmacion->token_confirmacion, config('app.key'))
+        ]);
+
+        $urlCancelar = route('citas.cancelar', [
+            'token' => $confirmacion->token_confirmacion,
+            'expires' => now()->addHours(24)->timestamp,
+            'signature' => hash_hmac('sha256', $confirmacion->token_confirmacion . '_cancelar', config('app.key'))
+        ]);
+
+        $especialidad = $cita->especialidad->nombre ?? '';
+
+        return "🏥 *Nueva Cita Médica Agendada*\n\n"
+            . "{$saludo},\n\n"
+            . "Se ha agendado la siguiente cita:\n\n"
+            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
+            . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
+            . ($especialidad ? "🏥 Especialidad: {$especialidad}\n" : "")
+            . "📅 Fecha: {$fecha}\n"
+            . "🕐 Hora: {$hora}\n"
+            . "📋 Motivo: {$cita->motivo}\n\n"
+            . "Por favor, llegue 15 minutos antes de su cita.\n\n"
+            . "━━━━━━━━━━━━━━━━━━━━\n"
+            . "📋 *¿Confirma su asistencia?*\n\n"
+            . "✅ *CONFIRMAR CITA*\n"
+            . "👉 {$urlConfirmar}\n\n"
+            . "❌ *CANCELAR CITA*\n"
+            . "👉 {$urlCancelar}\n\n"
+            . "📱 También puede responder:\n"
+            . "*SI* - para confirmar\n"
+            . "*NO* - para cancelar\n\n"
+            . "⏰ Tiene 24 horas para responder.";
     }
 
     // ===== CONSTRUCCIÓN DE MENSAJES =====

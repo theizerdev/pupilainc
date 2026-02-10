@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
         Commands\ProcesarRecordatoriosCitas::class, // Procesar recordatorios de citas médicas
         Commands\TestRecordatoriosCitas::class, // Comando de prueba para recordatorios
         Commands\VerificarRecordatoriosCitas::class, // Verificar estado de recordatorios
+        Commands\ProcessConfirmationsCommand::class, // Procesar confirmaciones de citas
     ];
 
     /**
@@ -83,7 +84,7 @@ class Kernel extends ConsoleKernel
         }
 
         // Procesar confirmaciones cada hora
-        $schedule->command('citas:process-confirmations')
+        $schedule->command('confirmations:process --type=all')
                  ->hourly()
                  ->withoutOverlapping()
                  ->appendOutputTo(storage_path('logs/confirmations.log'));

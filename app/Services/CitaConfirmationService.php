@@ -10,10 +10,17 @@ use Illuminate\Support\Facades\URL;
 class CitaConfirmationService
 {
     protected WhatsAppService $whatsApp;
+    protected CitaConfirmationBotonesService $botonesService;
+    protected ?int $empresaId;
+    protected ?string $codigoPais = null;
 
     public function __construct()
     {
+        // Dejar que WhatsAppService resuelva automáticamente la empresa del usuario
         $this->whatsApp = new WhatsAppService();
+        $this->botonesService = new CitaConfirmationBotonesService($this->whatsApp);
+        // Obtener el companyId que se resolvió automáticamente
+        $this->empresaId = $this->whatsApp->getCompanyId();
     }
 
     /**
@@ -33,6 +40,7 @@ class CitaConfirmationService
             'token_confirmacion' => $this->generarToken(),
             'empresa_id' => $cita->empresa_id,
             'sucursal_id' => $cita->sucursal_id,
+            'created_by' => auth()->id(),
             'fecha_envio' => now()
         ]);
 
@@ -135,36 +143,82 @@ class CitaConfirmationService
      */
     protected function enviarConfirmacion(CitaConfirmacion $confirmacion): bool
     {
+        Log::info('Iniciando envío de confirmación', [
+            'confirmacion_id' => $confirmacion->id,
+            'metodo' => $confirmacion->metodo,
+            'destinatario' => $confirmacion->destinatario
+        ]);
+    
         try {
             // Primero intentar enviar con botones interactivos
             if ($confirmacion->metodo === CitaConfirmacion::METODO_WHATSAPP) {
                 $mensajeConBotones = $this->construirMensajeConBotonesInteractivos($confirmacion);
+               
+                Log::info('Intentando enviar mensaje interactivo', [
+                    'confirmacion_id' => $confirmacion->id,
+                    'destinatario' => $confirmacion->destinatario
+                ]);
+                
                 if ($this->enviarMensajeInteractivo($confirmacion->destinatario, $mensajeConBotones)) {
+                    Log::info('Mensaje interactivo enviado exitosamente', [
+                        'confirmacion_id' => $confirmacion->id
+                    ]);
                     return true;
                 }
                 
-                // Si falla, enviar mensaje de texto tradicional
-                Log::info('Botones interactivos no disponibles, usando mensaje de texto', [
+                // Si falla, intentar con el servicio de botones alternativo
+                Log::info('Botones interactivos no disponibles, intentando servicio alternativo', [
+                    'confirmacion_id' => $confirmacion->id
+                ]);
+                
+                if ($this->botonesService->enviarConfirmacionConBotones($confirmacion)) {
+                    return true;
+                }
+                
+                // Si también falla el servicio alternativo, usar mensaje de texto tradicional
+                Log::info('Servicio de botones alternativo falló, usando mensaje de texto', [
                     'confirmacion_id' => $confirmacion->id
                 ]);
             }
             
             $mensaje = $this->construirMensajeConEnlaces($confirmacion);
             
+            Log::info('Enviando mensaje de texto', [
+                'confirmacion_id' => $confirmacion->id,
+                'metodo' => $confirmacion->metodo,
+                'destinatario' => $confirmacion->destinatario,
+                'mensaje' => $mensaje
+            ]);
+            
             switch ($confirmacion->metodo) {
                 case CitaConfirmacion::METODO_WHATSAPP:
-                    return $this->enviarPorWhatsApp($confirmacion->destinatario, $mensaje);
+                    $resultado = $this->enviarPorWhatsApp($confirmacion->destinatario, $mensaje);
+                    Log::info('Resultado envío WhatsApp', [
+                        'confirmacion_id' => $confirmacion->id,
+                        'resultado' => $resultado
+                    ]);
+                    return $resultado;
                 
                 case CitaConfirmacion::METODO_EMAIL:
-                    return $this->enviarPorEmail($confirmacion->destinatario, $mensaje);
+                    $resultado = $this->enviarPorEmail($confirmacion->destinatario, $mensaje);
+                    Log::info('Resultado envío Email', [
+                        'confirmacion_id' => $confirmacion->id,
+                        'resultado' => $resultado
+                    ]);
+                    return $resultado;
                     
                 default:
+                    Log::warning('Método de envío no reconocido', [
+                        'confirmacion_id' => $confirmacion->id,
+                        'metodo' => $confirmacion->metodo
+                    ]);
                     return false;
             }
         } catch (\Exception $e) {
             Log::error('Error enviando confirmación', [
                 'confirmacion_id' => $confirmacion->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return false;
         }
@@ -185,15 +239,15 @@ class CitaConfirmationService
                 'type' => 'button',
                 'header' => [
                     'type' => 'text',
-                    'text' => '🏥 Confirmación de Cita Médica'
+                    'text' => 'Confirmacion de Cita Medica'
                 ],
                 'body' => [
-                    'text' => "Estimado(a) *{$cita->paciente->nombre_completo}*,\n\n" .
-                             "¿Desea confirmar su cita médica?\n\n" .
-                             "📅 Fecha: {$fecha}\n" .
-                             "🕐 Hora: {$hora}\n" .
-                             "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n" .
-                             "🏥 Especialidad: {$cita->especialidad->nombre}"
+                    'text' => "Estimado(a) {$cita->paciente->nombre_completo},\n\n" .
+                             "Desea confirmar su cita medica?\n\n" .
+                             "Fecha: {$fecha}\n" .
+                             "Hora: {$hora}\n" .
+                             "Medico: Dr(a). {$cita->medico->nombre_completo}\n" .
+                             "Especialidad: {$cita->especialidad->nombre}"
                 ],
                 'footer' => [
                     'text' => 'Tiene 24 horas para responder.'
@@ -204,14 +258,14 @@ class CitaConfirmationService
                             'type' => 'reply',
                             'reply' => [
                                 'id' => 'confirmar_' . $confirmacion->token_confirmacion,
-                                'title' => '✅ Confirmar'
+                                'title' => 'Confirmar'
                             ]
                         ],
                         [
                             'type' => 'reply',
                             'reply' => [
                                 'id' => 'cancelar_' . $confirmacion->token_confirmacion,
-                                'title' => '❌ Cancelar'
+                                'title' => 'Cancelar'
                             ]
                         ]
                     ]
@@ -245,10 +299,7 @@ class CitaConfirmationService
         return "Hola {$cita->paciente->nombre_completo}, tiene una cita médica:\n\n" .
                "Fecha: {$fecha} a las {$hora}\n" .
                "Dr(a). {$cita->medico->nombre_completo} - {$cita->especialidad->nombre}\n\n" .
-               "Para confirmar o cancelar, responda:\n" .
-               "SI - Confirmar\n" .
-               "NO - Cancelar\n\n" .
-               "También puede usar:\n" .
+               "Haz click en el enlace para confirmar tu cita:\n" .
                "Confirmar: $urlConfirmar\n" .
                "Cancelar: $urlCancelar\n\n" .
                "Gracias.";
@@ -292,6 +343,63 @@ class CitaConfirmationService
     }
 
     /**
+     * Obtiene el código de país de la empresa
+     */
+    protected function obtenerCodigoPais(): string
+    {
+        if ($this->codigoPais !== null) {
+            return $this->codigoPais;
+        }
+
+        $this->codigoPais = '58';
+
+        $empId = $this->empresaId;
+        
+        Log::info('Obteniendo código de país', [
+            'empresa_id' => $empId,
+            'usuario_empresa_id' => auth()->check() ? auth()->user()->empresa_id : null
+        ]);
+
+        if ($empId) {
+            $empresa = \DB::table('empresas')->where('id', $empId)->first();
+            if ($empresa && $empresa->pais_id) {
+                $pais = \DB::table('pais')->where('id', $empresa->pais_id)->first();
+                if ($pais && $pais->codigo_telefonico) {
+                    $this->codigoPais = ltrim($pais->codigo_telefonico, '+');
+                    Log::info('Código de país encontrado', [
+                        'empresa_id' => $empId,
+                        'pais_id' => $empresa->pais_id,
+                        'codigo_telefonico' => $pais->codigo_telefonico,
+                        'codigo_pais' => $this->codigoPais
+                    ]);
+                }
+            }
+        }
+
+        return $this->codigoPais;
+    }
+
+    /**
+     * Formatea el número de teléfono al formato internacional
+     */
+    protected function formatearTelefono(string $telefono): string
+    {
+        $limpio = preg_replace('/\D/', '', $telefono);
+
+        if (str_starts_with($limpio, '0')) {
+            $limpio = substr($limpio, 1);
+        }
+
+        $codigo = $this->obtenerCodigoPais();
+
+        if (!str_starts_with($limpio, $codigo) && strlen($limpio) >= 7 && strlen($limpio) <= 12) {
+            $limpio = $codigo . $limpio;
+        }
+
+        return '+' . $limpio;
+    }
+
+    /**
      * Cancela confirmaciones pendientes de una cita
      */
     protected function cancelarConfirmacionesPendientes(Cita $cita): void
@@ -310,9 +418,11 @@ class CitaConfirmationService
             return false;
         }
 
+        $telefonoPaciente = $this->formatearTelefono($telefono);
+
         try {
             // Intentar enviar mensaje interactivo
-            $result = $this->whatsApp->sendInteractiveMessage($telefono, $mensajeInteractivo);
+            $result = $this->whatsApp->sendInteractiveMessage($telefonoPaciente, $mensajeInteractivo);
             
             if ($result !== null) {
                 Log::info('Mensaje interactivo enviado exitosamente', [
@@ -340,9 +450,31 @@ class CitaConfirmationService
             return false;
         }
 
-        $result = $this->whatsApp->sendMessage($telefono, $mensaje);
+        $telefonoFormateado = $this->formatearTelefono($telefono);
+        
+        Log::info('Enviando mensaje WhatsApp', [
+            'telefono_original' => $telefono,
+            'telefono_formateado' => $telefonoFormateado,
+            'mensaje' => $mensaje
+        ]);
+
+        $result = $this->whatsApp->sendMessage($telefonoFormateado, $mensaje, true);
+        
+        if ($result !== null) {
+            Log::info('Mensaje WhatsApp enviado exitosamente', [
+                'telefono' => $telefonoFormateado,
+                'result' => $result
+            ]);
+        } else {
+            Log::warning('Falló envío de mensaje WhatsApp', [
+                'telefono' => $telefonoFormateado,
+                'mensaje' => $mensaje
+            ]);
+        }
+        
         return $result !== null;
     }
+
 
     protected function enviarPorEmail(string $email, string $mensaje): bool
     {
@@ -359,7 +491,7 @@ class CitaConfirmationService
             'interactive' => [
                 'type' => 'button',
                 'body' => [
-                    'text' => 'No entendí su respuesta. Por favor seleccione una opción:'
+                    'text' => 'No entendi su respuesta. Por favor seleccione una opcion:'
                 ],
                 'action' => [
                     'buttons' => [
@@ -367,14 +499,14 @@ class CitaConfirmationService
                             'type' => 'reply',
                             'reply' => [
                                 'id' => 'confirmar_' . $confirmacion->token_confirmacion,
-                                'title' => '✅ Confirmar'
+                                'title' => 'Confirmar'
                             ]
                         ],
                         [
                             'type' => 'reply',
                             'reply' => [
                                 'id' => 'cancelar_' . $confirmacion->token_confirmacion,
-                                'title' => '❌ Cancelar'
+                                'title' => 'Cancelar'
                             ]
                         ]
                     ]
@@ -384,11 +516,12 @@ class CitaConfirmationService
         
         if (!$this->enviarMensajeInteractivo($confirmacion->destinatario, $mensajeInteractivo)) {
             // Si falla, enviar mensaje de texto
-            $mensajeTexto = "No entendí su respuesta. Por favor responda:\n" .
-                           "✅ *SI* para confirmar\n" .
-                           "❌ *NO* para cancelar";
+            $mensajeTexto = "No entendi su respuesta. Por favor responda:\n" .
+                           "SI para confirmar\n" .
+                           "NO para cancelar";
             
-            $this->whatsApp->sendMessage($confirmacion->destinatario, $mensajeTexto);
+            $telefonoFormateado = $this->formatearTelefono($confirmacion->destinatario);
+            $this->whatsApp->sendMessage($telefonoFormateado, $mensajeTexto, true);
         }
     }
 
@@ -398,7 +531,6 @@ class CitaConfirmationService
     public function obtenerEstadisticas(int $dias = 30): array
     {
         $confirmaciones = CitaConfirmacion::where('created_at', '>=', now()->subDays($dias))->get();
-
         return [
             'total' => $confirmaciones->count(),
             'confirmadas' => $confirmaciones->where('estado', CitaConfirmacion::ESTADO_CONFIRMADO)->count(),

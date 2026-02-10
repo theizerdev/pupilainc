@@ -90,39 +90,7 @@ class AntiBlockProtection {
    * Valida el contenido del mensaje contra spam
    */
   validateMessageContent(message) {
-    if (!message || typeof message !== 'string') {
-      throw new Error('Mensaje inválido');
-    }
-    
-    // Longitud mínima
-    if (message.length < 2) {
-      throw new Error('Mensaje demasiado corto');
-    }
-    
-    // Longitud máxima (WhatsApp limit)
-    if (message.length > 4096) {
-      throw new Error('Mensaje demasiado largo (máximo 4096 caracteres)');
-    }
-    
-    // Detectar patrones de spam
-    const spamPatterns = [
-      /(.)\1{10,}/, // Mismo carácter repetido 10+ veces
-      /\b(compra|oferta|descuento|promoción)\b.*\b(compra|oferta|descuento|promoción)\b.*\b(compra|oferta|descuento|promoción)\b/i, // Spam comercial
-      /https?:\/\/.*\..*\..*\..*\..*/i, // URLs sospechosas (múltiples puntos)
-      /\d{10,}/ // Números largos (posibles teléfonos/IDs)
-    ];
-    
-    for (const pattern of spamPatterns) {
-      if (pattern.test(message)) {
-        throw new Error('Mensaje detectado como spam');
-      }
-    }
-    
-    // Limitar uso de mayúsculas (más de 50%)
-    const uppercaseCount = (message.match(/[A-Z]/g) || []).length;
-    if (uppercaseCount > message.length * 0.5) {
-      throw new Error('Mensaje con demasiadas mayúsculas (posible spam)');
-    }
+ 
   }
 
   /**

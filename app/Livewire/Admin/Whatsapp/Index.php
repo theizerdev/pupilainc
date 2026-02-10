@@ -21,6 +21,8 @@ class Index extends Component
     public $isLoading = false;
     public $connectionError = null;
     public $activeTab = 'dashboard';
+    public $todayMessages = 0;
+    public $dailyMessages = [];
     public $empresaNombre = null;
     public $whatsappPhone = null;
 
@@ -30,7 +32,8 @@ class Index extends Component
         'read' => 0,
         'failed' => 0,
         'pending' => 0,
-        'total' => 0
+        'total' => 0,
+        'today' => 0
     ];
 
     protected $listeners = [
@@ -88,7 +91,7 @@ class Index extends Component
         $this->connectionError = null;
 
         $this->checkStatus();
-        $this->loadMessages();
+        $this->loadStats();
 
         $this->isLoading = false;
     }
@@ -103,7 +106,7 @@ class Index extends Component
         try {
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get(config('whatsapp.api_url') . '/api/whatsapp/status');
+                ->get( env('WHATSAPP_API_URL', 'http://localhost:3001') . '/api/whatsapp/status');
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -123,6 +126,41 @@ class Index extends Component
         }
     }
 
+    public function loadStats()
+    {
+        if (!$this->whatsappApiKey) return;
+
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders($this->getApiHeaders())
+                ->get( config('whatsapp.api_url') . '/api/whatsapp/stats');
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                $statsData = $data['stats'] ?? [];
+
+                $this->stats = [
+                    'sent' => $statsData['sent'] ?? 0,
+                    'delivered' => $statsData['delivered'] ?? 0,
+                    'read' => $statsData['read'] ?? 0,
+                    'failed' => $statsData['failed'] ?? 0,
+                    'pending' => $statsData['pending'] ?? 0,
+                    'total' => $statsData['total'] ?? 0,
+                    'today' => $statsData['today'] ?? 0,
+                ];
+
+                $this->todayMessages = $statsData['today'] ?? 0;
+                $this->dailyMessages = $statsData['dailyMessages'] ?? [];
+                $this->messages = collect($statsData['recentMessages'] ?? [])->toArray();
+            } else {
+                $this->loadMessagesAsFallback();
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('WhatsApp stats error: ' . $e->getMessage());
+            $this->loadMessagesAsFallback();
+        }
+    }
+
     public function loadMessages()
     {
         if (!$this->whatsappApiKey) return;
@@ -130,7 +168,23 @@ class Index extends Component
         try {
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get(config('whatsapp.api_url') . '/api/whatsapp/messages?limit=50');
+                ->get( env('WHATSAPP_API_URL', 'http://localhost:3001') . '/api/whatsapp/messages', ['limit' => 10]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $this->messages = $data['messages'] ?? [];
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('WhatsApp messages error: ' . $e->getMessage());
+        }
+    }
+
+    private function loadMessagesAsFallback()
+    {
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders($this->getApiHeaders())
+                ->get( env('WHATSAPP_API_URL', 'http://localhost:3001') . '/api/whatsapp/messages', ['limit' => 50]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -143,12 +197,21 @@ class Index extends Component
                     'read' => $allMessages->where('status', 'read')->count(),
                     'failed' => $allMessages->where('status', 'failed')->count(),
                     'pending' => $allMessages->where('status', 'pending')->count(),
-                    'total' => $data['total'] ?? $allMessages->count()
+                    'total' => $data['total'] ?? $allMessages->count(),
+                    'today' => $allMessages->filter(fn($m) => 
+                        isset($m['createdAt']) && \Carbon\Carbon::parse($m['createdAt'])->isToday()
+                    )->count(),
                 ];
+                $this->todayMessages = $this->stats['today'];
             }
         } catch (\Exception $e) {
-            // Silencioso para mensajes
+            \Illuminate\Support\Facades\Log::error('WhatsApp messages fallback error: ' . $e->getMessage());
         }
+    }
+
+    public function loadConversations()
+    {
+        // TODO: implementar carga de conversaciones para tab conversaciones
     }
 
     public function refresh()
@@ -253,7 +316,9 @@ class Index extends Component
             'stats' => $this->stats,
             'isLoading' => $this->isLoading,
             'connectionError' => $this->connectionError,
-            'activeTab' => $this->activeTab
+            'activeTab' => $this->activeTab,
+            'todayMessages' => $this->todayMessages,
+            'dailyMessages' => $this->dailyMessages,
         ], [
             'title' => 'WhatsApp - Panel de Control',
             'description' => 'Panel de control para gestión de WhatsApp',

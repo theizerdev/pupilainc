@@ -185,4 +185,7 @@ Route::get('/citas/analytics', \App\Livewire\Admin\Citas\Analytics::class)->name
 Route::get('/citas/recordatorios', \App\Livewire\Admin\Citas\Recordatorios::class)->name('citas.recordatorios');
 Route::get('/citas/reagendamiento', \App\Livewire\Admin\Citas\Reagendamiento::class)->name('citas.reagendamiento');
 
+// Confirmaciones de Citas
+Route::get('/citas/confirmaciones', \App\Livewire\Admin\CitaConfirmationStats::class)->name('citas.confirmaciones');
+
 // Estadísticas

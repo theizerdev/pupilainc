@@ -687,6 +687,8 @@ function initCitasCalendar(events) {
         editable: true,
         dragScroll: true,
         dayMaxEvents: 2,
+        contentHeight: 'auto',
+        expandRows: false,
         eventResizableFromStart: true,
         locale: 'es',
         buttonText: {

@@ -46,7 +46,7 @@ class Dashboard extends Component
             'cajas_activas' => Caja::where('estado', 'abierta')->count(),
             'total_empresas' => Empresa::count(),
             'usuarios_activos' => User::where('status', 1)->count(),
-            'mensajes_whatsapp' => WhatsAppMessage::whereDate('created_at', Carbon::today())->count(),
+            'mensajes_whatsapp' => WhatsAppMessage::whereDate('createdAt', Carbon::today())->count(),
         ];
 
         $this->recentCitas = Cita::with(['paciente', 'medico'])

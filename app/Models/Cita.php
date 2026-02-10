@@ -339,14 +339,10 @@ class Cita extends Model
     protected static function booted()
     {
         static::created(function ($cita) {
-            // Solo para citas futuras
-            if ($cita->necesitaConfirmacion()) {
-                // Delay de 1 hora para dar tiempo de procesamiento
-                \Illuminate\Support\Facades\Queue::later(
-                    now()->addHour(),
-                    new \App\Jobs\SendInitialConfirmation($cita)
-                );
-            }
+            // No despachar el job de confirmación separado.
+            // La confirmación ahora se incluye dentro de la notificación
+            // de nueva cita en CitaNotificationService::notificarNuevaCita()
+            \Log::info('Cita ' . $cita->id . ' creada - confirmación se enviará integrada en la notificación');
         });
     }
 }

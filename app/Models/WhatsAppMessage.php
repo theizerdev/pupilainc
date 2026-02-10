@@ -10,105 +10,110 @@ class WhatsAppMessage extends Model
 {
     use HasFactory;
 
+    protected $connection = 'whatsapp_api';
+    
     protected $table = 'whatsapp_messages';
 
     protected $fillable = [
-        'message_id',
-        'template_id',
-        'recipient_phone',
-        'recipient_name',
-        'message_content',
-        'variables',
+        'messageId',
+        'from',
+        'to',
+        'message',
+        'type',
         'status',
-        'sent_at',
-        'delivered_at',
-        'read_at',
-        'error_message',
-        'direction',
-        'created_by',
-        'cost',
-        'metadata',
-        'retry_count'
+        'mediaUrl',
+        'retryCount',
+        'errorMessage',
+        'companyId',
     ];
 
     protected $casts = [
-        'variables' => 'array',
-        'metadata' => 'array',
-        'sent_at' => 'datetime',
-        'delivered_at' => 'datetime',
-        'read_at' => 'datetime',
-        'cost' => 'decimal:4',
-        'retry_count' => 'integer'
+        'message' => 'array',
+        'createdAt' => 'datetime',
+        'updatedAt' => 'datetime',
+        'retryCount' => 'integer',
+        'companyId' => 'integer',
     ];
 
     protected $attributes = [
         'status' => 'pending',
-        'direction' => 'outbound',
-        'retry_count' => 0
+        'type' => 'text',
+        'retryCount' => 0,
     ];
 
-    public function template(): BelongsTo
+    // Mapeo de columnas para compatibilidad
+    public function getMessageIdAttribute()
     {
-        return $this->belongsTo(WhatsAppTemplate::class, 'template_id');
+        return $this->attributes['messageId'] ?? null;
     }
 
-    public function creator(): BelongsTo
+    public function getRecipientPhoneAttribute()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->attributes['to'] ?? null;
     }
 
+    public function getRecipientNameAttribute()
+    {
+        return $this->attributes['recipient_name'] ?? null;
+    }
+
+    public function getMessageContentAttribute()
+    {
+        if (isset($this->attributes['message'])) {
+            $msg = json_decode($this->attributes['message'], true);
+            return $msg['text'] ?? $this->attributes['message'];
+        }
+        return null;
+    }
+
+    public function getErrorMessageAttribute()
+    {
+        return $this->attributes['errorMessage'] ?? null;
+    }
+
+    public function getRetryCountAttribute()
+    {
+        return $this->attributes['retryCount'] ?? 0;
+    }
+
+    public function getCreatedAtAttribute()
+    {
+        return $this->attributes['createdAt'] ?? null;
+    }
+
+    public function getUpdatedAtAttribute()
+    {
+        return $this->attributes['updatedAt'] ?? null;
+    }
+
+    // Scopes
     public function scopeOutbound($query)
     {
-        return $query->where('direction', 'outbound');
+        return $query->whereNotNull('from');
     }
 
     public function scopeInbound($query)
     {
-        return $query->where('direction', 'inbound');
+        return $query->whereNotNull('to');
+    }
+
+    public function scopeToPhone($query, $phone)
+    {
+        return $query->where('to', $phone);
+    }
+
+    public function scopeFromPhone($query, $phone)
+    {
+        return $query->where('from', $phone);
     }
 
     public function scopeRetryable($query)
     {
         return $query->where(function ($query) {
-            // Mensajes fallidos o con errores
             $query->where('status', 'failed')
-                  ->orWhereNotNull('error_message');
-                      
-            // Mensajes simulados (éxito pero sin message_id real)
-            $query->orWhere(function ($q) {
-                $q->where('status', 'sent')
-                  ->whereNull('message_id')
-                  ->orWhere('message_id', 'like', 'msg_%'); // IDs generados internamente
-            });
+                  ->orWhereNotNull('errorMessage');
         })
-        ->where('retry_count', '<', 3); // No exceder el máximo de reintentos
-    }
-
-    public function scopeSimulated($query)
-    {
-        return $query->where('status', 'sent')
-                    ->where(function ($q) {
-                        $q->whereNull('message_id')
-                          ->orWhere('message_id', 'like', 'msg_%');
-                    });
-    }
-
-    public function scopeWithErrors($query)
-    {
-        return $query->where(function ($query) {
-            $query->where('status', 'failed')
-                  ->orWhereNotNull('error_message');
-        });
-    }
-
-    public function scopeRetried($query)
-    {
-        return $query->whereNotNull('metadata->retried_at');
-    }
-
-    public function scopeMaxRetriesExceeded($query)
-    {
-        return $query->where('retry_count', '>=', 3);
+        ->where('retryCount', '<', 3);
     }
 
     public function scopeSent($query)
@@ -128,19 +133,25 @@ class WhatsAppMessage extends Model
 
     public function scopeToday($query)
     {
-        return $query->whereDate('created_at', today());
+        return $query->whereDate('createdAt', today());
     }
 
     public function scopeThisWeek($query)
     {
-        return $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+        return $query->whereBetween('createdAt', [now()->startOfWeek(), now()->endOfWeek()]);
     }
 
     public function scopeThisMonth($query)
     {
-        return $query->whereMonth('created_at', now()->month);
+        return $query->whereMonth('createdAt', now()->month);
     }
 
+    public function scopeForCompany($query, $companyId)
+    {
+        return $query->where('companyId', $companyId);
+    }
+
+    // Métodos de estado
     public function isSent(): bool
     {
         return in_array($this->status, ['sent', 'delivered', 'read']);
@@ -161,79 +172,24 @@ class WhatsAppMessage extends Model
         return $this->status === 'failed';
     }
 
-    public function isSimulated(): bool
+    public function isPending(): bool
     {
-        return $this->status === 'sent' && 
-               (!$this->message_id || str_starts_with($this->message_id, 'msg_'));
+        return $this->status === 'pending';
     }
 
     public function isRetryable(): bool
     {
-        if ($this->direction !== 'outbound') {
-            return false;
+        if ($this->isFailed() || !empty($this->errorMessage)) {
+            return ($this->retryCount ?? 0) < 3;
         }
-
-        // Verificar si es fallido o simulado
-        $isFailedOrSimulated = $this->isFailed() || 
-                              $this->isSimulated() || 
-                              !empty($this->error_message);
-
-        if (!$isFailedOrSimulated) {
-            return false;
-        }
-
-        // Verificar límite de reintentos
-        $retryCount = $this->metadata['retry_count'] ?? 0;
-        return $retryCount < 3;
+        return false;
     }
 
-    public function getRetryCount(): int
-    {
-        return $this->retry_count ?? 0;
-    }
-
-    public function incrementRetryCount(): void
-    {
-        $this->increment('retry_count');
-    }
-
-    public function markAsRetried(array $result): void
-    {
-        $metadata = $this->metadata ?? [];
-        
-        if ($result['success']) {
-            // Si el reenvío fue exitoso, actualizar el mensaje
-            $this->update([
-                'status' => 'sent',
-                'message_id' => $result['message_id'] ?? $this->message_id,
-                'error_message' => null,
-                'sent_at' => now(),
-                'metadata' => array_merge($metadata, [
-                    'retried_at' => now()->toDateTimeString(),
-                    'retry_count' => ($metadata['retry_count'] ?? 0) + 1,
-                    'original_status' => $this->status,
-                    'original_error' => $this->error_message,
-                    'retry_successful' => true
-                ])
-            ]);
-        } else {
-            // Si falló, solo incrementar el contador y registrar el error
-            $this->update([
-                'metadata' => array_merge($metadata, [
-                    'retried_at' => now()->toDateTimeString(),
-                    'retry_count' => ($metadata['retry_count'] ?? 0) + 1,
-                    'last_retry_error' => $result['message'] ?? 'Error desconocido',
-                    'retry_successful' => false
-                ])
-            ]);
-        }
-    }
-
+    // Métodos de actualización
     public function markAsSent(): void
     {
         $this->update([
             'status' => 'sent',
-            'sent_at' => now()
         ]);
     }
 
@@ -241,7 +197,6 @@ class WhatsAppMessage extends Model
     {
         $this->update([
             'status' => 'delivered',
-            'delivered_at' => now()
         ]);
     }
 
@@ -249,7 +204,6 @@ class WhatsAppMessage extends Model
     {
         $this->update([
             'status' => 'read',
-            'read_at' => now()
         ]);
     }
 
@@ -257,23 +211,12 @@ class WhatsAppMessage extends Model
     {
         $this->update([
             'status' => 'failed',
-            'error_message' => $errorMessage
+            'errorMessage' => $errorMessage,
         ]);
     }
 
-    public function getDeliveryTimeAttribute(): ?string
+    public function incrementRetryCount(): void
     {
-        if ($this->delivered_at && $this->sent_at) {
-            return $this->delivered_at->diffInSeconds($this->sent_at) . 's';
-        }
-        return null;
-    }
-
-    public function getReadTimeAttribute(): ?string
-    {
-        if ($this->read_at && $this->delivered_at) {
-            return $this->read_at->diffInSeconds($this->delivered_at) . 's';
-        }
-        return null;
+        $this->increment('retryCount');
     }
 }
