@@ -1,4 +1,3 @@
-<!-- Footer -->
 <footer class="content-footer footer bg-footer-theme">
   <div class="container-fluid">
     <div
@@ -8,29 +7,12 @@
         <script>
           document.write(new Date().getFullYear());
         </script>
-        , made with ❤️ by
-        <a href="{{ config('app.author_url', 'https://pixinvent.com') }}" target="_blank" class="footer-link fw-medium">{{ config('app.author', 'ThemeSelection') }}</a>
+        , Sistema desarrollado por
+        <a href="https://innovacionmovil.com/" target="_blank" class="footer-link fw-medium">Innovación Movil</a>
       </div>
       <div class="d-flex flex-column flex-md-row gap-2 gap-md-0">
-        <div class="d-flex flex-wrap gap-2">
-          <a
-            href="{{ config('app.license_url', '#') }}"
-            class="footer-link me-0 me-md-4"
-            target="_blank">License</a
-          >
-          <a
-            href="{{ config('app.documentation_url', '#') }}"
-            class="footer-link me-0 me-md-4"
-            target="_blank">Documentation</a
-          >
-          <a
-            href="{{ config('app.support_url', '#') }}"
-            class="footer-link"
-            target="_blank">Support</a
-          >
-        </div>
+        
       </div>
     </div>
   </div>
 </footer>
-<!-- /Footer -->
