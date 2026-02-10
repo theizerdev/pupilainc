@@ -16,7 +16,7 @@
 
 ## Descripción
 
-El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada para administrar todos los aspectos de una institución educativa. Desarrollado con Laravel, ofrece una solución robusta y escalable que incluye gestión de estudiantes, matrículas, pagos, control de acceso, comunicaciones y más.
+El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada para administrar todos los aspectos de una institución educativa con servicios médicos integrados. Desarrollado con Laravel, ofrece una solución robusta y escalable que incluye gestión de estudiantes, matrículas, pagos, control de acceso, comunicaciones, atención médica y gestión de citas médicas.
 
 ## Características Principales
 
@@ -165,6 +165,26 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Reportes de asistencia
 - ✅ Exportación a múltiples formatos
 
+### 18. Gestión Médica y Citas
+- ✅ Gestión completa de médicos con especialidades y subespecialidades
+- ✅ Registro de pacientes con información médica y personal
+- ✅ Sistema de citas médicas con calendario integrado
+- ✅ Horarios de atención médica configurables
+- ✅ Confirmaciones automáticas de citas vía WhatsApp
+- ✅ Recordatorios automáticos (24h y 2h antes de la cita)
+- ✅ Sistema de botones interactivos para confirmaciones
+- ✅ Reintentos automáticos de mensajes fallidos
+- ✅ Gestión de estados de citas (pendiente, confirmada, en curso, completada, cancelada, no asistió)
+- ✅ Notificaciones médicas por WhatsApp y email
+- ✅ Integración con servicios de mensajería médica
+- ✅ Biblioteca digital para archivos médicos
+- ✅ Auditoría completa de acciones médicas
+- ✅ Reportes de citas y estadísticas médicas
+- ✅ Control de acceso médico por roles y permisos
+- ✅ Soporte multi-empresa para clínicas y consultorios
+- ✅ Configuración regional para formatos médicos
+- ✅ Exportación de datos médicos a múltiples formatos
+
 ## Requisitos del Sistema
 
 - PHP >= 8.1
@@ -287,6 +307,7 @@ app/
 
 - [Documentación de Exportación de Base de Datos](EXPORTADOR_BASE_DATOS.md)
 - [Documentación de Integración WhatsApp](WHATSAPP_DOCUMENT_IMPLEMENTATION.md)
+- [Documentación del Sistema de Confirmación de Citas](docs/CITA_CONFIRMATION_SYSTEM.md)
 - [Registro de Cambios](CHANGELOG.md)
 
 ## Seguridad
