@@ -352,7 +352,7 @@
                                         </div>
                                         <div class="card-body">
                                             <div class="text-center mb-4">
-                                                <div class="avatar avatar-xxl mb-3">
+                                                <div class="avatar avatar-lg mb-3">
                                                     <span class="avatar-initial rounded-circle bg-success">
                                                         <i class="ri ri-whatsapp-line ri-36px"></i>
                                                     </span>
@@ -609,37 +609,7 @@
                 </div>
             @endif
 
-            <!-- Conversaciones Tab -->
-            @if($activeTab === 'conversaciones')
-                <div class="tab-pane fade show active">
-                    <div class="card-body p-4">
-                        @if($status === 'connected')
-                            <livewire:admin.whatsapp.conversaciones :key="'conversaciones-'.now()" />
-                        @else
-                            <div class="text-center py-5">
-                                <div class="avatar avatar-xl mb-4">
-                                    <span class="avatar-initial rounded-circle bg-label-warning">
-                                        <i class="ri ri-wifi-off-line ri-36px"></i>
-                                    </span>
-                                </div>
-                                <h4 class="mb-3">WhatsApp no conectado</h4>
-                                <p class="text-muted mb-4 lead">
-                                    Necesitas conectar WhatsApp para acceder a las conversaciones.<br>
-                                    Las conversaciones se mostrarán aquí una vez conectado.
-                                </p>
-                                <div class="d-flex justify-content-center gap-3">
-                                    <button class="btn btn-success btn-lg" wire:click="setActiveTab('conexion')">
-                                        <i class="ri ri-link me-2"></i>Ir a Conexión
-                                    </button>
-                                    <button class="btn btn-outline-secondary" wire:click="refresh">
-                                        <i class="ri ri-refresh-line me-1"></i>Reintentar
-                                    </button>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            @endif
+            
         </div>
     </div>
 

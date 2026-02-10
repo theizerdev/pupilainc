@@ -25,9 +25,18 @@ return [
     
     // Forgot Password
     'forgot_password_title' => 'Recuperar Contraseña',
-    'forgot_password_subtitle' => 'Ingresa tu correo para recuperar tu contraseña',
+    'forgot_password_subtitle' => 'Ingresa tu correo o número de teléfono para recuperar tu contraseña',
+    'email_or_phone' => 'Número telefónico',
+    'send_by_email' => 'Enviar por correo',
+    'send_by_whatsapp' => 'Enviar por WhatsApp',
     'send_reset_link' => 'Enviar Enlace de Recuperación',
     'back_to_login' => 'Volver al inicio de sesión',
+    'user_not_found' => 'Usuario no encontrado',
+    'no_phone_registered' => 'No hay número de teléfono registrado para este usuario',
+    'whatsapp_send_failed' => 'Error al enviar mensaje de WhatsApp',
+    'reset_link_sent_email' => 'Enlace de recuperación enviado a tu correo',
+    'reset_link_sent_whatsapp' => 'Enlace de recuperación enviado por WhatsApp',
+    'password_reset_success_whatsapp' => 'Contraseña enviada por WhatsApp exitosamente',
     
     // Reset Password
     'reset_password' => 'Restablecer Contraseña',

@@ -52,15 +52,15 @@
                     <!-- Status Indicator -->
                     <div class="text-center mb-4">
                         <div class="position-relative d-inline-block">
-                            <div class="avatar avatar-xxl mb-3">
-                                <span class="avatar-initial rounded-circle bg-label-{{ $statusColor }} p-3">
-                                    <i class="{{ $statusIcon }} ri-40px {{ $status === 'connecting' ? 'spin-animation' : '' }}"></i>
-                                </span>
-                                @if($status === 'connected')
-                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
-                                        <span class="visually-hidden">Connected</span>
-                                    </span>
-                                @endif
+                            <div class="avatar avatar-lg mb-3">
+                               
+                               <div class="avatar avatar-online me-3">
+                                    @if(Auth::check() && Auth::user()->initials)
+                                        <span class="avatar-initials bg-label-success"><i class="ri ri-check-double-line ri-24px"></i></span>
+                                    @else
+                                        <img src="{{ asset('materialize/assets/img/avatars/1.png') }}" alt="avatar" class="w-px-40 h-auto rounded-circle" />
+                                    @endif
+                                </div>
                             </div>
                         </div>
                         
@@ -69,10 +69,12 @@
                         @if($user && $status === 'connected')
                             <div class="bg-light rounded p-3 mb-3">
                                 <div class="d-flex align-items-center justify-content-center">
-                                    <div class="avatar avatar-sm me-2">
-                                        <img src="{{ $user['profilePicUrl'] ?? asset('images/default-avatar.png') }}" 
-                                             alt="Profile" 
-                                             class="rounded-circle">
+                                    <div class="avatar avatar-online me-3">
+                                    @if(Auth::check() && Auth::user()->initials)
+                                        <span class="avatar-initials bg-primary text-white">{{ Auth::user()->initials }}</span>
+                                    @else
+                                        <img src="{{ asset('materialize/assets/img/avatars/1.png') }}" alt="avatar" class="w-px-40 h-auto rounded-circle" />
+                                    @endif
                                     </div>
                                     <div class="text-start">
                                         <p class="fw-medium mb-0">{{ $user['name'] ?? 'Usuario WhatsApp' }}</p>
@@ -307,7 +309,7 @@
                                 <div class="avatar avatar-md bg-label-primary mb-2 mx-auto">
                                     <i class="ri ri-message-2-line ri-24px"></i>
                                 </div>
-                                <h4 class="mb-0">1,248</h4>
+                                <h4 class="mb-0">{{ number_format($mensajesHoy) }}</h4>
                                 <small class="text-muted">Mensajes hoy</small>
                             </div>
                         </div>
@@ -316,7 +318,7 @@
                                 <div class="avatar avatar-md bg-label-success mb-2 mx-auto">
                                     <i class="ri ri-check-double-line ri-24px"></i>
                                 </div>
-                                <h4 class="mb-0">98.5%</h4>
+                                <h4 class="mb-0">{{ $tasaExito }}%</h4>
                                 <small class="text-muted">Tasa éxito</small>
                             </div>
                         </div>
@@ -325,7 +327,7 @@
                                 <div class="avatar avatar-md bg-label-warning mb-2 mx-auto">
                                     <i class="ri ri-time-line ri-24px"></i>
                                 </div>
-                                <h4 class="mb-0">24ms</h4>
+                                <h4 class="mb-0">{{ $latenciaPromedio }}ms</h4>
                                 <small class="text-muted">Latencia</small>
                             </div>
                         </div>
@@ -334,8 +336,8 @@
                                 <div class="avatar avatar-md bg-label-info mb-2 mx-auto">
                                     <i class="ri ri-calendar-line ri-24px"></i>
                                 </div>
-                                <h4 class="mb-0">7</h4>
-                                <small class="text-muted">Días activo</small>
+                                <h4 class="mb-0">{{ $this->diasActivoFormateado }}</h4>
+                                <small class="text-muted">Tiempo activo</small>
                             </div>
                         </div>
                     </div>
@@ -344,12 +346,14 @@
                     <div class="mt-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="text-muted">Salud de conexión</span>
-                            <span class="badge bg-label-success">Excelente</span>
+                            <span class="badge bg-label-{{ $status === 'connected' ? 'success' : ($status === 'disconnected' ? 'danger' : 'warning') }}">
+                                {{ $status === 'connected' ? 'Excelente' : ($status === 'disconnected' ? 'Desconectado' : 'Problemas') }}
+                            </span>
                         </div>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" 
+                            <div class="progress-bar bg-{{ $status === 'connected' ? 'success' : ($status === 'disconnected' ? 'danger' : 'warning') }}" 
                                  role="progressbar" 
-                                 style="width: 95%"></div>
+                                 style="width: {{ $saludConexion }}%"></div>
                         </div>
                     </div>
 

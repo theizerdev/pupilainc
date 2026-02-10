@@ -144,16 +144,23 @@ class WhatsAppService
                     'type' => 'text',
                     'isWelcome' => $isWelcome,
                 ]);
-
+            //dd($response);
             if ($response->successful()) {
                 Log::info('WhatsApp mensaje enviado', [
                     'company_id' => $this->companyId,
                     'to' => $to,
                     'message_id' => $response->json('messageId')
                 ]);
+                return $response->json();
+            } else {
+                Log::error('WhatsApp Send Message Failed', [
+                    'company_id' => $this->companyId,
+                    'to' => $to,
+                    'status' => $response->status(),
+                    'body' => $response->body()
+                ]);
+                return null;
             }
-
-            return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             Log::error('WhatsApp Send Message Error: ' . $e->getMessage(), [
                 'company_id' => $this->companyId,

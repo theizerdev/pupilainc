@@ -4,13 +4,7 @@
       <!-- Login -->
       <div class="card p-md-7 p-1">
         <!-- Logo -->
-        <div class="app-brand justify-content-center mt-5">
-          <img src="/logo/thumbnail.jpg" alt=""  height="130px">
-          <a href="{{ url('/') }}" class="app-brand-link gap-2">
-           
-            
-          </a>
-        </div>
+         @include('auth.header.logo')
         <!-- /Logo -->
 
         <div class="card-body mt-1">

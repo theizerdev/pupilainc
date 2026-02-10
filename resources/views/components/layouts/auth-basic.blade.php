@@ -18,7 +18,7 @@
     <meta name="robots" content="noindex, nofollow" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/materialize/assets/img/favicon/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="/logo/app.png" height="200px" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
