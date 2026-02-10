@@ -1,7 +1,7 @@
-# Sistema de Gestión Educativa Vargas
+# Sistema de Gestión Médica Vargas
 
 <p align="center">
-  Sistema integral de gestión educativa desarrollado con Laravel
+  Sistema integral de gestión médica desarrollado con Laravel
 </p>
 
 ## Índice
@@ -20,26 +20,35 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 
 ## Características Principales
 
-### 1. Gestión de Estudiantes
-- ✅ Registro completo de estudiantes con información personal y académica
-- ✅ Gestión de datos de representantes
-- ✅ Control de asistencia y acceso al centro educativo
-- ✅ Historial académico completo
-- ✅ Generación de códigos QR para identificación
+### 1. Gestión de Pacientes
+- ✅ Registro completo de pacientes con información médica y personal
+- ✅ Gestión de datos de tutores para pacientes menores de edad
+- ✅ Historial médico completo
 - ✅ Cálculo automático de edad
-- ✅ Gestión de fotografías y documentos
+- ✅ Gestión de fotografías y documentos médicos
+- ✅ Control de estado activo/inactivo
+- ✅ Información de contacto y emergencia
+
+### 2. Gestión de Médicos
+- ✅ Registro completo de médicos con especialidades y subespecialidades
+- ✅ Gestión de licencias médicas y años de experiencia
+- ✅ Asignación de especialidades médicas
+- ✅ Control de horarios de atención
+- ✅ Perfiles profesionales con tarifas de consulta
+- ✅ Gestión de niveles de experiencia
 - ✅ Control de estado activo/inactivo
 
-### 2. Gestión de Matrículas
-- ✅ Proceso de matriculación por períodos escolares
-- ✅ Asignación a niveles educativos y programas
-- ✅ Gestión de turnos (mañana, tarde, noche)
-- ✅ Control de estados de matrícula
-- ✅ Registro de observaciones y notas
-- ✅ Cálculo automático de costos
-- ✅ Generación de cronogramas de pagos
+### 3. Sistema de Citas Médicas
+- ✅ Calendario integrado para gestión de citas
+- ✅ Estados de citas (pendiente, confirmada, en curso, completada, cancelada, no asistió)
+- ✅ Confirmaciones automáticas vía WhatsApp
+- ✅ Recordatorios automáticos (24h y 2h antes)
+- ✅ Sistema de botones interactivos para confirmaciones
+- ✅ Reintentos automáticos de mensajes fallidos
+- ✅ Gestión de tipos de consulta
+- ✅ Control de conflictos de horarios
 
-### 3. Sistema de Pagos
+### 4. Sistema de Pagos
 - ✅ Múltiples métodos de pago (efectivo, transferencia, tarjeta, pago móvil)
 - ✅ Soporte para pagos mixtos
 - ✅ Cronograma de pagos con control de cuotas
@@ -49,7 +58,7 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Control de series y numeración de documentos
 - ✅ Generación de facturas, boletas y recibos
 
-### 4. Gestión de Caja
+### 5. Gestión de Caja
 - ✅ Apertura y cierre de caja
 - ✅ Control de montos por método de pago
 - ✅ Reportes detallados de operaciones
@@ -58,15 +67,15 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Control de usuarios responsables
 - ✅ Registro de observaciones de apertura y cierre
 
-### 5. Sistema de Control de Acceso
-- ✅ Registro de entradas y salidas
+### 6. Sistema de Control de Acceso
+- ✅ Registro de entradas y salidas de pacientes
 - ✅ Control por usuario autorizado
 - ✅ Múltiples métodos de acceso
 - ✅ Registro de observaciones
-- ✅ Logs de acceso de estudiantes
+- ✅ Logs de acceso de pacientes
 - ✅ Generación de reportes de asistencia
 
-### 6. Sistema de Notificaciones
+### 7. Sistema de Notificaciones
 - ✅ Notificaciones en tiempo real
 - ✅ Sistema de prioridades (baja, media, alta, urgente)
 - ✅ Historial completo de notificaciones
@@ -74,7 +83,7 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Notificaciones por correo electrónico
 - ✅ Notificaciones push en tiempo real
 
-### 7. Integración con WhatsApp
+### 8. Integración con WhatsApp
 - ✅ Envío de mensajes de texto
 - ✅ Envío de documentos (Excel, PDF, Word)
 - ✅ Programación de mensajes
@@ -84,7 +93,7 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Control de estado de conexión
 - ✅ Sistema de colas para envío masivo
 
-### 8. Sistema de Mensajería Interna
+### 9. Sistema de Mensajería Interna
 - ✅ Mensajes entre usuarios del sistema
 - ✅ Múltiples destinatarios
 - ✅ Priorización de mensajes
@@ -92,50 +101,49 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Control de lectura y archivado
 - ✅ Historial de conversaciones
 
-### 9. Biblioteca Digital
-- ✅ Gestión de archivos por categorías
+### 10. Biblioteca Digital
+- ✅ Gestión de archivos médicos por categorías
 - ✅ Control de visibilidad (público, privado, restringido)
 - ✅ Registro de descargas
-- ✅ Etiquetas y metadatos
+- ✅ Etiquetas y metadatos médicos
 - ✅ Usuarios autorizados por archivo
 - ✅ Múltiples formatos de archivo
 - ✅ Control de tamaño y tipo MIME
 
-### 10. Gestión Académica
-- ✅ Niveles educativos configurables
-- ✅ Programas académicos
-- ✅ Asignaturas/Materias
-- ✅ Gestión de docentes
-- ✅ Horarios de clases
-- ✅ Sistema de evaluaciones
-- ✅ Asignación de docentes a materias
+### 11. Gestión de Especialidades Médicas
+- ✅ Especialidades médicas configurables
+- ✅ Subespecialidades médicas
+- ✅ Asignación de médicos a especialidades
+- ✅ Tarifas de consulta por especialidad
+- ✅ Niveles de experiencia requeridos
+- ✅ Horarios de atención por especialidad
 
-### 11. Sistema de Auditoría
-- ✅ Registro de todas las acciones
-- ✅ Control de cambios en datos
-- ✅ Seguimiento por usuario
+### 12. Sistema de Auditoría
+- ✅ Registro de todas las acciones médicas
+- ✅ Control de cambios en datos médicos
+- ✅ Seguimiento por usuario médico
 - ✅ Registro de IPs y user agents
 - ✅ Tags y metadatos personalizables
-- ✅ Exportación de logs de auditoría
+- ✅ Exportación de logs de auditoría médica
 
-### 12. Gestión de Usuarios y Roles
+### 13. Gestión de Usuarios y Roles
 - ✅ Sistema de autenticación robusto
 - ✅ Verificación de correo electrónico
 - ✅ Autenticación de dos factores (2FA)
-- ✅ Gestión de roles y permisos (Spatie)
+- ✅ Gestión de roles y permisos médicos (Spatie)
 - ✅ Perfiles de usuario con avatar
 - ✅ Control de sesiones activas
 - ✅ Códigos de verificación temporales
 
-### 13. Multitenancia
-- ✅ Soporte multiempresa
+### 14. Multitenancia
+- ✅ Soporte multiempresa para clínicas
 - ✅ Soporte multisucursal
 - ✅ Aislamiento de datos por empresa/sucursal
 - ✅ Configuración independiente por tenant
 - ✅ API Keys por empresa
 
-### 14. Exportación de Datos
-- ✅ Exportación dinámica de cualquier tabla
+### 15. Exportación de Datos
+- ✅ Exportación dinámica de cualquier tabla médica
 - ✅ Múltiples formatos (Excel, CSV, PDF)
 - ✅ Filtros avanzados con múltiples condiciones
 - ✅ Selección de columnas específicas
@@ -143,47 +151,27 @@ El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada par
 - ✅ Comando Artisan para automatización
 - ✅ Proceso asíncrono con barra de progreso
 
-### 15. Configuración Regional
+### 16. Configuración Regional
 - ✅ Formato de fechas localizado
 - ✅ Formato de monedas configurable
 - ✅ Configuración por empresa/sucursal
 - ✅ Soporte para múltiples monedas
 - ✅ Formato de números y decimales
 
-### 16. Sistema de Tareas Programadas (Jobs)
+### 17. Sistema de Tareas Programadas (Jobs)
 - ✅ Procesamiento de mensajes de WhatsApp
 - ✅ Reintento automático de mensajes fallidos
 - ✅ Envío de notificaciones automáticas
 - ✅ Procesamiento de eventos programados
 - ✅ Sistema de colas eficiente
 
-### 17. Sistema de Reportes
-- ✅ Reportes de estudiantes
-- ✅ Reportes de matrículas
+### 18. Sistema de Reportes
+- ✅ Reportes de pacientes
+- ✅ Reportes de citas médicas
 - ✅ Reportes de pagos
 - ✅ Reportes de caja
-- ✅ Reportes de asistencia
+- ✅ Reportes de asistencia médica
 - ✅ Exportación a múltiples formatos
-
-### 18. Gestión Médica y Citas
-- ✅ Gestión completa de médicos con especialidades y subespecialidades
-- ✅ Registro de pacientes con información médica y personal
-- ✅ Sistema de citas médicas con calendario integrado
-- ✅ Horarios de atención médica configurables
-- ✅ Confirmaciones automáticas de citas vía WhatsApp
-- ✅ Recordatorios automáticos (24h y 2h antes de la cita)
-- ✅ Sistema de botones interactivos para confirmaciones
-- ✅ Reintentos automáticos de mensajes fallidos
-- ✅ Gestión de estados de citas (pendiente, confirmada, en curso, completada, cancelada, no asistió)
-- ✅ Notificaciones médicas por WhatsApp y email
-- ✅ Integración con servicios de mensajería médica
-- ✅ Biblioteca digital para archivos médicos
-- ✅ Auditoría completa de acciones médicas
-- ✅ Reportes de citas y estadísticas médicas
-- ✅ Control de acceso médico por roles y permisos
-- ✅ Soporte multi-empresa para clínicas y consultorios
-- ✅ Configuración regional para formatos médicos
-- ✅ Exportación de datos médicos a múltiples formatos
 
 ## Requisitos del Sistema
 
@@ -329,6 +317,6 @@ Para soporte técnico, consulte la documentación oficial de Laravel o contacte 
 
 ## Licencia
 
-Este proyecto es propiedad de Vargas Centro Educativo. Todos los derechos reservados.
+Este proyecto es propiedad de TheizerDev. Todos los derechos reservados.
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
