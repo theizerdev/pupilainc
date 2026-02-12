@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             PaisSeeder::class, // Agregar países antes que empresas
             EmpresaSeeder::class,
             SucursalSeeder::class,
+            ConsultoriosSeeder::class,
             UsersTableSeeder::class,
             SerieSeeder::class,
             EspecialidadesSubespecialidadesSeeder::class, // Agregar especialidades y subespecialidades médicas

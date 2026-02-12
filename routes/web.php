@@ -29,6 +29,10 @@ Route::get('/', function () {
       if (\Auth::user()->hasRole('Administrador')) {
          return redirect()->to('admin/dashboard');
       }
+      // Verificar si es recepcion
+      if (\Auth::user()->hasRole('Recepcion')) {
+         return redirect()->route('admin.recepcion.dashboard');
+      }
    }
    return redirect()->to('admin/dashboard');
 })->middleware('auth');

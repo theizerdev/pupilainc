@@ -191,6 +191,16 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export empresas',
                     ]
                 ],
+                'consultorios' => [
+                    'name' => 'Consultorios',
+                    'permissions' => [
+                        'access consultorios',
+                        'create consultorios',
+                        'edit consultorios',
+                        'delete consultorios',
+                        'view consultorios',
+                    ]
+                ],
                 'sucursales' => [
                     'name' => 'Sucursales',
                     'permissions' => [
@@ -337,6 +347,17 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     ]
                 ],
             ],
+
+            // 🛎️ SECTOR RECEPCIÓN
+            'recepcion' => [
+                'dashboard' => [
+                    'name' => 'Dashboard Recepción',
+                    'permissions' => [
+                        'access recepcion dashboard',
+                        'manage consultorios', // Asignar consultorios
+                    ]
+                ],
+            ],
         ];
 
         // Crear permisos organizados por sectores y módulos
@@ -419,8 +440,11 @@ class SectorRolesAndPermissionsSeeder extends Seeder
 
         // Rol Recepción - Sector médico + administración limitada
         $recepcion = Role::firstOrCreate(['name' => 'Recepción']);
-        $recepcionPermissions = Permission::whereIn('sector', ['medico', 'administracion'])
+        $recepcionPermissions = Permission::whereIn('sector', ['medico', 'administracion', 'recepcion'])
             ->whereIn('name', [
+                // Recepción
+                'access recepcion dashboard',
+                'manage consultorios',
                 // Médico limitado
                 'access tipo-consultas',
                 'create tipo-consultas',

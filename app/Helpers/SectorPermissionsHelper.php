@@ -14,6 +14,13 @@ if (!function_exists('getPermissionSectors')) {
                 'icon' => 'ri-heart-pulse-line',
                 'modules' => ['tipo-consultas', 'pacientes', 'medicos', 'citas', 'especialidades', 'subespecialidades']
             ],
+            'recepcion' => [
+                'name' => '🛎️ Recepción',
+                'description' => 'Gestión de recepción, citas y consultorios',
+                'color' => 'pink',
+                'icon' => 'ri-service-line',
+                'modules' => ['dashboard', 'control-consultorios']
+            ],
             'administracion' => [
                 'name' => '💰 Administración',
                 'description' => 'Gestión financiera, cajas, pagos y tasas de cambio',
@@ -26,7 +33,7 @@ if (!function_exists('getPermissionSectors')) {
                 'description' => 'Configuración del sistema, empresas, usuarios y roles',
                 'color' => 'purple',
                 'icon' => 'ri-settings-3-line',
-                'modules' => ['empresas', 'sucursales', 'paises', 'users', 'roles', 'permissions', 'personalizacion']
+                'modules' => ['empresas', 'consultorios', 'sucursales', 'paises', 'users', 'roles', 'permissions', 'personalizacion']
             ],
             'monitoreo' => [
                 'name' => '📊 Monitoreo',
@@ -166,6 +173,28 @@ if (!function_exists('getSectorMenuItems')) {
     function getSectorMenuItems(): array
     {
         return [
+            'recepcion' => [
+                'label' => 'Recepción',
+                'icon' => 'ri-service-line',
+                'items' => [
+                    [
+                        'label' => 'Panel Recepción',
+                        'icon' => 'ri-dashboard-line',
+                        'permission' => 'access recepcion dashboard',
+                        'route' => 'admin.recepcion.dashboard',
+                        'route_horizontal' => 'admin.recepcion.dashboard',
+                        'active' => 'admin.recepcion.dashboard',
+                    ],
+                    [
+                        'label' => 'Control Consultorios',
+                        'icon' => 'ri-hospital-line',
+                        'permission' => 'manage consultorios',
+                        'route' => 'admin.recepcion.control-consultorios',
+                        'route_horizontal' => 'admin.recepcion.control-consultorios',
+                        'active' => 'admin.recepcion.control-consultorios',
+                    ],
+                ]
+            ],
             'medico' => [
                 'label' => 'Médico',
                 'icon' => 'ri-heart-pulse-line',
@@ -252,12 +281,13 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'Institucional',
                         'icon' => 'ri-building-4-line',
-                        'permissions' => ['access empresas', 'access sucursales', 'access paises'],
-                        'active' => 'admin.empresas.*|admin.sucursales.*|admin.paises.*',
+                        'permissions' => ['access empresas', 'access sucursales', 'access paises', 'access consultorios'],
+                        'active' => 'admin.empresas.*|admin.sucursales.*|admin.paises.*|admin.consultorios.*',
                         'children' => [
                             ['label' => 'Empresas', 'permission' => 'access empresas', 'route' => 'admin.empresas.index', 'active' => 'admin.empresas.index'],
-                            ['label' => 'Países', 'permission' => 'access paises', 'route' => 'admin.paises.index', 'active' => 'admin.paises.index'],
                             ['label' => 'Sucursales', 'permission' => 'access sucursales', 'route' => 'admin.sucursales.index', 'active' => 'admin.sucursales.index'],
+                            ['label' => 'Consultorios', 'permission' => 'access consultorios', 'route' => 'admin.consultorios.index', 'active' => 'admin.consultorios.index'],
+                            ['label' => 'Países', 'permission' => 'access paises', 'route' => 'admin.paises.index', 'active' => 'admin.paises.index'],
                         ]
                     ],
                     [

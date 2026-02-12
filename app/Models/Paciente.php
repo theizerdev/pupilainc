@@ -61,6 +61,11 @@ class Paciente extends Model
         return $this->hasOne(Tutor::class);
     }
 
+    public function citas()
+    {
+        return $this->hasMany(Cita::class);
+    }
+
     // Scopes
     public function scopeActivos($query)
     {

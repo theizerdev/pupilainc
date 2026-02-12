@@ -79,6 +79,16 @@ class Medico extends Model
         return $this->hasMany(MedicoHorario::class);
     }
 
+    public function asignacionesConsultorios()
+    {
+        return $this->hasMany(ConsultorioAsignacion::class);
+    }
+
+    public function citas(): HasMany
+    {
+        return $this->hasMany(Cita::class);
+    }
+
     // Scopes
     public function scopeActivos($query)
     {
