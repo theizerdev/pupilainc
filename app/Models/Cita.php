@@ -206,7 +206,19 @@ class Cita extends Model
 
     public function cambiarEstado($nuevoEstado)
     {
+        $estadoAnterior = $this->estado;
         $this->update(['estado' => $nuevoEstado]);
+        try {
+            activity()
+                ->performedOn($this)
+                ->causedBy(auth()->user() ?? null)
+                ->withProperties([
+                    'previous' => $estadoAnterior,
+                    'new' => $nuevoEstado,
+                ])
+                ->log('cita_estado_cambiado');
+        } catch (\Throwable $e) {
+        }
         return $this;
     }
 
@@ -305,6 +317,7 @@ class Cita extends Model
                 'tipo_consulta_id' => $this->tipo_consulta_id,
                 'tipo_consulta_nombre' => $this->tipoConsulta?->nombre,
                 'tipo_consulta_color' => $this->tipoConsulta?->color,
+                'sucursal_id' => $this->sucursal_id,
             ],
         ];
     }

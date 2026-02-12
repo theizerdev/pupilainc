@@ -93,6 +93,11 @@ class Kernel extends ConsoleKernel
         $schedule->job(new \App\Jobs\ProcessAppointmentConfirmations())
                  ->dailyAt('08:00')
                  ->withoutOverlapping();
+
+        $schedule->command('citas:update-estados')
+                 ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->onOneServer();
     }
 
     /**

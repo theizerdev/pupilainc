@@ -27,6 +27,7 @@ class Edit extends Component
     // Datos del médico
     public $nombres;
     public $apellidos;
+    public $genero;
     public $documento_identidad;
     public $telefono;
     public $direccion;
@@ -58,6 +59,7 @@ class Edit extends Component
         $rules = [
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:20',
             'documento_identidad' => [
                 'required',
                 'string',
@@ -108,6 +110,7 @@ class Edit extends Component
         $this->user_id = $medico->user_id;
         $this->nombres = $medico->nombres;
         $this->apellidos = $medico->apellidos;
+        $this->genero = $medico->genero;
         $this->documento_identidad = $medico->documento_identidad;
         $this->telefono = $medico->telefono;
         $this->direccion = $medico->direccion;
@@ -209,6 +212,7 @@ class Edit extends Component
             $medico->update([
                 'nombres' => $this->nombres,
                 'apellidos' => $this->apellidos,
+                'genero' => $this->genero,
                 'documento_identidad' => $this->documento_identidad,
                 'telefono' => $this->telefono,
                 'direccion' => $this->direccion,

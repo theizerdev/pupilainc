@@ -71,6 +71,20 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
+                                    <label for="genero">Género</label>
+                                    <select id="genero" class="form-control @error('genero') is-invalid @enderror" wire:model="genero">
+                                        <option value="">No especifica</option>
+                                        <option value="Masculino">Masculino</option>
+                                        <option value="Femenino">Femenino</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                    @error('genero')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
                                     <label for="telefono">Teléfono</label>
                                     <input type="text" class="form-control @error('telefono') is-invalid @enderror" 
                                            id="telefono" wire:model="telefono" placeholder="Ingrese el teléfono">

@@ -86,13 +86,31 @@
                             </div>
                             
                             <div class="col-lg-2 col-md-6 mb-2">
+                                <select wire:model.live="doctorFilter" class="form-control select2">
+                                    <option value="">Todos los médicos</option>
+                                    @foreach($medicos as $medico)
+                                        <option value="{{ $medico->id }}">{{ $medico->nombres }} {{ $medico->apellidos }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            
+                            <div class="col-lg-2 col-md-6 mb-2">
+                                <div class="form-check mt-1">
+                                    <input class="form-check-input" type="checkbox" id="onlyCitaEstados" wire:model.live="onlyCitaEstados">
+                                    <label class="form-check-label" for="onlyCitaEstados">
+                                        Solo cambios de estado de citas
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-2 col-md-6 mb-2">
                                 <button wire:click="clearFilters" class="btn btn-outline-secondary btn-block">
                                     <i class="fas fa-broom"></i> Limpiar filtros
                                 </button>
                             </div>
                         </div>
                         
-                        @if($search || $userFilter || $actionFilter || $dateRange || $subjectTypeFilter)
+                        @if($search || $userFilter || $actionFilter || $dateRange || $subjectTypeFilter || $doctorFilter || $onlyCitaEstados)
                             <div class="row mt-2">
                                 <div class="col-12">
                                     <div class="d-flex flex-wrap gap-2">
@@ -111,6 +129,12 @@
                                         @endif
                                         @if($subjectTypeFilter)
                                             <span class="badge badge-secondary">Modelo: {{ class_basename($subjectTypeFilter) }}</span>
+                                        @endif
+                                        @if($doctorFilter)
+                                            <span class="badge badge-info">Médico: {{ optional($medicos->firstWhere('id', (int) $doctorFilter))->nombres }} {{ optional($medicos->firstWhere('id', (int) $doctorFilter))->apellidos }}</span>
+                                        @endif
+                                        @if($onlyCitaEstados)
+                                            <span class="badge badge-dark">Solo estados de citas</span>
                                         @endif
                                     </div>
                                 </div>

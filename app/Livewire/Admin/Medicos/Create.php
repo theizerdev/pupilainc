@@ -26,6 +26,7 @@ class Create extends Component
     // Datos del médico
     public $nombres;
     public $apellidos;
+    public $genero;
     public $documento_identidad;
     public $telefono;
     public $direccion;
@@ -59,6 +60,7 @@ class Create extends Component
         $rules = [
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
+            'genero' => 'nullable|string|max:20',
             'documento_identidad' => 'required|string|max:50|unique:medicos,documento_identidad',
             'telefono' => 'nullable|string|max:20',
             'direccion' => 'nullable|string|max:500',
@@ -175,6 +177,7 @@ class Create extends Component
                 'user_id' => $user->id,
                 'nombres' => $validated['nombres'],
                 'apellidos' => $validated['apellidos'],
+                'genero' => $this->genero ?? null,
                 'documento_identidad' => $validated['documento_identidad'],
                 'telefono' => $validated['telefono'] ?? null,
                 'direccion' => $validated['direccion'] ?? null,

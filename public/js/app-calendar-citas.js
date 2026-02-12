@@ -18,6 +18,10 @@ function initCitasCalendar(events) {
     const btnDeleteEvent = document.querySelector('.btn-delete-event');
     const btnCancel = document.querySelector('.btn-cancel');
     const btnSendReminder = document.querySelector('.btn-send-reminder');
+    let btnConfirmEvent = document.querySelector('.btn-confirm-event');
+    let btnCancelCita = document.querySelector('.btn-cancel-cita');
+    let btnReagendar = document.querySelector('.btn-reagendar');
+    let btnReagendarAuto = document.querySelector('.btn-reagendar-auto');
     const eventStartDate = document.getElementById('eventStartDate');
     const eventEndDate = document.getElementById('eventEndDate');
     const eventMotivo = document.getElementById('eventMotivo');
@@ -33,18 +37,31 @@ function initCitasCalendar(events) {
     var psTiposConsulta = null;if (!calendarEl) return;
 
     const calendarColors = {
-        pendiente: 'warning',
-        confirmada: 'primary',
-        en_curso: 'info',
-        completada: 'success',
-        cancelada: 'danger',
-        no_asistio: 'secondary'
+        pendiente: '#ffc107',
+        confirmada: '#0d6efd',
+        en_curso: '#17a2b8',
+        completada: '#28a745',
+        cancelada: '#dc3545',
+        no_asistio: '#6c757d'
     };
+
+    function hexToRgba(hex, alpha) {
+        try {
+            hex = hex.replace('#', '');
+            var r = parseInt(hex.substring(0, 2), 16);
+            var g = parseInt(hex.substring(2, 4), 16);
+            var b = parseInt(hex.substring(4, 6), 16);
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha != null ? alpha : 1) + ')';
+        } catch (e) {
+            return hex;
+        }
+    }
 
     let currentEvents = events || [];
     let isFormValid = false;
     let eventToUpdate = null;
     let inlineCalInstance = null;
+    let prefetchCache = {};
 
     const bsAddEventSidebar = addEventSidebar ? new bootstrap.Offcanvas(addEventSidebar) : null;
 
@@ -63,6 +80,7 @@ function initCitasCalendar(events) {
     let selectedEspecialidadId = null;
     let selectedSubespecialidadId = null;
     let fechaFlatpickr = null;
+    let currentSlotDuration = 30;
 
     if (eventPaciente.length) {
         eventPaciente.select2({
@@ -73,6 +91,87 @@ function initCitasCalendar(events) {
                 noResults: function() { return 'No se encontraron pacientes'; },
                 searching: function() { return 'Buscando...'; }
             }
+        });
+    }
+    // Modal Paciente Rápido
+    var btnModalPacienteRapido = document.getElementById('btnModalPacienteRapido');
+    var modalPacienteRapidoEl = document.getElementById('modalPacienteRapido');
+    var modalPacienteRapido = modalPacienteRapidoEl ? new bootstrap.Modal(modalPacienteRapidoEl) : null;
+    var mpEsMenor = document.getElementById('mpEsMenor');
+    var mpTutorFields = document.getElementById('mpTutorFields');
+    var modalPacienteCreateBtn = document.getElementById('modalPacienteCreateBtn');
+    if (btnModalPacienteRapido) {
+        btnModalPacienteRapido.addEventListener('click', function() {
+            if (modalPacienteRapido) {
+                try {
+                    modalPacienteRapido.show();
+                    return;
+                } catch (e) {}
+            }
+            var el = document.getElementById('modalPacienteRapido');
+            if (!el) return;
+            var backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+            el.classList.add('show');
+            el.style.display = 'block';
+            el.removeAttribute('aria-hidden');
+            el.setAttribute('aria-modal', 'true');
+            el.setAttribute('role', 'dialog');
+            function closeFallback() {
+                el.classList.remove('show');
+                el.style.display = 'none';
+                el.setAttribute('aria-hidden', 'true');
+                el.removeAttribute('aria-modal');
+                if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+            }
+            var closeBtn = el.querySelector('.btn-close');
+            var cancelBtn = el.querySelector('.btn-outline-secondary');
+            if (closeBtn) closeBtn.addEventListener('click', closeFallback, { once: true });
+            if (cancelBtn) cancelBtn.addEventListener('click', closeFallback, { once: true });
+        });
+    }
+    if (mpEsMenor && mpTutorFields) {
+        mpEsMenor.addEventListener('change', function() {
+            mpTutorFields.style.display = mpEsMenor.checked ? '' : 'none';
+        });
+    }
+    if (modalPacienteCreateBtn) {
+        modalPacienteCreateBtn.addEventListener('click', function() {
+            var data = {
+                nombres: document.getElementById('mpNombres')?.value || '',
+                apellidos: document.getElementById('mpApellidos')?.value || '',
+                documento_identidad: document.getElementById('mpDocumento')?.value || '',
+                telefono: document.getElementById('mpTelefono')?.value || '',
+                fecha_nacimiento: document.getElementById('mpFechaNacimiento')?.value || '',
+                es_menor: !!(mpEsMenor && mpEsMenor.checked),
+                tutor: {
+                    nombres: document.getElementById('mpTutorNombres')?.value || '',
+                    apellidos: document.getElementById('mpTutorApellidos')?.value || '',
+                    telefono: document.getElementById('mpTutorTelefono')?.value || ''
+                }
+            };
+            var comp = getLivewireComponent();
+            if (!comp) return;
+            comp.call('crearPacienteRapido', data).then(function(resp) {
+                var success = resp && resp.success;
+                var msg = (resp && resp.message) ? resp.message : (success ? 'Paciente creado y seleccionado' : 'No se pudo crear el paciente');
+                if (eventPaciente.length && success) {
+                    var id = resp.paciente_id;
+                    var nombre = resp.nombre || (data.nombres + ' ' + data.apellidos);
+                    var exists = eventPaciente.find('option[value="' + id + '"]').length > 0;
+                    if (!exists) {
+                        var opt = new Option(nombre, id, true, true);
+                        eventPaciente.append(opt).trigger('change.select2');
+                    } else {
+                        eventPaciente.val(String(id)).trigger('change.select2');
+                    }
+                }
+                if (modalPacienteRapido) modalPacienteRapido.hide();
+                if (window.toastr) {
+                    success ? toastr.success(msg) : toastr.error(msg);
+                }
+            });
         });
     }
 
@@ -191,6 +290,7 @@ function initCitasCalendar(events) {
             }
 
             if (slotsMessage) slotsMessage.classList.add('d-none');
+            currentSlotDuration = result.duracion_cita || 30;
 
             var matched = false;
             result.slots.forEach(function(slot) {
@@ -224,6 +324,28 @@ function initCitasCalendar(events) {
             if (!matched && !selectStartFull && result.primer_disponible) {
                 var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)');
                 if (firstAvailable) firstAvailable.click();
+            }
+
+            var nextBtn = document.getElementById('btnNextSlot');
+            if (!nextBtn && slotsContainer) {
+                nextBtn = document.createElement('button');
+                nextBtn.id = 'btnNextSlot';
+                nextBtn.type = 'button';
+                nextBtn.className = 'btn btn-sm btn-outline-primary ms-2';
+                nextBtn.textContent = 'Siguiente disponible';
+                nextBtn.addEventListener('click', function() {
+                    var selected = slotsList.querySelector('.slot-btn.selected');
+                    var buttons = Array.from(slotsList.querySelectorAll('.slot-btn'));
+                    if (!buttons.length) return;
+                    var startIndex = selected ? buttons.indexOf(selected) + 1 : 0;
+                    for (var i = startIndex; i < buttons.length; i++) {
+                        if (!buttons[i].classList.contains('ocupado')) {
+                            buttons[i].click();
+                            break;
+                        }
+                    }
+                });
+                slotsContainer.appendChild(nextBtn);
             }
         });
     }
@@ -380,6 +502,23 @@ function initCitasCalendar(events) {
         });
     }
 
+    if (eventTipoConsulta.length) {
+        eventTipoConsulta.on('change', function() {
+            var startVal = eventStartDate ? eventStartDate.value : '';
+            if (!startVal || !currentSlotDuration) return;
+            var d = new Date(startVal.replace(' ', 'T'));
+            if (isNaN(d.getTime())) return;
+            d.setMinutes(d.getMinutes() + currentSlotDuration);
+            var yyyy = d.getFullYear();
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            var hh = String(d.getHours()).padStart(2, '0');
+            var mi = String(d.getMinutes()).padStart(2, '0');
+            var endStr = yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + mi;
+            if (eventEndDate) eventEndDate.value = endStr;
+            if (end) end.setDate(endStr, true, 'Y-m-d H:i');
+        });
+    }
     if (inlineCalendar) {
         inlineCalInstance = inlineCalendar.flatpickr({
             monthSelectorType: 'static',
@@ -435,17 +574,55 @@ function initCitasCalendar(events) {
     }
 
     function fetchEvents(info, successCallback) {
-        var calendars = selectedCalendars();
-        var selectedEvents = currentEvents.filter(function (event) {
-            var matchEstado = calendars.includes(event.extendedProps.calendar);
-            var matchMedico = !selectedMedicoFilter || String(event.extendedProps.medico_id) === String(selectedMedicoFilter);
-            var matchTipoConsulta = !selectedTipoConsultaFilter || String(event.extendedProps.tipo_consulta_id) === String(selectedTipoConsultaFilter);
-            return matchEstado && matchMedico && matchTipoConsulta;
-        });
-        successCallback(selectedEvents);
-        updateMedicosConCitas();
-        updateTiposConsultaConCitas();
-        updatePerfectScrollbars();
+        var comp = getLivewireComponent();
+        var key = info.startStr + '|' + info.endStr;
+        if (prefetchCache[key]) {
+            currentEvents = prefetchCache[key];
+            var calendars = selectedCalendars();
+            var filtered = currentEvents.filter(function (event) {
+                var matchEstado = calendars.includes(event.extendedProps.calendar);
+                var matchMedico = !selectedMedicoFilter || String(event.extendedProps.medico_id) === String(selectedMedicoFilter);
+                var matchTipoConsulta = !selectedTipoConsultaFilter || String(event.extendedProps.tipo_consulta_id) === String(selectedTipoConsultaFilter);
+                return matchEstado && matchMedico && matchTipoConsulta;
+            });
+            successCallback(filtered);
+            updateMedicosConCitas();
+            updateTiposConsultaConCitas();
+            updatePerfectScrollbars();
+        } else if (comp) {
+            comp.call('fetchEventosRango', info.startStr, info.endStr).then(function(events) {
+                currentEvents = Array.isArray(events) ? events : [];
+                prefetchCache[key] = currentEvents;
+                var calendars = selectedCalendars();
+                var filtered = currentEvents.filter(function (event) {
+                    var matchEstado = calendars.includes(event.extendedProps.calendar);
+                    var matchMedico = !selectedMedicoFilter || String(event.extendedProps.medico_id) === String(selectedMedicoFilter);
+                    var matchTipoConsulta = !selectedTipoConsultaFilter || String(event.extendedProps.tipo_consulta_id) === String(selectedTipoConsultaFilter);
+                    return matchEstado && matchMedico && matchTipoConsulta;
+                });
+                successCallback(filtered);
+                updateMedicosConCitas();
+                updateTiposConsultaConCitas();
+                updatePerfectScrollbars();
+            });
+        } else {
+            var calendars = selectedCalendars();
+            var startRange = new Date(info.startStr);
+            var endRange = new Date(info.endStr);
+            var selectedEvents = currentEvents.filter(function (event) {
+                var evStart = new Date(event.start);
+                var evEnd = new Date(event.end || event.start);
+                var inRange = evStart < endRange && evEnd > startRange;
+                var matchEstado = calendars.includes(event.extendedProps.calendar);
+                var matchMedico = !selectedMedicoFilter || String(event.extendedProps.medico_id) === String(selectedMedicoFilter);
+                var matchTipoConsulta = !selectedTipoConsultaFilter || String(event.extendedProps.tipo_consulta_id) === String(selectedTipoConsultaFilter);
+                return inRange && matchEstado && matchMedico && matchTipoConsulta;
+            });
+            successCallback(selectedEvents);
+            updateMedicosConCitas();
+            updateTiposConsultaConCitas();
+            updatePerfectScrollbars();
+        }
     }
 
     function updateMedicosConCitas() {
@@ -600,6 +777,38 @@ function initCitasCalendar(events) {
         }
         if (btnDeleteEvent) btnDeleteEvent.classList.remove('d-none');
         if (btnSendReminder) btnSendReminder.classList.remove('d-none');
+        if (!btnConfirmEvent && btnSendReminder && btnSendReminder.parentNode) {
+            btnConfirmEvent = document.createElement('button');
+            btnConfirmEvent.type = 'button';
+            btnConfirmEvent.className = 'btn btn-sm btn-success ms-2 btn-confirm-event';
+            btnConfirmEvent.textContent = 'Confirmar';
+            btnSendReminder.parentNode.insertBefore(btnConfirmEvent, btnSendReminder.nextSibling);
+        }
+        if (!btnCancelCita && btnSendReminder && btnSendReminder.parentNode) {
+            btnCancelCita = document.createElement('button');
+            btnCancelCita.type = 'button';
+            btnCancelCita.className = 'btn btn-sm btn-outline-danger ms-2 btn-cancel-cita';
+            btnCancelCita.textContent = 'Cancelar';
+            btnSendReminder.parentNode.insertBefore(btnCancelCita, btnSendReminder.nextSibling);
+        }
+        if (!btnReagendar && btnSendReminder && btnSendReminder.parentNode) {
+            btnReagendar = document.createElement('button');
+            btnReagendar.type = 'button';
+            btnReagendar.className = 'btn btn-sm btn-outline-primary ms-2 btn-reagendar';
+            btnReagendar.textContent = 'Re-agendar';
+            btnSendReminder.parentNode.insertBefore(btnReagendar, btnSendReminder.nextSibling);
+        }
+        if (!btnReagendarAuto && btnSendReminder && btnSendReminder.parentNode) {
+            btnReagendarAuto = document.createElement('button');
+            btnReagendarAuto.type = 'button';
+            btnReagendarAuto.className = 'btn btn-sm btn-outline-secondary ms-2 btn-reagendar-auto';
+            btnReagendarAuto.textContent = 'Auto';
+            btnSendReminder.parentNode.insertBefore(btnReagendarAuto, btnSendReminder.nextSibling);
+        }
+        if (btnConfirmEvent) btnConfirmEvent.classList.remove('d-none');
+        if (btnCancelCita) btnCancelCita.classList.remove('d-none');
+        if (btnReagendar) btnReagendar.classList.remove('d-none');
+        if (btnReagendarAuto) btnReagendarAuto.classList.remove('d-none');
 
         var ep = eventToUpdate.extendedProps;
 
@@ -722,16 +931,19 @@ function initCitasCalendar(events) {
         },
         eventContent: function(arg) {
             var ep = arg.event.extendedProps;
-            console.log(ep)
             var timeText = arg.timeText || '';
             var html = '';
             var menorIcon = ep.es_menor ? '<span style="font-size:0.6em;margin-left:2px;" title="Menor de edad">👶</span>' : '';
             var color = ep.tipo_consulta_color ? ep.tipo_consulta_color : '';
+            var estadoHex = calendarColors[ep.estado] || '#6c757d';
+            var estadoBadge = ep.estado_label
+                ? '<span style="background:' + estadoHex + ';color:#fff;border-radius:4px;padding:2px 6px;font-size:70%;margin-left:6px;">' + ep.estado_label + '</span>'
+                : '';
             var tipoTag = ep.tipo_consulta_nombre ? '<span style="font-size:0.6em;opacity:0.7;margin-left:3px;">(' + ep.tipo_consulta_nombre + ')</span>' : '';
          
             if (arg.view.type === 'listMonth') {
                 html = '<div style="line-height:1.4;">' +
-                    '<strong style="font-size:0.85rem;">' + arg.event.title + '' + '</strong>' + tipoTag +
+                    '<strong style="font-size:0.85rem;">' + arg.event.title + '' + '</strong>' + tipoTag + ' ' + estadoBadge +
                     '<br><small class="text-muted"><i class="q" style="font-size:0.65em;"></i> ' + (ep.medico || '') + '</small>' +
                     (ep.motivo ? '<br><small class="text-muted">' + ep.motivo + '</small>' : '') +
                     '</div>';
@@ -742,7 +954,7 @@ function initCitasCalendar(events) {
                 
                 '<div class="fc-event-title-container" style="display: flex; flex-direction: column; overflow: hidden;">' +
                     '<div class="fc-event-title fc-sticky" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' 
-                        + arg.event.title + 
+                        + arg.event.title + ' ' + estadoBadge + 
                     '</div>' +
                     '<div class="fc-event-title fc-sticky badge bg-label-primary" style="font-size: 70%; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' 
                         + 'Dr. ' + ep.medico_full + 
@@ -755,7 +967,7 @@ function initCitasCalendar(events) {
                 html = '<div class="fc-event-main-frame" style="line-height:1.3;">' +
                     '<div class="fc-event-time">' + timeText + '</div>' +
                     '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title fc-sticky">' + arg.event.title + '' + '</div>' +
+                        '<div class="fc-event-title fc-sticky">' + arg.event.title + ' ' + estadoBadge + '</div>' +
                         '<div class="fc-event-subtitle"><i class="q" style="font-size:0.6em;"></i> ' + (ep.medico || '') + '</div>' +
                     '</div>' +
                     '</div>';
@@ -767,6 +979,11 @@ function initCitasCalendar(events) {
             if (ep.tipo_consulta_color) {
                 info.el.style.borderLeftColor = ep.tipo_consulta_color;
            
+            }
+            var stateHex = calendarColors[ep.estado] || null;
+            if (stateHex) {
+                info.el.style.backgroundColor = hexToRgba(stateHex, 0.12);
+                info.el.style.borderColor = hexToRgba(stateHex, 0.4);
             }
             var tooltipParts = [
                 ep.paciente || info.event.title,
@@ -815,6 +1032,30 @@ function initCitasCalendar(events) {
             updateMedicosConCitas(); 
             updateTiposConsultaConCitas(); 
             updatePerfectScrollbars(); 
+            var comp = getLivewireComponent();
+            if (comp) {
+                var view = calendar.view;
+                var currStart = new Date(view.activeStart);
+                var currEnd = new Date(view.activeEnd);
+                var rangeMs = currEnd.getTime() - currStart.getTime();
+                var prevStart = new Date(currStart.getTime() - rangeMs);
+                var prevEnd = new Date(currEnd.getTime() - rangeMs);
+                var nextStart = new Date(currStart.getTime() + rangeMs);
+                var nextEnd = new Date(currEnd.getTime() + rangeMs);
+                var fmt = function(d) { return d.toISOString(); };
+                var prevKey = fmt(prevStart) + '|' + fmt(prevEnd);
+                var nextKey = fmt(nextStart) + '|' + fmt(nextEnd);
+                if (!prefetchCache[prevKey]) {
+                    comp.call('fetchEventosRango', fmt(prevStart), fmt(prevEnd)).then(function(events) {
+                        prefetchCache[prevKey] = Array.isArray(events) ? events : [];
+                    });
+                }
+                if (!prefetchCache[nextKey]) {
+                    comp.call('fetchEventosRango', fmt(nextStart), fmt(nextEnd)).then(function(events) {
+                        prefetchCache[nextKey] = Array.isArray(events) ? events : [];
+                    });
+                }
+            }
         },
         viewDidMount: modifyToggler
     });
@@ -967,6 +1208,66 @@ function initCitasCalendar(events) {
         });
     }
 
+    if (btnConfirmEvent) {
+        btnConfirmEvent.addEventListener('click', function() {
+            if (!eventToUpdate) return;
+            var comp = getLivewireComponent();
+            if (comp) {
+                comp.call('cambiarEstado', parseInt(eventToUpdate.id), 'confirmada');
+            }
+        });
+    }
+
+    if (btnCancelCita) {
+        btnCancelCita.addEventListener('click', function() {
+            if (!eventToUpdate) return;
+            var comp = getLivewireComponent();
+            if (comp) {
+                comp.call('cambiarEstado', parseInt(eventToUpdate.id), 'cancelada');
+            }
+        });
+    }
+    if (btnReagendar) {
+        btnReagendar.addEventListener('click', function() {
+            if (!eventToUpdate) return;
+            var comp = getLivewireComponent();
+            if (!comp) return;
+            comp.call('sugerirReagendamiento', parseInt(eventToUpdate.id)).then(function(horarios) {
+                if (!Array.isArray(horarios)) return;
+                if (slotsList) {
+                    slotsList.innerHTML = '';
+                    horarios.forEach(function(h) {
+                        var b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'btn btn-sm btn-outline-primary rounded-pill mb-1';
+                        b.textContent = 'Re-agendar ' + h.fecha_formateada;
+                        b.addEventListener('click', function() {
+                            comp.call('reagendarManualmenteDesdeCalendario', parseInt(eventToUpdate.id), h.fecha_hora);
+                            if (bsAddEventSidebar) bsAddEventSidebar.hide();
+                        });
+                        slotsList.appendChild(b);
+                    });
+                    if (horarios.length === 0) {
+                        var p = document.createElement('div');
+                        p.className = 'text-muted small';
+                        p.textContent = 'Sin horarios disponibles en los próximos días';
+                        slotsList.appendChild(p);
+                    }
+                }
+            });
+        });
+    }
+    if (btnReagendarAuto) {
+        btnReagendarAuto.addEventListener('click', function() {
+            if (!eventToUpdate) return;
+            var comp = getLivewireComponent();
+            if (comp) {
+                comp.call('reagendarAutomaticamenteDesdeCalendario', parseInt(eventToUpdate.id));
+                if (bsAddEventSidebar) bsAddEventSidebar.hide();
+            }
+        });
+    }
+
     if (addEventSidebar) {
         addEventSidebar.addEventListener('hidden.bs.offcanvas', function () {
             resetValues();
@@ -983,6 +1284,10 @@ function initCitasCalendar(events) {
             }
             if (btnDeleteEvent) btnDeleteEvent.classList.add('d-none');
             if (btnSendReminder) btnSendReminder.classList.add('d-none');
+            if (btnConfirmEvent) btnConfirmEvent.classList.add('d-none');
+            if (btnCancelCita) btnCancelCita.classList.add('d-none');
+            if (btnReagendar) btnReagendar.classList.add('d-none');
+            if (btnReagendarAuto) btnReagendarAuto.classList.add('d-none');
             if (appCalendarSidebar) appCalendarSidebar.classList.remove('show');
             if (appOverlay) appOverlay.classList.remove('show');
         });

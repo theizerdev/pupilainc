@@ -223,10 +223,19 @@
             <div class="col app-calendar-sidebar border-end" id="app-calendar-sidebar">
                
                 <div class="px-4">
+                    <div class="border-bottom my-sm-0 mb-4 p-5">
+                      <button type="button" class="btn btn-primary w-100" id="btnModalPacienteRapido" data-bs-toggle="modal" data-bs-target="#modalPacienteRapido">
+                            <i class="ri ri-user-add-line me-1"></i> Nuevo Paciente
+                        </button>
+                    </div>
                     <div class="inline-calendar"></div>
                     
                     <hr class="mb-5 mx-n4 mt-3" />
-                    <div class="mb-4 ms-1"><h5>Filtrar por Estado</h5></div>
+                    <div class="d-flex justify-content-between align-items-center mb-4 ms-1">
+                    <h5 class="mb-0">Filtrar por Estado</h5>
+                        
+                    </div>
+                    
                     <div class="form-check form-check-secondary mb-5 ms-3">
                         <input class="form-check-input select-all" type="checkbox" id="selectAll" data-value="all" checked />
                         <label class="form-check-label" for="selectAll">Ver Todos</label>
@@ -311,6 +320,8 @@
                                 </select>
                                 <label for="eventPaciente">Paciente</label>
                             </div>
+                            
+                            
 
                             <div class="cascade-arrow"><i class="ri ri-arrow-down-s-line"></i></div>
 

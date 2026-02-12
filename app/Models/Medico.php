@@ -21,6 +21,7 @@ class Medico extends Model
         'user_id',
         'nombres',
         'apellidos',
+        'genero',
         'documento_identidad',
         'telefono',
         'direccion',

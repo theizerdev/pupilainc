@@ -73,6 +73,23 @@ class Dashboard extends Component
 
     public function loadChartData()
     {
+        $statusKeys = [
+            Cita::ESTADO_PENDIENTE,
+            Cita::ESTADO_CONFIRMADA,
+            Cita::ESTADO_EN_CURSO,
+            Cita::ESTADO_COMPLETADA,
+            Cita::ESTADO_CANCELADA,
+            Cita::ESTADO_NO_ASISTIO
+        ];
+        $statesSeries = [
+            Cita::ESTADO_PENDIENTE => [],
+            Cita::ESTADO_CONFIRMADA => [],
+            Cita::ESTADO_EN_CURSO => [],
+            Cita::ESTADO_COMPLETADA => [],
+            Cita::ESTADO_CANCELADA => [],
+            Cita::ESTADO_NO_ASISTIO => [],
+        ];
+
         switch ($this->dateRange) {
             case 'week':
                 $citasPorPeriodo = Cita::selectRaw('DATE(fecha_inicio) as fecha, COUNT(*) as total')
@@ -88,6 +105,11 @@ class Dashboard extends Component
                     $labels[] = $date->format('D d/m');
                     $found = $citasPorPeriodo->firstWhere('fecha', $date->format('Y-m-d'));
                     $data[] = $found ? $found->total : 0;
+                    foreach ($statusKeys as $st) {
+                        $statesSeries[$st][] = Cita::whereDate('fecha_inicio', $date->format('Y-m-d'))
+                            ->where('estado', $st)
+                            ->count();
+                    }
                 }
                 break;
 
@@ -101,6 +123,12 @@ class Dashboard extends Component
                     $data[] = Cita::whereDate('fecha_inicio', '>=', $start)
                         ->whereDate('fecha_inicio', '<=', $end)
                         ->count();
+                    foreach ($statusKeys as $st) {
+                        $statesSeries[$st][] = Cita::whereDate('fecha_inicio', '>=', $start)
+                            ->whereDate('fecha_inicio', '<=', $end)
+                            ->where('estado', $st)
+                            ->count();
+                    }
                 }
                 break;
 
@@ -113,6 +141,12 @@ class Dashboard extends Component
                     $data[] = Cita::whereMonth('fecha_inicio', $month->month)
                         ->whereYear('fecha_inicio', $month->year)
                         ->count();
+                    foreach ($statusKeys as $st) {
+                        $statesSeries[$st][] = Cita::whereMonth('fecha_inicio', $month->month)
+                            ->whereYear('fecha_inicio', $month->year)
+                            ->where('estado', $st)
+                            ->count();
+                    }
                 }
                 break;
 
@@ -125,6 +159,12 @@ class Dashboard extends Component
                     $data[] = Cita::whereMonth('fecha_inicio', $month->month)
                         ->whereYear('fecha_inicio', $month->year)
                         ->count();
+                    foreach ($statusKeys as $st) {
+                        $statesSeries[$st][] = Cita::whereMonth('fecha_inicio', $month->month)
+                            ->whereYear('fecha_inicio', $month->year)
+                            ->where('estado', $st)
+                            ->count();
+                    }
                 }
                 break;
         }
@@ -132,6 +172,8 @@ class Dashboard extends Component
         $this->citasChartData = [
             'labels' => $labels,
             'data' => $data,
+            'totales' => $data,
+            'states' => $statesSeries,
         ];
     }
 

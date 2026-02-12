@@ -11,6 +11,7 @@ use App\Models\MedicoHorario;
 use App\Models\TipoConsulta;
 use App\Services\CitaNotificationService;
 use App\Services\CitaConfirmationBotonesService;
+use App\Services\CitaReagendamientoService;
 use Livewire\Component; 
 use App\Traits\HasDynamicLayout;
 use Carbon\Carbon;
@@ -83,7 +84,29 @@ class Index extends Component
     protected function fetchEventos()
     {
         $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
-           
+            ->forUser()
+            ->when($this->filtroMedico, function ($q) {
+                $q->porMedico($this->filtroMedico);
+            })
+            ->get();
+
+        return $citas->map(function ($cita) {
+            return $cita->toFullCalendarEvent();
+        })->toArray();
+    }
+
+    public function fetchEventosRango($inicio, $fin)
+    {
+        try {
+            $inicioCarbon = Carbon::parse($inicio);
+            $finCarbon = Carbon::parse($fin);
+        } catch (\Exception $e) {
+            return [];
+        }
+
+        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+            ->forUser()
+            ->enRango($inicioCarbon, $finCarbon)
             ->when($this->filtroMedico, function ($q) {
                 $q->porMedico($this->filtroMedico);
             })
@@ -97,7 +120,7 @@ class Index extends Component
     public function getPacientesProperty()
     {
         return Paciente::activos()
-           
+            ->forUser()
             ->orderBy('nombres')
             ->limit(50)
             ->get();
@@ -106,7 +129,7 @@ class Index extends Component
     public function fetchEspecialidades()
     {
         $especialidades = Especialidad::where('status', true)
-           
+            ->forUser()
             ->whereHas('medicos', function ($q) {
                 $q->where('medico_especialidad.status', true);
             })
@@ -128,7 +151,7 @@ class Index extends Component
 
         $subs = Subespecialidad::where('especialidad_id', $especialidadId)
             ->where('status', true)
-           
+            ->forUser()
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'duracion_consulta']);
 
@@ -146,7 +169,7 @@ class Index extends Component
         if (!$especialidadId) return [];
 
         $query = Medico::activos()
-           
+            ->forUser()
             ->whereHas('especialidades', function ($q) use ($especialidadId) {
                 $q->where('especialidad_id', $especialidadId)
                   ->where('medico_especialidad.status', true);
@@ -416,6 +439,45 @@ class Index extends Component
         $this->dispatch('cita-saved');
     }
 
+    public function crearPacienteRapido($data): array
+    {
+        try {
+            $nombres = trim($data['nombres'] ?? '');
+            $apellidos = trim($data['apellidos'] ?? '');
+            if ($nombres === '' || $apellidos === '') {
+                return ['success' => false, 'errors' => ['Nombres y apellidos son obligatorios'], 'message' => 'Nombres y apellidos son obligatorios'];
+            }
+            $paciente = Paciente::create([
+                'nombres' => $nombres,
+                'apellidos' => $apellidos,
+                'documento_identidad' => $data['documento_identidad'] ?? null,
+                'telefono' => $data['telefono'] ?? null,
+                'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
+                'empresa_id' => auth()->user()->empresa_id,
+                'sucursal_id' => auth()->user()->sucursal_id,
+                'status' => true,
+            ]);
+            $esMenorFlag = (bool) ($data['es_menor'] ?? false);
+            $esMenorFecha = $paciente->es_menor;
+            if ($esMenorFlag || $esMenorFecha) {
+                $tutorData = $data['tutor'] ?? [];
+                if (!empty($tutorData['nombres']) || !empty($tutorData['apellidos']) || !empty($tutorData['telefono'])) {
+                    \App\Models\Tutor::create([
+                        'paciente_id' => $paciente->id,
+                        'nombres' => $tutorData['nombres'] ?? '',
+                        'apellidos' => $tutorData['apellidos'] ?? '',
+                        'telefono' => $tutorData['telefono'] ?? '',
+                        'parentesco' => 'Tutor',
+                    ]);
+                }
+            }
+            return ['success' => true, 'paciente_id' => $paciente->id, 'nombre' => $paciente->nombre_completo, 'errors' => [], 'message' => 'Paciente creado'];
+        } catch (\Exception $e) {
+            Log::error('Error creando paciente rápido', ['error' => $e->getMessage()]);
+            return ['success' => false, 'errors' => [$e->getMessage()], 'message' => 'Error creando paciente: ' . $e->getMessage()];
+        }
+    }
+
     public function cambiarEstado($citaId, $nuevoEstado)
     {
         $cita = Cita::findOrFail($citaId);
@@ -477,6 +539,68 @@ class Index extends Component
         }
     }
 
+    public function sugerirReagendamiento($citaId)
+    {
+        try {
+            $cita = Cita::with(['paciente', 'medico', 'especialidad'])->findOrFail($citaId);
+            $service = CitaReagendamientoService::forCompany($cita->empresa_id);
+            return $service->buscarHorariosDisponibles($cita, 7);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    public function reagendarManualmenteDesdeCalendario($citaId, $fechaHora)
+    {
+        try {
+            $cita = Cita::with(['paciente', 'medico', 'especialidad'])->findOrFail($citaId);
+            $service = CitaReagendamientoService::forCompany($cita->empresa_id);
+            $nuevaCita = $service->crearNuevaCita($cita, [
+                'fecha_hora' => $fechaHora,
+                'fecha_formateada' => Carbon::parse($fechaHora)->format('d/m/Y H:i'),
+                'duracion' => $cita->fecha_inicio->diffInMinutes($cita->fecha_fin),
+            ]);
+            $nuevaCita->programarRecordatorios();
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cita re-agendada para ' . Carbon::parse($fechaHora)->format('d/m/Y H:i')
+            ]);
+            $this->dispatch('cita-saved');
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al re-agendar: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function reagendarAutomaticamenteDesdeCalendario($citaId)
+    {
+        try {
+            $cita = Cita::findOrFail($citaId);
+            $service = CitaReagendamientoService::forCompany($cita->empresa_id);
+            $nuevaCita = $service->reagendarAutomaticamente($cita);
+            if ($nuevaCita) {
+                $nuevaCita->programarRecordatorios();
+                $this->dispatch('show-toast', [
+                    'type' => 'success',
+                    'message' => 'Cita re-agendada automáticamente para ' . $nuevaCita->fecha_inicio->format('d/m/Y H:i')
+                ]);
+            } else {
+                $this->dispatch('show-toast', [
+                    'type' => 'warning',
+                    'message' => 'No se encontraron horarios disponibles para re-agendar automáticamente.'
+                ]);
+            }
+            $this->dispatch('cita-saved');
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error en re-agendamiento automático: ' . $e->getMessage()
+            ]);
+        }
+    }
+
     public function resetForm()
     {
         $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
@@ -532,9 +656,19 @@ class Index extends Component
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
             if ($cita->estado === Cita::ESTADO_CANCELADA) {
-                return $service->notificarCancelacion($cita);
+                $ok = $service->notificarCancelacion($cita);
+                return [
+                    'success' => (bool) $ok,
+                    'errors' => $ok ? [] : ['No se pudo notificar la cancelación'],
+                    'message' => $ok ? 'Notificación de cancelación enviada' : 'Fallo al notificar cancelación'
+                ];
             } else {
-                return $service->notificarCambioEstado($cita, $estadoAnterior);
+                $ok = $service->notificarCambioEstado($cita, $estadoAnterior);
+                return [
+                    'success' => (bool) $ok,
+                    'errors' => $ok ? [] : ['No se pudo notificar el cambio de estado'],
+                    'message' => $ok ? 'Notificación de cambio de estado enviada' : 'Fallo al notificar cambio de estado'
+                ];
             }
         } catch (\Exception $e) {
             Log::error('Error notificando cambio de estado', ['error' => $e->getMessage()]);

@@ -8,6 +8,8 @@ use Spatie\Activitylog\Models\Activity;
 use Livewire\WithPagination;
 use App\Models\User;
 use Livewire\Attributes\Url;
+use App\Models\Medico;
+use App\Models\Cita;
 
 class ActivityLog extends Component
 {
@@ -35,13 +37,19 @@ class ActivityLog extends Component
     #[Url]
     public $sortDirection = 'desc';
     
+    #[Url]
+    public $doctorFilter = '';
+    
+    #[Url]
+    public $onlyCitaEstados = false;
+    
     public $perPage = 10;
     
     public $selectedActivities = [];
     
     public $selectAll = false;
 
-    protected $queryString = ['search', 'userFilter', 'dateRange', 'actionFilter', 'subjectTypeFilter', 'sortBy', 'sortDirection'];
+    protected $queryString = ['search', 'userFilter', 'dateRange', 'actionFilter', 'subjectTypeFilter', 'sortBy', 'sortDirection', 'doctorFilter', 'onlyCitaEstados'];
 
     public function render()
     {
@@ -80,6 +88,15 @@ class ActivityLog extends Component
                     $query->whereBetween('created_at', $dates);
                 }
             })
+            ->when($this->onlyCitaEstados, function ($query) {
+                $query->whereIn('description', ['cita_estado_cambiado', 'cita_estado_actualizado_automaticamente'])
+                      ->where('subject_type', Cita::class);
+            })
+            ->when($this->doctorFilter, function ($query) {
+                $query->whereHas('subject', function ($q) {
+                    $q->where('medico_id', $this->doctorFilter);
+                });
+            })
             ->when($this->sortBy, function ($query) {
                 $query->orderBy($this->sortBy, $this->sortDirection);
             }, function ($query) {
@@ -88,6 +105,7 @@ class ActivityLog extends Component
             ->paginate($this->perPage);
 
         $users = User::orderBy('name')->get();
+        $medicos = Medico::orderBy('nombres')->get();
         
         $actions = Activity::select('description')
             ->distinct()
@@ -107,7 +125,7 @@ class ActivityLog extends Component
                 return [$item => $className];
             });
 
-        return view('livewire.admin.activity-log', compact('activities', 'users', 'actions', 'subjectTypes'))
+        return view('livewire.admin.activity-log', compact('activities', 'users', 'actions', 'subjectTypes', 'medicos'))
             ->layout($this->getLayout(), ['title' => 'Seguimiento de Actividades']);
     }
 
