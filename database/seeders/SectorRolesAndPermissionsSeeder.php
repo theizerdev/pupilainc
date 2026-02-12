@@ -334,7 +334,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage notifications',
                     ]
                 ],
-               
+
             ],
 
             // 📱 SECTOR COMUNICACIONES (Adicional)
@@ -343,7 +343,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     'name' => 'WhatsApp',
                     'permissions' => [
                         'access whatsapp'
-                       
+
                     ]
                 ],
             ],
@@ -355,6 +355,15 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     'permissions' => [
                         'access recepcion dashboard',
                         'manage consultorios', // Asignar consultorios
+                    ]
+                ],
+                'consulta_apertura' => [
+                    'name' => 'Apertura de Consultas',
+                    'permissions' => [
+                        'access consulta apertura',
+                        'iniciar consulta',
+                        'enviar cuestionario whatsapp',
+                        'ver respuestas preconsulta',
                     ]
                 ],
             ],
@@ -445,6 +454,11 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 // Recepción
                 'access recepcion dashboard',
                 'manage consultorios',
+                // Apertura de Consultas (nuevo módulo)
+                'access consulta apertura',
+                'iniciar consulta',
+                'enviar cuestionario whatsapp',
+                'ver respuestas preconsulta',
                 // Médico limitado
                 'access tipo-consultas',
                 'create tipo-consultas',

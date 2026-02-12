@@ -99,6 +99,46 @@ class Paciente extends Model
         return null;
     }
 
+    public function isProfileComplete(): bool
+    {
+        $required = [
+            'nombres',
+            'apellidos',
+            'documento_identidad',
+            'fecha_nacimiento',
+        ];
+
+        foreach ($required as $field) {
+            $value = $this->$field;
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+            if ($value === null || $value === '') {
+                return false;
+            }
+        }
+
+        if ($this->es_menor) {
+            $tutor = $this->relationLoaded('tutor') ? $this->tutor : $this->tutor()->first();
+            if (!$tutor) {
+                return false;
+            }
+
+            $tutorRequired = ['nombres', 'apellidos', 'documento_identidad', 'parentesco', 'telefono'];
+            foreach ($tutorRequired as $field) {
+                $value = $tutor->$field ?? null;
+                if (is_string($value)) {
+                    $value = trim($value);
+                }
+                if ($value === null || $value === '') {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     public function getEsMenorAttribute()
     {
         return $this->edad !== null && $this->edad < 18;

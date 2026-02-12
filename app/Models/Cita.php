@@ -21,6 +21,7 @@ class Cita extends Model
     const ESTADO_PENDIENTE = 'pendiente';
     const ESTADO_CONFIRMADA = 'confirmada';
     const ESTADO_EN_CURSO = 'en_curso';
+    const ESTADO_SALA_ESPERA = 'sala_espera';
     const ESTADO_COMPLETADA = 'completada';
     const ESTADO_CANCELADA = 'cancelada';
     const ESTADO_NO_ASISTIO = 'no_asistio';
@@ -29,6 +30,7 @@ class Cita extends Model
         self::ESTADO_PENDIENTE,
         self::ESTADO_CONFIRMADA,
         self::ESTADO_EN_CURSO,
+        self::ESTADO_SALA_ESPERA,
         self::ESTADO_COMPLETADA,
         self::ESTADO_CANCELADA,
         self::ESTADO_NO_ASISTIO,
@@ -38,6 +40,7 @@ class Cita extends Model
         'pendiente' => 'warning',
         'confirmada' => 'primary',
         'en_curso' => 'info',
+        'sala_espera' => 'warning',
         'completada' => 'success',
         'cancelada' => 'danger',
         'no_asistio' => 'secondary',
@@ -47,6 +50,7 @@ class Cita extends Model
         'pendiente' => 'Pendiente',
         'confirmada' => 'Confirmada',
         'en_curso' => 'En Curso',
+        'sala_espera' => 'En Sala de Espera',
         'completada' => 'Completada',
         'cancelada' => 'Cancelada',
         'no_asistio' => 'No Asistió',
@@ -97,6 +101,11 @@ class Cita extends Model
     public function subespecialidad(): BelongsTo
     {
         return $this->belongsTo(Subespecialidad::class);
+    }
+
+    public function respuestasPreconsulta(): HasMany
+    {
+        return $this->hasMany(RespuestaPreconsulta::class);
     }
 
     public function empresa(): BelongsTo

@@ -2,20 +2,20 @@
 @php
 use Illuminate\Support\Facades\Storage;
 @endphp
- 
+
     <script>
         // Función para mostrar loading en el switch
         function showSwitchLoading(pacienteId) {
             const switchElement = document.getElementById(`statusSwitch${pacienteId}`);
             const label = switchElement.nextElementSibling;
             const originalContent = label.innerHTML;
-            
+
             // Deshabilitar el switch temporalmente
             switchElement.disabled = true;
-            
+
             // Mostrar loading
             label.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
-            
+
             // Restaurar después de 2 segundos (el tiempo que normalmente toma la actualización)
             setTimeout(() => {
                 label.innerHTML = originalContent;
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Storage;
             }, 2000);
         }
     </script>
-    
+
     <div class="">
         <!-- Page Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -125,7 +125,7 @@ use Illuminate\Support\Facades\Storage;
                             <input type="text" class="form-control" id="search" wire:model.live.debounce.300ms="search" placeholder="Buscar paciente...">
                         </div>
                     </div>
-                    
+
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="empresa_id">Empresa:</label>
@@ -237,8 +237,8 @@ use Illuminate\Support\Facades\Storage;
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-sm me-2">
                                                 @if($paciente->foto)
-                                                    <img src="{{ filter_var($paciente->foto, FILTER_VALIDATE_URL) ? $paciente->foto : \Illuminate\Support\Facades\Storage::url($paciente->foto) }}" 
-                                                         alt="{{ $paciente->nombres }}" 
+                                                    <img src="{{ filter_var($paciente->foto, FILTER_VALIDATE_URL) ? $paciente->foto : \Illuminate\Support\Facades\Storage::url($paciente->foto) }}"
+                                                         alt="{{ $paciente->nombres }}"
                                                          class="avatar-img rounded-circle"
                                                          style="width: 40px; height: 40px; object-fit: cover;">
                                                 @else
@@ -276,8 +276,8 @@ use Illuminate\Support\Facades\Storage;
                                     <td>
                                         @if($paciente->tutor)
                                             <div>{{ $paciente->tutor->nombres }} {{ $paciente->tutor->apellidos }}</div>
-                                            @if($paciente->parentesco)
-                                                <span class="badge bg-secondary">{{ $paciente->parentesco }}</span>
+                                            @if($paciente->tutor->parentesco ?? null)
+                                                <span class="badge bg-secondary">{{ $paciente->tutor->parentesco }}</span>
                                             @endif
                                         @else
                                             <span class="text-muted">-</span>
@@ -285,14 +285,14 @@ use Illuminate\Support\Facades\Storage;
                                     </td>
                                     <td>
                                         <div class="form-check form-switch form-switch-lg">
-                                            <input class="form-check-input" type="checkbox" 
+                                            <input class="form-check-input" type="checkbox"
                                                    id="statusSwitch{{ $paciente->id }}"
                                                    wire:click="toggleStatus({{ $paciente->id }})"
                                                    wire:confirm="¿Estás seguro de {{ $paciente->status ? 'desactivar' : 'activar' }} este paciente?"
                                                    {{ $paciente->status ? 'checked' : '' }}
                                                    style="cursor: pointer;"
                                                    onchange="showSwitchLoading({{ $paciente->id }})">
-                                           
+
                                         </div>
                                     </td>
                                     <td>{{ $paciente->created_at->format('d/m/Y') }}</td>
@@ -302,13 +302,32 @@ use Illuminate\Support\Facades\Storage;
                                                 <i class="ri ri-more-2-line"></i>
                                             </button>
                                             <div class="dropdown-menu">
-                                                
+
                                                 @can('edit pacientes')
                                                 <a class="dropdown-item" href="{{ route('admin.pacientes.edit', $paciente->id) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar
                                                 </a>
                                                 @endcan
-                                                
+
+                                                @if($paciente->fecha_nacimiento && $paciente->fecha_nacimiento->age < 18)
+                                                    <a class="dropdown-item" href="{{ route('admin.pacientes.carnet-menor', $paciente->id) }}" target="_blank" rel="noopener">
+                                                        <i class="ri ri-printer-line me-1"></i> Imprimir Carnet (Menor)
+                                                    </a>
+                                                    <a class="dropdown-item" href="{{ route('admin.pacientes.carnet-menor.png', $paciente->id) }}" target="_blank" rel="noopener">
+                                                        <i class="ri ri-image-line me-1"></i> Ver Imagen del Carnet
+                                                    </a>
+                                                    <a class="dropdown-item" href="{{ route('admin.pacientes.carnet-menor.pdf', $paciente->id) }}" target="_blank" rel="noopener">
+                                                        <i class="ri ri-file-pdf-2-line me-1"></i> Ver PDF del Carnet
+                                                    </a>
+                                                    <form action="{{ route('admin.pacientes.carnet-menor.whatsapp', $paciente->id) }}" method="POST"
+                                                          onsubmit="return confirm('¿Enviar el carnet por WhatsApp al tutor?')">
+                                                        @csrf
+                                                        <button type="submit" class="dropdown-item">
+                                                            <i class="ri ri-whatsapp-line me-1"></i> Enviar por WhatsApp (Tutor)
+                                                        </button>
+                                                    </form>
+                                                @endif
+
                                                 @can('delete pacientes')
                                                 <button type="button" class="dropdown-item text-danger"
                                                         wire:click="delete({{ $paciente->id }})"

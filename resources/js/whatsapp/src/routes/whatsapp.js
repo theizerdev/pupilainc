@@ -23,6 +23,7 @@ router.post('/force-reset', WhatsAppController.forceReset);
 router.get('/qr', WhatsAppController.getQRCode);
 router.post('/send', rateLimitByCompany, WhatsAppController.sendMessage);
 router.post('/send-document', rateLimitByCompany, WhatsAppController.upload.single('document'), WhatsAppController.sendDocument);
+router.post('/send-image', rateLimitByCompany, WhatsAppController.uploadImage.single('image'), WhatsAppController.sendImage);
 router.get('/messages', WhatsAppController.getMessages);
 
 router.get('/conversations', async (req, res) => {

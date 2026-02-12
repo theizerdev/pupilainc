@@ -9,20 +9,23 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppService
 {
     private $baseUrl;
+
     private $apiKey;
+
     private $companyId;
+
     private $timeout;
 
     /**
      * Constructor del servicio WhatsApp
-     * 
-     * @param Empresa|int|null $empresa - Empresa, ID de empresa, o null para usar la del usuario actual
+     *
+     * @param  Empresa|int|null  $empresa  - Empresa, ID de empresa, o null para usar la del usuario actual
      */
     public function __construct($empresa = null)
     {
         $this->baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
         $this->timeout = config('whatsapp.timeout', 30);
-        
+
         // Resolver la empresa y obtener su API key
         $this->resolveCompany($empresa);
     }
@@ -36,6 +39,7 @@ class WhatsAppService
         if ($empresa instanceof Empresa) {
             $this->companyId = $empresa->id;
             $this->apiKey = $empresa->whatsapp_api_key;
+
             return;
         }
 
@@ -45,6 +49,7 @@ class WhatsAppService
             if ($empresaModel) {
                 $this->companyId = $empresaModel->id;
                 $this->apiKey = $empresaModel->whatsapp_api_key;
+
                 return;
             }
         }
@@ -55,6 +60,7 @@ class WhatsAppService
             if ($empresaModel) {
                 $this->companyId = $empresaModel->id;
                 $this->apiKey = $empresaModel->whatsapp_api_key;
+
                 return;
             }
         }
@@ -104,9 +110,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Status Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp Status Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -123,9 +130,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp QR Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp QR Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -144,28 +152,31 @@ class WhatsAppService
                     'type' => 'text',
                     'isWelcome' => $isWelcome,
                 ]);
-            //dd($response);
+            // dd($response);
             if ($response->successful()) {
                 Log::info('WhatsApp mensaje enviado', [
                     'company_id' => $this->companyId,
                     'to' => $to,
-                    'message_id' => $response->json('messageId')
+                    'message_id' => $response->json('messageId'),
                 ]);
+
                 return $response->json();
             } else {
                 Log::error('WhatsApp Send Message Failed', [
                     'company_id' => $this->companyId,
                     'to' => $to,
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body' => $response->body(),
                 ]);
+
                 return null;
             }
         } catch (\Exception $e) {
-            Log::error('WhatsApp Send Message Error: ' . $e->getMessage(), [
+            Log::error('WhatsApp Send Message Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
-                'to' => $to
+                'to' => $to,
             ]);
+
             return null;
         }
     }
@@ -184,15 +195,41 @@ class WhatsAppService
                 ->attach('document', file_get_contents($filePath), basename($filePath))
                 ->post("{$this->baseUrl}/api/whatsapp/send-document", [
                     'to' => $to,
-                    'caption' => $caption
+                    'caption' => $caption,
                 ]);
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Send Document Error: ' . $e->getMessage(), [
+            Log::error('WhatsApp Send Document Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
-                'to' => $to
+                'to' => $to,
             ]);
+
+            return null;
+        }
+    }
+
+    public function sendImage(string $to, string $filePath, string $caption = '')
+    {
+        try {
+            $response = Http::timeout($this->timeout)
+                ->withHeaders([
+                    'X-API-Key' => $this->apiKey,
+                    'X-Company-Id' => (string) $this->companyId,
+                ])
+                ->attach('image', file_get_contents($filePath), basename($filePath))
+                ->post("{$this->baseUrl}/api/whatsapp/send-image", [
+                    'to' => $to,
+                    'caption' => $caption,
+                ]);
+
+            return $response->successful() ? $response->json() : null;
+        } catch (\Exception $e) {
+            Log::error('WhatsApp Send Image Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
+                'to' => $to,
+            ]);
+
             return null;
         }
     }
@@ -209,9 +246,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Get Messages Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp Get Messages Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -228,9 +266,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Connect Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp Connect Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -247,9 +286,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Disconnect Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp Disconnect Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -266,9 +306,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Reconnect Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp Reconnect Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -285,9 +326,10 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Remove Session Error: ' . $e->getMessage(), [
-                'company_id' => $this->companyId
+            Log::error('WhatsApp Remove Session Error: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
             ]);
+
             return null;
         }
     }
@@ -304,7 +346,8 @@ class WhatsAppService
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Manager Stats Error: ' . $e->getMessage());
+            Log::error('WhatsApp Manager Stats Error: '.$e->getMessage());
+
             return null;
         }
     }
@@ -326,16 +369,17 @@ class WhatsAppService
                 Log::info('WhatsApp mensaje interactivo enviado', [
                     'company_id' => $this->companyId,
                     'to' => $to,
-                    'message_id' => $response->json('messageId')
+                    'message_id' => $response->json('messageId'),
                 ]);
             }
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Send Interactive Message Error: ' . $e->getMessage(), [
+            Log::error('WhatsApp Send Interactive Message Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
-                'to' => $to
+                'to' => $to,
             ]);
+
             return null;
         }
     }
@@ -345,6 +389,6 @@ class WhatsAppService
      */
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey) && !empty($this->companyId);
+        return ! empty($this->apiKey) && ! empty($this->companyId);
     }
 }

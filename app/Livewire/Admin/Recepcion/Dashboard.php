@@ -19,10 +19,37 @@ class Dashboard extends Component
     public $search = '';
     public $date = '';
     public $stats = [];
+    public $selectedPaciente = null;
+    public $selectedPacienteCitas = [];
     
     public function mount()
     {
         $this->date = Carbon::today()->format('Y-m-d');
+    }
+
+    public function updatedSearch()
+    {
+        $this->selectedPaciente = null;
+        $this->selectedPacienteCitas = [];
+    }
+
+    public function selectPaciente($pacienteId)
+    {
+        $this->selectedPaciente = Paciente::with(['tutor', 'citas' => function($q) {
+            $q->with(['medico', 'especialidad'])
+              ->orderBy('fecha_inicio', 'desc')
+              ->take(10);
+        }])->find($pacienteId);
+
+        $this->selectedPacienteCitas = $this->selectedPaciente 
+            ? $this->selectedPaciente->citas->toArray() 
+            : [];
+    }
+
+    public function clearSelection()
+    {
+        $this->selectedPaciente = null;
+        $this->selectedPacienteCitas = [];
     }
 
     public function marcarLlegada($citaId)
@@ -104,7 +131,6 @@ class Dashboard extends Component
             ->orderBy('nombre')
             ->get();
 
-        // Agregar métricas de ocupación de consultorios
         $activosConsultorios = Consultorio::query()->where('status', true)->count();
         $ocupadosConsultorios = $ocupacionConsultorios->count();
         $disponiblesConsultorios = max($activosConsultorios - $ocupadosConsultorios, 0);
@@ -113,13 +139,17 @@ class Dashboard extends Component
         
         if (strlen($this->search) > 2) {
             $pacientes = Paciente::query()
-                ->forUser() // Scope to filter by empresa/sucursal
+                ->forUser()
                 ->where(function($query) {
                     $query->where('nombres', 'like', '%' . $this->search . '%')
                           ->orWhere('apellidos', 'like', '%' . $this->search . '%')
-                          ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
+                          ->orWhere('documento_identidad', 'like', '%' . $this->search . '%')
+                          ->orWhere('telefono', 'like', '%' . $this->search . '%')
+                          ->orWhere('email', 'like', '%' . $this->search . '%');
                 })
-                ->with(['citas' => function($query) {
+                ->with([
+                    'tutor',
+                    'citas' => function($query) {
                     $query->whereIn('estado', [
                             Cita::ESTADO_PENDIENTE, 
                             Cita::ESTADO_CONFIRMADA, 

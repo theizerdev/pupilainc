@@ -195,15 +195,22 @@ class Wizard extends Component
 
     public function updatedDocumentoIdentidad($value)
     {
-        if (strlen($value) >= 5) {
-            $exists = Paciente::where('documento_identidad', $value)
-                ->where('empresa_id', $this->empresa_id)
-                ->when($this->pacienteId, fn($q) => $q->where('id', '!=', $this->pacienteId))
-                ->exists();
+        $value = trim((string) $value);
 
-            if ($exists) {
-                $this->addError('documento_identidad', 'Este documento ya está registrado en el sistema.');
-            }
+        $this->resetErrorBag('documento_identidad');
+        $this->resetValidation('documento_identidad');
+
+        if (strlen($value) < 5 || !$this->empresa_id) {
+            return;
+        }
+
+        $exists = Paciente::where('documento_identidad', $value)
+            ->where('empresa_id', $this->empresa_id)
+            ->when($this->pacienteId, fn ($q) => $q->where('id', '!=', $this->pacienteId))
+            ->exists();
+
+        if ($exists) {
+            $this->addError('documento_identidad', 'Este documento ya está registrado en el sistema.');
         }
     }
 

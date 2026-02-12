@@ -13,15 +13,15 @@ class WhatsAppController {
     try {
       // Acceder a la instancia global del servicio WhatsApp
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
+        return res.status(500).json({
+          success: false,
           error: 'WhatsApp service not initialized',
           company: req.company.name
         });
       }
-      
+
       const status = whatsappService.getStatus();
       res.json({ success: true, ...status, company: req.company.name });
     } catch (error) {
@@ -33,17 +33,17 @@ class WhatsAppController {
   async connect(req, res) {
     try {
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WhatsApp service not initialized' 
+        return res.status(500).json({
+          success: false,
+          error: 'WhatsApp service not initialized'
         });
       }
 
       await whatsappService.connect();
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         company: req.company.name,
         message: 'Connection initiated'
       });
@@ -56,11 +56,11 @@ class WhatsAppController {
   async disconnect(req, res) {
     try {
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WhatsApp service not initialized' 
+        return res.status(500).json({
+          success: false,
+          error: 'WhatsApp service not initialized'
         });
       }
 
@@ -75,19 +75,19 @@ class WhatsAppController {
   async forceReset(req, res) {
     try {
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WhatsApp service not initialized' 
+        return res.status(500).json({
+          success: false,
+          error: 'WhatsApp service not initialized'
         });
       }
 
       logger.info('🔄 Forzando reinicio completo...', { company: req.company.name });
       await whatsappService.forceReset();
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: 'WhatsApp service reset successfully',
         company: req.company.name
       });
@@ -101,29 +101,29 @@ class WhatsAppController {
     try {
       // Acceder a la instancia global del servicio WhatsApp
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
+        return res.status(500).json({
+          success: false,
           error: 'WhatsApp service not initialized',
           company: req.company.name
         });
       }
-      
+
       const status = whatsappService.getStatus();
       const qrRaw = status.qr;
-      
+
       if (qrRaw) {
         const qrDataUrl = await QRCode.toDataURL(qrRaw, { width: 300, margin: 2 });
-        res.json({ 
-          success: true, 
-          qr: qrDataUrl, 
+        res.json({
+          success: true,
+          qr: qrDataUrl,
           company: req.company.name,
           message: 'QR code available'
         });
       } else {
-        res.json({ 
-          success: false, 
+        res.json({
+          success: false,
           error: 'QR code not available. Connection status: ' + (status.connectionState || 'unknown'),
           company: req.company.name,
           connectionState: status.connectionState
@@ -139,11 +139,11 @@ class WhatsAppController {
     try {
       const { to, message, type = 'text', mediaUrl, isWelcome = false } = req.body;
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WhatsApp service not initialized' 
+        return res.status(500).json({
+          success: false,
+          error: 'WhatsApp service not initialized'
         });
       }
 
@@ -164,9 +164,9 @@ class WhatsAppController {
           reason: protectionError.message,
           isWelcome
         });
-        
-        return res.status(429).json({ 
-          success: false, 
+
+        return res.status(429).json({
+          success: false,
           error: protectionError.message,
           code: 'ANTI_BLOCK_PROTECTION',
           company: req.company.name,
@@ -180,9 +180,9 @@ class WhatsAppController {
         companyId: req.company.company_id
       });
 
-      res.json({ 
-        success: true, 
-        messageId: result.messageId, 
+      res.json({
+        success: true,
+        messageId: result.messageId,
         company: req.company.name,
         antiBlock: {
           protected: true,
@@ -200,7 +200,7 @@ class WhatsAppController {
     try {
       const { page = 1, limit = 50, status, from, to } = req.query;
       const where = { companyId: req.company.company_id };
-      
+
       if (status) where.status = status;
       if (from) where.from = from;
       if (to) where.to = to;
@@ -230,25 +230,25 @@ class WhatsAppController {
     try {
       const { to, message, caption = '' } = req.body;
       const whatsappService = req.app.locals.whatsappService;
-      
+
       if (!whatsappService) {
-        return res.status(500).json({ 
-          success: false, 
-          error: 'WhatsApp service not initialized' 
+        return res.status(500).json({
+          success: false,
+          error: 'WhatsApp service not initialized'
         });
       }
 
       if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'No file uploaded' 
+        return res.status(400).json({
+          success: false,
+          error: 'No file uploaded'
         });
       }
 
       if (!to) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Recipient phone number is required' 
+        return res.status(400).json({
+          success: false,
+          error: 'Recipient phone number is required'
         });
       }
 
@@ -276,22 +276,84 @@ class WhatsAppController {
         logger.warn('Error deleting temporary file:', err);
       });
 
-      res.json({ 
-        success: true, 
-        messageId: result.messageId, 
+      res.json({
+        success: true,
+        messageId: result.messageId,
         company: req.company.name,
         fileName: fileName
       });
     } catch (error) {
       logger.error('Error sending document:', error);
-      
+
       // Limpiar el archivo temporal en caso de error
       if (req.file && req.file.path) {
         await fs.unlink(req.file.path).catch(err => {
           logger.warn('Error deleting temporary file after error:', err);
         });
       }
-      
+
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
+  async sendImage(req, res) {
+    try {
+      const { to, message, caption = '' } = req.body;
+      const whatsappService = req.app.locals.whatsappService;
+
+      if (!whatsappService) {
+        return res.status(500).json({
+          success: false,
+          error: 'WhatsApp service not initialized'
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          error: 'No file uploaded'
+        });
+      }
+
+      if (!to) {
+        return res.status(400).json({
+          success: false,
+          error: 'Recipient phone number is required'
+        });
+      }
+
+      const fileBuffer = await fs.readFile(req.file.path);
+      const mimeType = req.file.mimetype;
+
+      const imageContent = {
+        image: fileBuffer,
+        mimetype: mimeType,
+        caption: caption || message || ''
+      };
+
+      const result = await whatsappService.sendMessage(to, imageContent, {
+        type: 'image',
+        companyId: req.company.company_id
+      });
+
+      await fs.unlink(req.file.path).catch(err => {
+        logger.warn('Error deleting temporary file:', err);
+      });
+
+      res.json({
+        success: true,
+        messageId: result.messageId,
+        company: req.company.name
+      });
+    } catch (error) {
+      logger.error('Error sending image:', error);
+
+      if (req.file && req.file.path) {
+        await fs.unlink(req.file.path).catch(err => {
+          logger.warn('Error deleting temporary file after error:', err);
+        });
+      }
+
       res.status(500).json({ success: false, error: error.message });
     }
   }
@@ -314,7 +376,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: {
     fileSize: 16 * 1024 * 1024 // 16MB límite
@@ -330,7 +392,7 @@ const upload = multer({
       'text/plain',
       'text/csv'
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -339,8 +401,30 @@ const upload = multer({
   }
 });
 
+const uploadImage = multer({
+  storage: storage,
+  limits: {
+    fileSize: 8 * 1024 * 1024
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/webp'
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de archivo no permitido. Use PNG o JPG.'), false);
+    }
+  }
+});
+
 // Exportar el controlador y el middleware de upload
 const controller = new WhatsAppController();
 controller.upload = upload;
+controller.uploadImage = uploadImage;
 
 module.exports = controller;

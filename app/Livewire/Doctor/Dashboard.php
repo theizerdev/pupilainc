@@ -21,6 +21,7 @@ class Dashboard extends Component
     public $weekCitas = [];
     public $citasChartData = [];
     public $ingresosChartData = [];
+    public $consultasConsultorio = [];
 
     public function mount($id = null)
     {
@@ -85,6 +86,12 @@ class Dashboard extends Component
             ->orderBy('fecha_inicio', 'asc')
         
             ->limit(10)
+            ->get();
+
+        $this->consultasConsultorio = \App\Models\Consulta::with('paciente')
+            ->porMedico($this->medico->id)
+            ->porEstado(\App\Models\Consulta::ESTADO_EN_CONSULTORIO)
+            ->orderBy('fecha_consulta', 'asc')
             ->get();
 
         $this->loadChartData();
@@ -158,7 +165,8 @@ class Dashboard extends Component
             'todayCitas' => $this->todayCitas,
             'weekCitas' => $this->weekCitas,
             'citasChartData' => $this->citasChartData,
-            'ingresosChartData' => $this->ingresosChartData
+            'ingresosChartData' => $this->ingresosChartData,
+            'consultasConsultorio' => $this->consultasConsultorio
         ])->layout($this->getLayout());
     }
 }

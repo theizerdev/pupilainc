@@ -26,6 +26,25 @@
 
 @push('scripts')
 <script>
+// Verificar mensajes flash de sesión al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    @if(session()->has('success'))
+        window.showToast('success', "{{ session('success') }}");
+    @endif
+
+    @if(session()->has('error'))
+        window.showToast('error', "{{ session('error') }}");
+    @endif
+
+    @if(session()->has('warning'))
+        window.showToast('warning', "{{ session('warning') }}");
+    @endif
+
+    @if(session()->has('info'))
+        window.showToast('info', "{{ session('info') }}");
+    @endif
+});
+
 // Función para crear y mostrar un toast
 window.showToast = function(type, message, duration = 5000) {
   // Esperar a que el DOM esté listo y Bootstrap disponible

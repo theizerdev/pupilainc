@@ -9,7 +9,7 @@
             height: 100%;
             background: var(--bs-white);
         }
-        
+
         .doctor-dashboard-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 0.25rem 0.75rem rgba(165, 163, 174, 0.4);
@@ -134,6 +134,17 @@
             transform: translateY(-1px);
         }
 
+        .btn-start {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: linear-gradient(135deg, #5a6fd1, #6b439b);
+            transform: translateY(-1px);
+            color: white;
+        }
+
         .btn-view {
             background: #757575;
             color: white;
@@ -212,15 +223,15 @@
                 height: 2.5rem;
                 font-size: 1.25rem;
             }
-            
+
             .chart-container-doctor {
                 height: 200px;
             }
-            
+
             .quick-actions-doctor {
                 flex-direction: column;
             }
-            
+
             .cita-card {
                 padding: 0.75rem;
             }
@@ -351,6 +362,52 @@
         </div>
     </div>
 
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card doctor-dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-md me-2 text-info"></i>
+                        Consultas en consultorio
+                    </h5>
+                    <span class="badge bg-info">{{ $consultasConsultorio->count() }} consultas</span>
+                </div>
+                <div class="card-body">
+                    @if($consultasConsultorio->count() > 0)
+                        @foreach($consultasConsultorio as $consulta)
+                        <div class="cita-card en_consultorio">
+                            <div class="row align-items-center">
+                                <div class="col-auto">
+                                    <div class="patient-avatar">
+                                        {{ substr($consulta->paciente->nombres ?? 'P', 0, 1) }}
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <h6 class="mb-1">{{ $consulta->paciente->nombres }} {{ $consulta->paciente->apellidos }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ optional($consulta->fecha_consulta)->format('H:i') }}
+                                    </small>
+                                </div>
+                                <div class="col-auto">
+                                    <a href="{{ $consulta->cita_id ? route('doctor.consulta.proceso', $consulta->cita_id) : '#' }}" class="action-btn-doctor btn-start" title="Continuar consulta">
+                                        <i class="fas fa-user-md"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    @else
+                        <div class="text-center py-4">
+                            <i class="fas fa-user-md text-muted" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-3 mb-0">No hay consultas en consultorio</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Citas de Hoy y Próximas -->
     <div class="row mb-4">
         <!-- Citas de Hoy -->
@@ -367,7 +424,7 @@
                     @if($todayCitas->count() > 0)
                         @foreach($todayCitas as $cita)
                         <div class="cita-card {{ $cita->estado }}">
-                            <div class="status-badge 
+                            <div class="status-badge
                                 @if($cita->estado == 'pendiente') bg-warning text-dark
                                 @elseif($cita->estado == 'completada') bg-primary
                                 @elseif($cita->estado == 'cancelada') bg-danger
@@ -375,7 +432,7 @@
                                 @endif">
                                 {{ ucfirst($cita->estado) }}
                             </div>
-                            
+
                             <div class="row align-items-center">
                                 <div class="col-auto">
                                     <div class="patient-avatar">
@@ -398,19 +455,24 @@
                                 <div class="col-auto">
                                     <div class="d-flex gap-1">
                                         @if($cita->estado == 'pendiente')
-                                        <button class="action-btn-doctor btn-complete" 
+                                        <a href="{{ route('doctor.consulta.proceso', $cita->id) }}"
+                                           class="action-btn-doctor btn-start"
+                                           title="Iniciar Consulta">
+                                            <i class="fas fa-user-md"></i>
+                                        </a>
+                                        <button class="action-btn-doctor btn-complete"
                                                 wire:click="completarCita({{ $cita->id }})"
                                                 title="Completar cita">
                                             <i class="fas fa-check"></i>
                                         </button>
-                                        <button class="action-btn-doctor btn-cancel" 
+                                        <button class="action-btn-doctor btn-cancel"
                                                 wire:click="cancelarCita({{ $cita->id }})"
                                                 title="Cancelar cita">
                                             <i class="fas fa-times"></i>
                                         </button>
                                         @endif
-                                        <a href="{{ route('admin.citas.index', $cita->id) }}" 
-                                           class="action-btn-doctor btn-view" 
+                                        <a href="{{ route('admin.citas.index', $cita->id) }}"
+                                           class="action-btn-doctor btn-view"
                                            title="Ver detalles">
                                             <i class="fas fa-eye"></i>
                                         </a>

@@ -1,35 +1,39 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Livewire\Dashboard;
-use App\Livewire\Admin\Empresas\Index as EmpresasIndex;
-use App\Livewire\Admin\Empresas\Create as EmpresasCreate;
-use App\Livewire\Admin\Empresas\Edit as EmpresasEdit;
-use App\Livewire\Admin\Sucursales\Index as SucursalesIndex;
-use App\Livewire\Admin\Sucursales\Create as SucursalesCreate;
-use App\Livewire\Admin\Sucursales\Edit as SucursalesEdit;
-use App\Livewire\Admin\Sucursales\Show as SucursalesShow;
-use App\Livewire\Admin\Users\Index as UsersIndex;
-use App\Livewire\Admin\Users\Create as UsersCreate;
-use App\Livewire\Admin\Users\Edit as UsersEdit;
-use App\Livewire\Admin\Roles\Index as RolesIndex;
-use App\Livewire\Admin\Roles\Create as RolesCreate;
-use App\Livewire\Admin\Roles\Edit as RolesEdit;
-use App\Livewire\Admin\Roles\Show as RolesShow;
-use App\Livewire\Admin\Permissions\Index as PermissionsIndex;
-use App\Livewire\Admin\Permissions\Create as PermissionsCreate;
-use App\Livewire\Admin\Permissions\Edit as PermissionsEdit;
+use App\Http\Controllers\Admin\PacienteCarnetMenorController;
 use App\Livewire\Admin\ActiveSessions;
-use App\Livewire\Admin\ConceptosPago\Index as ConceptosPagoIndex;
 use App\Livewire\Admin\ConceptosPago\Create as ConceptosPagoCreate;
 use App\Livewire\Admin\ConceptosPago\Edit as ConceptosPagoEdit;
-
-
+use App\Livewire\Admin\ConceptosPago\Index as ConceptosPagoIndex;
+use App\Livewire\Admin\Empresas\Create as EmpresasCreate;
+use App\Livewire\Admin\Empresas\Edit as EmpresasEdit;
+use App\Livewire\Admin\Empresas\Index as EmpresasIndex;
+use App\Livewire\Admin\Permissions\Create as PermissionsCreate;
+use App\Livewire\Admin\Permissions\Edit as PermissionsEdit;
+use App\Livewire\Admin\Permissions\Index as PermissionsIndex;
+use App\Livewire\Admin\Roles\Create as RolesCreate;
+use App\Livewire\Admin\Roles\Edit as RolesEdit;
+use App\Livewire\Admin\Roles\Index as RolesIndex;
+use App\Livewire\Admin\Roles\Show as RolesShow;
+use App\Livewire\Admin\Sucursales\Create as SucursalesCreate;
+use App\Livewire\Admin\Sucursales\Edit as SucursalesEdit;
+use App\Livewire\Admin\Sucursales\Index as SucursalesIndex;
+use App\Livewire\Admin\Sucursales\Show as SucursalesShow;
+use App\Livewire\Admin\Users\Create as UsersCreate;
+use App\Livewire\Admin\Users\Edit as UsersEdit;
+use App\Livewire\Admin\Users\Index as UsersIndex;
+use App\Livewire\Dashboard;
+use Illuminate\Support\Facades\Route;
 
 // Recepción
 Route::prefix('recepcion')->name('recepcion.')->group(function () {
     Route::get('/dashboard', \App\Livewire\Admin\Recepcion\Dashboard::class)->name('dashboard')->middleware('checkAdminPermission:access recepcion dashboard');
     Route::get('/control-consultorios', \App\Livewire\Admin\Recepcion\ControlConsultorios::class)->name('control-consultorios')->middleware('checkAdminPermission:manage consultorios');
+});
+
+// Consulta - Apertura
+Route::prefix('consulta')->name('consulta.')->group(function () {
+    Route::get('/apertura', \App\Livewire\Admin\Consulta\Apertura::class)->name('apertura')->middleware('checkAdminPermission:access consulta apertura');
 });
 
 // Consultorios
@@ -82,6 +86,11 @@ Route::middleware(['checkAdminPermission:access pacientes'])->group(function () 
     Route::get('/pacientes', \App\Livewire\Admin\Pacientes\Index::class)->name('pacientes.index');
     Route::get('/pacientes/crear', \App\Livewire\Admin\Pacientes\Wizard::class)->name('pacientes.create');
     Route::get('/pacientes/{pacienteId}/editar', \App\Livewire\Admin\Pacientes\Wizard::class)->name('pacientes.edit');
+    Route::get('/pacientes/{paciente}/carnet-menor', [PacienteCarnetMenorController::class, 'show'])->name('pacientes.carnet-menor');
+    Route::get('/pacientes/{paciente}/carnet-menor.png', [PacienteCarnetMenorController::class, 'png'])->name('pacientes.carnet-menor.png');
+    Route::get('/pacientes/{paciente}/carnet-menor.pdf', [PacienteCarnetMenorController::class, 'pdf'])->name('pacientes.carnet-menor.pdf');
+    Route::post('/pacientes/{paciente}/carnet-menor/whatsapp', [PacienteCarnetMenorController::class, 'sendWhatsApp'])->name('pacientes.carnet-menor.whatsapp');
+    Route::get('/pacientes/{paciente}/preconsulta', \App\Livewire\Admin\Pacientes\Preconsulta::class)->name('pacientes.preconsulta');
 });
 
 // Países
@@ -128,7 +137,6 @@ Route::middleware(['checkAdminPermission:access permissions'])->group(function (
     Route::get('/permisos/{permission}/editar', PermissionsEdit::class)->name('permissions.edit');
 });
 
-
 // Sesiones activas
 Route::get('/active-sessions', ActiveSessions::class)->name('active-sessions.index')->middleware('checkAdminPermission:view active sessions');
 
@@ -143,15 +151,12 @@ Route::prefix('monitoreo')->as('monitoreo.')->group(function () {
 // Tasas de Cambio
 Route::get('/tasas-cambio', \App\Livewire\Admin\ExchangeRates::class)->name('exchange-rates')->middleware('checkAdminPermission:view exchange-rates');
 
-
-
 // Series de Documentos
 Route::middleware(['checkAdminPermission:access series'])->group(function () {
     Route::get('/series', \App\Livewire\Admin\Series\Index::class)->name('series.index');
     Route::get('/series/crear', \App\Livewire\Admin\Series\Create::class)->name('series.create');
     Route::get('/series/{serie}/editar', \App\Livewire\Admin\Series\Edit::class)->name('series.edit');
 });
-
 
 // Pagos
 Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
@@ -163,11 +168,8 @@ Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
     Route::get('/pagos/comprobante/{comprobante}', \App\Livewire\Admin\Pagos\Comprobantes::class)->name('pagos.comprobante');
 });
 
-
-
 // Registro de Actividad
 Route::get('/activity-log', \App\Livewire\Admin\ActivityLog::class)->name('activity-log')->middleware('checkAdminPermission:access activity log');
-
 
 // Cajas
 Route::middleware(['checkAdminPermission:access cajas'])->group(function () {
@@ -187,25 +189,25 @@ Route::get('/notifications', \App\Livewire\Admin\Notifications\Index::class)->na
 Route::prefix('whatsapp')->as('whatsapp.')->middleware(['checkAdminPermission:access whatsapp'])->group(function () {
     // Dashboard principal
     Route::get('/dashboard', \App\Livewire\Admin\Whatsapp\WhatsAppDashboard::class)->name('dashboard');
-    
+
     // Gestión de conexión
     Route::get('/connection', \App\Livewire\Admin\Whatsapp\WhatsAppConnection::class)->name('connection');
-    
+
     // Enviar mensajes
     Route::get('/send-messages', \App\Livewire\Admin\Whatsapp\WhatsAppSendMessages::class)->name('send-messages');
-    
+
     // Plantillas
     Route::get('/templates', \App\Livewire\Admin\Whatsapp\WhatsAppTemplates::class)->name('templates.index');
-    
+
     // Historial
     Route::get('/history', \App\Livewire\Admin\Whatsapp\WhatsAppHistory::class)->name('history');
-    
+
     // Mensajes programados
     Route::get('/scheduled-messages', \App\Livewire\Admin\Whatsapp\WhatsAppScheduledMessages::class)->name('scheduled-messages');
-    
+
     // Mantener rutas antiguas para compatibilidad temporal
     Route::get('/', \App\Livewire\Admin\Whatsapp\Index::class)->name('index');
-    
+
     // Estadísticas
     Route::get('/statistics', \App\Livewire\Admin\Whatsapp\WhatsAppStatistics::class)->name('statistics');
 });
