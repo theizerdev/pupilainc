@@ -159,7 +159,7 @@
             <tr>
                 <td><span class="label">Paciente:</span> {{ $paciente->nombres }} {{ $paciente->apellidos }}</td>
                 <td><span class="label">ID:</span> {{ $paciente->documento_identidad }}</td>
-                <td><span class="label">Edad:</span> {{ $paciente->fecha_nacimiento ? $paciente->fecha_nacimiento->age . ' años' : 'N/A' }}</td>
+                <td><span class="label">Edad:</span> {{ $paciente->edad_formateada ?? 'N/A' }}</td>
             </tr>
         </table>
     </div>

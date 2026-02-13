@@ -429,6 +429,89 @@
                         </form>
                     </div>
                 </div>
+                
+                <!-- Modal: Nuevo Paciente Rápido -->
+                <div class="modal fade" id="modalPacienteRapido" tabindex="-1" aria-hidden="true" wire:ignore.self>
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Nuevo Paciente</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="form-floating form-floating-outline">
+                                            <input type="text" class="form-control" id="mpNombres" placeholder="Nombres">
+                                            <label for="mpNombres">Nombres</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-floating form-floating-outline">
+                                            <input type="text" class="form-control" id="mpApellidos" placeholder="Apellidos">
+                                            <label for="mpApellidos">Apellidos</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating form-floating-outline">
+                                            <input type="text" class="form-control" id="mpDocumento" placeholder="Documento de identidad">
+                                            <label for="mpDocumento">Documento</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating form-floating-outline">
+                                            <input type="text" class="form-control" id="mpTelefono" placeholder="Teléfono">
+                                            <label for="mpTelefono">Teléfono</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating form-floating-outline">
+                                            <input type="date" class="form-control" id="mpFechaNacimiento" placeholder="Fecha de nacimiento">
+                                            <label for="mpFechaNacimiento">Fecha de Nacimiento</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 d-flex align-items-center">
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" id="mpEsMenor">
+                                            <label class="form-check-label" for="mpEsMenor">Es menor</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="mpTutorFields" class="mt-3" style="display:none;">
+                                    <div class="alert alert-info py-2 px-3 mb-3">
+                                        Datos del tutor (si es menor)
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <input type="text" class="form-control" id="mpTutorNombres" placeholder="Nombres del tutor">
+                                                <label for="mpTutorNombres">Nombres del tutor</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <input type="text" class="form-control" id="mpTutorApellidos" placeholder="Apellidos del tutor">
+                                                <label for="mpTutorApellidos">Apellidos del tutor</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <input type="text" class="form-control" id="mpTutorTelefono" placeholder="Teléfono del tutor">
+                                                <label for="mpTutorTelefono">Teléfono del tutor</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" class="btn btn-primary" id="modalPacienteCreateBtn">
+                                    <i class="ri ri-user-add-line me-1"></i> Crear y seleccionar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

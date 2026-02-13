@@ -147,8 +147,8 @@ class PacienteCarnetMenorController extends Controller
             }
         }
 
-        $edad = $paciente->fecha_nacimiento ? $paciente->fecha_nacimiento->age : null;
-        $esMenor = $edad !== null && $edad < 18;
+        $edadFormateada = $paciente->edad_formateada;
+        $esMenor = $paciente->es_menor;
 
         $empresa = $paciente->empresa ?? auth()->user()->empresa;
         $sucursal = $paciente->sucursal ?? auth()->user()->sucursal;
@@ -339,10 +339,10 @@ class PacienteCarnetMenorController extends Controller
         $infoY += 36;
 
         // Edad
-        $edad = $paciente->fecha_nacimiento ? $paciente->fecha_nacimiento->age : null;
-        if ($edad !== null) {
+        $edadFormateada = $paciente->edad_formateada;
+        if ($edadFormateada) {
             $nacimiento = $paciente->fecha_nacimiento->format('d/m/Y');
-            $this->drawText($img, $regularFont, 26, $infoX, $infoY, $muted, "Nac: $nacimiento ($edad)", $infoWidth);
+            $this->drawText($img, $regularFont, 26, $infoX, $infoY, $muted, "Nac: $nacimiento ($edadFormateada)", $infoWidth);
             $infoY += 36;
         }
 

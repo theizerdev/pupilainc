@@ -7,16 +7,16 @@
                     <div class="row align-items-center">
                         <div class="col-md-7">
                             <h4 class="text-white mb-1 fw-bold">
-                                <i class="ri-customer-service-2-line me-2"></i>Panel de Recepción
+                                <i class="ri ri-customer-service-2-line me-2"></i>Panel de Recepción
                             </h4>
                             <p class="text-white-50 mb-0">Gestión diaria de pacientes, citas y consultorios</p>
                         </div>
                         <div class="col-md-5 text-md-end mt-3 mt-md-0">
                             <a href="{{ route('admin.citas.index') }}" class="btn btn-light btn-sm me-2">
-                                <i class="ri-calendar-add-line me-1"></i> Agendar Cita
+                                <i class="ri ri-calendar-add-line me-1"></i> Agendar Cita
                             </a>
                             <a href="{{ route('admin.recepcion.control-consultorios') }}" class="btn btn-outline-light btn-sm">
-                                <i class="ri-hospital-line me-1"></i> Consultorios
+                                <i class="ri ri-hospital-line me-1"></i> Consultorios
                             </a>
                         </div>
                     </div>
@@ -33,7 +33,7 @@
                     <div class="d-flex align-items-center mb-2">
                         <div class="avatar me-2">
                             <span class="avatar-initial rounded bg-label-warning">
-                                <i class="ri-time-line ri-20px"></i>
+                                <i class="ri ri-time-line ri-20px"></i>
                             </span>
                         </div>
                         <div>
@@ -50,7 +50,7 @@
                     <div class="d-flex align-items-center mb-2">
                         <div class="avatar me-2">
                             <span class="avatar-initial rounded bg-label-primary">
-                                <i class="ri-checkbox-circle-line ri-20px"></i>
+                                <i class="ri ri-checkbox-circle-line ri-20px"></i>
                             </span>
                         </div>
                         <div>
@@ -67,7 +67,7 @@
                     <div class="d-flex align-items-center mb-2">
                         <div class="avatar me-2">
                             <span class="avatar-initial rounded bg-label-info">
-                                <i class="ri-user-follow-line ri-20px"></i>
+                                <i class="ri ri-user-follow-line ri-20px"></i>
                             </span>
                         </div>
                         <div>
@@ -84,7 +84,7 @@
                     <div class="d-flex align-items-center mb-2">
                         <div class="avatar me-2">
                             <span class="avatar-initial rounded bg-label-success">
-                                <i class="ri-check-double-line ri-20px"></i>
+                                <i class="ri ri-check-double-line ri-20px"></i>
                             </span>
                         </div>
                         <div>
@@ -101,7 +101,7 @@
                     <div class="d-flex align-items-center mb-2">
                         <div class="avatar me-2">
                             <span class="avatar-initial rounded bg-label-danger">
-                                <i class="ri-close-circle-line ri-20px"></i>
+                                <i class="ri ri-close-circle-line ri-20px"></i>
                             </span>
                         </div>
                         <div>
@@ -118,7 +118,7 @@
                     <div class="d-flex align-items-center mb-2">
                         <div class="avatar me-2">
                             <span class="avatar-initial rounded bg-label-secondary">
-                                <i class="ri-user-unfollow-line ri-20px"></i>
+                                <i class="ri ri-user-unfollow-line ri-20px"></i>
                             </span>
                         </div>
                         <div>
@@ -139,32 +139,32 @@
                     <div class="d-flex align-items-center">
                         <div class="avatar me-3">
                             <span class="avatar-initial rounded bg-label-primary">
-                                <i class="ri-search-line ri-20px"></i>
+                                <i class="ri ri-search-line ri-20px"></i>
                             </span>
                         </div>
                         <h5 class="card-title mb-0">Buscar Pacientes</h5>
                     </div>
                     @if($selectedPaciente)
                         <button wire:click="clearSelection" class="btn btn-label-secondary btn-sm">
-                            <i class="ri-arrow-left-line me-1"></i> Volver a resultados
+                            <i class="ri ri-arrow-left-line me-1"></i> Volver a resultados
                         </button>
                     @endif
                 </div>
                 <div class="card-body pb-2">
                     <div class="input-group input-group-lg input-group-merge">
-                        <span class="input-group-text"><i class="ri-search-line"></i></span>
-                        <input type="text" 
-                               wire:model.live.debounce.300ms="search" 
-                               class="form-control" 
+                        <span class="input-group-text"><i class="ri ri-search-line"></i></span>
+                        <input type="text"
+                               wire:model.live.debounce.300ms="search"
+                               class="form-control"
                                placeholder="Buscar por nombre, apellido, documento, teléfono o email...">
                         @if(strlen($search) > 0)
                             <span class="input-group-text" style="cursor: pointer;" wire:click="$set('search', '')">
-                                <i class="ri-close-line"></i>
+                                <i class="ri ri-close-line"></i>
                             </span>
                         @endif
                     </div>
                     <div class="form-text mt-2">
-                        <i class="ri-information-line me-1"></i>Ingrese al menos 3 caracteres para buscar.
+                        <i class="ri ri-information-line me-1"></i>Ingrese al menos 3 caracteres para buscar.
                     </div>
                 </div>
 
@@ -177,8 +177,8 @@
                                 <div class="text-center mb-4">
                                     <div class="mx-auto mb-3" style="width: 80px; height: 80px;">
                                         @if($selectedPaciente->foto)
-                                            <img src="{{ asset('storage/' . $selectedPaciente->foto) }}" 
-                                                 alt="{{ $selectedPaciente->nombre_completo }}" 
+                                            <img src="{{ asset('storage/' . $selectedPaciente->foto) }}"
+                                                 alt="{{ $selectedPaciente->nombre_completo }}"
                                                  class="w-100 h-100 rounded-circle object-fit-cover border border-3 border-primary">
                                         @else
                                             <span class="avatar-initial rounded-circle bg-label-primary d-flex align-items-center justify-content-center w-100 h-100" style="font-size: 1.5rem;">
@@ -188,12 +188,12 @@
                                     </div>
                                     <h5 class="fw-bold mb-1">{{ $selectedPaciente->nombre_completo }}</h5>
                                     <span class="text-muted d-block mb-3">
-                                        <i class="ri-id-card-line me-1"></i>{{ $selectedPaciente->documento_identidad ?? 'Sin documento' }}
+                                        <i class="ri ri-id-card-line me-1"></i>{{ $selectedPaciente->documento_identidad ?? 'Sin documento' }}
                                     </span>
                                     <div class="d-flex justify-content-center gap-2 flex-wrap">
                                         @if($selectedPaciente->edad)
                                             <span class="badge bg-label-primary rounded-pill">
-                                                <i class="ri-user-heart-line me-1"></i>{{ $selectedPaciente->edad }} años
+                                                <i class="ri ri-user-heart-line me-1"></i>{{ $selectedPaciente->edad }} años
                                             </span>
                                         @endif
                                         @if($selectedPaciente->genero)
@@ -203,11 +203,11 @@
                                         @endif
                                         @if($selectedPaciente->isProfileComplete())
                                             <span class="badge bg-label-success rounded-pill">
-                                                <i class="ri-check-line me-1"></i>Completo
+                                                <i class="ri ri-check-line me-1"></i>Completo
                                             </span>
                                         @else
                                             <span class="badge bg-label-danger rounded-pill">
-                                                <i class="ri-error-warning-line me-1"></i>Incompleto
+                                                <i class="ri ri-error-warning-line me-1"></i>Incompleto
                                             </span>
                                         @endif
                                     </div>
@@ -217,7 +217,7 @@
                                 <div class="card bg-lighter border shadow-none mb-3">
                                     <div class="card-header py-2">
                                         <h6 class="card-title mb-0 small fw-bold">
-                                            <i class="ri-contacts-book-line me-1 text-primary"></i>Contacto
+                                            <i class="ri ri-contacts-book-line me-1 text-primary"></i>Contacto
                                         </h6>
                                     </div>
                                     <div class="card-body py-2">
@@ -225,7 +225,7 @@
                                             <li class="d-flex align-items-center py-2 border-bottom">
                                                 <div class="avatar avatar-xs me-2 flex-shrink-0">
                                                     <span class="avatar-initial rounded bg-label-success">
-                                                        <i class="ri-phone-line ri-14px"></i>
+                                                        <i class="ri ri-phone-line ri-14px"></i>
                                                     </span>
                                                 </div>
                                                 <div>
@@ -236,7 +236,7 @@
                                             <li class="d-flex align-items-center py-2 border-bottom">
                                                 <div class="avatar avatar-xs me-2 flex-shrink-0">
                                                     <span class="avatar-initial rounded bg-label-primary">
-                                                        <i class="ri-mail-line ri-14px"></i>
+                                                        <i class="ri ri-mail-line ri-14px"></i>
                                                     </span>
                                                 </div>
                                                 <div class="overflow-hidden">
@@ -247,7 +247,7 @@
                                             <li class="d-flex align-items-center py-2 {{ $selectedPaciente->tutor ? 'border-bottom' : '' }}">
                                                 <div class="avatar avatar-xs me-2 flex-shrink-0">
                                                     <span class="avatar-initial rounded bg-label-warning">
-                                                        <i class="ri-map-pin-line ri-14px"></i>
+                                                        <i class="ri ri-map-pin-line ri-14px"></i>
                                                     </span>
                                                 </div>
                                                 <div>
@@ -259,14 +259,14 @@
                                                 <li class="d-flex align-items-center py-2">
                                                     <div class="avatar avatar-xs me-2 flex-shrink-0">
                                                         <span class="avatar-initial rounded bg-label-danger">
-                                                            <i class="ri-parent-line ri-14px"></i>
+                                                            <i class="ri ri-parent-line ri-14px"></i>
                                                         </span>
                                                     </div>
                                                     <div>
                                                         <small class="text-muted d-block" style="font-size: 0.7rem;">Tutor</small>
                                                         <span class="fw-medium small">{{ $selectedPaciente->tutor->nombres }} {{ $selectedPaciente->tutor->apellidos }}</span>
                                                         <div class="small text-muted">
-                                                            <i class="ri-phone-line me-1"></i>{{ $selectedPaciente->tutor->telefono ?? 'Sin tel.' }}
+                                                            <i class="ri ri-phone-line me-1"></i>{{ $selectedPaciente->tutor->telefono ?? 'Sin tel.' }}
                                                         </div>
                                                     </div>
                                                 </li>
@@ -278,13 +278,13 @@
                                 {{-- Acciones --}}
                                 <div class="d-grid gap-2">
                                     <a href="{{ route('admin.pacientes.preconsulta', $selectedPaciente->id) }}" class="btn btn-primary">
-                                        <i class="ri-file-list-3-line me-1"></i> Iniciar Pre-consulta
+                                        <i class="ri ri-file-list-3-line me-1"></i> Iniciar Pre-consulta
                                     </a>
                                     <a href="{{ route('admin.citas.index') }}" class="btn btn-label-success">
-                                        <i class="ri-calendar-add-line me-1"></i> Agendar Cita
+                                        <i class="ri ri-calendar-add-line me-1"></i> Agendar Cita
                                     </a>
                                     <a href="{{ route('admin.pacientes.edit', $selectedPaciente->id) }}" target="_blank" class="btn btn-label-primary">
-                                        <i class="ri-edit-line me-1"></i> Editar Paciente
+                                        <i class="ri ri-edit-line me-1"></i> Editar Paciente
                                     </a>
                                 </div>
                             </div>
@@ -294,7 +294,7 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <div class="avatar avatar-sm me-2">
                                         <span class="avatar-initial rounded bg-label-primary">
-                                            <i class="ri-calendar-line ri-16px"></i>
+                                            <i class="ri ri-calendar-line ri-16px"></i>
                                         </span>
                                     </div>
                                     <h6 class="fw-bold mb-0">Historial de Citas Recientes</h6>
@@ -344,12 +344,12 @@
                                     <div class="text-center text-muted py-5">
                                         <div class="avatar avatar-lg mx-auto mb-3">
                                             <span class="avatar-initial rounded bg-label-secondary">
-                                                <i class="ri-calendar-close-line ri-24px"></i>
+                                                <i class="ri ri-calendar-close-line ri-24px"></i>
                                             </span>
                                         </div>
                                         <p class="mb-1">Este paciente no tiene citas registradas.</p>
                                         <a href="{{ route('admin.citas.index') }}" class="btn btn-sm btn-label-primary mt-2">
-                                            <i class="ri-calendar-add-line me-1"></i> Agendar primera cita
+                                            <i class="ri ri-calendar-add-line me-1"></i> Agendar primera cita
                                         </a>
                                     </div>
                                 @endif
@@ -364,10 +364,10 @@
                                 @foreach($pacientes as $paciente)
                                     @php $proximaCita = $paciente->citas->first(); @endphp
                                     <div class="col-md-6 col-xl-4">
-                                        <div class="card card-border-shadow-primary h-100" 
-                                             wire:click="selectPaciente({{ $paciente->id }})" 
+                                        <div class="card card-border-shadow-primary h-100"
+                                             wire:click="selectPaciente({{ $paciente->id }})"
                                              style="cursor: pointer; transition: all 0.15s ease-in-out;"
-                                             onmouseover="this.style.transform='translateY(-2px)'" 
+                                             onmouseover="this.style.transform='translateY(-2px)'"
                                              onmouseout="this.style.transform='translateY(0)'">
                                             <div class="card-body pb-2">
                                                 <div class="d-flex align-items-start mb-3">
@@ -379,16 +379,16 @@
                                                     <div class="flex-grow-1 overflow-hidden">
                                                         <h6 class="mb-0 fw-bold text-truncate">{{ $paciente->nombre_completo }}</h6>
                                                         <small class="text-muted">
-                                                            <i class="ri-id-card-line me-1"></i>{{ $paciente->documento_identidad ?? 'Sin documento' }}
+                                                            <i class="ri ri-id-card-line me-1"></i>{{ $paciente->documento_identidad ?? 'Sin documento' }}
                                                         </small>
                                                         <div class="mt-1">
                                                             @if($paciente->isProfileComplete())
                                                                 <span class="badge bg-label-success rounded-pill" style="font-size: 0.65rem;">
-                                                                    <i class="ri-check-line"></i> Completo
+                                                                    <i class="ri ri-check-line"></i> Completo
                                                                 </span>
                                                             @else
                                                                 <span class="badge bg-label-danger rounded-pill" style="font-size: 0.65rem;">
-                                                                    <i class="ri-error-warning-line"></i> Incompleto
+                                                                    <i class="ri ri-error-warning-line"></i> Incompleto
                                                                 </span>
                                                             @endif
                                                         </div>
@@ -398,12 +398,12 @@
                                                 <ul class="list-unstyled mb-2 small">
                                                     @if($paciente->telefono)
                                                         <li class="text-muted mb-1">
-                                                            <i class="ri-phone-line me-1 text-success"></i>{{ $paciente->telefono }}
+                                                            <i class="ri ri-phone-line me-1 text-success"></i>{{ $paciente->telefono }}
                                                         </li>
                                                     @endif
                                                     @if($paciente->email)
                                                         <li class="text-muted text-truncate">
-                                                            <i class="ri-mail-line me-1 text-info"></i>{{ $paciente->email }}
+                                                            <i class="ri ri-mail-line me-1 text-info"></i>{{ $paciente->email }}
                                                         </li>
                                                     @endif
                                                 </ul>
@@ -412,7 +412,7 @@
                                                     <div class="card bg-lighter border-0 shadow-none mb-0">
                                                         <div class="card-body py-2 px-3">
                                                             <div class="d-flex align-items-center small">
-                                                                <i class="ri-calendar-check-line me-2 text-primary"></i>
+                                                                <i class="ri ri-calendar-check-line me-2 text-primary"></i>
                                                                 <div>
                                                                     <strong>{{ $proximaCita->fecha_inicio->format('d/m/Y h:i A') }}</strong>
                                                                     <div class="text-muted">{{ $proximaCita->medico->nombre_completo ?? 'Sin médico' }}</div>
@@ -422,19 +422,19 @@
                                                     </div>
                                                 @else
                                                     <div class="small text-muted fst-italic">
-                                                        <i class="ri-calendar-close-line me-1"></i>Sin citas próximas
+                                                        <i class="ri ri-calendar-close-line me-1"></i>Sin citas próximas
                                                     </div>
                                                 @endif
                                             </div>
                                             <div class="card-footer bg-transparent pt-0">
                                                 <div class="d-flex gap-2">
-                                                    <a href="{{ route('admin.pacientes.preconsulta', $paciente->id) }}" 
+                                                    <a href="{{ route('admin.pacientes.preconsulta', $paciente->id) }}"
                                                        class="btn btn-sm btn-primary flex-fill" onclick="event.stopPropagation();">
-                                                        <i class="ri-file-list-3-line me-1"></i> Pre-consulta
+                                                        <i class="ri ri-file-list-3-line me-1"></i> Pre-consulta
                                                     </a>
-                                                    <a href="{{ route('admin.pacientes.edit', $paciente->id) }}" target="_blank" 
+                                                    <a href="{{ route('admin.pacientes.edit', $paciente->id) }}" target="_blank"
                                                        class="btn btn-sm btn-label-primary" onclick="event.stopPropagation();" title="Editar">
-                                                        <i class="ri-edit-line"></i>
+                                                        <i class="ri ri-edit-line"></i>
                                                     </a>
                                                 </div>
                                             </div>
@@ -446,7 +446,7 @@
                             <div class="text-center text-muted py-5">
                                 <div class="avatar avatar-lg mx-auto mb-3">
                                     <span class="avatar-initial rounded bg-label-secondary">
-                                        <i class="ri-user-search-line ri-24px"></i>
+                                        <i class="ri ri-user-search-line ri-24px"></i>
                                     </span>
                                 </div>
                                 <p class="mb-1">No se encontraron pacientes para "<strong>{{ $search }}</strong>"</p>
@@ -465,7 +465,7 @@
                     <div class="d-flex align-items-center">
                         <div class="avatar me-3">
                             <span class="avatar-initial rounded bg-label-info">
-                                <i class="ri-calendar-todo-line ri-20px"></i>
+                                <i class="ri ri-calendar-todo-line ri-20px"></i>
                             </span>
                         </div>
                         <h5 class="card-title mb-0">Citas de Hoy</h5>
@@ -478,7 +478,7 @@
 
                 <div class="divider">
                     <div class="divider-text">
-                        <i class="ri-list-check me-1"></i> Listado
+                        <i class="ri ri-list-check me-1"></i> Listado
                     </div>
                 </div>
 
@@ -536,30 +536,30 @@
                                     <td class="text-end">
                                         <div class="d-inline-flex gap-1">
                                             @if($cita->estado === 'pendiente' || $cita->estado === 'confirmada')
-                                                <button class="btn btn-icon btn-sm btn-label-info" 
+                                                <button class="btn btn-icon btn-sm btn-label-info"
                                                         wire:click="marcarLlegada({{ $cita->id }})" title="Marcar llegada"
                                                         wire:confirm="¿Marcar llegada del paciente?">
-                                                    <i class="ri-user-location-line ri-16px"></i>
+                                                    <i class="ri ri-user-location-line ri-16px"></i>
                                                 </button>
                                             @endif
                                             @if($cita->estado === 'en_curso')
-                                                <button class="btn btn-icon btn-sm btn-label-success" 
+                                                <button class="btn btn-icon btn-sm btn-label-success"
                                                         wire:click="completarAtencion({{ $cita->id }})" title="Completar"
                                                         wire:confirm="¿Marcar como atención completada?">
-                                                    <i class="ri-check-line ri-16px"></i>
+                                                    <i class="ri ri-check-line ri-16px"></i>
                                                 </button>
                                             @endif
                                             @if(!in_array($cita->estado, ['completada', 'cancelada', 'no_asistio']))
-                                                <button class="btn btn-icon btn-sm btn-label-danger" 
+                                                <button class="btn btn-icon btn-sm btn-label-danger"
                                                         wire:click="cancelarCita({{ $cita->id }})" title="Cancelar"
                                                         wire:confirm="¿Está seguro de cancelar esta cita?">
-                                                    <i class="ri-close-circle-line ri-16px"></i>
+                                                    <i class="ri ri-close-circle-line ri-16px"></i>
                                                 </button>
                                             @endif
                                             @if(!in_array($cita->estado, ['completada', 'cancelada', 'no_asistio']))
-                                                <button class="btn btn-icon btn-sm btn-label-primary" 
+                                                <button class="btn btn-icon btn-sm btn-label-primary"
                                                         wire:click="enviarRecordatorio({{ $cita->id }})" title="Recordatorio WhatsApp">
-                                                    <i class="ri-whatsapp-line ri-16px"></i>
+                                                    <i class="ri ri-whatsapp-line ri-16px"></i>
                                                 </button>
                                             @endif
                                         </div>
@@ -570,7 +570,7 @@
                                     <td colspan="5" class="text-center py-5">
                                         <div class="avatar avatar-lg mx-auto mb-3">
                                             <span class="avatar-initial rounded bg-label-secondary">
-                                                <i class="ri-calendar-close-line ri-24px"></i>
+                                                <i class="ri ri-calendar-close-line ri-24px"></i>
                                             </span>
                                         </div>
                                         <p class="text-muted mb-0">No hay citas registradas para hoy.</p>
@@ -590,13 +590,13 @@
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-sm me-2">
                             <span class="avatar-initial rounded bg-label-success">
-                                <i class="ri-hospital-line ri-16px"></i>
+                                <i class="ri ri-hospital-line ri-16px"></i>
                             </span>
                         </div>
                         <h5 class="card-title mb-0">Consultorios</h5>
                     </div>
                     <a href="{{ route('admin.recepcion.control-consultorios') }}" class="btn btn-sm btn-label-primary">
-                        <i class="ri-settings-3-line me-1"></i> Gestionar
+                        <i class="ri ri-settings-3-line me-1"></i> Gestionar
                     </a>
                 </div>
                 <div class="card-body">
@@ -606,7 +606,7 @@
 
                     <div class="divider">
                         <div class="divider-text">
-                            <i class="ri-door-open-line me-1"></i> Detalle
+                            <i class="ri ri-door-open-line me-1"></i> Detalle
                         </div>
                     </div>
 
@@ -624,7 +624,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-2">
                                     <span class="avatar-initial rounded bg-label-{{ $badgeType }}">
-                                        <i class="ri-door-line ri-16px"></i>
+                                        <i class="ri ri-door-line ri-16px"></i>
                                     </span>
                                 </div>
                                 <div>
@@ -633,7 +633,7 @@
                                         {{ $c->ubicacion ?? 'Sin ubicación' }}
                                         @if($medicoNombre)
                                             <span class="d-block text-primary">
-                                                <i class="ri-stethoscope-line me-1"></i>{{ $medicoNombre }}
+                                                <i class="ri ri-stethoscope-line me-1"></i>{{ $medicoNombre }}
                                             </span>
                                         @endif
                                     </div>
@@ -643,7 +643,7 @@
                         </div>
                     @empty
                         <div class="text-center text-muted py-3">
-                            <i class="ri-hospital-line ri-2x mb-2 d-block opacity-25"></i>
+                            <i class="ri ri-hospital-line ri-2x mb-2 d-block opacity-25"></i>
                             <small>No hay consultorios configurados.</small>
                         </div>
                     @endforelse

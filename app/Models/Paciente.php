@@ -144,6 +144,29 @@ class Paciente extends Model
         return $this->edad !== null && $this->edad < 18;
     }
 
+    public function getEdadFormateadaAttribute()
+    {
+        if (!$this->fecha_nacimiento) {
+            return null;
+        }
+
+        $nacimiento = Carbon::parse($this->fecha_nacimiento);
+        $años = $nacimiento->age;
+        if ($años < 0) $años = 0;
+
+        if ($años < 1) {
+            $meses = (int) $nacimiento->diffInMonths(now());
+            return $meses === 1 ? '1 mes' : "{$meses} meses";
+        }
+
+        if ($años < 2) {
+            $meses = (int) $nacimiento->diffInMonths(now()) % 12;
+            return "1 año" . ($meses > 0 ? " y {$meses} meses" : "");
+        }
+
+        return "{$años} años";
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

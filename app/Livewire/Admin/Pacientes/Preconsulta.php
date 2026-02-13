@@ -215,6 +215,7 @@ class Preconsulta extends Component
     {
         return view('livewire.admin.pacientes.preconsulta', [
             'especialidades' => Especialidad::orderBy('nombre')->get(),
+            'edadFormateada' => $this->edadFormateada,
         ])->layout($this->getLayout());
     }
 
@@ -244,5 +245,28 @@ class Preconsulta extends Component
         }
 
         return $telefonoLimpio;
+    }
+
+    public function getEdadFormateadaProperty()
+    {
+        if (!$this->paciente || !$this->paciente->fecha_nacimiento) {
+            return null;
+        }
+
+        $nacimiento = Carbon::parse($this->paciente->fecha_nacimiento);
+        $años = $nacimiento->age;
+        if ($años < 0) $años = 0;
+
+        if ($años < 1) {
+            $meses = (int) $nacimiento->diffInMonths(now());
+            return $meses === 1 ? '1 mes' : "{$meses} meses";
+        }
+
+        if ($años < 2) {
+            $meses = (int) $nacimiento->diffInMonths(now()) % 12;
+            return "1 año" . ($meses > 0 ? " y {$meses} meses" : "");
+        }
+
+        return "{$años} años";
     }
 }

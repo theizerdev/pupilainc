@@ -264,8 +264,8 @@ use Illuminate\Support\Facades\Storage;
                                         @if($paciente->fecha_nacimiento)
                                             <div>{{ $paciente->fecha_nacimiento->format('d/m/Y') }}</div>
                                             <small class="text-muted">
-                                                {{ $paciente->fecha_nacimiento->age }} años
-                                                @if($paciente->fecha_nacimiento->age < 18)
+                                                {{ $paciente->edad_formateada ?? 'N/A' }}
+                                                @if($paciente->es_menor)
                                                     <span class="badge bg-warning ms-1">Menor</span>
                                                 @endif
                                             </small>
@@ -309,7 +309,7 @@ use Illuminate\Support\Facades\Storage;
                                                 </a>
                                                 @endcan
 
-                                                @if($paciente->fecha_nacimiento && $paciente->fecha_nacimiento->age < 18)
+                                                @if($paciente->es_menor)
                                                     <a class="dropdown-item" href="{{ route('admin.pacientes.carnet-menor', $paciente->id) }}" target="_blank" rel="noopener">
                                                         <i class="ri ri-printer-line me-1"></i> Imprimir Carnet (Menor)
                                                     </a>

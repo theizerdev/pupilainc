@@ -12,7 +12,7 @@
             Livewire.on('cerrar-ventana', () => {
                 setTimeout(() => {
                     window.close();
-                }, 3000);
+                }, 6000);
             });
         });
     </script>
@@ -57,6 +57,11 @@
                 <div class="col-12">
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <strong>✅ ¡Éxito!</strong> {{ session('success') }}
+                        @if($consultaCodigo)
+                            <div class="mt-2">
+                                <span class="badge bg-dark">Código de consulta: {{ $consultaCodigo }}</span>
+                            </div>
+                        @endif
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 </div>
@@ -74,6 +79,11 @@
                             </div>
                             <h4>¡Cuestionario Completado!</h4>
                             <p class="mb-0">Gracias por completar el cuestionario. Su información ha sido registrada exitosamente.</p>
+                            @if($consultaCodigo)
+                                <div class="mt-3">
+                                    <span class="badge bg-dark">Código de consulta: {{ $consultaCodigo }}</span>
+                                </div>
+                            @endif
                             <small class="d-block mt-2">Puede cerrar esta ventana.</small>
                         </div>
                     </div>
@@ -111,7 +121,7 @@
                                                     class="form-control @error('respuestas.' . $respuesta->id) is-invalid @enderror"
                                                     rows="3"
                                                     placeholder="Escriba su respuesta..."
-                                                    wire:model="respuestas.{{ $respuesta->id }}"
+                                                    wire:model.live="respuestas.{{ $respuesta->id }}"
                                                     @if($respuesta->pregunta->obligatorio) required @endif
                                                 ></textarea>
                                                 @break
@@ -123,7 +133,7 @@
                                                            name="respuesta_{{ $respuesta->id }}"
                                                            id="si_{{ $respuesta->id }}"
                                                            value="Sí"
-                                                           wire:model="respuestas.{{ $respuesta->id }}"
+                                                           wire:model.live="respuestas.{{ $respuesta->id }}"
                                                            @if($respuesta->pregunta->obligatorio) required @endif>
                                                     <label class="btn btn-outline-primary" for="si_{{ $respuesta->id }}">Sí</label>
 
@@ -132,7 +142,7 @@
                                                            name="respuesta_{{ $respuesta->id }}"
                                                            id="no_{{ $respuesta->id }}"
                                                            value="No"
-                                                           wire:model="respuestas.{{ $respuesta->id }}"
+                                                           wire:model.live="respuestas.{{ $respuesta->id }}"
                                                            @if($respuesta->pregunta->obligatorio) required @endif>
                                                     <label class="btn btn-outline-primary" for="no_{{ $respuesta->id }}">No</label>
                                                 </div>
@@ -141,7 +151,7 @@
                                             @case('opcion')
                                                 <select
                                                     class="form-select @error('respuestas.' . $respuesta->id) is-invalid @enderror"
-                                                    wire:model="respuestas.{{ $respuesta->id }}"
+                                                    wire:model.live="respuestas.{{ $respuesta->id }}"
                                                     @if($respuesta->pregunta->obligatorio) required @endif
                                                 >
                                                     <option value="">Seleccione una opción...</option>
@@ -177,7 +187,7 @@
                                                                    name="respuesta_{{ $respuesta->id }}"
                                                                    id="escala_{{ $respuesta->id }}_{{ $valor }}"
                                                                    value="{{ $valor }}"
-                                                                   wire:model="respuestas.{{ $respuesta->id }}"
+                                                                   wire:model.live="respuestas.{{ $respuesta->id }}"
                                                                    @if($respuesta->pregunta->obligatorio && $valor === 1) required @endif>
                                                             <label class="btn btn-outline-primary btn-sm" for="escala_{{ $respuesta->id }}_{{ $valor }}">
                                                                 {{ $valor }}
@@ -195,7 +205,7 @@
                                                 <input type="text"
                                                        class="form-control @error('respuestas.' . $respuesta->id) is-invalid @enderror"
                                                        placeholder="Escriba su respuesta..."
-                                                       wire:model="respuestas.{{ $respuesta->id }}"
+                                                       wire:model.live="respuestas.{{ $respuesta->id }}"
                                                        @if($respuesta->pregunta->obligatorio) required @endif>
                                         @endswitch
 

@@ -70,8 +70,8 @@
         use Illuminate\Support\Facades\Storage;
     @endphp
     @php
-        $edad = $paciente->fecha_nacimiento ? $paciente->fecha_nacimiento->age : null;
-        $esMenor = $edad !== null && $edad < 18;
+        $edad = $paciente->edad_formateada;
+        $esMenor = $paciente->es_menor;
         $fotoUrl = null;
         if (!empty($fotoDataUri)) {
             $fotoUrl = $fotoDataUri;
@@ -128,7 +128,7 @@
                                 <div class="id-meta">
                                     <div class="id-meta-row">
                                         <div class="k">Nac.</div>
-                                        <div class="v">{{ $paciente->fecha_nacimiento ? $paciente->fecha_nacimiento->format('d/m/Y') : '—' }}@if($edad !== null) ({{ $edad }}) @endif</div>
+                                        <div class="v">{{ $paciente->fecha_nacimiento ? $paciente->fecha_nacimiento->format('d/m/Y') : '—' }}@if($edad) ({{ $edad }}) @endif</div>
                                     </div>
                                     <div class="id-meta-row">
                                         <div class="k">Tutor</div>
