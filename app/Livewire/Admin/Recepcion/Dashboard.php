@@ -52,6 +52,35 @@ class Dashboard extends Component
         $this->selectedPacienteCitas = [];
     }
 
+    public function pacienteTieneDatosCompletos($paciente)
+    {
+        $required = ['nombres', 'apellidos', 'documento_identidad', 'fecha_nacimiento', 'telefono', 'genero', 'direccion'];
+        
+        foreach ($required as $field) {
+            $value = $paciente->$field ?? null;
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                return false;
+            }
+        }
+
+        $edad = $paciente->fecha_nacimiento ? Carbon::parse($paciente->fecha_nacimiento)->age : null;
+        if ($edad !== null && $edad < 18) {
+            $tutor = $paciente->tutor;
+            if (!$tutor) {
+                return false;
+            }
+            $tutorRequired = ['nombres', 'apellidos', 'documento_identidad', 'parentesco', 'telefono'];
+            foreach ($tutorRequired as $field) {
+                $value = $tutor->$field ?? null;
+                if ($value === null || (is_string($value) && trim($value) === '')) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     public function marcarLlegada($citaId)
     {
         $cita = Cita::find($citaId);

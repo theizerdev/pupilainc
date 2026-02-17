@@ -34,7 +34,7 @@
         </style>
     @endpush
 
-    <div class="wz-shell">
+    <div >
         <div class="d-flex flex-wrap align-items-center justify-content-between wz-topbar mb-4">
             <div>
                 <h4 class="mb-1">

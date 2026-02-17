@@ -121,7 +121,7 @@
                                                     class="form-control @error('respuestas.' . $respuesta->id) is-invalid @enderror"
                                                     rows="3"
                                                     placeholder="Escriba su respuesta..."
-                                                    wire:model.live="respuestas.{{ $respuesta->id }}"
+                                                    wire:model="respuestas.{{ $respuesta->id }}"
                                                     @if($respuesta->pregunta->obligatorio) required @endif
                                                 ></textarea>
                                                 @break
@@ -146,12 +146,31 @@
                                                            @if($respuesta->pregunta->obligatorio) required @endif>
                                                     <label class="btn btn-outline-primary" for="no_{{ $respuesta->id }}">No</label>
                                                 </div>
+
+                                                @php
+                                                    $tituloLower = strtolower($respuesta->pregunta->titulo);
+                                                    $esAlergia = str_contains($tituloLower, 'alergia') && str_contains($tituloLower, 'medicamento');
+                                                    $esCirugia = str_contains($tituloLower, 'cirugía') || str_contains($tituloLower, 'cirugia');
+                                                @endphp
+
+                                                @if(($esAlergia || $esCirugia) && isset($respuestas[$respuesta->id]) && $respuestas[$respuesta->id] === 'Sí')
+                                                    <div class="mt-3" wire:key="detalle_{{ $respuesta->id }}">
+                                                        <label class="form-label">{{ $esAlergia ? '¿A cuál o cuáles medicamentos?' : '¿Cuáles cirugías y cuándo?' }}</label>
+                                                        <textarea
+                                                            class="form-control"
+                                                            rows="3"
+                                                            placeholder="{{ $esAlergia ? 'Ej: Penicilina, Ibuprofeno' : 'Ej: Apendicectomía (2020), Cesárea (2018)' }}"
+                                                            wire:model="detalles.{{ $respuesta->id }}"
+                                                            required
+                                                        ></textarea>
+                                                    </div>
+                                                @endif
                                                 @break
 
                                             @case('opcion')
                                                 <select
                                                     class="form-select @error('respuestas.' . $respuesta->id) is-invalid @enderror"
-                                                    wire:model.live="respuestas.{{ $respuesta->id }}"
+                                                    wire:model="respuestas.{{ $respuesta->id }}"
                                                     @if($respuesta->pregunta->obligatorio) required @endif
                                                 >
                                                     <option value="">Seleccione una opción...</option>
@@ -179,33 +198,31 @@
                                                 @break
 
                                             @case('escala')
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    @foreach(range(1, 10) as $valor)
-                                                        <div class="text-center">
-                                                            <input type="radio"
-                                                                   class="btn-check"
-                                                                   name="respuesta_{{ $respuesta->id }}"
-                                                                   id="escala_{{ $respuesta->id }}_{{ $valor }}"
-                                                                   value="{{ $valor }}"
-                                                                   wire:model.live="respuestas.{{ $respuesta->id }}"
-                                                                   @if($respuesta->pregunta->obligatorio && $valor === 1) required @endif>
-                                                            <label class="btn btn-outline-primary btn-sm" for="escala_{{ $respuesta->id }}_{{ $valor }}">
-                                                                {{ $valor }}
-                                                            </label>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                                <div class="d-flex justify-content-between mt-2">
-                                                    <small class="text-muted">Muy bajo</small>
-                                                    <small class="text-muted">Muy alto</small>
-                                                </div>
+                                                <select
+                                                    class="form-select @error('respuestas.' . $respuesta->id) is-invalid @enderror"
+                                                    wire:model="respuestas.{{ $respuesta->id }}"
+                                                    @if($respuesta->pregunta->obligatorio) required @endif
+                                                >
+                                                    <option value="">Seleccione el nivel de dolor...</option>
+                                                    <option value="0">0 - Sin dolor</option>
+                                                    <option value="1">1 - Muy leve</option>
+                                                    <option value="2">2 - Leve</option>
+                                                    <option value="3">3 - Molesto</option>
+                                                    <option value="4">4 - Moderado</option>
+                                                    <option value="5">5 - Incómodo</option>
+                                                    <option value="6">6 - Angustiante</option>
+                                                    <option value="7">7 - Muy angustiante</option>
+                                                    <option value="8">8 - Intenso</option>
+                                                    <option value="9">9 - Muy intenso</option>
+                                                    <option value="10">10 - Insoportable</option>
+                                                </select>
                                                 @break
 
                                             @default
                                                 <input type="text"
                                                        class="form-control @error('respuestas.' . $respuesta->id) is-invalid @enderror"
                                                        placeholder="Escriba su respuesta..."
-                                                       wire:model.live="respuestas.{{ $respuesta->id }}"
+                                                       wire:model="respuestas.{{ $respuesta->id }}"
                                                        @if($respuesta->pregunta->obligatorio) required @endif>
                                         @endswitch
 

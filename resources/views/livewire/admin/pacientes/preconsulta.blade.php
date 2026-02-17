@@ -121,11 +121,11 @@
                         </span>
                     </div>
 
-                    @if(!$paciente->isProfileComplete())
+                    @if(!empty($datosFaltantes))
                         <div class="alert alert-warning py-2 px-3 mb-0 small">
                             <i class="ri ri-error-warning-line me-1"></i>
                             <a href="{{ route('admin.pacientes.edit', $paciente->id) }}" target="_blank" class="alert-link">
-                                Perfil incompleto - Completar datos
+                                Perfil incompleto - Completar: {{ implode(', ', array_map(fn($d) => str_replace('_', ' ', $d), $datosFaltantes)) }}
                             </a>
                         </div>
                     @endif

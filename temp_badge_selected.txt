@@ -1,0 +1,9 @@
+@if($this->pacienteTieneDatosCompletos($selectedPaciente))
+                                            <span class="badge bg-label-success rounded-pill">
+                                                <i class="ri ri-check-line me-1"></i>Datos completos
+                                            </span>
+                                        @else
+                                            <span class="badge bg-label-warning rounded-pill">
+                                                <i class="ri ri-error-warning-line me-1"></i>Datos incompletos
+                                            </span>
+                                        @endif

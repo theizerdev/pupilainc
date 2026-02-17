@@ -13,11 +13,13 @@ class RespuestaPreconsulta extends Model
         'pregunta_id',
         'respuesta',
         'respuesta_multiple',
+        'detalle',
         'token_unico',
         'completado',
         'fecha_completado',
         'empresa_id',
         'sucursal_id',
+        'created_by',
     ];
 
     protected $casts = [

@@ -23,20 +23,6 @@ return new class extends Migration
             $table->boolean('preconsulta')->default(false);
             $table->string('estado')->default('sala_espera'); // sala_espera, en_consultorio, en_consultorio_optometrista, en_gotas, en_optica, en_estudio, finalizada
 
-            // Datos clínicos (JSON/Texto)
-            $table->text('motivo_consulta')->nullable();
-            $table->text('enfermedad_actual')->nullable();
-            $table->json('antecedentes')->nullable();
-            $table->json('agudeza_visual')->nullable();
-            $table->json('refraccion')->nullable();
-            $table->json('biomicroscopia')->nullable();
-            $table->json('pio')->nullable();
-            $table->json('dilatacion_pupilar')->nullable();
-            $table->json('fondo_ojo')->nullable();
-            $table->json('diagnosticos')->nullable();
-            $table->text('plan_tratamiento')->nullable();
-            $table->json('medicamentos')->nullable();
-            $table->text('observaciones')->nullable();
 
             // Multitenancy
             $table->foreignId('empresa_id')->constrained('empresas');

@@ -97,7 +97,7 @@ class Login extends Component
             request()->session()->regenerate();
 
             // Redirigir al dashboard del médico
-            return redirect()->route('doctor.dashboard', ['id' => $medico->id]);
+            return redirect()->to('admin/citas');
         }
 
         // Verificar si el usuario tiene rol de administrador

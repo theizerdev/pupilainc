@@ -9,6 +9,7 @@ class PreconsultaForm extends Component
 {
     public $token;
     public $respuestas = [];
+    public $detalles = [];
     public $respuestasPreconsulta;
     public $cuestionario;
     public $paciente;
@@ -37,15 +38,13 @@ class PreconsultaForm extends Component
         // Organizar preguntas por orden
         $this->respuestasPreconsulta = $this->respuestasPreconsulta->sortBy('pregunta.orden');
 
-        // Inicializar respuestas
+        // Inicializar respuestas y detalles
         foreach ($this->respuestasPreconsulta as $respuesta) {
             if ($respuesta->pregunta->tipo === 'multiple') {
                 $val = $respuesta->respuesta_multiple;
-                // Asegurar que sea array
                 if (is_array($val)) {
                     $this->respuestas[$respuesta->id] = $val;
                 } elseif (!empty($val)) {
-                    // Si es string (dato corrupto/antiguo), convertir a array
                     $this->respuestas[$respuesta->id] = [$val];
                 } else {
                     $this->respuestas[$respuesta->id] = [];
@@ -53,6 +52,9 @@ class PreconsultaForm extends Component
             } else {
                 $this->respuestas[$respuesta->id] = $respuesta->respuesta ?? '';
             }
+            
+            // Inicializar detalles si existen
+            $this->detalles[$respuesta->id] = $respuesta->detalle ?? '';
         }
 
         $this->totalPasos = ceil($this->respuestasPreconsulta->count() / 5); // 5 preguntas por paso
@@ -78,7 +80,6 @@ class PreconsultaForm extends Component
 
     public function updatedRespuestas($value, $key)
     {
-        // Guardar respuesta temporalmente (soporte para 'respuestas.{id}')
         $id = null;
         if (is_numeric($key)) {
             $id = (int) $key;
@@ -105,6 +106,11 @@ class PreconsultaForm extends Component
                 $respuesta->update(['respuesta' => $value]);
             }
         }
+    }
+
+    public function updatedDetalles($value, $key)
+    {
+        // No guardar automáticamente, solo actualizar el estado local
     }
 
     public function siguientePaso()
@@ -154,6 +160,11 @@ class PreconsultaForm extends Component
                     }
                     $respuestaRow->update(['respuesta' => $val]);
                 }
+            }
+            
+            // Guardar detalles
+            if (array_key_exists($rid, $this->detalles)) {
+                $respuestaRow->update(['detalle' => $this->detalles[$rid]]);
             }
         }
 
@@ -208,6 +219,7 @@ class PreconsultaForm extends Component
             // Sin cita: crear consulta con datos del paciente y empresa, asignando médico por defecto
             $paciente = $primeraRespuesta?->paciente ?? $this->paciente;
             $empresa = $primeraRespuesta?->empresa ?? $this->empresa;
+            $sucursalId = $primeraRespuesta?->sucursal_id ?? $this->sucursal_id;
 
             // Intentar usar el último médico de una cita previa del paciente
             $ultimoMedicoId = \App\Models\Cita::where('paciente_id', $paciente->id ?? null)

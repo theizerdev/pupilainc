@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Pacientes;
 use Livewire\Component;
 use App\Models\Paciente;
 use App\Models\Cita;
+use App\Models\Consulta;
 use App\Models\Especialidad;
 use App\Models\Medico;
 use App\Models\Cuestionario;
@@ -76,10 +77,14 @@ class Preconsulta extends Component
         }
     }
 
-
-
     public function iniciarCuestionario()
     {
+        // Validar que el paciente tenga todos los datos completos
+        if (!$this->pacienteCompleto()) {
+            return redirect()->route('admin.pacientes.edit', $this->paciente->id)
+                ->with('warning', 'Por favor completa todos los datos del paciente antes de iniciar la pre-consulta.');
+        }
+
         $this->validate();
         $this->sending = true;
 
@@ -88,28 +93,19 @@ class Preconsulta extends Component
 
         try {
             DB::transaction(function () use (&$flashType, &$flashMessage) {
-                // 1. Actualizar o Crear Cita
-                if (!$this->cita) {
-                    $this->cita = Cita::create([
-                        'paciente_id' => $this->paciente->id,
-                        'medico_id' => $this->medico_id,
-                        'especialidad_id' => $this->especialidad_id,
-                        'fecha_inicio' => Carbon::now(),
-                        'fecha_fin' => Carbon::now()->addMinutes(30),
-                        'motivo' => $this->motivo_consulta,
-                        'estado' => Cita::ESTADO_EN_CURSO,
-                        'empresa_id' => auth()->user()->empresa_id ?? 1,
-                        'sucursal_id' => auth()->user()->sucursal_id ?? 1,
-                        'created_by' => auth()->id(),
-                    ]);
-                } else {
-                    $this->cita->update([
-                        'medico_id' => $this->medico_id,
-                        'especialidad_id' => $this->especialidad_id,
-                        'motivo' => $this->motivo_consulta,
-                        'estado' => Cita::ESTADO_EN_CURSO,
-                    ]);
-                }
+                // 1. Crear Consulta
+                $consulta = Consulta::create([
+                    'paciente_id' => $this->paciente->id,
+                    'medico_id' => $this->medico_id,
+                    'especialidad_id' => $this->especialidad_id,
+                    'fecha_consulta' => Carbon::now(),
+                    'preconsulta' => true,
+                    'motivo_consulta' => $this->motivo_consulta,
+                    'estado' => Consulta::ESTADO_SALA_ESPERA,
+                    'empresa_id' => auth()->user()->empresa_id ?? 1,
+                    'sucursal_id' => auth()->user()->sucursal_id ?? 1,
+                    'created_by' => auth()->id(),
+                ]);
 
                 // 2. Generar Token y Cuestionario
                 $cuestionario = Cuestionario::where('activo', true)->first();
@@ -118,29 +114,23 @@ class Preconsulta extends Component
                     throw new \Exception('No hay cuestionario activo configurado.');
                 }
 
-                $existing = RespuestaPreconsulta::where('cita_id', $this->cita->id)->exists();
-
-                if (!$existing) {
-                    $token = Str::random(32); // Generamos el token AQUÍ para asegurar que sea el mismo
-                    foreach ($cuestionario->preguntas as $pregunta) {
-                        RespuestaPreconsulta::create([
-                            'paciente_id' => $this->paciente->id,
-                            'cita_id' => $this->cita->id,
-                            'pregunta_id' => $pregunta->id,
-                            'token_unico' => $token, // Usamos el mismo token para todas las preguntas
-                            'empresa_id' => $this->cita->empresa_id,
-                            'sucursal_id' => $this->cita->sucursal_id ?? 1,
-                            'completado' => false,
-                        ]);
-                    }
-                } else {
-                    $token = RespuestaPreconsulta::where('cita_id', $this->cita->id)->value('token_unico');
+                $token = Str::random(32);
+                foreach ($cuestionario->preguntas as $pregunta) {
+                    RespuestaPreconsulta::create([
+                        'paciente_id' => $this->paciente->id,
+                        'cita_id' => null,
+                        'pregunta_id' => $pregunta->id,
+                        'token_unico' => $token,
+                        'empresa_id' => $consulta->empresa_id,
+                        'sucursal_id' => $consulta->sucursal_id ?? 1,
+                        'completado' => false,
+                        'created_by' => $this->paciente->id,
+                    ]);
                 }
 
                 // 3. Enviar WhatsApp
                 $link = route('preconsulta.formulario', ['token' => $token]);
 
-                // Calcular edad explícitamente para asegurar precisión
                 $edad = $this->paciente->fecha_nacimiento ? Carbon::parse($this->paciente->fecha_nacimiento)->age : null;
                 $esMenor = $edad !== null && $edad < 18;
 
@@ -159,27 +149,16 @@ class Preconsulta extends Component
 
                 $telefono = $this->paciente->telefono;
 
-                // Si es menor, priorizar teléfono del tutor
                 if ($esMenor && $this->paciente->tutor && !empty($this->paciente->tutor->telefono)) {
                     $telefono = $this->paciente->tutor->telefono;
-                }
-                // Si el teléfono está vacío, intentar con el tutor (fallback)
-                elseif (empty($telefono) && $this->paciente->tutor) {
+                } elseif (empty($telefono) && $this->paciente->tutor) {
                     $telefono = $this->paciente->tutor->telefono;
                 }
 
-                if (!empty($telefono)) {
-                        // Validar si es una cadena vacía o nula
-                        if (trim($telefono) === '') {
-                            Log::warning('Pre-consulta: Teléfono vacío', ['paciente_id' => $this->paciente->id]);
-                        } else {
-                            $telefono = $this->formatearTelefono($telefono);
-                        }
-
-                        $whatsapp = new WhatsAppService($this->cita->empresa_id);
+                if (!empty($telefono) && trim($telefono) !== '') {
+                    $telefono = $this->formatearTelefono($telefono);
+                    $whatsapp = new WhatsAppService($consulta->empresa_id);
                     $resultado = $whatsapp->sendMessage($telefono, $mensaje);
-
-                    Log::info('Resultado envío WhatsApp:', ['resultado' => $resultado]);
 
                     if ($resultado) {
                         $flashType = 'success';
@@ -189,9 +168,6 @@ class Preconsulta extends Component
                         $flashMessage = 'No se pudo enviar por WhatsApp. Copie el link: ' . $link;
                     }
                 } else {
-                    Log::warning('Pre-consulta: Paciente sin teléfono', [
-                        'paciente_id' => $this->paciente->id,
-                    ]);
                     $flashType = 'warning';
                     $flashMessage = 'Paciente sin teléfono registrado. Copie el link: ' . $link;
                 }
@@ -200,6 +176,7 @@ class Preconsulta extends Component
             return redirect()->route('admin.recepcion.dashboard')->with($flashType, $flashMessage);
 
         } catch (\Exception $e) {
+            dd($e);
             Log::error('Error en iniciarCuestionario', [
                 'paciente_id' => $this->paciente->id,
                 'error' => $e->getMessage(),
@@ -211,29 +188,94 @@ class Preconsulta extends Component
         }
     }
 
+    private function pacienteCompleto(): bool
+    {
+        $paciente = Paciente::with('tutor')->find($this->paciente->id);
+        $required = ['nombres', 'apellidos', 'documento_identidad', 'fecha_nacimiento', 'telefono', 'genero', 'direccion'];
+        
+        foreach ($required as $field) {
+            $value = $paciente->$field;
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+            if ($value === null || $value === '') {
+                return false;
+            }
+        }
+
+        $edad = $paciente->fecha_nacimiento ? Carbon::parse($paciente->fecha_nacimiento)->age : null;
+        if ($edad !== null && $edad < 18) {
+            $tutor = $paciente->tutor;
+            if (!$tutor) {
+                return false;
+            }
+            $tutorRequired = ['nombres', 'apellidos', 'documento_identidad', 'parentesco', 'telefono'];
+            foreach ($tutorRequired as $field) {
+                $value = $tutor->$field ?? null;
+                if (is_string($value)) {
+                    $value = trim($value);
+                }
+                if ($value === null || $value === '') {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private function obtenerDatosFaltantes(): array
+    {
+        $paciente = Paciente::with('tutor')->find($this->paciente->id);
+        $faltantes = [];
+        $required = ['nombres', 'apellidos', 'documento_identidad', 'fecha_nacimiento', 'telefono', 'genero', 'direccion'];
+        
+        foreach ($required as $field) {
+            $value = $paciente->$field ?? null;
+            if ($value === null || (is_string($value) && trim($value) === '')) {
+                $faltantes[] = $field;
+            }
+        }
+
+        $edad = $paciente->fecha_nacimiento ? Carbon::parse($paciente->fecha_nacimiento)->age : null;
+        if ($edad !== null && $edad < 18) {
+            $tutor = $paciente->tutor;
+            if (!$tutor) {
+                $faltantes[] = 'tutor';
+            } else {
+                $tutorRequired = ['nombres', 'apellidos', 'documento_identidad', 'parentesco', 'telefono'];
+                foreach ($tutorRequired as $field) {
+                    $value = $tutor->$field ?? null;
+                    if ($value === null || (is_string($value) && trim($value) === '')) {
+                        $faltantes[] = "tutor_$field";
+                    }
+                }
+            }
+        }
+
+        return $faltantes;
+    }
+
     public function render()
     {
         return view('livewire.admin.pacientes.preconsulta', [
             'especialidades' => Especialidad::orderBy('nombre')->get(),
             'edadFormateada' => $this->edadFormateada,
+            'datosFaltantes' => $this->obtenerDatosFaltantes(),
         ])->layout($this->getLayout());
     }
 
     private function formatearTelefono($telefono)
     {
-        // 1. Limpiar caracteres no numéricos
         $telefonoLimpio = preg_replace('/[^0-9]/', '', $telefono);
 
         try {
-            // 2. Obtener empresa y país
-            $empresa = Empresa::with('pais')->find($this->cita->empresa_id);
+            $empresa = Empresa::with('pais')->find($this->paciente->empresa_id);
 
             if ($empresa && $empresa->pais && $empresa->pais->codigo_telefonico) {
                 $codigoPais = preg_replace('/[^0-9]/', '', $empresa->pais->codigo_telefonico);
 
-                // 3. Verificar si ya tiene el código
                 if (!str_starts_with($telefonoLimpio, $codigoPais)) {
-                    // Si empieza con 0, quitarlo
                     if (str_starts_with($telefonoLimpio, '0')) {
                         $telefonoLimpio = substr($telefonoLimpio, 1);
                     }

@@ -201,7 +201,7 @@
                                                 {{ $selectedPaciente->genero === 'M' ? '♂ Masculino' : '♀ Femenino' }}
                                             </span>
                                         @endif
-                                        @if($selectedPaciente->isProfileComplete())
+                                        @if($this->pacienteTieneDatosCompletos($selectedPaciente))
                                             <span class="badge bg-label-success rounded-pill">
                                                 <i class="ri ri-check-line me-1"></i>Completo
                                             </span>
@@ -382,7 +382,7 @@
                                                             <i class="ri ri-id-card-line me-1"></i>{{ $paciente->documento_identidad ?? 'Sin documento' }}
                                                         </small>
                                                         <div class="mt-1">
-                                                            @if($paciente->isProfileComplete())
+                                                            @if($this->pacienteTieneDatosCompletos($paciente))
                                                                 <span class="badge bg-label-success rounded-pill" style="font-size: 0.65rem;">
                                                                     <i class="ri ri-check-line"></i> Completo
                                                                 </span>
@@ -432,11 +432,13 @@
                                                        class="btn btn-sm btn-primary flex-fill" onclick="event.stopPropagation();">
                                                         <i class="ri ri-file-list-3-line me-1"></i> Pre-consulta
                                                     </a>
+                                                @if($this->pacienteTieneDatosCompletos($selectedPaciente))
                                                     <a href="{{ route('admin.pacientes.edit', $paciente->id) }}" target="_blank"
                                                        class="btn btn-sm btn-label-primary" onclick="event.stopPropagation();" title="Editar">
                                                         <i class="ri ri-edit-line"></i>
                                                     </a>
                                                 </div>
+                                               @endif
                                             </div>
                                         </div>
                                     </div>
