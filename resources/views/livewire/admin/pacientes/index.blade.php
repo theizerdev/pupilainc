@@ -309,7 +309,7 @@ use Illuminate\Support\Facades\Storage;
                                                 </a>
                                                 @endcan
 
-                                                @if($paciente->es_menor)
+                                                @if($paciente->es_menor && auth()->user()->hasRole('Super Administrador'))
                                                     <a class="dropdown-item" href="{{ route('admin.pacientes.carnet-menor', $paciente->id) }}" target="_blank" rel="noopener">
                                                         <i class="ri ri-printer-line me-1"></i> Imprimir Carnet (Menor)
                                                     </a>
