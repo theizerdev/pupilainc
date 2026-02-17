@@ -103,9 +103,10 @@ class Edit extends Component
         return $rules;
     }
 
-    public function mount($medico)
+    public function mount($id)
     {
         // Cargar datos del médico
+        $medico = Medico::findOrFail($id);
         $this->medico_id = $medico->id;
         $this->user_id = $medico->user_id;
         $this->nombres = $medico->nombres;

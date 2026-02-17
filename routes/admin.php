@@ -78,7 +78,7 @@ Route::middleware(['checkAdminPermission:access subespecialidades'])->group(func
 Route::middleware(['checkAdminPermission:access medicos'])->group(function () {
     Route::get('/medicos', \App\Livewire\Admin\Medicos\Index::class)->name('medicos.index');
     Route::get('/medicos/crear', \App\Livewire\Admin\Medicos\Create::class)->name('medicos.create');
-    Route::get('/medicos/{medico}/editar', \App\Livewire\Admin\Medicos\Edit::class)->name('medicos.edit');
+    Route::get('/medicos/{id}/editar', \App\Livewire\Admin\Medicos\Edit::class)->name('medicos.edit');
 });
 
 // Pacientes
