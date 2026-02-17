@@ -83,7 +83,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label for="telefono">Teléfono</label>
                                     <input type="text" class="form-control @error('telefono') is-invalid @enderror" 
@@ -157,9 +157,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="licencia_medica">Licencia Médica *</label>
+                                    <label for="licencia_medica">Cédula Médica *</label>
                                     <input type="text" class="form-control @error('licencia_medica') is-invalid @enderror" 
-                                           id="licencia_medica" wire:model="licencia_medica" placeholder="Ingrese la licencia médica">
+                                           id="licencia_medica" wire:model="licencia_medica" placeholder="Ingrese la cédula médica">
                                     @error('licencia_medica')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror

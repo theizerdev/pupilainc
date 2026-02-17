@@ -83,7 +83,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="genero">Género</label>
                                     <select id="genero" class="form-control @error('genero') is-invalid @enderror" wire:model="genero">
@@ -99,7 +99,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="licencia_medica">Licencia Médica *</label>
+                                    <label for="licencia_medica">Cédula Médica *</label>
                                     <input type="text" class="form-control @error('licencia_medica') is-invalid @enderror" 
                                            id="licencia_medica" wire:model="licencia_medica" placeholder="Número de licencia">
                                     @error('licencia_medica')
@@ -107,7 +107,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label for="email">Email *</label>
                                     <input type="email" class="form-control @error('email') is-invalid @enderror" 
