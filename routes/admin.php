@@ -81,6 +81,14 @@ Route::middleware(['checkAdminPermission:access medicos'])->group(function () {
     Route::get('/medicos/{id}/editar', \App\Livewire\Admin\Medicos\Edit::class)->name('medicos.edit');
 });
 
+// Enfermeros
+Route::middleware(['checkAdminPermission:access enfermeros'])->group(function () {
+    Route::get('/enfermeros', \App\Livewire\Admin\Enfermeros\Index::class)->name('enfermeros.index');
+    Route::get('/enfermeros/crear', \App\Livewire\Admin\Enfermeros\Create::class)->name('enfermeros.create');
+    Route::get('/enfermeros/{id}/editar', \App\Livewire\Admin\Enfermeros\Edit::class)->name('enfermeros.edit');
+    Route::get('/enfermeros/{id}/horarios', \App\Livewire\Admin\Enfermeros\HorariosManager::class)->name('enfermeros.horarios');
+});
+
 // Pacientes
 Route::middleware(['checkAdminPermission:access pacientes'])->group(function () {
     Route::get('/pacientes', \App\Livewire\Admin\Pacientes\Index::class)->name('pacientes.index');
@@ -233,4 +241,16 @@ Route::middleware(['checkAdminPermission:access citas'])->group(function () {
     Route::get('/citas/reagendamiento', \App\Livewire\Admin\Citas\Reagendamiento::class)->name('citas.reagendamiento');
     // Confirmaciones de Citas
     Route::get('/citas/confirmaciones', \App\Livewire\Admin\CitaConfirmationStats::class)->name('citas.confirmaciones');
+});
+
+// Gestión de Consultas
+Route::prefix('gestion')->as('gestion.')->group(function () {
+    Route::get('/consultas', \App\Livewire\Admin\Gestion\Consultas\Index::class)->name('consultas.index')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/sala-espera', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/en-enfermeria', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/en-gotas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-gotas')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/en-optica', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/en-estudio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware('checkAdminPermission:access consultas');
+    Route::get('/consultas/finalizadas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware('checkAdminPermission:access consultas');
 });

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             ConsultoriosSeeder::class,
             UsersTableSeeder::class,
             SerieSeeder::class,
+            CuestionarioSeeder::class,
             EspecialidadesSubespecialidadesSeeder::class, // Agregar especialidades y subespecialidades médicas
         ]);
     }

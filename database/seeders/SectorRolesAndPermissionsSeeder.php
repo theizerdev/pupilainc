@@ -58,6 +58,20 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'edit medicos schedule',
                     ]
                 ],
+                'enfermeros' => [
+                    'name' => 'Enfermería',
+                    'permissions' => [
+                        'access enfermeros',
+                        'create enfermeros',
+                        'edit enfermeros',
+                        'delete enfermeros',
+                        'view enfermeros',
+                        'activate enfermeros',
+                        'deactivate enfermeros',
+                        'view enfermeros schedule',
+                        'edit enfermeros schedule',
+                    ]
+                ],
                 'citas' => [
                     'name' => 'Citas',
                     'permissions' => [
@@ -92,6 +106,21 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'edit subespecialidades',
                         'delete subespecialidades',
                         'assign subespecialidades',
+                    ]
+                ],
+                 'consultas' => [
+                    'name' => 'Consultas',
+                    'permissions' => [
+                        'access consultas',
+                        'access consultas calendario',
+                        'access consultas en espera',
+                        'access consultas en enfermeria',
+                        'access consultas en consultorio',
+                        'access consultas en gotas',
+                        'access consultas en optica',
+                        'access consultas en estudio',
+                        'access consultas finalizadas',
+                        'registrar signos vitales',
                     ]
                 ],
             ],
@@ -431,19 +460,9 @@ class SectorRolesAndPermissionsSeeder extends Seeder
         $enfermeria = Role::firstOrCreate(['name' => 'Enfermería']);
         $enfermeriaPermissions = Permission::where('sector', 'medico')
             ->whereIn('name', [
-                'access tipo-consultas',
-                'create tipo-consultas',
-                'edit tipo-consultas',
-                'access pacientes',
-                'create pacientes',
-                'edit pacientes',
-                'access medicos',
-                'view medicos',
-                'access citas',
-                'create citas',
-                'edit citas',
-                'confirm citas',
-                'cancel citas',
+                'access consultas',
+                'access consultas en enfermeria',
+                'registrar signos vitales',
             ])->get();
         $enfermeria->syncPermissions($enfermeriaPermissions);
 

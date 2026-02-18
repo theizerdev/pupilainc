@@ -217,6 +217,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'active' => 'admin.medicos.*',
                     ],
                     [
+                        'label' => 'Enfermeros',
+                        'icon' => 'ri-nurse-line',
+                        'permission' => 'access enfermeros',
+                        'route' => 'admin.enfermeros.index',
+                        'active' => 'admin.enfermeros.*',
+                    ],
+                    [
                         'label' => 'Pacientes',
                         'icon' => 'ri-user-heart-line',
                         'permission' => 'access pacientes',
@@ -233,6 +240,22 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Analytics', 'route' => 'admin.citas.analytics', 'active' => 'admin.citas.analytics'],
                             ['label' => 'Recordatorios', 'route' => 'admin.citas.recordatorios', 'active' => 'admin.citas.recordatorios'],
                             ['label' => 'Re-agendamiento', 'route' => 'admin.citas.reagendamiento', 'active' => 'admin.citas.reagendamiento'],
+                        ]
+                    ],
+                    [
+                        'label' => 'Gestión Consultas',
+                        'icon' => 'ri-stethoscope-line',
+                        'permission' => 'access consultas',
+                        'active' => 'admin.gestion.consultas.*',
+                        'children' => [
+                            ['label' => 'Calendario', 'route' => 'admin.gestion.consultas.index', 'active' => 'admin.gestion.consultas.index', 'permission' => 'access consultas calendario'],
+                            ['label' => 'Sala de Espera', 'route' => 'admin.gestion.consultas.sala-espera', 'active' => 'admin.gestion.consultas.sala-espera', 'permission' => 'access consultas en espera'],
+                            ['label' => 'En Enfermería', 'route' => 'admin.gestion.consultas.en-enfermeria', 'active' => 'admin.gestion.consultas.en-enfermeria', 'permission' => 'access consultas en enfermeria'],  
+                            ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio', 'permission' => 'access consultas en consultorio'],
+                            ['label' => 'En Gotas', 'route' => 'admin.gestion.consultas.en-gotas', 'active' => 'admin.gestion.consultas.en-gotas', 'permission' => 'access consultas en gotas'],
+                            ['label' => 'En Óptica', 'route' => 'admin.gestion.consultas.en-optica', 'active' => 'admin.gestion.consultas.en-optica', 'permission' => 'access consultas en optica'],
+                            ['label' => 'En Estudio', 'route' => 'admin.gestion.consultas.en-estudio', 'active' => 'admin.gestion.consultas.en-estudio', 'permission' => 'access consultas en estudio'],
+                            ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas', 'permission' => 'access consultas finalizadas'],
                         ]
                     ],
                     [
