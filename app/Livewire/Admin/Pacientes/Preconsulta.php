@@ -119,6 +119,7 @@ class Preconsulta extends Component
                     RespuestaPreconsulta::create([
                         'paciente_id' => $this->paciente->id,
                         'cita_id' => null,
+                        'consulta_id' => $consulta->id,
                         'pregunta_id' => $pregunta->id,
                         'token_unico' => $token,
                         'empresa_id' => $consulta->empresa_id,

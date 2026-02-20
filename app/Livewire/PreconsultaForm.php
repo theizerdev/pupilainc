@@ -52,7 +52,7 @@ class PreconsultaForm extends Component
             } else {
                 $this->respuestas[$respuesta->id] = $respuesta->respuesta ?? '';
             }
-            
+
             // Inicializar detalles si existen
             $this->detalles[$respuesta->id] = $respuesta->detalle ?? '';
         }
@@ -161,7 +161,7 @@ class PreconsultaForm extends Component
                     $respuestaRow->update(['respuesta' => $val]);
                 }
             }
-            
+
             // Guardar detalles
             if (array_key_exists($rid, $this->detalles)) {
                 $respuestaRow->update(['detalle' => $this->detalles[$rid]]);
@@ -175,83 +175,13 @@ class PreconsultaForm extends Component
                 'fecha_completado' => now(),
             ]);
 
-        // Actualizar el estado de la cita y crear la consulta (con o sin cita)
-        $primeraRespuesta = \App\Models\RespuestaPreconsulta::with(['paciente', 'empresa', 'cita'])
+        // Obtener la consulta asociada
+        $primeraRespuesta = RespuestaPreconsulta::with('consulta')
             ->where('token_unico', $this->token)
             ->first();
 
-        if ($primeraRespuesta && $primeraRespuesta->cita) {
-            $primeraRespuesta->cita->update([
-                'estado' => \App\Models\Cita::ESTADO_COMPLETADA,
-                'estado_preconsulta' => 'completado',
-                'fecha_completado_preconsulta' => now(),
-            ]);
-
-            $cita = $primeraRespuesta->cita->fresh();
-            $consulta = \App\Models\Consulta::firstOrCreate(
-                ['cita_id' => $cita->id],
-                [
-                    'paciente_id' => $cita->paciente_id,
-                    'medico_id' => $cita->medico_id,
-                    'especialidad_id' => $cita->especialidad_id,
-                    'motivo_consulta' => $cita->motivo_consulta,
-                    'empresa_id' => $cita->empresa_id,
-                    'sucursal_id' => $cita->sucursal_id,
-                    'fecha_consulta' => now(),
-                    'estado' => \App\Models\Consulta::ESTADO_SALA_ESPERA,
-                    'preconsulta' => true,
-                ]
-            );
-
-            if (empty($consulta->codigo)) {
-                $candidate = null;
-                for ($i = 0; $i < 5; $i++) {
-                    $n = random_int(10000000, 99999999);
-                    if (!\App\Models\Consulta::where('codigo', (string) $n)->exists()) {
-                        $candidate = (string) $n;
-                        break;
-                    }
-                }
-                $consulta->update(['codigo' => $candidate ?? (string) random_int(10000000, 99999999)]);
-            }
-            $this->consultaCodigo = $consulta->codigo;
-        } else {
-            // Sin cita: crear consulta con datos del paciente y empresa, asignando médico por defecto
-            $paciente = $primeraRespuesta?->paciente ?? $this->paciente;
-            $empresa = $primeraRespuesta?->empresa ?? $this->empresa;
-            $sucursalId = $primeraRespuesta?->sucursal_id ?? $this->sucursal_id;
-
-            // Intentar usar el último médico de una cita previa del paciente
-            $ultimoMedicoId = \App\Models\Cita::where('paciente_id', $paciente->id ?? null)
-                ->orderBy('fecha_inicio', 'desc')
-                ->value('medico_id');
-
-            // Si no hay, buscar médico activo de la empresa (y sucursal)
-            $medico = \App\Models\Medico::activos()
-                ->where('empresa_id', $empresa->id ?? auth()->user()->empresa_id)
-                ->when($sucursalId, fn($q) => $q->where('sucursal_id', $sucursalId))
-                ->first();
-
-            // Elegir médico: último de cita o primero activo
-            $medicoId = $ultimoMedicoId ?: ($medico?->id);
-
-            if ($paciente && $empresa && $medicoId) {
-                $consulta = \App\Models\Consulta::create([
-                    'cita_id' => null,
-                    'paciente_id' => $paciente->id,
-                    'medico_id' => $medicoId,
-                    'especialidad_id' => null,
-                    'empresa_id' => $empresa->id,
-                    'sucursal_id' => $sucursalId,
-                    'fecha_consulta' => now(),
-                    'estado' => \App\Models\Consulta::ESTADO_SALA_ESPERA,
-                    'preconsulta' => true,
-                    'motivo_consulta' => $this->cuestionario?->titulo ?? 'Preconsulta completada',
-                ]);
-                $this->consultaCodigo = $consulta->codigo;
-            } else {
-                session()->flash('warning', 'Preconsulta completada. No se pudo crear la consulta por falta de médico activo.');
-            }
+        if ($primeraRespuesta && $primeraRespuesta->consulta) {
+            $this->consultaCodigo = $primeraRespuesta->consulta->codigo;
         }
 
         // Actualizar estado local para reflejar cambios en la vista

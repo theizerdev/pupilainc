@@ -54,6 +54,10 @@ class Medico extends Model
     {
         return $this->belongsTo(Empresa::class);
     }
+    public function especialidad()
+    {
+        return $this->belongsTo(Especialidad::class);
+    }
 
     public function sucursal()
     {
@@ -165,12 +169,12 @@ class Medico extends Model
     {
         return LogOptions::defaults()
             ->logOnly([
-                'nombres', 
-                'apellidos', 
-                'documento_identidad', 
-                'licencia_medica', 
-                'anios_experiencia', 
-                'nivel_experiencia', 
+                'nombres',
+                'apellidos',
+                'documento_identidad',
+                'licencia_medica',
+                'anios_experiencia',
+                'nivel_experiencia',
                 'status'
             ])
             ->logOnlyDirty()

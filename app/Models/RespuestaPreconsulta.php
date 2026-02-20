@@ -10,6 +10,7 @@ class RespuestaPreconsulta extends Model
     protected $fillable = [
         'paciente_id',
         'cita_id',
+        'consulta_id',
         'pregunta_id',
         'respuesta',
         'respuesta_multiple',
@@ -41,6 +42,11 @@ class RespuestaPreconsulta extends Model
     public function pregunta(): BelongsTo
     {
         return $this->belongsTo(Pregunta::class);
+    }
+
+    public function consulta(): BelongsTo
+    {
+        return $this->belongsTo(Consulta::class);
     }
 
     public function empresa(): BelongsTo

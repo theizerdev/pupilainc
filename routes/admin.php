@@ -34,6 +34,10 @@ Route::prefix('recepcion')->name('recepcion.')->group(function () {
 // Consulta - Apertura
 Route::prefix('consulta')->name('consulta.')->group(function () {
     Route::get('/apertura', \App\Livewire\Admin\Consulta\Apertura::class)->name('apertura')->middleware('checkAdminPermission:access consulta apertura');
+    Route::get('/{consultaId}/proceso', \App\Livewire\Admin\Consulta\ProcesoConsulta::class)->name('proceso')->middleware('checkAdminPermission:access consultas');
+    Route::get('/{id}/informe', [\App\Http\Controllers\Admin\InformeMedicoController::class, 'generar'])->name('informe')->middleware('checkAdminPermission:access consultas');
+    Route::get('/{id}/justificativo', [\App\Http\Controllers\Admin\JustificativoController::class, 'generar'])->name('justificativo')->middleware('checkAdminPermission:access consultas');
+    Route::get('/{id}/reposo', [\App\Http\Controllers\Admin\ReposoController::class, 'generar'])->name('reposo')->middleware('checkAdminPermission:access consultas');
 });
 
 // Consultorios

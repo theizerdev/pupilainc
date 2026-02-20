@@ -16,11 +16,11 @@ class SerieSeeder extends Seeder
         foreach ($empresas as $empresa) {
             foreach ($empresa->sucursales as $sucursal) {
                 $series = [
-                    ['tipo_documento' => 'factura', 'serie' => 'F001'],
+                    ['tipo_documento' => 'factura fiscal', 'serie' => 'F001'],
                     ['tipo_documento' => 'boleta', 'serie' => 'B001'],
                     ['tipo_documento' => 'nota_credito', 'serie' => 'NC01'],
+                    ['tipo_documento' => 'nota_debito', 'serie' => 'ND01'],
                     ['tipo_documento' => 'recibo', 'serie' => 'R001'],
-                    ['tipo_documento' => 'comunidad_educativa', 'serie' => 'CE001'],
                 ];
 
                 foreach ($series as $serie) {

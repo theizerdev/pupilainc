@@ -145,6 +145,34 @@ class Consulta extends Model
         return $this->hasMany(SignosVitales::class);
     }
 
+    public function diagnosticos()
+    {
+        return $this->belongsToMany(Diagnostico::class, 'consulta_diagnostico')
+            ->withPivot('tipo', 'orden')
+            ->withTimestamps()
+            ->orderBy('consulta_diagnostico.orden');
+    }
+
+    public function evaluacion()
+    {
+        return $this->hasOne(ConsultaEvaluacion::class);
+    }
+
+    public function estudios()
+    {
+        return $this->hasMany(ConsultaEstudio::class)->orderBy('orden');
+    }
+
+    public function tratamientos()
+    {
+        return $this->hasMany(ConsultaTratamiento::class)->orderBy('orden');
+    }
+
+    public function reposo()
+    {
+        return $this->hasOne(Reposo::class);
+    }
+
     public function empresa()
     {
         return $this->belongsTo(Empresa::class);

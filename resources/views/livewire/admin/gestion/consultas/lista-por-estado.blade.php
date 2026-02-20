@@ -180,6 +180,36 @@
                                             <i class="ri ri-more-2-fill"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
+                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center" 
+                                                       href="{{ route('admin.consulta.informe', $consulta->id) }}" 
+                                                       target="_blank">
+                                                        <i class="ri ri-file-text-line me-2"></i>
+                                                        Informe Médico
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center" 
+                                                       href="{{ route('admin.consulta.justificativo', $consulta->id) }}" 
+                                                       target="_blank">
+                                                        <i class="ri ri-file-list-line me-2"></i>
+                                                        Justificativo
+                                                    </a>
+                                                </li>
+                                                @if($consulta->reposo)
+                                                    <li>
+                                                        <a class="dropdown-item d-flex align-items-center" 
+                                                           href="{{ route('admin.consulta.reposo', $consulta->id) }}" 
+                                                           target="_blank">
+                                                            <i class="ri ri-file-shield-line me-2"></i>
+                                                            Reposo Médico
+                                                        </a>
+                                                    </li>
+                                                @endif
+                                                <li><hr class="dropdown-divider"></li>
+                                            @endif
+                                            
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
                                                 <li>
                                                     <a class="dropdown-item d-flex align-items-center" href="#" 

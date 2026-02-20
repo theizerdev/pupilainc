@@ -85,7 +85,6 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
 // Doctor routes
 Route::group(['prefix' => 'admin/doctor', 'as' => 'doctor.', 'middleware' => ['auth', 'verified']], function () {
     Route::get('/{id}/dashboard', \App\Livewire\Doctor\Dashboard::class)->name('dashboard');
-
 });
 
 Route::get('/admin/template-customization', \App\Livewire\Admin\TemplateCustomization\Index::class)

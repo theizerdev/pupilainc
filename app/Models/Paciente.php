@@ -94,7 +94,7 @@ class Paciente extends Model
     public function getEdadAttribute()
     {
         if ($this->fecha_nacimiento) {
-            return Carbon::now()->diffInYears($this->fecha_nacimiento);
+            return $this->fecha_nacimiento->diffInYears(Carbon::now());
         }
         return null;
     }
