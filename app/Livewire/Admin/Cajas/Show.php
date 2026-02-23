@@ -120,6 +120,7 @@ class Show extends Component
     {
         return $this->caja->pagos()
             ->where('estado', 'aprobado')
+            ->whereDoesntHave('notasCredito', fn($q) => $q->where('estado', 'aprobado'))
             ->selectRaw('metodo_pago, COUNT(*) as cantidad, SUM(total) as total')
             ->groupBy('metodo_pago')
             ->get();
@@ -129,6 +130,7 @@ class Show extends Component
     {
         return $this->caja->pagos()
             ->where('estado', 'aprobado')
+            ->whereDoesntHave('notasCredito', fn($q) => $q->where('estado', 'aprobado'))
             ->with(['detalles.baremo'])
             ->get()
             ->flatMap(function ($pago) {
@@ -297,31 +299,46 @@ class Show extends Component
                     ? $pago->consulta->paciente->nombre_completo 
                     : ($pago->clienteFiscal ? $pago->clienteFiscal->razon_social : 'N/A');
                 
+                // Verificar si tiene nota de crédito
+                $tieneNotaCredito = $pago->notasCredito()->where('estado', 'aprobado')->exists();
+                
                 if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {
                     foreach ($pago->detalles_pago_mixto as $detalle) {
                         $montoBolivares = isset($detalle['monto_bs']) 
                             ? number_format($detalle['monto_bs'], 2) 
                             : '-';
                         
-                        $sheet->setCellValue('A' . $row, $pago->numero_completo);
+                        $sheet->setCellValue('A' . $row, $pago->numero_completo . ($tieneNotaCredito ? ' (ANULADA)' : ''));
                         $sheet->setCellValue('B' . $row, $paciente);
                         $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $detalle['metodo'])));
                         $sheet->setCellValue('D' . $row, number_format($detalle['monto_usd'] ?? $detalle['monto'] ?? 0, 2));
                         $sheet->setCellValue('E' . $row, $montoBolivares);
                         $sheet->setCellValue('F' . $row, $detalle['referencia'] ?? '-');
                         $sheet->setCellValue('G' . $row, $pago->created_at->format('H:i'));
+                        
+                        // Aplicar color rojo si tiene nota de crédito
+                        if ($tieneNotaCredito) {
+                            $sheet->getStyle('A' . $row . ':G' . $row)->getFont()->getColor()->setARGB('FFFF0000');
+                        }
+                        
                         $row++;
                     }
                 } else {
                     $montoBolivares = $pago->total_bs ? number_format($pago->total_bs, 2) : '-';
                     
-                    $sheet->setCellValue('A' . $row, $pago->numero_completo);
+                    $sheet->setCellValue('A' . $row, $pago->numero_completo . ($tieneNotaCredito ? ' (ANULADA)' : ''));
                     $sheet->setCellValue('B' . $row, $paciente);
                     $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $pago->metodo_pago)));
                     $sheet->setCellValue('D' . $row, number_format($pago->total_usd ?? $pago->total, 2));
                     $sheet->setCellValue('E' . $row, $montoBolivares);
                     $sheet->setCellValue('F' . $row, $pago->referencia ?? '-');
                     $sheet->setCellValue('G' . $row, $pago->created_at->format('H:i'));
+                    
+                    // Aplicar color rojo si tiene nota de crédito
+                    if ($tieneNotaCredito) {
+                        $sheet->getStyle('A' . $row . ':G' . $row)->getFont()->getColor()->setARGB('FFFF0000');
+                    }
+                    
                     $row++;
                 }
             }

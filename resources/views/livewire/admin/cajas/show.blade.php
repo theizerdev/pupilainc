@@ -116,7 +116,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="text-muted mb-2">Total Pagos</h6>
-                            <h3 class="mb-0">{{ $caja->pagos->where('estado', 'aprobado')->count() }}</h3>
+                            <h3 class="mb-0">{{ $caja->pagos->where('estado', 'aprobado')->filter(fn($p) => !$p->notasCredito()->where('estado', 'aprobado')->exists())->count() }}</h3>
                         </div>
                         <div class="bg-warning bg-opacity-10 p-3 rounded">
                             <i class="ri ri-file-list-3-line text-warning" style="font-size: 1.5rem;"></i>
@@ -237,9 +237,17 @@
                             </thead>
                             <tbody>
                                 @forelse($caja->pagos as $pago)
-                                    <tr>
+                                    @php
+                                        $tieneNotaCredito = $pago->notasCredito()->where('estado', 'aprobado')->exists();
+                                    @endphp
+                                    <tr class="{{ $tieneNotaCredito ? 'text-danger' : '' }}">
                                         <td>
-                                            <div class="fw-medium text-primary">{{ $pago->numero_completo }}</div>
+                                            <div class="fw-medium {{ $tieneNotaCredito ? 'text-danger' : 'text-primary' }}">
+                                                {{ $pago->numero_completo }}
+                                                @if($tieneNotaCredito)
+                                                    <span class="badge bg-danger ms-1">ANULADA</span>
+                                                @endif
+                                            </div>
                                         </td>
                                         <td>
                                             @if($pago->numero_control_fiscal)
@@ -271,10 +279,18 @@
                                             <i class="{{ $iconClass }} me-1"></i>
                                             {{ ucfirst($pago->metodo_pago) }}
                                         </td>
-                                        <td class="text-end fw-semibold"><x-dual-currency :amount="$pago->total" /></td>
+                                        <td class="text-end fw-semibold">
+                                            @if($tieneNotaCredito)
+                                                <del><x-dual-currency :amount="$pago->total" /></del>
+                                            @else
+                                                <x-dual-currency :amount="$pago->total" />
+                                            @endif
+                                        </td>
                                         <td>{{ $pago->created_at->format('H:i') }}</td>
                                         <td>
-                                            @if($pago->estado === 'aprobado')
+                                            @if($tieneNotaCredito)
+                                                <span class="badge bg-danger">Anulada</span>
+                                            @elseif($pago->estado === 'aprobado')
                                                 <span class="badge bg-success">Aprobado</span>
                                             @elseif($pago->estado === 'pendiente')
                                                 <span class="badge bg-warning">Pendiente</span>

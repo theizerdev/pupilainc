@@ -93,6 +93,14 @@ class ComprobanteController extends Controller
         $pdf->SetX(140);
         $pdf->Cell(60, 4, $this->u($tipo), 0, 1, 'C');
 
+        // Coletilla no fiscal
+        if (!$pago->es_factura_fiscal) {
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->SetTextColor(200, 0, 0);
+            $pdf->Cell(0, 6, $this->u('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
+            $pdf->SetTextColor(0, 0, 0);
+        }
+
         // Línea separadora
         $pdf->Ln(3);
         $pdf->Line(10, $pdf->GetY(), 200, $pdf->GetY());
@@ -170,8 +178,12 @@ class ComprobanteController extends Controller
         $pdf->Cell(0, 3, $this->u('Fecha de emisión: ' . now()->format('d/m/Y H:i:s')), 0, 1, 'C');
         if ($pago->es_factura_fiscal) {
             $pdf->Cell(0, 3, $this->u('Documento emitido conforme a las Providencias SNAT/2011/0071 y SNAT/2024/000102'), 0, 1, 'C');
+        } else {
+            $pdf->SetFont('Arial', 'B', 8);
+            $pdf->Cell(0, 3, $this->u('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
         }
         if ($pago->aplica_igtf) {
+            $pdf->SetFont('Arial', '', 7);
             $pdf->Cell(0, 3, $this->u('IGTF aplicado conforme a la Providencia SNAT/2022/000013'), 0, 1, 'C');
         }
     }
@@ -318,6 +330,14 @@ class ComprobanteController extends Controller
             $pdf->SetFont('Arial', '', 6);
             $pdf->SetX(100);
             $pdf->Cell(33, 3, $this->u('Ctrl: ') . $pago->numero_control_fiscal, 0, 1, 'C');
+        }
+
+        // Coletilla no fiscal
+        if (!$pago->es_factura_fiscal) {
+            $pdf->SetFont('Arial', 'B', 7);
+            $pdf->SetTextColor(200, 0, 0);
+            $pdf->Cell($w, 4, $this->u('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
+            $pdf->SetTextColor(0, 0, 0);
         }
 
         $pdf->Ln(2);
@@ -470,8 +490,12 @@ class ComprobanteController extends Controller
         $pdf->Cell(0, 3, $this->u('Procesado por: ' . $pago->user->name . ' | ' . now()->format('d/m/Y H:i:s')), 0, 1, 'C');
         if ($pago->es_factura_fiscal) {
             $pdf->Cell(0, 3, $this->u('Documento emitido conforme a las Providencias SNAT/2011/0071 y SNAT/2024/000102'), 0, 1, 'C');
+        } else {
+            $pdf->SetFont('Arial', 'B', 6);
+            $pdf->Cell(0, 3, $this->u('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
         }
         if ($pago->aplica_igtf) {
+            $pdf->SetFont('Arial', '', 5);
             $pdf->Cell(0, 3, $this->u('IGTF aplicado conforme a la Providencia SNAT/2022/000013'), 0, 1, 'C');
         }
     }

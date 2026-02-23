@@ -327,6 +327,15 @@ class CrearNotaCredito extends Component
 
         $pagoOrigen = $this->pago_origen;
 
+        // Validar que el monto de la NC no exceda el saldo disponible de la factura
+        if ($this->total_bs > 0 && $pagoOrigen->saldo_disponible !== null) {
+            $totalNcUsd = $this->tasa_usd > 0 ? $this->total_bs / $this->tasa_usd : 0;
+            if ($totalNcUsd > ($pagoOrigen->saldo_disponible + 0.01)) {
+                session()->flash('error', 'El monto de la Nota de Crédito excede el saldo disponible de la factura.');
+                return;
+            }
+        }
+
         // Obtener caja aperturada
         $caja = \App\Models\Caja::where('user_id', auth()->id())
             ->where('estado', 'abierta')

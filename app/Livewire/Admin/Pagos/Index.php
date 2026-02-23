@@ -187,6 +187,10 @@ class Index extends Component
             $pdf->Cell(117, 4, '', 0, 0);
             $pdf->Cell(35, 4, 'Tasa BCV:', 0, 0, 'R');
             $pdf->Cell(38, 4, 'Bs ' . number_format($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
+
+            $pdf->Ln(2);
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(0, 5, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
         }
 
 
@@ -311,6 +315,10 @@ class Index extends Component
             $pdf->Cell(37, 3, '$ ' . number_format($pago->total_usd, 2), 0, 1, 'R');
             $pdf->Cell(148, 3, 'Tasa:', 0, 0, 'R');
             $pdf->Cell(37, 3, 'Bs ' . number_format($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
+
+            $pdf->Ln(1);
+            $pdf->SetFont('Arial', 'B', 7);
+            $pdf->Cell(0, 4, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
         }
 
         // Coletilla IGTF
@@ -473,6 +481,12 @@ class Index extends Component
         $totalAcreditar = abs($nota->total_bs ?? 0);
         $pdf->Cell(38, 7, 'Bs ' . number_format($totalAcreditar, 2, ',', '.'), 1, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
+
+        if (!$nota->es_factura_fiscal) {
+            $pdf->Ln(3);
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(0, 5, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
+        }
     }
 
     private function generateNotaCreditoMediaCarta(Fpdf $pdf, Pago $nota, $tipo, $yPosition)
@@ -541,6 +555,12 @@ class Index extends Component
         $pdf->Cell(148, 5, 'TOTAL:', 1, 0, 'R');
         $pdf->Cell(37, 5, 'Bs ' . number_format(abs($nota->total_bs), 2, ',', '.'), 1, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
+
+        if (!$nota->es_factura_fiscal) {
+            $pdf->Ln(1);
+            $pdf->SetFont('Arial', 'B', 7);
+            $pdf->Cell(0, 4, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
+        }
 
         $pdf->Ln(3);
         $pdf->SetFont('Arial', '', 6);
@@ -698,9 +718,14 @@ class Index extends Component
         $pdf->Cell(0, 4, 'Firma y Sello Autorizado', 0, 1, 'C');
 
         $pdf->Ln(4);
-        $pdf->SetFont('Arial', 'I', 7);
-        $leyenda = "Documento emitido conforme a las Providencias SNAT/2011/0071 y SNAT/2024/000102.";
-        $pdf->MultiCell(0, 3, utf8_decode($leyenda), 0, 'J');
+        if ($nota->es_factura_fiscal) {
+            $pdf->SetFont('Arial', 'I', 7);
+            $leyenda = "Documento emitido conforme a las Providencias SNAT/2011/0071 y SNAT/2024/000102.";
+            $pdf->MultiCell(0, 3, utf8_decode($leyenda), 0, 'J');
+        } else {
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(0, 5, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
+        }
         if ($nota->aplica_igtf) {
             $pdf->SetFont('Arial', 'I', 7);
             $pdf->MultiCell(0, 3, utf8_decode('IGTF aplicado conforme a la Providencia SNAT/2022/000013.'), 0, 'J');
@@ -788,6 +813,12 @@ class Index extends Component
         $pdf->Cell(148, 5, 'TOTAL Bs.:', 0, 0, 'R');
         $pdf->Cell(37, 5, 'Bs ' . number_format($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
+
+        if (!$nota->es_factura_fiscal) {
+            $pdf->Ln(1);
+            $pdf->SetFont('Arial', 'B', 7);
+            $pdf->Cell(0, 4, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
+        }
 
         $pdf->Ln(2);
         $pdf->SetFont('Arial', '', 6);

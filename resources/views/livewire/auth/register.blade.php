@@ -143,27 +143,6 @@
             </a>
           </p>
 
-          <div class="divider my-5">
-            <div class="divider-text">or</div>
-          </div>
-
-          <div class="d-flex justify-content-center gap-2">
-            <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-facebook">
-              <i class="icon-base ri ri-facebook-fill icon-18px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-twitter">
-              <i class="icon-base ri ri-twitter-fill icon-18px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-github">
-              <i class="icon-base ri ri-github-fill icon-18px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-icon btn-lg rounded-pill btn-text-google-plus">
-              <i class="icon-base ri ri-google-fill icon-18px"></i>
-            </a>
-          </div>
         </div>
       </div>
       <!-- /Register -->

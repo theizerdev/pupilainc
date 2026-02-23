@@ -72,6 +72,11 @@ class Caja extends Model
         $totalTarjetas = 0;
 
         foreach ($pagos as $pago) {
+            // Excluir pagos anulados por nota de crédito
+            if ($pago->notasCredito()->where('estado', 'aprobado')->exists()) {
+                continue;
+            }
+
             $montoUSD = $pago->total_usd ?? $pago->total;
             
             if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {

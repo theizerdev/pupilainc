@@ -1,4 +1,4 @@
-@extends('components.layouts.admin')
+@extends('components.layouts.balance')
 
 @section('title', 'Libro de Ventas - SENIAT')
 
@@ -10,6 +10,9 @@
                 <div class="card-header pb-0">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6><i class="fas fa-book"></i> Libro de Ventas - SENIAT</h6>
+                        <a href="{{ route('admin.seniat.libro-ventas.excel', ['desde' => $desde, 'hasta' => $hasta]) }}" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-file-excel"></i> Exportar Excel
+                        </a>
                         <a href="{{ route('admin.seniat.libro-ventas.export-txt', ['desde' => $desde, 'hasta' => $hasta]) }}" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-file-export"></i> Exportar TXT
                         </a>

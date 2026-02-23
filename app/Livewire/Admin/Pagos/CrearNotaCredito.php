@@ -111,6 +111,27 @@ class CrearNotaCredito extends Component
                 $ivaMonto = $this->factura->iva_monto * $factorProporcional;
             }
             
+            // Calcular bases segregadas proporcionalmente
+            $baseImponibleGeneral = 0;
+            $ivaMontoGeneral = 0;
+            $baseImponibleReducida = 0;
+            $ivaMontoReducida = 0;
+            $igtfMonto = 0;
+            $aplica_igtf = false;
+
+            if ($this->factura->base_imponible_general > 0) {
+                $baseImponibleGeneral = $this->factura->base_imponible_general * $factorProporcional;
+                $ivaMontoGeneral = $this->factura->iva_monto_general * $factorProporcional;
+            }
+            if ($this->factura->base_imponible_reducida > 0) {
+                $baseImponibleReducida = $this->factura->base_imponible_reducida * $factorProporcional;
+                $ivaMontoReducida = $this->factura->iva_monto_reducida * $factorProporcional;
+            }
+            if ($this->factura->aplica_igtf && $this->factura->igtf_monto > 0) {
+                $aplica_igtf = true;
+                $igtfMonto = $this->factura->igtf_monto * $factorProporcional;
+            }
+
             // Crear nota de crédito
             $notaCredito = Pago::create([
                 'tipo_pago' => Pago::TIPO_NOTA_CREDITO,
@@ -132,8 +153,15 @@ class CrearNotaCredito extends Component
                 'total_bs' => $montoNotaBs,
                 'base_imponible' => $baseImponible,
                 'monto_exento' => $montoExento,
+                'base_imponible_general' => $baseImponibleGeneral,
+                'iva_monto_general' => $ivaMontoGeneral,
+                'base_imponible_reducida' => $baseImponibleReducida,
+                'iva_monto_reducida' => $ivaMontoReducida,
                 'iva_monto' => $ivaMonto,
                 'iva_porcentaje' => $this->factura->iva_porcentaje,
+                'aplica_igtf' => $aplica_igtf,
+                'igtf_porcentaje' => $this->factura->igtf_porcentaje ?? 0,
+                'igtf_monto' => $igtfMonto,
                 'tasa_cambio_usd' => $this->factura->tasa_cambio_usd,
                 'metodo_pago' => $this->factura->metodo_pago,
                 'estado' => Pago::ESTADO_APROBADO,
@@ -160,11 +188,6 @@ class CrearNotaCredito extends Component
                     'exento_iva' => $detalle->exento_iva,
                     'iva_alicuota' => $detalle->iva_alicuota,
                 ]);
-            }
-
-            // Si es anulación total, cambiar estado de factura
-            if ($this->tipo_nota === 'total' || $this->factura->saldo_disponible <= 0) {
-                $this->factura->update(['estado' => Pago::ESTADO_CANCELADO]);
             }
 
             DB::commit();

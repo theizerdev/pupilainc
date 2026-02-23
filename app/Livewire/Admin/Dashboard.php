@@ -44,6 +44,8 @@ class Dashboard extends Component
             'total_pacientes' => Paciente::count(),
             'ingresos_mes' => Pago::whereYear('created_at', Carbon::now()->year)
                 ->whereMonth('created_at', Carbon::now()->month)
+                ->where('estado', Pago::ESTADO_APROBADO)
+                ->whereDoesntHave('notasCredito', fn($q) => $q->where('estado', Pago::ESTADO_APROBADO))
                 ->sum('total_usd'),
             'cajas_activas' => Caja::where('estado', 'abierta')->count(),
             'total_empresas' => Empresa::count(),

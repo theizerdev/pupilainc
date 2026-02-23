@@ -24,6 +24,9 @@ class PlanCuentasSeeder extends Seeder
             ['codigo' => '1.1.01', 'nombre' => 'CAJA Y BANCOS', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 3, 'padre' => '1.1', 'acepta_movimientos' => false],
             ['codigo' => '1.1.01.001', 'nombre' => 'Caja General', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 4, 'padre' => '1.1.01', 'acepta_movimientos' => true],
             ['codigo' => '1.1.01.002', 'nombre' => 'Banco Cuenta Corriente', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 4, 'padre' => '1.1.01', 'acepta_movimientos' => true],
+            ['codigo' => '1.1.01.003', 'nombre' => 'Banco Cuenta USD', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 4, 'padre' => '1.1.01', 'acepta_movimientos' => true],
+            ['codigo' => '1.1.01.004', 'nombre' => 'Pago Móvil', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 4, 'padre' => '1.1.01', 'acepta_movimientos' => true],
+            ['codigo' => '1.1.01.005', 'nombre' => 'Zelle / PayPal', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 4, 'padre' => '1.1.01', 'acepta_movimientos' => true],
             ['codigo' => '1.1.02', 'nombre' => 'CUENTAS POR COBRAR', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 3, 'padre' => '1.1', 'acepta_movimientos' => false],
             ['codigo' => '1.1.02.001', 'nombre' => 'Cuentas por Cobrar Pacientes', 'tipo' => 'activo', 'naturaleza' => 'deudora', 'nivel' => 4, 'padre' => '1.1.02', 'acepta_movimientos' => true],
 
@@ -33,11 +36,17 @@ class PlanCuentasSeeder extends Seeder
             ['codigo' => '2.1.01', 'nombre' => 'IMPUESTOS POR PAGAR', 'tipo' => 'pasivo', 'naturaleza' => 'acreedora', 'nivel' => 3, 'padre' => '2.1', 'acepta_movimientos' => false],
             ['codigo' => '2.1.01.001', 'nombre' => 'IVA por Pagar', 'tipo' => 'pasivo', 'naturaleza' => 'acreedora', 'nivel' => 4, 'padre' => '2.1.01', 'acepta_movimientos' => true],
             ['codigo' => '2.1.01.002', 'nombre' => 'IGTF por Pagar', 'tipo' => 'pasivo', 'naturaleza' => 'acreedora', 'nivel' => 4, 'padre' => '2.1.01', 'acepta_movimientos' => true],
+            ['codigo' => '2.1.01.003', 'nombre' => 'ISLR por Pagar', 'tipo' => 'pasivo', 'naturaleza' => 'acreedora', 'nivel' => 4, 'padre' => '2.1.01', 'acepta_movimientos' => true],
+            ['codigo' => '2.1.02', 'nombre' => 'CUENTAS POR PAGAR', 'tipo' => 'pasivo', 'naturaleza' => 'acreedora', 'nivel' => 3, 'padre' => '2.1', 'acepta_movimientos' => false],
+            ['codigo' => '2.1.02.001', 'nombre' => 'Proveedores', 'tipo' => 'pasivo', 'naturaleza' => 'acreedora', 'nivel' => 4, 'padre' => '2.1.02', 'acepta_movimientos' => true],
 
             // PATRIMONIO
             ['codigo' => '3', 'nombre' => 'PATRIMONIO', 'tipo' => 'patrimonio', 'naturaleza' => 'acreedora', 'nivel' => 1, 'acepta_movimientos' => false],
             ['codigo' => '3.1', 'nombre' => 'CAPITAL', 'tipo' => 'patrimonio', 'naturaleza' => 'acreedora', 'nivel' => 2, 'padre' => '3', 'acepta_movimientos' => false],
             ['codigo' => '3.1.01', 'nombre' => 'Capital Social', 'tipo' => 'patrimonio', 'naturaleza' => 'acreedora', 'nivel' => 3, 'padre' => '3.1', 'acepta_movimientos' => true],
+            ['codigo' => '3.2', 'nombre' => 'RESULTADOS', 'tipo' => 'patrimonio', 'naturaleza' => 'acreedora', 'nivel' => 2, 'padre' => '3', 'acepta_movimientos' => false],
+            ['codigo' => '3.2.01', 'nombre' => 'Utilidades Retenidas', 'tipo' => 'patrimonio', 'naturaleza' => 'acreedora', 'nivel' => 3, 'padre' => '3.2', 'acepta_movimientos' => true],
+            ['codigo' => '3.2.02', 'nombre' => 'Resultado del Ejercicio', 'tipo' => 'patrimonio', 'naturaleza' => 'acreedora', 'nivel' => 3, 'padre' => '3.2', 'acepta_movimientos' => true],
 
             // INGRESOS
             ['codigo' => '4', 'nombre' => 'INGRESOS', 'tipo' => 'ingreso', 'naturaleza' => 'acreedora', 'nivel' => 1, 'acepta_movimientos' => false],
@@ -64,8 +73,7 @@ class PlanCuentasSeeder extends Seeder
                 $padre_id = $cuentasCreadas[$cuenta['padre']]->id ?? null;
             }
 
-            $cuentaCreada = CuentaContable::create([
-                'codigo' => $cuenta['codigo'],
+            $cuentaCreada = CuentaContable::updateOrCreate(['codigo' => $cuenta['codigo'], 'empresa_id' => $empresa->id], [
                 'nombre' => $cuenta['nombre'],
                 'tipo' => $cuenta['tipo'],
                 'naturaleza' => $cuenta['naturaleza'],
@@ -73,7 +81,6 @@ class PlanCuentasSeeder extends Seeder
                 'cuenta_padre_id' => $padre_id,
                 'acepta_movimientos' => $cuenta['acepta_movimientos'],
                 'activo' => true,
-                'empresa_id' => $empresa->id,
                 'sucursal_id' => null
             ]);
 

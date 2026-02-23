@@ -87,14 +87,19 @@ class LibroVentasController extends Controller
 
             // Documento afectado (para NC/ND)
             $docAfectado = '0';
+            $controlAfectado = '0';
+            $fechaAfectado = '0';
             if ($doc->pagoOrigen) {
                 $docAfectado = $doc->pagoOrigen->numero_completo ?? '0';
+                $controlAfectado = $doc->pagoOrigen->numero_control_fiscal ?? '0';
+                $fechaAfectado = $doc->pagoOrigen->fecha ? $doc->pagoOrigen->fecha->format('Y-m-d') : '0';
             }
 
             $montoExento = number_format($doc->monto_exento ?? 0, 2, '.', '');
             $alicuota = number_format($doc->iva_porcentaje ?? 16, 2, '.', '');
+            $igtfMonto = number_format($doc->igtf_monto ?? 0, 2, '.', '');
 
-            // Format: RIF|Periodo|Fecha|TipoOp|TipoDoc|RifComprador|NumDoc|NumControl|MontoDoc|BaseImp|MontoIVA|DocAfectado|MontoExento|Alicuota
+            // Format: RIF|Periodo|Fecha|TipoOp|TipoDoc|RifComprador|NumDoc|NumControl|MontoDoc|BaseImp|MontoIVA|DocAfectado|ControlAfectado|FechaAfectado|MontoExento|Alicuota|IGTF
             $lines[] = implode("\t", [
                 $rifContribuyente,
                 $periodo,
@@ -108,8 +113,11 @@ class LibroVentasController extends Controller
                 $baseImponible,
                 $montoIva,
                 $docAfectado,
+                $controlAfectado,
+                $fechaAfectado,
                 $montoExento,
                 $alicuota,
+                $igtfMonto,
             ]);
         }
 

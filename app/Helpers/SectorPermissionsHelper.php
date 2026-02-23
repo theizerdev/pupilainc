@@ -307,7 +307,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'active' => 'admin.contabilidad.*',
                         'children' => [
                             ['label' => 'Plan de Cuentas', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.plan-cuentas', 'active' => 'admin.contabilidad.plan-cuentas'],
-                            ['label' => 'Asientos Contables', 'permission' => 'view contabilidad', 'route' => 'admin.contabilidad.asientos', 'active' => 'admin.contabilidad.asientos'],
+                            ['label' => 'Asientos Contables', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.asientos', 'active' => 'admin.contabilidad.asientos'],
+                            ['label' => 'Libro Diario', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.libro-diario', 'active' => 'admin.contabilidad.libro-diario'],
+                            ['label' => 'Libro Mayor', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.libro-mayor', 'active' => 'admin.contabilidad.libro-mayor'],
+                            ['label' => 'Balance Comprobación', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.balance-comprobacion', 'active' => 'admin.contabilidad.balance-comprobacion'],
+                            ['label' => 'Balance General', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.balance-general', 'active' => 'admin.contabilidad.balance-general'],
+                            ['label' => 'Estado de Resultados', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.estado-resultados', 'active' => 'admin.contabilidad.estado-resultados'],
+                            ['label' => 'Cierre Contable', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.cierre-contable', 'active' => 'admin.contabilidad.cierre-contable'],
                         ]
                     ],
                 ]
