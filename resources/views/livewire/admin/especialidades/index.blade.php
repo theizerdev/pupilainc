@@ -203,9 +203,13 @@
                                     <td>{{ format_money($especialidad->costo_consulta) }}</td>
                                     <td>{{ $especialidad->duracion_consulta }} min</td>
                                     <td>
-                                        <span class="badge badge-{{ $especialidad->status ? 'success' : 'secondary' }}">
-                                            {{ $especialidad->status ? 'Activo' : 'Inactivo' }}
-                                        </span>
+                                        <div class="form-check form-switch form-switch-lg">
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="statusSwitch{{ $especialidad->id }}"
+                                                   wire:click="toggleStatus({{ $especialidad->id }})"
+                                                   {{ $especialidad->status ? 'checked' : '' }}
+                                                   style="cursor: pointer;">
+                                        </div>
                                     </td>
                                     <td>{{ $especialidad->created_at->format('d/m/Y') }}</td>
                                     <td>

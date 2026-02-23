@@ -1,251 +1,28 @@
 <?php
 
 namespace App\Livewire\Admin\Pagos;
-use App\Traits\HasDynamicLayout;
-use App\Traits\HasRegionalFormatting;
 
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Pago;
-use App\Models\ExchangeRate;
-use App\Traits\Exportable;
 use Codedge\Fpdf\Fpdf\Fpdf;
 
 class Index extends Component
 {
-    use WithPagination, Exportable, HasDynamicLayout, HasRegionalFormatting;
+    use WithPagination;
 
+    public $search = '';
+    public $estado = '';
+    public $metodo_pago = '';
+    public $tipo_pago = '';
     public $showPreview = false;
     public $previewPagoId;
 
-    public $search = '';
-    public $status = '';
-    public $sortBy = 'created_at';
-    public $sortDirection = 'desc';
-    public $perPage = 10;
+    protected $paginationTheme = 'bootstrap';
 
-    protected $queryString = [
-        'search' => ['except' => ''],
-        'status' => ['except' => ''],
-        'sortBy' => ['except' => 'created_at'],
-        'sortDirection' => ['except' => 'desc'],
-        'perPage' => ['except' => 10]
-    ];
-
-    public function getStatsProperty()
-    {
-        // Para usuarios no Super Administrador, usar withoutGlobalScope y aplicar manualmente
-        if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {
-            $baseQuery = Pago::withoutGlobalScope('multitenancy')
-                ->where(function($query) {
-                    if (auth()->user()->empresa_id) {
-                        $query->where('pagos.empresa_id', auth()->user()->empresa_id);
-                    }
-                    if (auth()->user()->sucursal_id) {
-                        $query->where('pagos.sucursal_id', auth()->user()->sucursal_id);
-                    }
-                })
-                ->whereHas('matricula', function($q) {
-                    $q->whereHas('student');
-                });
-        } else {
-            $baseQuery = Pago::whereHas('matricula', function($q) {
-                $q->whereHas('student');
-            });
-        }
-
-        return [
-            'total' => (clone $baseQuery)->count(),
-            'aprobados' => (clone $baseQuery)->where('estado', 'aprobado')->count(),
-            'pendientes' => (clone $baseQuery)->where('estado', 'pendiente')->count(),
-            'ingresos_totales' => (clone $baseQuery)->where('estado', 'aprobado')->sum('total') ?: 0
-        ];
-    }
-
-    public function updatedSearch()
+    public function updatingSearch()
     {
         $this->resetPage();
-    }
-
-    public function updatedStatus()
-    {
-        $this->resetPage();
-    }
-
-    public function sortBy($field)
-    {
-        if ($this->sortBy === $field) {
-            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
-        } else {
-            $this->sortDirection = 'asc';
-        }
-
-        $this->sortBy = $field;
-        $this->resetPage();
-    }
-
-    public function delete(Pago $pago)
-    {
-        // Verificar permiso para eliminar pagos
-        if (!auth()->user()->can('delete pagos')) {
-            session()->flash('error', 'No tienes permiso para eliminar pagos.');
-            return;
-        }
-
-        try {
-            $pago->delete();
-            session()->flash('message', 'Pago eliminado correctamente.');
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar el pago: ' . $e->getMessage());
-        }
-
-        $this->resetPage();
-    }
-
-    public function clearFilters()
-    {
-        $this->search = '';
-        $this->status = '';
-        $this->sortBy = 'created_at';
-        $this->sortDirection = 'desc';
-        $this->perPage = 10;
-        $this->resetPage();
-    }
-
-    public function toggleStatus($pagoId)
-    {
-        if (!auth()->user()->can('edit pagos')) {
-            session()->flash('error', 'No tienes permiso para editar pagos.');
-            return;
-        }
-
-        $pago = Pago::find($pagoId);
-        if ($pago) {
-            $pago->estado = $pago->estado === 'aprobado' ? 'pendiente' : 'aprobado';
-            $pago->save();
-        }
-    }
-
-    public function getExportQuery()
-    {
-        return $this->getQuery();
-    }
-
-    public function getExportHeaders()
-    {
-        return [
-            'Documento', 'Estudiante', 'DNI', 'Total', 'Fecha', 'Estado', 'Método Pago'
-        ];
-    }
-
-    public function formatExportRow($pago)
-    {
-        $studentName = '';
-        $studentDocumento = '';
-
-        if ($pago->matricula && $pago->matricula->student) {
-            $studentName = ($pago->matricula->student->nombres ?? '') . ' ' . ($pago->matricula->student->apellidos ?? '');
-            $studentDocumento = $pago->matricula->student->documento_identidad ?? '';
-        }
-
-        return [
-            $pago->numero_completo,
-            $studentName,
-            $studentDocumento,
-            $this->format_money($pago->total),
-            $this->format_date($pago->fecha),
-            ucfirst($pago->estado),
-            $pago->metodo_pago ?? ''
-        ];
-    }
-
-    private function getQuery()
-    {
-        // Para usuarios no Super Administrador, usar withoutGlobalScope y aplicar manualmente solo a pagos
-        if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {
-            return Pago::withoutGlobalScope('multitenancy')
-                ->with(['matricula.student', 'detalles.conceptoPago', 'user', 'serieModel'])
-                ->where(function($query) {
-                    // Aplicar scope manualmente solo a pagos
-                    if (auth()->user()->empresa_id) {
-                        $query->where('pagos.empresa_id', auth()->user()->empresa_id);
-                    }
-                    if (auth()->user()->sucursal_id) {
-                        $query->where('pagos.sucursal_id', auth()->user()->sucursal_id);
-                    }
-                })
-                ->whereHas('matricula', function($q) {
-                    $q->whereHas('student');
-                })
-                ->when($this->search, function ($query) {
-                    $query->where(function($q) {
-                        $q->whereHas('matricula.student', function ($subQuery) {
-                            $subQuery->where('nombres', 'like', '%' . $this->search . '%')
-                                ->orWhere('apellidos', 'like', '%' . $this->search . '%')
-                                ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
-                        })
-                        ->orWhereHas('detalles.conceptoPago', function($subQuery) {
-                            $subQuery->where('nombre', 'like', '%' . $this->search . '%');
-                        })
-                        ->orWhere('referencia', 'like', '%' . $this->search . '%')
-                        ->orWhere('serie', 'like', '%' . $this->search . '%')
-                        ->orWhere('numero', 'like', '%' . $this->search . '%');
-                    });
-                })
-                ->when($this->status !== '', function ($query) {
-                    $query->where('estado', $this->status);
-                })
-                ->orderBy($this->sortBy, $this->sortDirection);
-        }
-
-        // Para Super Administrador, usar el scope normal
-        return Pago::with(['matricula.student', 'detalles.conceptoPago', 'user', 'serieModel'])
-                    ->whereHas('matricula', function($q) {
-                        $q->whereHas('student');
-                    })
-                    ->when($this->search, function ($query) {
-                        $query->where(function($q) {
-                            $q->whereHas('matricula.student', function ($subQuery) {
-                                $subQuery->where('nombres', 'like', '%' . $this->search . '%')
-                                    ->orWhere('apellidos', 'like', '%' . $this->search . '%')
-                                    ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
-                            })
-                            ->orWhereHas('detalles.conceptoPago', function($subQuery) {
-                                $subQuery->where('nombre', 'like', '%' . $this->search . '%');
-                            })
-                            ->orWhere('referencia', 'like', '%' . $this->search . '%')
-                            ->orWhere('serie', 'like', '%' . $this->search . '%')
-                            ->orWhere('numero', 'like', '%' . $this->search . '%');
-                        });
-                    })
-                    ->when($this->status !== '', function ($query) {
-                        $query->where('estado', $this->status);
-                    })
-                    ->orderBy($this->sortBy, $this->sortDirection);
-    }
-
-    public function render()
-    {
-        $pagos = $this->getQuery()->paginate($this->perPage);
-
-        // Debug temporal para verificar datos
-        \Log::info('=== RENDER DE PAGOS COMPONENT ===', [
-            'user_id' => auth()->id(),
-            'user_role' => auth()->user()->roles->first()->name ?? 'no role',
-            'is_super_admin' => auth()->user()->hasRole('Super Administrador'),
-            'empresa_id' => auth()->user()->empresa_id,
-            'sucursal_id' => auth()->user()->sucursal_id,
-            'pagos_count' => $pagos->count(),
-            'pagos_total' => $pagos->total(),
-            'per_page' => $this->perPage,
-            'search' => $this->search,
-            'status' => $this->status,
-            'sql' => $this->getQuery()->toSql(),
-            'bindings' => $this->getQuery()->getBindings()
-        ]);
-
-        return view('livewire.admin.pagos.index', compact('pagos'))
-            ->layout($this->getLayout());
     }
 
     public function printReceipt(Pago $pago)
@@ -254,179 +31,791 @@ class Index extends Component
         $this->showPreview = true;
     }
 
-    public function downloadReceipt(Pago $pago)
+    public function downloadReceipt($pagoId, $formato = 'letter')
     {
-        $pdf = new Fpdf('P', 'mm', 'Letter');
-        $pdf->AddPage();
+        $pago = Pago::with(['consulta.paciente', 'consulta.medico', 'detalles.baremo', 'empresa', 'clienteFiscal', 'pagoOrigen'])->findOrFail($pagoId);
 
-        // Configurar fuentes
-        $pdf->SetFont('Arial', 'B', 16);
+        // Determinar qué tipo de documento es
+        if ($pago->tipo_pago === 'nota_credito') {
+            return $this->downloadNotaCredito($pagoId, $formato);
+        } elseif ($pago->tipo_pago === 'nota_debito') {
+            return $this->downloadNotaDebito($pagoId, $formato);
+        }
 
-        // Mitad de la página (para el recibo original y copia)
-        $pageHeight = 279.4; // Altura de carta en mm
-        $halfPage = $pageHeight / 2;
+        // Factura normal
+        if ($formato === 'a4') {
+            $pdf = new Fpdf('P', 'mm', 'A4');
+            $pdf->AddPage();
+            $this->generateFacturaA4($pdf, $pago);
+        } else {
+            $pdf = new Fpdf('P', 'mm', 'Letter');
+            $pdf->AddPage();
+            $pageHeight = 279.4;
+            $halfPage = $pageHeight / 2;
+            $this->generateFacturaMediaCarta($pdf, $pago, 'ORIGINAL', 5);
+            $pdf->Line(10, $halfPage, 205, $halfPage);
+            $this->generateFacturaMediaCarta($pdf, $pago, 'COPIA', $halfPage + 5);
+        }
 
-        // Generar recibo original en la mitad superior
-        $this->generateReceiptContent($pdf, $pago, 'ORIGINAL', 5);
-
-        // Generar copia en la mitad inferior
-        $this->generateReceiptContent($pdf, $pago, 'COPIA', $halfPage + 7);
-
-        // Mostrar PDF en el navegador en lugar de descargarlo
         return response($pdf->Output('S'), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="recibo_pago_' . $pago->numero_completo . '.pdf"'
+            'Content-Disposition' => 'inline; filename="factura_' . $pago->numero_completo . '.pdf"'
         ]);
     }
 
-    public function generateReceiptContent(Fpdf $pdf, Pago $pago, $tipo, $yPosition)
+    private function generateFacturaA4(Fpdf $pdf, Pago $pago)
     {
-        // Establecer posición Y inicial
-        $pdf->SetY($yPosition);
+        // Espacio para encabezado preimpreso
+        $pdf->Ln(40);
 
-        // Encabezado con tipo de recibo
-        $pdf->SetFont('Arial', 'B', 16);
-        //$pdf->Cell(0, 8, 'RECIBO DE PAGO - ' . $tipo, 0, 1, 'C');
+        // DATOS DEL CLIENTE
+        $pdf->SetFillColor(240, 240, 240);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DATOS DEL CLIENTE', 1, 1, 'L', true);
 
-        // Línea divisoria
-        //$pdf->Line(10, $pdf->GetY() + 2, 200, $pdf->GetY() + 2);
-        $pdf->Ln(22);
+        $pdf->SetFont('Arial', '', 9);
 
-        // Obtener tasa de cambio
-        $exchangeRate = ExchangeRate::whereDate('created_at', $pago->created_at)->first();
-        //dd($exchangeRate);
-
-        // Información del pago (alineada a la izquierda)
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(30, 5, 'Nro. Recibo:', 0, 0, 'L');
-        $pdf->SetFont('Arial', '', 8);
-        // Extraer solo el número después del guión
-        $numeroRecibo = explode('-', $pago->numero_completo);
-        $numeroMostrar = isset($numeroRecibo[1]) ? $numeroRecibo[1] : $pago->numero_completo;
-        $pdf->Cell(0, 5, $numeroMostrar, 0, 1, 'L');
-
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(30, 5, 'Fecha de pago:', 0, 0, 'L');
-        $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, $pago->fecha->format('d/m/Y'), 0, 1, 'L');
-
-    
-
-
-        // Información del estudiante
-        $student = $pago->matricula->student;
-       
-        $fechaNacimiento = \Carbon\Carbon::parse($student->fecha_nacimiento);
-        $esMenorEdad = $fechaNacimiento->age < 18;
-    
-        $pdf->SetFont('Arial', 'B', 8);
-        if ($esMenorEdad != true) {
-             $pdf->Cell(30, 5, 'Estudiante:', 0, 0, 'L');
-             $pdf->SetFont('Arial', '', 8);
-             $pdf->Cell(0, 5, substr(utf8_decode($student->nombres . ' ' . $student->apellidos), 0, 45), 0, 1, 'L');
-        } else {
-             $pdf->Cell(30, 5, 'Estudiante:', 0, 0, 'L');
-             $pdf->SetFont('Arial', '', 8);
-             $pdf->Cell(0, 5, utf8_decode($student->nombres . ' ' . $student->apellidos.' ('.$student->grado.' - '.$student->seccion.') Representante: '.$student->representante_nombres.' '.$student->representante_apellidos), 0, 1, 'L');
-        }
-       
-        
-
-
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(30, 5, 'Fecha de emision:', 0, 0, 'L');
-        $pdf->SetFont('Arial', '', 8);
-        $pdf->Cell(0, 5, $pago->created_at->format('d/m/Y'), 0, 1, 'L');
-
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(30, 5, utf8_decode('Método de pago:'), 0, 0, 'L');
-        
-        // Para pagos mixtos, mostrar el método con los detalles en la misma línea
-         if (strtolower($pago->metodo_pago) === 'pago mixto' && !empty($pago->detalles_pago_mixto)) {
-            $pdf->SetFont('Arial', 'B', 8);
-            $detalles = [];
-            foreach ($pago->detalles_pago_mixto as $detalleMixto) {
-                $metodo = ucfirst(str_replace('_', ' ', $detalleMixto['metodo'] ?? ''));
-                $monto = $detalleMixto['monto'] ?? 0;
-                $referencia = $detalleMixto['referencia'] ?? '';
-                $detalles[] = "$metodo: " . number_format($monto, 2, ',', '.') . ($referencia ? " - Ref: $referencia" : "");
-            }
-            $pdf->Cell(0, 5, strtoupper($pago->metodo_pago) . ' (' . implode(' ', $detalles) . ')', 0, 1, 'L');
-        } else {
-            // Para métodos de pago normales, mostrar referencia en la misma línea si existe
-            $metodoPagoTexto = strtoupper($pago->metodo_pago);
-            if (in_array($pago->metodo_pago, ['transferencia', 'pago movil', 'punto de venta']) && !empty($pago->referencia)) {
-                $metodoPagoTexto .= ' - Ref: ' . $pago->referencia;
-            }
-            $pdf->SetFont('Arial', 'B', 8);
-            $pdf->Cell(0, 5, $metodoPagoTexto, 0, 1, 'L');
+        if ($pago->clienteFiscal) {
+            $cliente = $pago->clienteFiscal;
+            $pdf->Cell(50, 5, utf8_decode('Razón Social:'), 'LT', 0, 'L');
+            $pdf->Cell(0, 5, utf8_decode($cliente->razon_social), 'RT', 1, 'L');
+            $pdf->Cell(50, 5, 'RIF/CI:', 'L', 0, 'L');
+            $pdf->Cell(0, 5, $cliente->documento_completo, 'R', 1, 'L');
+            $pdf->Cell(50, 5, utf8_decode('Dirección Fiscal:'), 'L', 0, 'L');
+            $pdf->MultiCell(0, 5, utf8_decode($cliente->direccion ?? 'N/A'), 'R', 'L');
+            $pdf->Cell(50, 5, utf8_decode('Teléfono:'), 'L', 0, 'L');
+            $pdf->Cell(70, 5, $cliente->telefono ?? 'N/A', 0, 0, 'L');
+            $pdf->Cell(20, 5, 'Email:', 0, 0, 'L');
+            $pdf->Cell(0, 5, substr($cliente->email ?? 'N/A', 0, 30), 'R', 1, 'L');
+            $pdf->Cell(0, 0, '', 'LBR', 1, 'L');
+        } elseif ($pago->consulta && $pago->consulta->paciente) {
+            $paciente = $pago->consulta->paciente;
+            $pdf->Cell(50, 5, 'Nombre:', 'LT', 0, 'L');
+            $pdf->Cell(0, 5, utf8_decode($paciente->nombre_completo), 'RT', 1, 'L');
+            $pdf->Cell(50, 5, utf8_decode('Cédula:'), 'L', 0, 'L');
+            $pdf->Cell(0, 5, $paciente->documento_identidad ?? 'N/A', 'R', 1, 'L');
+            $pdf->Cell(50, 5, utf8_decode('Dirección:'), 'L', 0, 'L');
+            $pdf->MultiCell(0, 5, utf8_decode($paciente->direccion ?? 'N/A'), 'R', 'L');
+            $pdf->Cell(50, 5, utf8_decode('Teléfono:'), 'LB', 0, 'L');
+            $pdf->Cell(0, 5, $paciente->telefono ?? 'N/A', 'RB', 1, 'L');
         }
 
-        
-
-        // Detalles del pago
         $pdf->Ln(3);
+
+        // INFORMACIÓN DE LA TRANSACCIÓN
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, utf8_decode('INFORMACIÓN DE LA TRANSACCIÓN'), 1, 1, 'L', true);
+
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(50, 5, utf8_decode('Fecha de Emisión:'), 'LT', 0, 'L');
+        $pdf->Cell(70, 5, $pago->fecha->format('d/m/Y'), 'T', 0, 'L');
+        $pdf->Cell(30, 5, utf8_decode('Condición:'), 'T', 0, 'L');
+        $pdf->Cell(0, 5, strtoupper($pago->condicion_pago ?? 'CONTADO'), 'RT', 1, 'L');
+
+        $pdf->Cell(50, 5, utf8_decode('-'), 'LB', 0, 'L');
+        $metodoPago = strtoupper(str_replace('_', ' ', $pago->metodo_pago));
+        $pdf->Cell(70, 5, utf8_decode('-'), 'B', 0, 'L');
+        $pdf->Cell(30, 5, 'FACTURA NRO:', 'B', 0, 'L');
+        $pdf->Cell(0, 5, $pago->numero_completo, 'B', 1, 'L');
+
+        $pdf->Ln(3);
+
+        // DETALLE DE SERVICIOS
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DETALLE DE SERVICIOS', 1, 1, 'L', true);
+
         $pdf->SetFont('Arial', 'B', 9);
-        $pdf->Cell(145, 5, 'Concepto', 1, 0, 'C');
-        $pdf->Cell(25, 5, 'Cantidad', 1, 0, 'C');
-        $pdf->Cell(25, 5, 'Monto', 1, 1, 'C');
+        $pdf->Cell(12, 6, 'Item', 1, 0, 'C');
+        $pdf->Cell(85, 6, utf8_decode('Descripción'), 1, 0, 'C');
+        $pdf->Cell(20, 6, 'Cant.', 1, 0, 'C');
+        $pdf->Cell(35, 6, 'P. Unit. (Bs)', 1, 0, 'R');
+        $pdf->Cell(38, 6, 'Total (Bs)', 1, 1, 'R');
 
-        $pdf->SetFont('Arial', '', 7);
+        $pdf->SetFont('Arial', '', 8);
+        $item = 1;
         foreach ($pago->detalles as $detalle) {
-            $pdf->Cell(145, 5, substr($detalle->descripcion, 0, 50), 1, 0);
-            $pdf->Cell(25, 5, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'R');
-
-            // Convertir monto a bolívares si hay tasa de cambio
-            $monto = $detalle->precio_unitario * $detalle->cantidad;
-            if ($exchangeRate) {
-                $montoBs = $monto * $exchangeRate->usd_rate;
-                $pdf->Cell(25, 5, 'Bs. ' . number_format($montoBs, 2, ',', '.'), 1, 1, 'R');
-            } else {
-                $pdf->Cell(25, 5, '$' . number_format($monto, 2, ',', '.'), 1, 1, 'R');
-            }
+            $pdf->Cell(12, 5, $item++, 1, 0, 'C');
+            $pdf->Cell(85, 5, substr(utf8_decode($detalle->descripcion), 0, 50), 1, 0, 'L');
+            $pdf->Cell(20, 5, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(35, 5, number_format($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(38, 5, number_format($detalle->subtotal, 2, ',', '.'), 1, 1, 'R');
         }
 
-        // Totales
+
+
+
+        $pdf->Ln(2);
+
+
+        // RESUMEN DE TOTALES (Orden: Subtotal, Exento, Base Imp., IVA, Total)
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, 'SUBTOTAL:', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, 'EXENTO:', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, 'BASE IMP.:', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->base_imponible ?? 0, 2, ',', '.'), 1, 1, 'R');
+
+        $ivaPorcentaje =  16;
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 7, 'TOTAL:', 1, 0, 'R');
+        $pdf->Cell(38, 7, 'Bs ' . number_format($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Ln(2);
+        $pdf->SetXY('40','140');
+          $pdf->SetFont('Arial', 'I', 7);
+        $texto = 'El pago total o parcial de esta factura en moneda diferente a Bs' . chr(10) . 'causará el 3% de IGTF adicional al monto total indicado.';
+        $pdf->MultiCell(0, 3, utf8_decode($texto), 0, 'J');
+
+        // Solo mostrar USD si NO es factura fiscal
+        if (!$pago->es_factura_fiscal) {
+            $pdf->Ln(2);
+            $pdf->SetFont('Arial', '', 8);
+            $pdf->Cell(117, 4, '', 0, 0);
+            $pdf->Cell(35, 4, 'Equivalente USD:', 0, 0, 'R');
+            $pdf->Cell(38, 4, '$ ' . number_format($pago->total_usd, 2, '.', ','), 0, 1, 'R');
+
+            $pdf->Cell(117, 4, '', 0, 0);
+            $pdf->Cell(35, 4, 'Tasa BCV:', 0, 0, 'R');
+            $pdf->Cell(38, 4, 'Bs ' . number_format($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
+        }
+
+
+
+
+    }
+
+    private function generateFacturaMediaCarta(Fpdf $pdf, Pago $pago, $tipo, $yPosition)
+    {
+        $pdf->SetY($yPosition);
+        $empresa = $pago->empresa;
+
+        // ENCABEZADO
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell(0, 5, utf8_decode(strtoupper($empresa->razon_social ?? 'EMPRESA')), 0, 1, 'C');
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(170, 5, 'Subtotal:', 1, 0, 'R');
-        if ($exchangeRate) {
-            $subtotalBs = $pago->subtotal * $exchangeRate->usd_rate;
-            $pdf->Cell(25, 5, 'Bs. ' . number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
-        } else {
-            $pdf->Cell(25, 5, '$' . number_format($pago->subtotal, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(0, 4, utf8_decode('RIF: ' . ($empresa->rif_fiscal ?? 'J-00000000-0')), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 7);
+        $pdf->Cell(0, 3, utf8_decode(substr($empresa->direccion_fiscal ?? $empresa->direccion ?? '', 0, 80)), 0, 1, 'C');
+        $pdf->Cell(0, 3, 'Telf: ' . ($empresa->telefono ?? 'N/A'), 0, 1, 'C');
+
+        if ($tipo) {
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(0, 4, $tipo, 0, 1, 'C');
         }
 
-        if ($pago->descuento > 0) {
-            $pdf->Cell(170, 5, 'Descuento:', 1, 0, 'R');
-            if ($exchangeRate) {
-                $descuentoBs = $pago->descuento * $exchangeRate->usd_rate;
-                $pdf->Cell(25, 5, 'Bs. ' . number_format($descuentoBs, 2, ',', '.'), 1, 1, 'R');
-            } else {
-                $pdf->Cell(25, 5, '$' . number_format($pago->descuento, 2, ',', '.'), 1, 1, 'R');
-            }
+        $pdf->Ln(1);
+        $pdf->Line(10, $pdf->GetY(), 205, $pdf->GetY());
+        $pdf->Ln(2);
+
+        // TIPO Y NÚMERO
+        $pdf->SetFont('Arial', 'B', 10);
+        $tipoDoc = strtoupper($pago->tipo_pago);
+        if ($pago->es_factura_fiscal) {
+            $tipoDoc = 'FACTURA';
         }
+        $pdf->Cell(0, 4, utf8_decode($tipoDoc . ' N° ' . $pago->numero_completo), 0, 1, 'C');
+
+        if ($pago->numero_control_fiscal) {
+            $pdf->SetFont('Arial', '', 7);
+            $pdf->Cell(0, 3, utf8_decode('Control: ' . $pago->numero_control_fiscal), 0, 1, 'C');
+        }
+
+        $pdf->Ln(2);
+
+        // DATOS CLIENTE
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(0, 4, 'DATOS DEL CLIENTE', 0, 1, 'L');
+        $pdf->SetFont('Arial', '', 7);
+
+        if ($pago->clienteFiscal) {
+            $cliente = $pago->clienteFiscal;
+            $pdf->Cell(30, 3, utf8_decode('Razón Social:'), 0, 0, 'L');
+            $pdf->Cell(0, 3, utf8_decode(substr($cliente->razon_social, 0, 60)), 0, 1, 'L');
+            $pdf->Cell(30, 3, 'RIF/CI:', 0, 0, 'L');
+            $pdf->Cell(0, 3, $cliente->documento_completo, 0, 1, 'L');
+            $pdf->Cell(30, 3, utf8_decode('Dirección:'), 0, 0, 'L');
+            $pdf->Cell(0, 3, utf8_decode(substr($cliente->direccion ?? 'N/A', 0, 65)), 0, 1, 'L');
+        } elseif ($pago->consulta && $pago->consulta->paciente) {
+            $paciente = $pago->consulta->paciente;
+            $pdf->Cell(30, 3, 'Nombre:', 0, 0, 'L');
+            $pdf->Cell(0, 3, utf8_decode(substr($paciente->nombre_completo, 0, 60)), 0, 1, 'L');
+            $pdf->Cell(30, 3, 'CI:', 0, 0, 'L');
+            $pdf->Cell(0, 3, $paciente->documento_identidad ?? 'N/A', 0, 1, 'L');
+            $pdf->Cell(30, 3, utf8_decode('Dirección:'), 0, 0, 'L');
+            $pdf->Cell(0, 3, utf8_decode(substr($paciente->direccion ?? 'N/A', 0, 65)), 0, 1, 'L');
+        }
+
+        $pdf->Cell(30, 3, 'Fecha:', 0, 0, 'L');
+        $pdf->Cell(60, 3, $pago->fecha->format('d/m/Y'), 0, 0, 'L');
+        $pdf->Cell(25, 3, utf8_decode('Condición:'), 0, 0, 'L');
+        $pdf->Cell(0, 3, strtoupper($pago->condicion_pago ?? 'CONTADO'), 0, 1, 'L');
+
+        $pdf->Cell(30, 3, utf8_decode('Método Pago:'), 0, 0, 'L');
+        $pdf->Cell(0, 3, strtoupper(str_replace('_', ' ', $pago->metodo_pago)), 0, 1, 'L');
+
+        $pdf->Ln(2);
+
+        // DETALLES
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->Cell(10, 4, 'Item', 1, 0, 'C');
+        $pdf->Cell(90, 4, utf8_decode('Descripción'), 1, 0, 'C');
+        $pdf->Cell(18, 4, 'Cant.', 1, 0, 'C');
+        $pdf->Cell(30, 4, 'P.Unit (Bs)', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Total (Bs)', 1, 1, 'R');
+
+        $pdf->SetFont('Arial', '', 6);
+        $item = 1;
+        foreach ($pago->detalles as $detalle) {
+            $pdf->Cell(10, 4, $item++, 1, 0, 'C');
+            $pdf->Cell(90, 4, substr(utf8_decode($detalle->descripcion), 0, 55), 1, 0, 'L');
+            $pdf->Cell(18, 4, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(30, 4, number_format($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(37, 4, number_format($detalle->subtotal, 2, ',', '.'), 1, 1, 'R');
+        }
+
+        // TOTALES (Orden: Subtotal, Exento, Base Imp., IVA, Total)
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->Cell(148, 4, 'SUBTOTAL:', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->Cell(148, 4, 'EXENTO:', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->Cell(148, 4, 'BASE IMP.:', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->base_imponible ?? 0, 2, ',', '.'), 1, 1, 'R');
+
+        $ivaPorcentaje = $pago->iva_porcentaje ?? 16;
+        $pdf->Cell(148, 4, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
+
 
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(170, 5, 'Total:', 1, 0, 'R');
-        if ($exchangeRate) {
-            $totalBs = $pago->total * $exchangeRate->usd_rate;
-            $pdf->Cell(25, 5, 'Bs. ' . number_format($totalBs, 2, ',', '.'), 1, 1, 'R');
-        } else {
-            $pdf->Cell(25, 5, '$' . number_format($pago->total, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(148, 5, 'TOTAL:', 1, 0, 'R');
+        $pdf->Cell(37, 5, 'Bs ' . number_format($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
+
+        // Solo mostrar USD si NO es factura fiscal
+        if (!$pago->es_factura_fiscal) {
+            $pdf->Ln(1);
+            $pdf->SetFont('Arial', '', 6);
+            $pdf->Cell(148, 3, 'USD:', 0, 0, 'R');
+            $pdf->Cell(37, 3, '$ ' . number_format($pago->total_usd, 2), 0, 1, 'R');
+            $pdf->Cell(148, 3, 'Tasa:', 0, 0, 'R');
+            $pdf->Cell(37, 3, 'Bs ' . number_format($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
         }
 
-        // Firma
+        // Coletilla IGTF
+        $pdf->Ln(2);
+        $pdf->SetFont('Arial', 'I', 6);
+        $texto = 'El pago total o parcial de esta factura en moneda diferente a Bs' . chr(10) . 'causará el 3% de IGTF adicional al monto total indicado.';
+        $pdf->MultiCell(0, 2.5, utf8_decode($texto), 0, 'J');
+
+        $pdf->Ln(3);
+        $pdf->SetFont('Arial', '', 6);
+        $pdf->Cell(0, 3, '___________________________', 0, 1, 'C');
+        $pdf->Cell(0, 3, 'Firma Autorizada', 0, 1, 'C');
+    }
+
+    public function downloadNotaCredito($pagoId, $formato = 'letter')
+    {
+        $nota = Pago::with(['pagoOrigen', 'pagoOrigen.consulta.paciente', 'pagoOrigen.clienteFiscal', 'detalles.baremo', 'empresa', 'clienteFiscal'])->findOrFail($pagoId);
+
+        if ($formato === 'a4') {
+            $pdf = new Fpdf('P', 'mm', 'A4');
+            $pdf->AddPage();
+            $this->generateNotaCreditoA4($pdf, $nota);
+        } else {
+            $pdf = new Fpdf('P', 'mm', 'Letter');
+            $pdf->AddPage();
+            $pageHeight = 279.4;
+            $halfPage = $pageHeight / 2;
+            $this->generateNotaCreditoMediaCarta($pdf, $nota, 'ORIGINAL', 5);
+            $pdf->Line(10, $halfPage, 205, $halfPage);
+            $this->generateNotaCreditoMediaCarta($pdf, $nota, 'COPIA', $halfPage + 5);
+        }
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="nota_credito_' . $nota->numero_completo . '.pdf"'
+        ]);
+    }
+
+    public function downloadNotaDebito($pagoId, $formato = 'letter')
+    {
+        $nota = Pago::with(['pagoOrigen', 'pagoOrigen.consulta.paciente', 'pagoOrigen.clienteFiscal', 'detalles.baremo', 'empresa', 'clienteFiscal'])->findOrFail($pagoId);
+
+        if ($formato === 'a4') {
+            $pdf = new Fpdf('P', 'mm', 'A4');
+            $pdf->AddPage();
+            $this->generateNotaDebitoA4($pdf, $nota);
+        } else {
+            $pdf = new Fpdf('P', 'mm', 'Letter');
+            $pdf->AddPage();
+            $pageHeight = 279.4;
+            $halfPage = $pageHeight / 2;
+            $this->generateNotaDebitoMediaCarta($pdf, $nota, 'ORIGINAL', 5);
+            $pdf->Line(10, $halfPage, 205, $halfPage);
+            $this->generateNotaDebitoMediaCarta($pdf, $nota, 'COPIA', $halfPage + 5);
+        }
+
+        return response($pdf->Output('S'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="nota_debito_' . $nota->numero_completo . '.pdf"'
+        ]);
+    }
+
+    private function generateNotaCreditoA4(Fpdf $pdf, Pago $nota)
+    {
+        $facturaOriginal = $nota->pagoOrigen;
+
+        // Espacio para encabezado preimpreso
+        $pdf->Ln(40);
+
+        // FACTURA ASOCIADA
+        $pdf->SetFillColor(255, 240, 240);
+        $pdf->SetFont('Arial', 'B', 10);
+
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(50, 5, 'Factura Asociada:', 'LT', 0, 'L');
+        $pdf->Cell(70, 5, $facturaOriginal->numero_completo, 'T', 0, 'L');
+        $pdf->Cell(30, 5, 'Fecha:', 'T', 0, 'L');
+        $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'RT', 1, 'L');
+
+        $pdf->Cell(50, 5, 'Monto Original:', 'L', 0, 'L');
+        $pdf->Cell(70, 5, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
+        $pdf->Cell(30, 5, '-', 0, 0, 'L');
+        $pdf->Cell(0, 5, '-', 'R', 1, 'L');
+
+        $pdf->Cell(50, 5, 'NOTA DE CREDITO NRO:', 'LB', 0, 'L');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->MultiCell(0, 5, utf8_decode($nota->numero_completo), 'RB', 'L');
+
+        $pdf->Ln(3);
+
+        // DATOS DEL CLIENTE
+        $pdf->SetFillColor(240, 240, 240);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DATOS DEL CLIENTE', 1, 1, 'L', true);
+
+        $pdf->SetFont('Arial', '', 9);
+        if ($nota->clienteFiscal) {
+            $cliente = $nota->clienteFiscal;
+            $pdf->Cell(50, 5, utf8_decode('Razón Social:'), 'LT', 0, 'L');
+            $pdf->Cell(0, 5, utf8_decode($cliente->razon_social), 'RT', 1, 'L');
+            $pdf->Cell(50, 5, 'RIF/CI:', 'LB', 0, 'L');
+            $pdf->Cell(0, 5, $cliente->documento_completo, 'RB', 1, 'L');
+        } elseif ($nota->consulta && $nota->consulta->paciente) {
+            $paciente = $nota->consulta->paciente;
+            $pdf->Cell(50, 5, 'Nombre:', 'LT', 0, 'L');
+            $pdf->Cell(0, 5, utf8_decode($paciente->nombre_completo), 'RT', 1, 'L');
+            $pdf->Cell(50, 5, 'CI:', 'LB', 0, 'L');
+            $pdf->Cell(0, 5, $paciente->documento_identidad, 'RB', 1, 'L');
+        }
+
+        $pdf->Ln(3);
+
+        // DETALLE DE SERVICIOS ANULADOS
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DETALLE DE SERVICIOS ANULADOS/DEVUELTOS', 1, 1, 'L', true);
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(12, 6, 'Item', 1, 0, 'C');
+        $pdf->Cell(85, 6, utf8_decode('Descripción'), 1, 0, 'C');
+        $pdf->Cell(20, 6, 'Cant.', 1, 0, 'C');
+        $pdf->Cell(35, 6, 'P. Unit. (Bs)', 1, 0, 'R');
+        $pdf->Cell(38, 6, 'Total (Bs)', 1, 1, 'R');
+
+        $pdf->SetFont('Arial', '', 8);
+        $item = 1;
+        foreach ($nota->detalles as $detalle) {
+            $pdf->Cell(12, 5, $item++, 1, 0, 'C');
+            $pdf->Cell(85, 5, substr(utf8_decode($detalle->descripcion), 0, 50), 1, 0, 'L');
+            $pdf->Cell(20, 5, number_format(abs($detalle->cantidad), 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(35, 5, number_format($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(38, 5, number_format(abs($detalle->subtotal), 2, ',', '.'), 1, 1, 'R');
+        }
+
+        $pdf->Ln(2);
+
+        // RESUMEN DE TOTALES (Orden: Subtotal, Exento, Base Imp., IVA, Total)
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, 'SUBTOTAL:', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->subtotal * $nota->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, 'EXENTO:', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->monto_exento ?? 0), 2, ',', '.'), 1, 1, 'R');
+
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, 'BASE IMP.:', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->base_imponible ?? 0), 2, ',', '.'), 1, 1, 'R');
+
+        $ivaPorcentaje = $nota->iva_porcentaje ?? 16;
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->iva_monto ?? 0), 2, ',', '.'), 1, 1, 'R');
+
+        // TOTAL A ACREDITAR
+        $pdf->SetTextColor(200, 0, 0);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(117, 5, '', 0, 0);
+        $pdf->Cell(35, 7, 'TOTAL:', 1, 0, 'R');
+        $totalAcreditar = abs($nota->total_bs ?? 0);
+        $pdf->Cell(38, 7, 'Bs ' . number_format($totalAcreditar, 2, ',', '.'), 1, 1, 'R');
+        $pdf->SetTextColor(0, 0, 0);
+    }
+
+    private function generateNotaCreditoMediaCarta(Fpdf $pdf, Pago $nota, $tipo, $yPosition)
+    {
+        $pdf->SetY($yPosition);
+        $empresa = $nota->empresa;
+        $facturaOriginal = $nota->pagoOrigen;
+
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell(0, 5, utf8_decode(strtoupper($empresa->razon_social)), 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(0, 4, utf8_decode('RIF: ' . $empresa->rif_fiscal), 0, 1, 'C');
+
+        if ($tipo) {
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(0, 4, $tipo, 0, 1, 'C');
+        }
+
+        $pdf->Ln(1);
+        $pdf->Line(10, $pdf->GetY(), 205, $pdf->GetY());
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->SetTextColor(200, 0, 0);
+        $pdf->Cell(0, 4, utf8_decode('NOTA DE CRÉDITO N° ' . $nota->numero_completo), 0, 1, 'C');
+        $pdf->SetTextColor(0, 0, 0);
+
+        if ($nota->numero_control_fiscal) {
+            $pdf->SetFont('Arial', '', 7);
+            $pdf->Cell(0, 3, utf8_decode('Control: ' . $nota->numero_control_fiscal), 0, 1, 'C');
+        }
+
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->Cell(30, 3, 'Factura Afectada:', 0, 0, 'L');
+        $pdf->SetFont('Arial', '', 7);
+        $pdf->Cell(0, 3, $facturaOriginal->numero_completo, 0, 1, 'L');
+
+        $pdf->SetFont('Arial', 'I', 6);
+        $pdf->MultiCell(0, 3, utf8_decode('Motivo: ' . $nota->motivo_nota), 0, 'L');
+
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->Cell(10, 4, 'Item', 1, 0, 'C');
+        $pdf->Cell(90, 4, utf8_decode('Descripción'), 1, 0, 'C');
+        $pdf->Cell(18, 4, 'Cant.', 1, 0, 'C');
+        $pdf->Cell(30, 4, 'P.Unit (Bs)', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Total (Bs)', 1, 1, 'R');
+
+        $pdf->SetFont('Arial', '', 6);
+        $item = 1;
+        foreach ($nota->detalles as $detalle) {
+            $pdf->Cell(10, 4, $item++, 1, 0, 'C');
+            $pdf->Cell(90, 4, substr(utf8_decode($detalle->descripcion), 0, 55), 1, 0, 'L');
+            $pdf->Cell(18, 4, number_format(abs($detalle->cantidad), 2, ',', '.'), 1, 0, 'C');
+            $precioUnitBs = $detalle->precio_unitario * $nota->tasa_cambio_usd;
+            $pdf->Cell(30, 4, number_format($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
+            $subtotalBs = abs($detalle->subtotal * $nota->tasa_cambio_usd);
+            $pdf->Cell(37, 4, number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
+        }
+
+        $pdf->SetTextColor(200, 0, 0);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(148, 5, 'TOTAL:', 1, 0, 'R');
+        $pdf->Cell(37, 5, 'Bs ' . number_format(abs($nota->total_bs), 2, ',', '.'), 1, 1, 'R');
+        $pdf->SetTextColor(0, 0, 0);
+
+        $pdf->Ln(3);
+        $pdf->SetFont('Arial', '', 6);
+        $pdf->Cell(0, 3, '___________________________', 0, 1, 'C');
+        $pdf->Cell(0, 3, 'Firma Autorizada', 0, 1, 'C');
+    }
+
+    private function generateNotaDebitoA4(Fpdf $pdf, Pago $nota)
+    {
+        $empresa = $nota->empresa;
+        $facturaOriginal = $nota->pagoOrigen;
+
+        $pdf->SetFont('Arial', 'B', 16);
+        $pdf->Cell(0, 8, utf8_decode(strtoupper($empresa->razon_social)), 0, 1, 'C');
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 5, utf8_decode('RIF: ' . $empresa->rif_fiscal), 0, 1, 'C');
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->MultiCell(0, 4, utf8_decode($empresa->direccion_fiscal ?? $empresa->direccion), 0, 'C');
+
+        $pdf->Ln(3);
+        $pdf->Line(15, $pdf->GetY(), 195, $pdf->GetY());
+        $pdf->Ln(3);
+
+        $pdf->SetFont('Arial', 'B', 14);
+        $pdf->SetTextColor(0, 0, 200);
+        $pdf->Cell(0, 7, utf8_decode('NOTA DE DÉBITO'), 0, 1, 'C');
+        $pdf->SetTextColor(0, 0, 0);
+
+        $pdf->SetFont('Arial', 'B', 12);
+        $pdf->Cell(0, 6, utf8_decode('N° ' . $nota->numero_completo), 0, 1, 'C');
+
+        if ($nota->numero_control_fiscal) {
+            $pdf->SetFont('Arial', '', 9);
+            $pdf->Cell(0, 5, utf8_decode('N° Control Fiscal: ' . $nota->numero_control_fiscal), 0, 1, 'C');
+        }
+
         $pdf->Ln(4);
+
+        $pdf->SetFillColor(240, 240, 255);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DOCUMENTO AFECTADO', 1, 1, 'L', true);
+
+        $pdf->SetFont('Arial', '', 9);
+        $pdf->Cell(50, 5, 'Factura N°:', 'LT', 0, 'L');
+        $pdf->Cell(70, 5, $facturaOriginal->numero_completo, 'T', 0, 'L');
+        $pdf->Cell(30, 5, 'Fecha:', 'T', 0, 'L');
+        $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'RT', 1, 'L');
+
+        $pdf->Cell(50, 5, 'Monto Original:', 'L', 0, 'L');
+        $pdf->Cell(70, 5, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
+        $pdf->Cell(30, 5, 'Control:', 0, 0, 'L');
+        $pdf->Cell(0, 5, $facturaOriginal->numero_control_fiscal ?? 'N/A', 'R', 1, 'L');
+
+        $pdf->Cell(50, 5, 'Motivo:', 'LB', 0, 'L');
+        $pdf->SetFont('Arial', 'I', 8);
+        $pdf->MultiCell(0, 5, utf8_decode($nota->motivo_nota), 'RB', 'L');
+
+        $pdf->Ln(3);
+
+        $pdf->SetFillColor(240, 240, 240);
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DATOS DEL CLIENTE', 1, 1, 'L', true);
+
+        $pdf->SetFont('Arial', '', 9);
+        if ($nota->clienteFiscal) {
+            $cliente = $nota->clienteFiscal;
+            $pdf->Cell(50, 5, utf8_decode('Razón Social:'), 'LT', 0, 'L');
+            $pdf->Cell(0, 5, utf8_decode($cliente->razon_social), 'RT', 1, 'L');
+            $pdf->Cell(50, 5, 'RIF/CI:', 'LB', 0, 'L');
+            $pdf->Cell(0, 5, $cliente->documento_completo, 'RB', 1, 'L');
+        }
+
+        $pdf->Ln(3);
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell(0, 6, 'DETALLE DE CARGOS ADICIONALES', 1, 1, 'L', true);
+
+        $pdf->SetFont('Arial', 'B', 9);
+        $pdf->Cell(12, 6, 'Item', 1, 0, 'C');
+        $pdf->Cell(85, 6, utf8_decode('Descripción'), 1, 0, 'C');
+        $pdf->Cell(20, 6, 'Cant.', 1, 0, 'C');
+        $pdf->Cell(35, 6, 'P. Unit. (Bs)', 1, 0, 'R');
+        $pdf->Cell(38, 6, 'Total (Bs)', 1, 1, 'R');
+
+        $pdf->SetFont('Arial', '', 8);
+        $item = 1;
+        foreach ($nota->detalles as $detalle) {
+            $pdf->Cell(12, 5, $item++, 1, 0, 'C');
+            $pdf->Cell(85, 5, substr(utf8_decode($detalle->descripcion), 0, 50), 1, 0, 'L');
+            $pdf->Cell(20, 5, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $precioUnitBs = $detalle->precio_unitario * $nota->tasa_cambio_usd;
+            $pdf->Cell(35, 5, number_format($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
+            $subtotalBs = $detalle->subtotal * $nota->tasa_cambio_usd;
+            $pdf->Cell(38, 5, number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
+        }
+
+        $pdf->Ln(2);
+
+        // Totales fiscales segregados
+        $labelW = 117;
+        $valueW = 73;
+        $pdf->SetFont('Arial', '', 9);
+
+        $pdf->Cell($labelW, 5, 'SUBTOTAL:', 0, 0, 'R');
+        $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->subtotal * ($nota->tasa_cambio_usd ?: 1), 2, ',', '.'), 0, 1, 'R');
+
+        if ($nota->es_factura_fiscal) {
+            if ($nota->monto_exento > 0) {
+                $pdf->Cell($labelW, 5, 'MONTO EXENTO:', 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->monto_exento, 2, ',', '.'), 0, 1, 'R');
+            }
+
+            if ($nota->base_imponible_general > 0) {
+                $pdf->Cell($labelW, 5, utf8_decode('BASE IMPONIBLE (' . ($nota->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->base_imponible_general, 2, ',', '.'), 0, 1, 'R');
+                $pdf->SetFont('Arial', 'B', 9);
+                $pdf->Cell($labelW, 5, utf8_decode('IVA (' . ($nota->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->iva_monto_general, 2, ',', '.'), 0, 1, 'R');
+                $pdf->SetFont('Arial', '', 9);
+            }
+
+            if ($nota->base_imponible_reducida > 0) {
+                $pdf->Cell($labelW, 5, 'BASE IMPONIBLE (8%):', 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->base_imponible_reducida, 2, ',', '.'), 0, 1, 'R');
+                $pdf->SetFont('Arial', 'B', 9);
+                $pdf->Cell($labelW, 5, 'IVA (8%):', 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->iva_monto_reducida, 2, ',', '.'), 0, 1, 'R');
+                $pdf->SetFont('Arial', '', 9);
+            }
+
+            if ($nota->aplica_igtf && $nota->igtf_monto > 0) {
+                $pdf->SetFont('Arial', 'B', 9);
+                $pdf->Cell($labelW, 5, utf8_decode('IGTF (' . ($nota->igtf_porcentaje ?? 3) . '%):'), 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->igtf_monto, 2, ',', '.'), 0, 1, 'R');
+                $pdf->SetFont('Arial', '', 9);
+            }
+        }
+
+        $pdf->Line(117, $pdf->GetY(), 190, $pdf->GetY());
+        $pdf->Ln(1);
+
+        $pdf->SetTextColor(0, 0, 200);
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell($labelW, 7, 'TOTAL Bs.:', 0, 0, 'R');
+        $pdf->Cell($valueW, 7, 'Bs ' . number_format($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
+        $pdf->SetTextColor(0, 0, 0);
+
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->Cell($labelW, 4, 'Ref. USD:', 0, 0, 'R');
+        $pdf->Cell($valueW, 4, '$' . number_format($nota->total_usd ?: $nota->total, 2), 0, 1, 'R');
+
+        $pdf->Ln(6);
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->Cell(0, 4, '________________________________________', 0, 1, 'C');
+        $pdf->Cell(0, 4, 'Firma y Sello Autorizado', 0, 1, 'C');
+
+        $pdf->Ln(4);
+        $pdf->SetFont('Arial', 'I', 7);
+        $leyenda = "Documento emitido conforme a las Providencias SNAT/2011/0071 y SNAT/2024/000102.";
+        $pdf->MultiCell(0, 3, utf8_decode($leyenda), 0, 'J');
+        if ($nota->aplica_igtf) {
+            $pdf->SetFont('Arial', 'I', 7);
+            $pdf->MultiCell(0, 3, utf8_decode('IGTF aplicado conforme a la Providencia SNAT/2022/000013.'), 0, 'J');
+        }
+    }
+
+    private function generateNotaDebitoMediaCarta(Fpdf $pdf, Pago $nota, $tipo, $yPosition)
+    {
+        $pdf->SetY($yPosition);
+        $empresa = $nota->empresa;
+        $facturaOriginal = $nota->pagoOrigen;
+
+        $pdf->SetFont('Arial', 'B', 11);
+        $pdf->Cell(0, 5, utf8_decode(strtoupper($empresa->razon_social)), 0, 1, 'C');
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(90, 5, '', 0, 0); // Espacio en blanco
-        $pdf->Cell(80, 5, '__________________________', 0, 1, 'C');
-        $pdf->Cell(90, 5, '', 0, 0); // Espacio en blanco
-        $pdf->Cell(80, 5, 'Firma y Sello', 0, 1, 'C');
+        $pdf->Cell(0, 4, utf8_decode('RIF: ' . $empresa->rif_fiscal), 0, 1, 'C');
+
+        if ($tipo) {
+            $pdf->SetFont('Arial', 'B', 9);
+            $pdf->Cell(0, 4, $tipo, 0, 1, 'C');
+        }
+
+        $pdf->Ln(1);
+        $pdf->Line(10, $pdf->GetY(), 205, $pdf->GetY());
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->SetTextColor(0, 0, 200);
+        $pdf->Cell(0, 4, utf8_decode('NOTA DE DÉBITO N° ' . $nota->numero_completo), 0, 1, 'C');
+        $pdf->SetTextColor(0, 0, 0);
+
+        if ($nota->numero_control_fiscal) {
+            $pdf->SetFont('Arial', '', 7);
+            $pdf->Cell(0, 3, utf8_decode('Control: ' . $nota->numero_control_fiscal), 0, 1, 'C');
+        }
+
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->Cell(30, 3, 'Factura Afectada:', 0, 0, 'L');
+        $pdf->SetFont('Arial', '', 7);
+        $pdf->Cell(0, 3, $facturaOriginal->numero_completo, 0, 1, 'L');
+
+        $pdf->SetFont('Arial', 'I', 6);
+        $pdf->MultiCell(0, 3, utf8_decode('Motivo: ' . $nota->motivo_nota), 0, 'L');
+
+        $pdf->Ln(2);
+
+        $pdf->SetFont('Arial', 'B', 7);
+        $pdf->Cell(10, 4, 'Item', 1, 0, 'C');
+        $pdf->Cell(90, 4, utf8_decode('Descripción'), 1, 0, 'C');
+        $pdf->Cell(18, 4, 'Cant.', 1, 0, 'C');
+        $pdf->Cell(30, 4, 'P.Unit (Bs)', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Total (Bs)', 1, 1, 'R');
+
+        $pdf->SetFont('Arial', '', 6);
+        $item = 1;
+        foreach ($nota->detalles as $detalle) {
+            $pdf->Cell(10, 4, $item++, 1, 0, 'C');
+            $pdf->Cell(90, 4, substr(utf8_decode($detalle->descripcion), 0, 55), 1, 0, 'L');
+            $pdf->Cell(18, 4, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $precioUnitBs = $detalle->precio_unitario * $nota->tasa_cambio_usd;
+            $pdf->Cell(30, 4, number_format($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
+            $subtotalBs = $detalle->subtotal * $nota->tasa_cambio_usd;
+            $pdf->Cell(37, 4, number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
+        }
+
+        // Totales fiscales
+        $pdf->SetFont('Arial', '', 6);
+        if ($nota->es_factura_fiscal && $nota->iva_monto > 0) {
+            $pdf->Cell(148, 4, utf8_decode('IVA (' . ($nota->iva_porcentaje ?? 16) . '%):'), 0, 0, 'R');
+            $pdf->Cell(37, 4, 'Bs ' . number_format($nota->iva_monto, 2, ',', '.'), 0, 1, 'R');
+        }
+        if ($nota->aplica_igtf && $nota->igtf_monto > 0) {
+            $pdf->SetFont('Arial', 'B', 6);
+            $pdf->Cell(148, 4, utf8_decode('IGTF (' . ($nota->igtf_porcentaje ?? 3) . '%):'), 0, 0, 'R');
+            $pdf->Cell(37, 4, 'Bs ' . number_format($nota->igtf_monto, 2, ',', '.'), 0, 1, 'R');
+        }
+
+        $pdf->Line(130, $pdf->GetY(), 185, $pdf->GetY());
+        $pdf->Ln(1);
+
+        $pdf->SetTextColor(0, 0, 200);
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(148, 5, 'TOTAL Bs.:', 0, 0, 'R');
+        $pdf->Cell(37, 5, 'Bs ' . number_format($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
+        $pdf->SetTextColor(0, 0, 0);
+
+        $pdf->Ln(2);
+        $pdf->SetFont('Arial', '', 6);
+        $pdf->Cell(0, 3, '___________________________', 0, 1, 'C');
+        $pdf->Cell(0, 3, 'Firma Autorizada', 0, 1, 'C');
     }
 
     public function closePreview()
     {
         $this->showPreview = false;
         $this->previewPagoId = null;
+    }
+
+    public function render()
+    {
+        $pagos = Pago::with(['consulta.paciente', 'clienteFiscal', 'user', 'notasCredito', 'notasDebito'])
+            ->whereIn('tipo_pago', ['factura', 'boleta', 'recibo'])
+            ->when($this->search, fn($q) => $q->where('serie', 'like', "%{$this->search}%")
+                ->orWhere('numero', 'like', "%{$this->search}%")
+                ->orWhereHas('consulta.paciente', fn($q) => $q->where('nombres', 'like', "%{$this->search}%")
+                    ->orWhere('apellidos', 'like', "%{$this->search}%"))
+                ->orWhereHas('clienteFiscal', fn($q) => $q->where('razon_social', 'like', "%{$this->search}%")))
+            ->when($this->estado, fn($q) => $q->where('estado', $this->estado))
+            ->when($this->metodo_pago, fn($q) => $q->where('metodo_pago', $this->metodo_pago))
+            ->when($this->tipo_pago, fn($q) => $q->where('tipo_pago', $this->tipo_pago))
+            ->latest()
+            ->paginate(15);
+
+        return view('livewire.admin.pagos.index', compact('pagos'));
     }
 }

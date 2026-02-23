@@ -42,7 +42,9 @@ class Dashboard extends Component
             'citas_hoy' => Cita::whereDate('fecha_inicio', Carbon::today())->count(),
             'total_medicos' => Medico::count(),
             'total_pacientes' => Paciente::count(),
-            'ingresos_mes' => 0,
+            'ingresos_mes' => Pago::whereYear('created_at', Carbon::now()->year)
+                ->whereMonth('created_at', Carbon::now()->month)
+                ->sum('total_usd'),
             'cajas_activas' => Caja::where('estado', 'abierta')->count(),
             'total_empresas' => Empresa::count(),
             'usuarios_activos' => User::where('status', 1)->count(),
@@ -52,7 +54,7 @@ class Dashboard extends Component
         $this->recentCitas = Cita::with(['paciente', 'medico'])
             ->whereDate('fecha_inicio', '>=', Carbon::today())
             ->orderBy('fecha_inicio', 'asc')
-            
+
             ->limit(5)
             ->get();
 

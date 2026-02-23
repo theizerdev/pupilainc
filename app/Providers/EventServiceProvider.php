@@ -26,6 +26,9 @@ class EventServiceProvider extends ServiceProvider
         Logout::class => [
             \App\Listeners\TrackUserLogout::class,
         ],
+        \App\Events\PagoCreated::class => [
+            \App\Listeners\GenerarAsientoContable::class,
+        ],
     ];
 
     /**

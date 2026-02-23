@@ -16,7 +16,7 @@ class Show extends Component
 
     public function mount(Pago $pago)
     {
-        $this->pago = $pago->load(['matricula.student', 'matricula.programa', 'detalles.conceptoPago', 'serieModel']);
+        $this->pago = $pago->load(['consulta.paciente', 'consulta.medico', 'detalles.baremo', 'serieModel', 'clienteFiscal', 'user', 'caja']);
     }
 
     public function render()

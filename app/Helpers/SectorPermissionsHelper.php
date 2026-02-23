@@ -81,7 +81,7 @@ if (!function_exists('getUserSectors')) {
     {
         $permissions = $user->permissions()->pluck('sector')->unique()->filter()->values();
         $sectors = getPermissionSectors();
-        
+
         return $permissions->mapWithKeys(function ($sector) use ($sectors) {
             return [$sector => $sectors[$sector] ?? ['name' => ucfirst($sector)]];
         })->toArray();
@@ -128,11 +128,11 @@ if (!function_exists('formatSectorName')) {
     {
         $sectors = getPermissionSectors();
         $name = $sectors[$sector]['name'] ?? ucfirst($sector);
-        
+
         if (!$withIcon) {
             return str_replace(['🏥', '💰', '⚙️', '📊', '📱', '🔧'], '', $name);
         }
-        
+
         return $name;
     }
 }
@@ -145,13 +145,13 @@ if (!function_exists('getSectorStats')) {
     {
         $sectors = getPermissionSectors();
         $stats = [];
-        
+
         foreach ($sectors as $key => $sector) {
             $totalPermissions = \Spatie\Permission\Models\Permission::where('sector', $key)->count();
             $totalRoles = \Spatie\Permission\Models\Role::whereHas('permissions', function ($query) use ($key) {
                 $query->where('sector', $key);
             })->count();
-            
+
             $stats[$key] = [
                 'name' => $sector['name'],
                 'total_permissions' => $totalPermissions,
@@ -160,7 +160,7 @@ if (!function_exists('getSectorStats')) {
                 'description' => $sector['description']
             ];
         }
-        
+
         return $stats;
     }
 }
@@ -250,7 +250,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'children' => [
                             ['label' => 'Calendario', 'route' => 'admin.gestion.consultas.index', 'active' => 'admin.gestion.consultas.index', 'permission' => 'access consultas calendario'],
                             ['label' => 'Sala de Espera', 'route' => 'admin.gestion.consultas.sala-espera', 'active' => 'admin.gestion.consultas.sala-espera', 'permission' => 'access consultas en espera'],
-                            ['label' => 'En Enfermería', 'route' => 'admin.gestion.consultas.en-enfermeria', 'active' => 'admin.gestion.consultas.en-enfermeria', 'permission' => 'access consultas en enfermeria'],  
+                            ['label' => 'En Enfermería', 'route' => 'admin.gestion.consultas.en-enfermeria', 'active' => 'admin.gestion.consultas.en-enfermeria', 'permission' => 'access consultas en enfermeria'],
                             ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio', 'permission' => 'access consultas en consultorio'],
                             ['label' => 'En Gotas', 'route' => 'admin.gestion.consultas.en-gotas', 'active' => 'admin.gestion.consultas.en-gotas', 'permission' => 'access consultas en gotas'],
                             ['label' => 'En Óptica', 'route' => 'admin.gestion.consultas.en-optica', 'active' => 'admin.gestion.consultas.en-optica', 'permission' => 'access consultas en optica'],
@@ -274,11 +274,16 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'Pagos y Finanzas',
                         'icon' => 'ri-money-dollar-circle-line',
-                        'permissions' => ['access conceptos pago', 'access cajas'],
-                        'active' => 'admin.pagos.*|admin.conceptos-pago.*|admin.cajas.*',
+                        'permissions' => ['access conceptos pago', 'access cajas', 'access pagos', 'access baremos'],
+                        'active' => 'admin.pagos.*|admin.conceptos-pago.*|admin.cajas.*|admin.baremos.*|admin.clientes-fiscales.*',
                         'children' => [
-                            ['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.index'],
-                            ['label' => 'Caja Chica', 'permission' => 'access cajas', 'route' => 'admin.cajas.index', 'active' => 'admin.cajas.index'],
+                            ['label' => 'Pagos', 'permission' => 'access pagos', 'route' => 'admin.pagos.index', 'active' => 'admin.pagos.*'],
+                            ['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
+                            ['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
+                            ['label' => 'Baremos', 'permission' => 'access baremos', 'route' => 'admin.baremos.index', 'active' => 'admin.baremos.*'],
+                            ['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
+                            ['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
+                            ['label' => 'Caja Chica', 'permission' => 'access cajas', 'route' => 'admin.cajas.index', 'active' => 'admin.cajas.*'],
                         ]
                     ],
                     [
@@ -294,6 +299,16 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'view exchange-rates',
                         'route' => 'admin.exchange-rates',
                         'active' => 'admin.exchange-rates',
+                    ],
+                    [
+                        'label' => 'Contabilidad',
+                        'icon' => 'ri-calculator-line',
+                        'permissions' => ['access contabilidad', 'view contabilidad'],
+                        'active' => 'admin.contabilidad.*',
+                        'children' => [
+                            ['label' => 'Plan de Cuentas', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.plan-cuentas', 'active' => 'admin.contabilidad.plan-cuentas'],
+                            ['label' => 'Asientos Contables', 'permission' => 'view contabilidad', 'route' => 'admin.contabilidad.asientos', 'active' => 'admin.contabilidad.asientos'],
+                        ]
                     ],
                 ]
             ],

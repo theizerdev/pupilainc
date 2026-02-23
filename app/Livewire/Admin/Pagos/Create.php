@@ -504,97 +504,95 @@ class Create extends Component
 
     public function guardar()
     {
-        // Validación especial para pago mixto
-        if ($this->es_pago_mixto && $this->totalPagoMixto != $this->total) {
-            session()->flash('error', 'El total configurado en el pago mixto debe coincidir con el total a pagar.');
-            return;
-        }
-
-        // Validar referencias duplicadas antes de guardar
-        if ($this->es_pago_mixto) {
-            foreach ($this->metodos_pago_mixto as $index => $metodo) {
-                if (!empty($metodo['referencia'])) {
-                    $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $metodo['referencia']);
-                    
-                    // Buscar en el campo referencia directo
-                    $existeReferenciaDirecta = \App\Models\Pago::where('referencia', $valorLimpio)
-                        ->where('estado', 'aprobado')
-                        ->exists();
-                    
-                    // Buscar en el campo detalles_pago_mixto (JSON)
-                    $existeEnDetalles = \App\Models\Pago::where('estado', 'aprobado')
-                        ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
-                        ->exists();
-                    
-                    if ($existeReferenciaDirecta || $existeEnDetalles) {
-                        session()->flash('error', 'La referencia "' . $metodo['referencia'] . '" ya fue utilizada en otro pago.');
-                        return;
-                    }
-                }
-            }
-        } elseif (!empty($this->referencia)) {
-            // Validar referencia para pago no mixto
-            $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $this->referencia);
-            
-            $existeReferenciaDirecta = \App\Models\Pago::where('referencia', $valorLimpio)
-                ->where('estado', 'aprobado')
-                ->exists();
-            
-            $existeEnDetalles = \App\Models\Pago::where('estado', 'aprobado')
-                ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
-                ->exists();
-            
-            if ($existeReferenciaDirecta || $existeEnDetalles) {
-                session()->flash('error', 'La referencia "' . $this->referencia . '" ya fue utilizada en otro pago.');
-                return;
-            }
-        }
-
-
-
-       try {
-        DB::transaction(function () {
-            
-
-            $matricula = Matricula::find($this->matricula_id);
-
-            $pagoService = new PagoService();
-            $pago = $pagoService->crearPago([
-                'tipo_pago' => $this->tipo_pago,
-                'fecha' => $this->fecha_pago,
-                'matricula_id' => $this->matricula_id,
-                'serie_id' => $this->serie_actual?->id,
-                'metodo_pago' => $this->metodo_pago,
-                'referencia' => $this->referencia,
-                'descuento' => $this->descuento,
-                'observaciones' => $this->observaciones,
-                'tasa_cambio' => $this->tasa_cambio,
-                'es_pago_mixto' => $this->es_pago_mixto,
-                'detalles_pago_mixto' => $this->es_pago_mixto ? $this->metodos_pago_mixto : null,
-                'empresa_id' => auth()->user()->empresa_id,
-                'sucursal_id' => auth()->user()->sucursal_id,
-                'caja_id' => $this->caja_abierta->id,
-                'estado' => Pago::ESTADO_APROBADO,
-                'detalles' => $this->detalles
-            ]);
-
-            $this->dispatch('pago-registrado', ['mensaje' => 'Pago registrado exitosamente: ' . $pago->numero_completo]);
-
-            // Enviar notificación por WhatsApp y esperar respuesta
-            $whatsappResult = $this->enviarNotificacionWhatsApp($pago, $matricula);
-            $mensaje = 'Pago registrado exitosamente: ' . $pago->numero_completo;
-            if ($whatsappResult['sent']) {
-                $mensaje .= ' - Notificación WhatsApp enviada a ' . $whatsappResult['destinatario'];
-            } elseif ($whatsappResult['attempted']) {
-                $mensaje .= ' - No se pudo enviar notificación WhatsApp';
-            }
-            
-            session()->flash('message', $mensaje);
-            return redirect()->route('admin.pagos.create');
-        });
+        if (!$this->validarPago()) return;
+        
+        try {
+            DB::transaction(function () {
+                $pago = $this->crearPago();
+                $mensaje = $this->procesarNotificaciones($pago);
+                session()->flash('message', $mensaje);
+                return redirect()->route('admin.pagos.create');
+            });
         } catch (\Throwable $th) {
             session()->flash('error', 'Error al crear el pago: ' . $th->getMessage());
         }
+    }
+    
+    private function validarPago(): bool
+    {
+        if ($this->es_pago_mixto && $this->totalPagoMixto != $this->total) {
+            session()->flash('error', 'El total configurado en el pago mixto debe coincidir con el total a pagar.');
+            return false;
+        }
+        
+        return $this->validarReferencias();
+    }
+    
+    private function validarReferencias(): bool
+    {
+        $referencias = $this->es_pago_mixto 
+            ? collect($this->metodos_pago_mixto)->pluck('referencia')->filter()
+            : collect([$this->referencia])->filter();
+            
+        foreach ($referencias as $referencia) {
+            if ($this->referenciaExiste($referencia)) {
+                session()->flash('error', "La referencia \"$referencia\" ya fue utilizada en otro pago.");
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    private function referenciaExiste(string $referencia): bool
+    {
+        $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $referencia);
+        
+        return Pago::where('estado', 'aprobado')
+            ->where(function($q) use ($valorLimpio) {
+                $q->where('referencia', $valorLimpio)
+                  ->orWhereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]]);
+            })->exists();
+    }
+    
+    private function crearPago(): Pago
+    {
+        $pagoService = new PagoService();
+        return $pagoService->crearPago([
+            'tipo_pago' => $this->tipo_pago,
+            'fecha' => $this->fecha_pago,
+            'matricula_id' => $this->matricula_id,
+            'serie_id' => $this->serie_actual?->id,
+            'metodo_pago' => $this->metodo_pago,
+            'referencia' => $this->referencia,
+            'descuento' => $this->descuento,
+            'observaciones' => $this->observaciones,
+            'tasa_cambio' => $this->tasa_cambio,
+            'es_pago_mixto' => $this->es_pago_mixto,
+            'detalles_pago_mixto' => $this->es_pago_mixto ? $this->metodos_pago_mixto : null,
+            'empresa_id' => auth()->user()->empresa_id,
+            'sucursal_id' => auth()->user()->sucursal_id,
+            'caja_id' => $this->caja_abierta->id,
+            'estado' => Pago::ESTADO_APROBADO,
+            'detalles' => $this->detalles
+        ]);
+    }
+    
+    private function procesarNotificaciones(Pago $pago): string
+    {
+        $matricula = Matricula::find($this->matricula_id);
+        $whatsappResult = $this->enviarNotificacionWhatsApp($pago, $matricula);
+        
+        $mensaje = 'Pago registrado exitosamente: ' . $pago->numero_completo;
+        
+        if ($whatsappResult['sent']) {
+            $mensaje .= ' - Notificación WhatsApp enviada a ' . $whatsappResult['destinatario'];
+        } elseif ($whatsappResult['attempted']) {
+            $mensaje .= ' - No se pudo enviar notificación WhatsApp';
+        }
+        
+        $this->dispatch('pago-registrado', ['mensaje' => $mensaje]);
+        return $mensaje;
     }
 
     /**

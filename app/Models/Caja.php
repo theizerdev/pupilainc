@@ -72,38 +72,29 @@ class Caja extends Model
         $totalTarjetas = 0;
 
         foreach ($pagos as $pago) {
+            $montoUSD = $pago->total_usd ?? $pago->total;
+            
             if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {
                 // Procesar pago mixto
                 foreach ($pago->detalles_pago_mixto as $detalle) {
-                    switch ($detalle['metodo']) {
-                        case 'efectivo_dolares':
-                        case 'efectivo_bolivares':
-                            $totalEfectivo += $detalle['monto'];
-                            break;
-                        case 'transferencia':
-                        case 'pago_movil':
-                            $totalTransferencias += $detalle['monto'];
-                            break;
-                        case 'tarjeta':
-                            $totalTarjetas += $detalle['monto'];
-                            break;
+                    $monto = $detalle['monto_usd'] ?? $detalle['monto'] ?? 0;
+                    
+                    if (in_array($detalle['metodo'], ['efectivo_bs', 'efectivo_usd'])) {
+                        $totalEfectivo += $monto;
+                    } elseif (in_array($detalle['metodo'], ['transferencia_bs', 'transferencia_usd', 'pago_movil', 'zelle', 'paypal'])) {
+                        $totalTransferencias += $monto;
+                    } elseif (in_array($detalle['metodo'], ['tarjeta', 'tarjeta_debito', 'tarjeta_credito'])) {
+                        $totalTarjetas += $monto;
                     }
                 }
             } else {
                 // Procesar pago tradicional
-                switch ($pago->metodo_pago) {
-                    case 'efectivo':
-                    case 'efectivo Bs.':
-                    case 'efectivo Divisas.':
-                        $totalEfectivo += $pago->total;
-                        break;
-                    case 'transferencia':
-                    case 'pago movil':
-                        $totalTransferencias += $pago->total;
-                        break;
-                    case 'tarjeta':
-                        $totalTarjetas += $pago->total;
-                        break;
+                if (in_array($pago->metodo_pago, ['efectivo_bs', 'efectivo_usd', 'efectivo'])) {
+                    $totalEfectivo += $montoUSD;
+                } elseif (in_array($pago->metodo_pago, ['transferencia_bs', 'transferencia_usd', 'transferencia', 'pago_movil', 'zelle', 'paypal'])) {
+                    $totalTransferencias += $montoUSD;
+                } elseif (in_array($pago->metodo_pago, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito'])) {
+                    $totalTarjetas += $montoUSD;
                 }
             }
         }

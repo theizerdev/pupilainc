@@ -163,6 +163,43 @@ Route::prefix('monitoreo')->as('monitoreo.')->group(function () {
 // Tasas de Cambio
 Route::get('/tasas-cambio', \App\Livewire\Admin\ExchangeRates::class)->name('exchange-rates')->middleware('checkAdminPermission:view exchange-rates');
 
+
+// Pagos/Facturación
+Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
+    Route::get('/pagos', \App\Livewire\Admin\Pagos\Index::class)->name('pagos.index');
+    Route::get('/pagos/crear', \App\Livewire\Admin\Pagos\CrearFactura::class)->name('pagos.create');
+    Route::get('/pagos/{pago}/download/{formato?}', [\App\Livewire\Admin\Pagos\Index::class, 'downloadReceipt'])->name('pagos.download');
+    Route::get('/pagos/{pago}', \App\Livewire\Admin\Pagos\Show::class)->name('pagos.show');
+});
+
+// Baremos
+Route::middleware(['checkAdminPermission:access baremos'])->group(function () {
+    Route::get('/baremos', \App\Livewire\Admin\Baremo\GestionBaremos::class)->name('baremos.index');
+});
+
+// Baremos
+Route::middleware(['checkAdminPermission:access baremos'])->group(function () {
+    Route::get('/baremos', \App\Livewire\Admin\Baremo\GestionBaremos::class)->name('baremos.index');
+});
+
+// Notas de Crédito
+Route::middleware(['checkAdminPermission:access notas-credito'])->group(function () {
+    Route::get('/notas-credito', \App\Livewire\Admin\NotaCredito\ListaNotasCredito::class)->name('notas-credito.index');
+     Route::get('/notas-credito/crear', \App\Livewire\Admin\NotaCredito\CrearNotaCredito::class)->name('notas-credito.create');
+    });
+
+// Notas de Débito
+Route::middleware(['checkAdminPermission:access notas-debito'])->group(function () {
+    Route::get('/notas-debito', \App\Livewire\Admin\NotaDebito\ListaNotasDebito::class)->name('notas-debito.index');
+    Route::get('/notas-debito/crear/{nota_credito_id?}', \App\Livewire\Admin\NotaDebito\CrearNotaDebito::class)->name('notas-debito.create');
+});
+
+// Clientes Fiscales
+Route::middleware(['checkAdminPermission:access clientes-fiscales'])->group(function () {
+    Route::get('/clientes-fiscales', \App\Livewire\Admin\ClienteFiscal\GestionClientesFiscales::class)->name('clientes-fiscales.index');
+});
+
+
 // Series de Documentos
 Route::middleware(['checkAdminPermission:access series'])->group(function () {
     Route::get('/series', \App\Livewire\Admin\Series\Index::class)->name('series.index');
@@ -170,15 +207,8 @@ Route::middleware(['checkAdminPermission:access series'])->group(function () {
     Route::get('/series/{serie}/editar', \App\Livewire\Admin\Series\Edit::class)->name('series.edit');
 });
 
-// Pagos
-Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
-    Route::get('/pagos', \App\Livewire\Admin\Pagos\Index::class)->name('pagos.index');
-    Route::get('/pagos/crear', \App\Livewire\Admin\Pagos\Create::class)->name('pagos.create');
-    Route::get('/pagos/{pago}/editar', \App\Livewire\Admin\Pagos\Edit::class)->name('pagos.edit');
-    Route::get('/pagos/{pago}', \App\Livewire\Admin\Pagos\Show::class)->name('pagos.show');
-    Route::get('/pagos/{pago}/print', [\App\Livewire\Admin\Pagos\Index::class, 'downloadReceipt'])->name('pagos.print');
-    Route::get('/pagos/comprobante/{comprobante}', \App\Livewire\Admin\Pagos\Comprobantes::class)->name('pagos.comprobante');
-});
+
+
 
 // Registro de Actividad
 Route::get('/activity-log', \App\Livewire\Admin\ActivityLog::class)->name('activity-log')->middleware('checkAdminPermission:access activity log');
@@ -257,4 +287,10 @@ Route::prefix('gestion')->as('gestion.')->group(function () {
     Route::get('/consultas/en-optica', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware('checkAdminPermission:access consultas');
     Route::get('/consultas/en-estudio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware('checkAdminPermission:access consultas');
     Route::get('/consultas/finalizadas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware('checkAdminPermission:access consultas');
+});
+
+// Contabilidad
+Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermission:access contabilidad'])->group(function () {
+    Route::get('/plan-cuentas', \App\Livewire\Admin\Contabilidad\PlanCuentas::class)->name('plan-cuentas');
+    Route::get('/asientos', \App\Livewire\Admin\Contabilidad\Asientos::class)->name('asientos');
 });

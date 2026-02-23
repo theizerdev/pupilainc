@@ -163,6 +163,9 @@
                                     <span class="badge" style="background-color: {{ $estadoColores[$consulta->estado] ?? '#78909C' }}">
                                         {{ $estadoLabels[$consulta->estado] ?? ucfirst($consulta->estado) }}
                                     </span>
+                                    @if($consulta->estado === \App\Models\Consulta::ESTADO_PAGADA)
+                                        <i class="ri ri-check-double-line text-success ms-1" title="Pagada"></i>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($consulta->estado_changed_at)
@@ -182,16 +185,16 @@
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" 
-                                                       href="{{ route('admin.consulta.informe', $consulta->id) }}" 
+                                                    <a class="dropdown-item d-flex align-items-center"
+                                                       href="{{ route('admin.consulta.informe', $consulta->id) }}"
                                                        target="_blank">
                                                         <i class="ri ri-file-text-line me-2"></i>
                                                         Informe Médico
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" 
-                                                       href="{{ route('admin.consulta.justificativo', $consulta->id) }}" 
+                                                    <a class="dropdown-item d-flex align-items-center"
+                                                       href="{{ route('admin.consulta.justificativo', $consulta->id) }}"
                                                        target="_blank">
                                                         <i class="ri ri-file-list-line me-2"></i>
                                                         Justificativo
@@ -199,8 +202,8 @@
                                                 </li>
                                                 @if($consulta->reposo)
                                                     <li>
-                                                        <a class="dropdown-item d-flex align-items-center" 
-                                                           href="{{ route('admin.consulta.reposo', $consulta->id) }}" 
+                                                        <a class="dropdown-item d-flex align-items-center"
+                                                           href="{{ route('admin.consulta.reposo', $consulta->id) }}"
                                                            target="_blank">
                                                             <i class="ri ri-file-shield-line me-2"></i>
                                                             Reposo Médico
@@ -208,11 +211,21 @@
                                                     </li>
                                                 @endif
                                                 <li><hr class="dropdown-divider"></li>
+                                                @can('create pagos')
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center"
+                                                       href="{{ route('admin.pagos.create') }}">
+                                                        <i class="ri ri-money-dollar-circle-line me-2"></i>
+                                                        Registrar Pago
+                                                    </a>
+                                                </li>
+                                                @endcan
+                                                <li><hr class="dropdown-divider"></li>
                                             @endif
-                                            
+
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#" 
+                                                    <a class="dropdown-item d-flex align-items-center" href="#"
                                                        data-bs-toggle="modal" data-bs-target="#registrarSignosVitalesModal{{ $consulta->id }}">
                                                         <i class="ri ri-heart-pulse-line me-2"></i>
                                                         Registrar Signos Vitales
@@ -220,7 +233,7 @@
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                             @endif
-                                            
+
                                         </ul>
                                     </div>
                                 </td>
@@ -267,7 +280,7 @@
             alert(event.detail.message);
         }
     });
-    
+
     window.addEventListener('cerrar-modal-signos-vitales', event => {
         // Cerrar todos los modales de signos vitales
         document.querySelectorAll('[id^="registrarSignosVitalesModal"]').forEach(modal => {

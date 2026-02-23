@@ -226,8 +226,9 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Documento</th>
-                                    <th>Estudiante</th>
+                                    <th>N° Factura</th>
+                                    <th>Control Fiscal</th>
+                                    <th>Paciente</th>
                                     <th>Método</th>
                                     <th class="text-end">Total</th>
                                     <th>Hora</th>
@@ -241,8 +242,22 @@
                                             <div class="fw-medium text-primary">{{ $pago->numero_completo }}</div>
                                         </td>
                                         <td>
-                                            <div>{{ $pago->matricula->student->nombres ?? '' }} {{ $pago->matricula->student->apellidos ?? '' }}</div>
-                                            <small class="text-muted">{{ $pago->matricula->student->documento_identidad ?? '' }}</small>
+                                            @if($pago->numero_control_fiscal)
+                                                <span class="badge bg-info">{{ $pago->numero_control_fiscal }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($pago->consulta && $pago->consulta->paciente)
+                                                <div>{{ $pago->consulta->paciente->nombre_completo }}</div>
+                                                <small class="text-muted">{{ $pago->consulta->paciente->documento_identidad }}</small>
+                                            @elseif($pago->clienteFiscal)
+                                                <div>{{ $pago->clienteFiscal->razon_social }}</div>
+                                                <small class="text-muted">{{ $pago->clienteFiscal->documento_completo }}</small>
+                                            @else
+                                                <span class="text-muted">N/A</span>
+                                            @endif
                                         </td>
                                         <td>
                                             @php
@@ -270,7 +285,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted">No hay pagos registrados en esta caja</td>
+                                        <td colspan="7" class="text-center text-muted">No hay pagos registrados en esta caja</td>
                                     </tr>
                                 @endforelse
                             </tbody>

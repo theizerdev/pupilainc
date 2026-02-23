@@ -29,7 +29,14 @@ class Empresa extends Model
         'whatsapp_active',
         'whatsapp_phone',
         'whatsapp_status',
-        'whatsapp_last_connected'
+        'whatsapp_last_connected',
+        'rif_fiscal',
+        'direccion_fiscal',
+        'ciudad_fiscal',
+        'estado_fiscal',
+        'codigo_postal_fiscal',
+        'telefono_fiscal',
+        'correo_fiscal'
     ];
 
     protected $casts = [
@@ -147,5 +154,21 @@ class Empresa extends Model
         }
         
         $this->update($data);
+    }
+
+    public function getDireccionFiscalCompletaAttribute(): string
+    {
+        $parts = array_filter([
+            $this->direccion_fiscal,
+            $this->ciudad_fiscal,
+            $this->estado_fiscal,
+            $this->codigo_postal_fiscal ? 'C.P. ' . $this->codigo_postal_fiscal : null,
+        ]);
+        return implode(', ', $parts);
+    }
+
+    public function getNombreAttribute(): string
+    {
+        return $this->razon_social;
     }
 }

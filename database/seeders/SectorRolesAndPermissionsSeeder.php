@@ -201,6 +201,53 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'apply reglas mora',
                     ]
                 ],
+                'baremos' => [
+                    'name' => 'Baremos',
+                    'permissions' => [
+                        'access baremos',
+                        'create baremos',
+                        'edit baremos',
+                        'delete baremos',
+                        'view baremos',
+                        'manage baremos',
+                    ]
+                ],
+                'clientes_fiscales' => [
+                    'name' => 'Clientes Fiscales',
+                    'permissions' => [
+                        'access clientes-fiscales',
+                        'create clientes-fiscales',
+                        'edit clientes-fiscales',
+                        'delete clientes-fiscales',
+                        'view clientes-fiscales',
+                    ]
+                ],
+                'notas_credito' => [
+                    'name' => 'Notas de Crédito',
+                    'permissions' => [
+                        'access notas-credito',
+                        'create notas-credito',
+                        'view notas-credito',
+                        'delete notas-credito',
+                    ]
+                ],
+                'notas_debito' => [
+                    'name' => 'Notas de Débito',
+                    'permissions' => [
+                        'access notas-debito',
+                        'create notas-debito',
+                        'view notas-debito',
+                        'delete notas-debito',
+                    ]
+                ],
+                'contabilidad' => [
+                    'name' => 'Contabilidad',
+                    'permissions' => [
+                        'access contabilidad',
+                        'view contabilidad',
+                        'manage contabilidad',
+                    ]
+                ],
             ],
 
             // ⚙️ SECTOR CONFIGURACIÓN
@@ -521,6 +568,11 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'access series',
                 'view exchange-rates',
                 'generate pagos comprobantes',
+                'access baremos',
+                'view baremos',
+                'access clientes-fiscales',
+                'create clientes-fiscales',
+                'view clientes-fiscales',
             ])->get();
         $cajero->syncPermissions($cajeroPermissions);
 

@@ -8,7 +8,7 @@
             transition: all 0.3s ease;
             height: 100%;
         }
-        
+
         .dashboard-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 0.25rem 0.75rem rgba(165, 163, 174, 0.4);
@@ -139,13 +139,13 @@
                 height: 2.5rem;
                 font-size: 1.25rem;
             }
-            
+
             .module-icon {
                 width: 3rem;
                 height: 3rem;
                 font-size: 1.25rem;
             }
-            
+
             .chart-container {
                 height: 250px;
             }
@@ -300,8 +300,8 @@
                     </div>
                 </div>
             </div>
-           
-               
+
+
         </div>
     </div>
 
@@ -384,7 +384,7 @@
 
         <!-- Pagos -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <a href="{{ route('admin.pagos.index') }}" class="text-decoration-none">
+            <a href="{{ url('admin.pagos.index') }}" class="text-decoration-none">
                 <div class="module-card">
                     <div class="module-icon" style="background: linear-gradient(135deg, #dc3545, #e83e8c);">
                         <i class="fas fa-credit-card"></i>
@@ -473,7 +473,7 @@
                         </a>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <a href="{{ route('admin.pagos.create') }}" class="action-btn">
+                        <a href="{{ url('admin.pagos.create') }}" class="action-btn">
                             <i class="fas fa-money-bill-wave me-2 text-warning"></i>
                             Registrar Pago
                         </a>

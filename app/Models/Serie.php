@@ -13,7 +13,9 @@ class Serie extends Model
         'tipo_documento',
         'serie',
         'correlativo_actual',
+        'control_fiscal_actual',
         'longitud_correlativo',
+        'longitud_control_fiscal',
         'activo',
         'empresa_id',
         'sucursal_id'
@@ -22,7 +24,8 @@ class Serie extends Model
     protected $casts = [
         'activo' => 'boolean',
         'correlativo_actual' => 'integer',
-        'longitud_correlativo' => 'integer'
+        'longitud_correlativo' => 'integer',
+        'longitud_control_fiscal' => 'integer'
     ];
 
     public function empresa()
@@ -37,10 +40,46 @@ class Serie extends Model
 
     public function obtenerSiguienteNumero()
     {
+        // Incrementar correlativo
         $this->increment('correlativo_actual');
+        
+        // Incrementar también el número de control fiscal
+        if ($this->control_fiscal_actual !== null) {
+            $controlActual = intval($this->control_fiscal_actual);
+            $controlActual++;
+            $this->control_fiscal_actual = str_pad(
+                $controlActual, 
+                $this->longitud_control_fiscal ?? 8, 
+                '0', 
+                STR_PAD_LEFT
+            );
+        } else {
+            // Si no existe, inicializar con el mismo valor del correlativo
+            $this->control_fiscal_actual = str_pad(
+                $this->correlativo_actual, 
+                $this->longitud_control_fiscal ?? 8, 
+                '0', 
+                STR_PAD_LEFT
+            );
+        }
+        
+        $this->save();
         $this->refresh();
         
-        return str_pad($this->correlativo_actual, $this->longitud_correlativo, '0', STR_PAD_LEFT);
+        return str_pad(
+            $this->correlativo_actual, 
+            $this->longitud_correlativo, 
+            '0', 
+            STR_PAD_LEFT
+        );
+    }
+
+    public function getNumeroControlFiscalAttribute()
+    {
+        if (!$this->control_fiscal_actual) {
+            return null;
+        }
+        return str_pad($this->control_fiscal_actual, $this->longitud_control_fiscal, '0', STR_PAD_LEFT);
     }
 
     public function getNumeroCompletoAttribute()
@@ -54,6 +93,7 @@ class Serie extends Model
             'factura' => 'Factura',
             'boleta' => 'Boleta',
             'nota_credito' => 'Nota de Crédito',
+            'nota_debito' => 'Nota de Débito',
             'recibo' => 'Recibo'
         ];
     }

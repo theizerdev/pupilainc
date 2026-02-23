@@ -33,7 +33,7 @@ class Show extends Component
 
     public function mount(Caja $caja)
     {
-        $this->caja = $caja->load(['usuario', 'sucursal', 'pagos.detalles.conceptoPago', 'pagos.matricula.student']);
+        $this->caja = $caja->load(['usuario', 'sucursal', 'pagos.consulta.paciente', 'pagos.detalles.baremo']);
     }
 
     public function abrirModalCerrar()
@@ -129,15 +129,20 @@ class Show extends Component
     {
         return $this->caja->pagos()
             ->where('estado', 'aprobado')
-            ->with(['detalles.conceptoPago'])
+            ->with(['detalles.baremo'])
             ->get()
             ->flatMap(function ($pago) {
-                return $pago->detalles->map(function ($detalle) {
+                $tasaCambio = $pago->tasa_cambio_usd ?? 1;
+                return $pago->detalles->map(function ($detalle) use ($tasaCambio) {
+                    // Convertir de Bs a USD si el precio está en Bs
+                    $precioUSD = $detalle->precio_unitario / $tasaCambio;
+                    $subtotalUSD = $detalle->subtotal / $tasaCambio;
+                    
                     return [
-                        'concepto' => $detalle->conceptoPago->nombre ?? 'Sin concepto',
+                        'concepto' => $detalle->baremo->nombre_servicio ?? $detalle->descripcion ?? 'Sin concepto',
                         'cantidad' => $detalle->cantidad,
-                        'precio' => $detalle->precio_unitario,
-                        'subtotal' => $detalle->subtotal,
+                        'precio' => $precioUSD,
+                        'subtotal' => $subtotalUSD,
                     ];
                 });
             })
@@ -220,7 +225,7 @@ class Show extends Component
     private function generarExcelTemporal()
     {
         try {
-            $this->caja->load(['usuario', 'sucursal', 'pagos.detalles.conceptoPago', 'pagos.matricula.student']);
+            $this->caja->load(['usuario', 'sucursal', 'pagos.consulta.paciente', 'pagos.detalles.baremo']);
             
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
@@ -280,7 +285,7 @@ class Show extends Component
             $sheet->getStyle('A' . $row)->getFont()->setBold(true);
             
             $row++;
-            $encabezados = ['Documento', 'Estudiante', 'Método', 'Monto USD', 'Monto Bs', 'Referencia', 'Hora'];
+            $encabezados = ['Documento', 'Paciente', 'Método', 'Monto USD', 'Monto Bs', 'Referencia', 'Hora'];
             foreach ($encabezados as $col => $encabezado) {
                 $sheet->setCellValueByColumnAndRow($col + 1, $row, $encabezado);
             }
@@ -288,30 +293,34 @@ class Show extends Component
             
             $row++;
             foreach ($this->caja->pagos()->where('estado', 'aprobado')->get() as $pago) {
+                $paciente = $pago->consulta && $pago->consulta->paciente 
+                    ? $pago->consulta->paciente->nombre_completo 
+                    : ($pago->clienteFiscal ? $pago->clienteFiscal->razon_social : 'N/A');
+                
                 if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {
                     foreach ($pago->detalles_pago_mixto as $detalle) {
-                        $montoBolivares = in_array($detalle['metodo'], ['transferencia', 'pago_movil', 'efectivo_bolivares']) && $pago->tasa_cambio 
-                            ? number_format($detalle['monto'] * $pago->tasa_cambio, 2) 
+                        $montoBolivares = isset($detalle['monto_bs']) 
+                            ? number_format($detalle['monto_bs'], 2) 
                             : '-';
                         
                         $sheet->setCellValue('A' . $row, $pago->numero_completo);
-                        $sheet->setCellValue('B' . $row, $pago->matricula->student->nombres . ' ' . $pago->matricula->student->apellidos);
+                        $sheet->setCellValue('B' . $row, $paciente);
                         $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $detalle['metodo'])));
-                        $sheet->setCellValue('D' . $row, number_format($detalle['monto'], 2));
+                        $sheet->setCellValue('D' . $row, number_format($detalle['monto_usd'] ?? $detalle['monto'] ?? 0, 2));
                         $sheet->setCellValue('E' . $row, $montoBolivares);
-                        $sheet->setCellValue('F' . $row, $detalle['referencia'] ?: '-');
+                        $sheet->setCellValue('F' . $row, $detalle['referencia'] ?? '-');
                         $sheet->setCellValue('G' . $row, $pago->created_at->format('H:i'));
                         $row++;
                     }
                 } else {
-                    $montoBolivares = $pago->total_bolivares ? number_format($pago->total_bolivares, 2) : '-';
+                    $montoBolivares = $pago->total_bs ? number_format($pago->total_bs, 2) : '-';
                     
                     $sheet->setCellValue('A' . $row, $pago->numero_completo);
-                    $sheet->setCellValue('B' . $row, $pago->matricula->student->nombres . ' ' . $pago->matricula->student->apellidos);
-                    $sheet->setCellValue('C' . $row, $pago->metodo_pago);
-                    $sheet->setCellValue('D' . $row, number_format($pago->total, 2));
+                    $sheet->setCellValue('B' . $row, $paciente);
+                    $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $pago->metodo_pago)));
+                    $sheet->setCellValue('D' . $row, number_format($pago->total_usd ?? $pago->total, 2));
                     $sheet->setCellValue('E' . $row, $montoBolivares);
-                    $sheet->setCellValue('F' . $row, $pago->referencia ?: '-');
+                    $sheet->setCellValue('F' . $row, $pago->referencia ?? '-');
                     $sheet->setCellValue('G' . $row, $pago->created_at->format('H:i'));
                     $row++;
                 }

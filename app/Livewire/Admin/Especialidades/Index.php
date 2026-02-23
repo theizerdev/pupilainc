@@ -64,13 +64,13 @@ class Index extends Component
 
     public function delete($id)
     {
-        $this->authorize('admin.especialidades.destroy');
-        
+        $this->authorize('delete especialidades');
+
         try {
             $especialidad = Especialidad::findOrFail($id);
             $nombreEspecialidad = $especialidad->nombre;
             $especialidad->delete();
-            
+
             $this->dispatch('notify', [
                 'type' => 'success',
                 'message' => "Especialidad '{$nombreEspecialidad}' eliminada exitosamente.",
@@ -87,13 +87,13 @@ class Index extends Component
 
     public function toggleStatus($id)
     {
-        $this->authorize('admin.especialidades.edit');
-        
+        $this->authorize('edit especialidades');
+
         try {
             $especialidad = Especialidad::findOrFail($id);
             $especialidad->status = !$especialidad->status;
             $especialidad->save();
-            
+
             session()->flash('success', 'Estado actualizado exitosamente.');
         } catch (\Exception $e) {
             session()->flash('error', 'Error al actualizar el estado: ' . $e->getMessage());
@@ -141,11 +141,11 @@ class Index extends Component
     public function getStatsProperty()
     {
         $query = Especialidad::forUser();
-        
+
         // Obtener el promedio y asegurar que sea un número válido
         $avgCost = $query->avg('costo_consulta');
         $promedioCosto = is_numeric($avgCost) ? round((float)$avgCost, 2) : 0;
-        
+
         return [
             'total' => $query->count(),
             'activas' => $query->where('status', true)->count(),

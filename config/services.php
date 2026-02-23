@@ -45,4 +45,9 @@ return [
         'api_token' => env('WHATSAPP_API_TOKEN', ''),
     ],
 
+     'dolarvzla' => [
+        'base_url' => env('DOLARVZLA_BASE_URL', 'https://api.dolarvzla.com/public'),
+        'key' => env('DOLARVZLA_API_KEY'),
+    ],
+
 ];

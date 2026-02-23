@@ -15,6 +15,7 @@ class Consulta extends Model
 
     const ESTADO_BORRADOR = 'borrador';
     const ESTADO_FINALIZADA = 'finalizada';
+    const ESTADO_PAGADA = 'pagada';
     const ESTADO_SALA_ESPERA = 'sala_espera';
     const ESTADO_EN_ENFERMERIA = 'en_enfermeria';
     const ESTADO_EN_CONSULTORIO = 'en_consultorio';
@@ -32,6 +33,7 @@ class Consulta extends Model
         self::ESTADO_EN_OPTICA,
         self::ESTADO_EN_ESTUDIO,
         self::ESTADO_FINALIZADA,
+        self::ESTADO_PAGADA,
         self::ESTADO_BORRADOR,
     ];
 
@@ -44,6 +46,7 @@ class Consulta extends Model
         self::ESTADO_EN_OPTICA => 'En Óptica',
         self::ESTADO_EN_ESTUDIO => 'En Estudio',
         self::ESTADO_FINALIZADA => 'Finalizada',
+        self::ESTADO_PAGADA => 'Pagada',
         self::ESTADO_BORRADOR => 'Borrador',
     ];
 
@@ -56,6 +59,7 @@ class Consulta extends Model
         self::ESTADO_EN_OPTICA => '#AB47BC',
         self::ESTADO_EN_ESTUDIO => '#EC407A',
         self::ESTADO_FINALIZADA => '#66BB6A',
+        self::ESTADO_PAGADA => '#4CAF50',
         self::ESTADO_BORRADOR => '#BDBDBD',
     ];
 
@@ -171,6 +175,11 @@ class Consulta extends Model
     public function reposo()
     {
         return $this->hasOne(Reposo::class);
+    }
+
+    public function pagos()
+    {
+        return $this->hasMany(Pago::class);
     }
 
     public function empresa()

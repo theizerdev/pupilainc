@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Multitenantable;
+use App\Services\Seniat\FiscalCalculator;
 
 class Pago extends Model
 {
@@ -14,6 +15,7 @@ class Pago extends Model
     const TIPO_FACTURA = 'factura';
     const TIPO_BOLETA = 'boleta';
     const TIPO_NOTA_CREDITO = 'nota_credito';
+    const TIPO_NOTA_DEBITO = 'nota_debito';
     const TIPO_RECIBO = 'recibo';
 
     const ESTADO_PENDIENTE = 'pendiente';
@@ -21,27 +23,53 @@ class Pago extends Model
     const ESTADO_CANCELADO = 'cancelado';
 
     protected $fillable = [
+        'consulta_id',
+        'pago_origen_id',
+        'tipo_nota_credito_id',
+        'tipo_nota_debito_id',
         'caja_id',
         'serie_id',
         'serie',
         'numero',
         'tipo_pago',
         'fecha',
-        'matricula_id',
         'user_id',
         'subtotal',
         'descuento',
         'total',
-        'tasa_cambio',
-        'total_bolivares',
+        'tasa_cambio_usd',
+        'tasa_cambio_eur',
+        'total_usd',
+        'total_bs',
         'metodo_pago',
         'referencia',
         'es_pago_mixto',
         'detalles_pago_mixto',
         'estado',
         'observaciones',
+        'motivo_nota',
         'empresa_id',
-        'sucursal_id'
+        'sucursal_id',
+        // Campos fiscales
+        'cliente_fiscal_id',
+        'numero_control_fiscal',
+        'es_factura_fiscal',
+        'base_imponible',
+        'monto_exento',
+        'iva_porcentaje',
+        'iva_monto',
+        'igtf_porcentaje',
+        'igtf_monto',
+        'aplica_igtf',
+        'total_con_impuestos',
+        'fecha_emision_fiscal',
+        'fecha_vencimiento_fiscal',
+        'base_imponible_general',
+        'iva_monto_general',
+        'base_imponible_reducida',
+        'iva_monto_reducida',
+        'condicion_pago',
+        'seniat_tipo_documento'
     ];
 
     protected $casts = [
@@ -49,10 +77,27 @@ class Pago extends Model
         'subtotal' => 'decimal:2',
         'descuento' => 'decimal:2',
         'total' => 'decimal:2',
-        'tasa_cambio' => 'decimal:4',
-        'total_bolivares' => 'decimal:2',
+        'tasa_cambio_usd' => 'decimal:4',
+        'tasa_cambio_eur' => 'decimal:4',
+        'total_usd' => 'decimal:2',
+        'total_bs' => 'decimal:2',
         'es_pago_mixto' => 'boolean',
-        'detalles_pago_mixto' => 'array'
+        'detalles_pago_mixto' => 'array',
+        'es_factura_fiscal' => 'boolean',
+        'base_imponible' => 'decimal:2',
+        'monto_exento' => 'decimal:2',
+        'iva_porcentaje' => 'decimal:2',
+        'iva_monto' => 'decimal:2',
+        'igtf_porcentaje' => 'decimal:2',
+        'igtf_monto' => 'decimal:2',
+        'aplica_igtf' => 'boolean',
+        'total_con_impuestos' => 'decimal:2',
+        'fecha_emision_fiscal' => 'date',
+        'fecha_vencimiento_fiscal' => 'date',
+        'base_imponible_general' => 'decimal:2',
+        'iva_monto_general' => 'decimal:2',
+        'base_imponible_reducida' => 'decimal:2',
+        'iva_monto_reducida' => 'decimal:2'
     ];
 
     protected $attributes = [
@@ -61,14 +106,44 @@ class Pago extends Model
         'descuento' => 0
     ];
 
+    public function pagoOrigen()
+    {
+        return $this->belongsTo(Pago::class, 'pago_origen_id');
+    }
+
+    public function notasCredito()
+    {
+        return $this->hasMany(Pago::class, 'pago_origen_id')->where('tipo_pago', self::TIPO_NOTA_CREDITO);
+    }
+
+    public function notasDebito()
+    {
+        return $this->hasMany(Pago::class, 'pago_origen_id')->where('tipo_pago', self::TIPO_NOTA_DEBITO);
+    }
+
+    public function tipoNotaCredito()
+    {
+        return $this->belongsTo(TipoNotaCredito::class);
+    }
+
+    public function tipoNotaDebito()
+    {
+        return $this->belongsTo(TipoNotaDebito::class);
+    }
+
+    public function consulta()
+    {
+        return $this->belongsTo(Consulta::class);
+    }
+
+    public function clienteFiscal()
+    {
+        return $this->belongsTo(ClienteFiscal::class);
+    }
+
     public function detalles()
     {
         return $this->hasMany(PagoDetalle::class);
-    }
-
-    public function matricula()
-    {
-        return $this->belongsTo(Matricula::class);
     }
 
     public function user()
@@ -97,6 +172,7 @@ class Pago extends Model
             self::TIPO_FACTURA => 'Factura',
             self::TIPO_BOLETA => 'Boleta',
             self::TIPO_NOTA_CREDITO => 'Nota de Crédito',
+            self::TIPO_NOTA_DEBITO => 'Nota de Débito',
             self::TIPO_RECIBO => 'Recibo'
         ];
     }
@@ -113,7 +189,7 @@ class Pago extends Model
     public function getNumeroCompletoAttribute()
     {
         if ($this->serieModel) {
-            return $this->serieModel->serie . '-' . str_pad($this->numero, $this->serieModel->longitud_correlativo, '0', STR_PAD_LEFT);
+            return str_pad($this->numero, $this->serieModel->longitud_correlativo, '0', STR_PAD_LEFT);
         }
         return $this->serie . '-' . $this->numero;
     }
@@ -150,16 +226,19 @@ class Pago extends Model
         if (!$serieModel) {
             $prefijos = [
                 'factura' => 'F001',
-                'boleta' => 'B001', 
+                'boleta' => 'B001',
                 'nota_credito' => 'NC01',
+                'nota_debito' => 'ND01',
                 'recibo' => 'R001'
             ];
-            
+
             $serieModel = Serie::create([
                 'tipo_documento' => $tipo,
                 'serie' => $prefijos[$tipo] ?? 'DOC1',
                 'correlativo_actual' => 0,
+                'control_fiscal_actual' => '00000000',
                 'longitud_correlativo' => 8,
+                'longitud_control_fiscal' => 8,
                 'activo' => true,
                 'empresa_id' => $empresaId,
                 'sucursal_id' => $sucursalId
@@ -167,11 +246,13 @@ class Pago extends Model
         }
 
         $numero = $serieModel->obtenerSiguienteNumero();
-        
+        $controlFiscal = $serieModel->numero_control_fiscal;
+
         return [
             'serie_id' => $serieModel->id,
             'serie' => $serieModel->serie,
-            'numero' => $numero
+            'numero' => $numero,
+            'control_fiscal' => $controlFiscal
         ];
     }
 
@@ -180,6 +261,7 @@ class Pago extends Model
         parent::boot();
 
         static::creating(function ($pago) {
+            // Solo generar numeración si no viene ya asignada
             if (!$pago->serie || !$pago->numero) {
                 try {
                     if (class_exists('\App\Models\Serie')) {
@@ -192,6 +274,12 @@ class Pago extends Model
                         $pago->serie_id = $numeracion['serie_id'];
                         $pago->serie = $numeracion['serie'];
                         $pago->numero = $numeracion['numero'];
+
+                        // Solo asignar control fiscal para documentos fiscales
+                        if (!$pago->numero_control_fiscal && $pago->es_factura_fiscal 
+                            && in_array($pago->tipo_pago, [self::TIPO_FACTURA, self::TIPO_NOTA_CREDITO, self::TIPO_NOTA_DEBITO])) {
+                            $pago->numero_control_fiscal = $numeracion['control_fiscal'];
+                        }
                     } else {
                         // Fallback si no existe la clase Serie
                         $pago->serie = 'R001';
@@ -206,7 +294,13 @@ class Pago extends Model
         });
 
         static::saved(function ($pago) {
-            $pago->calcularTotales();
+            // Cambiar estado de consulta a pagada
+            if ($pago->consulta_id && $pago->estado === self::ESTADO_APROBADO) {
+                $consulta = $pago->consulta;
+                if ($consulta && $consulta->estado === Consulta::ESTADO_FINALIZADA) {
+                    $consulta->cambiarEstado('pagada');
+                }
+            }
         });
     }
 
@@ -214,17 +308,97 @@ class Pago extends Model
     {
         $subtotal = $this->detalles()->sum('subtotal');
         $total = $subtotal - $this->descuento;
-        
-        // Calcular total en bolívares si hay tasa de cambio
-        $totalBolivares = null;
-        if ($this->tasa_cambio) {
-            $totalBolivares = $total * $this->tasa_cambio;
+
+        // Obtener tasa del día
+        $tasaUSD = ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1;
+
+        $totalUSD = 0;
+        $totalBS = 0;
+        $aplicaIGTF = false;
+
+        if ($this->es_pago_mixto && $this->detalles_pago_mixto) {
+            foreach ($this->detalles_pago_mixto as $detalle) {
+                $metodo = $detalle['metodo'];
+
+                if (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal'])) {
+                    $montoUSD = $detalle['monto_usd'] ?? 0;
+                    $totalUSD += $montoUSD;
+                    $totalBS += $montoUSD * $tasaUSD;
+                    $aplicaIGTF = true;
+                }
+
+                if (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
+                    $montoBS = $detalle['monto_bs'] ?? 0;
+                    $totalBS += $montoBS;
+                    $totalUSD += $montoBS / $tasaUSD;
+                }
+            }
+        } else {
+            switch ($this->metodo_pago) {
+                case 'efectivo_bs':
+                case 'transferencia_bs':
+                case 'pago_movil':
+                    $totalBS = $total * $tasaUSD;
+                    $totalUSD = $total;
+                    break;
+
+                case 'efectivo_usd':
+                case 'transferencia_usd':
+                case 'zelle':
+                case 'paypal':
+                    $totalUSD = $total;
+                    $totalBS = $total * $tasaUSD;
+                    $aplicaIGTF = true;
+                    break;
+            }
         }
 
-        $this->updateQuietly([
+        $updateData = [
             'subtotal' => $subtotal,
             'total' => $total,
-            'total_bolivares' => $totalBolivares
-        ]);
+            'tasa_cambio_usd' => $tasaUSD,
+            'total_usd' => $totalUSD,
+            'total_bs' => $totalBS,
+            'aplica_igtf' => $aplicaIGTF,
+        ];
+
+        if ($this->es_factura_fiscal) {
+            $fiscal = FiscalCalculator::calcular($this);
+
+            // Base imponible (16%) = monto * tasa del día
+            $baseImponible16 = $total * $tasaUSD;
+
+            $updateData = array_merge($updateData, [
+                'base_imponible' => $baseImponible16,
+                'monto_exento' => $fiscal['monto_exento'],
+                'base_imponible_general' => $fiscal['base_imponible_general'],
+                'iva_monto_general' => $fiscal['iva_monto_general'],
+                'base_imponible_reducida' => $fiscal['base_imponible_reducida'],
+                'iva_monto_reducida' => $fiscal['iva_monto_reducida'],
+                'iva_porcentaje' => $fiscal['iva_porcentaje'] ?? $this->iva_porcentaje,
+                'iva_monto' => $fiscal['iva_monto'],
+                'igtf_monto' => $fiscal['igtf_monto'],
+                'total_con_impuestos' => $fiscal['total_con_impuestos'],
+                'seniat_tipo_documento' => $fiscal['seniat_tipo_documento'] ?? $this->getSeniatTipoDocumentoCode(),
+            ]);
+
+            $totalConImpuestos = $fiscal['total_con_impuestos'];
+            $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
+            $updateData['total_usd'] = $totalConImpuestos;
+        }
+
+        $this->updateQuietly($updateData);
+    }
+
+    public function getSeniatTipoDocumentoCode(): string
+    {
+        return FiscalCalculator::getSeniatTipoDocumento($this->tipo_pago);
+    }
+
+    public function getSaldoDisponibleAttribute(): float
+    {
+        $notasCredito = $this->notasCredito()->where('estado', self::ESTADO_APROBADO)->sum('total');
+        $notasDebito = $this->notasDebito()->where('estado', self::ESTADO_APROBADO)->sum('total');
+        return $this->total - $notasCredito + $notasDebito;
     }
 }
