@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use App\Traits\Multitenantable;
+use App\Traits\HasSpanishActivityLog;
 use Carbon\Carbon;
 
 class Paciente extends Model
 {
-    use HasFactory, LogsActivity, Multitenantable;
+    use HasFactory, LogsActivity, Multitenantable, HasSpanishActivityLog;
 
     protected $table = 'pacientes';
 
@@ -179,6 +180,7 @@ class Paciente extends Model
                 'status'
             ])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

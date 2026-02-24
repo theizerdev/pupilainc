@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
 
 class Sucursal extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, HasSpanishActivityLog;
 
     protected $table = 'sucursales';
 
@@ -52,6 +53,7 @@ class Sucursal extends Model
         return LogOptions::defaults()
             ->logOnly(['nombre', 'telefono', 'direccion', 'status'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

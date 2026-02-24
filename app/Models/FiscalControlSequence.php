@@ -4,10 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\Multitenantable;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
+use App\Traits\FiscalAuditable;
 
 class FiscalControlSequence extends Model
 {
-    use Multitenantable;
+    use Multitenantable, LogsActivity, HasSpanishActivityLog, FiscalAuditable;
 
     protected $table = 'fiscal_control_sequences';
 
@@ -52,5 +56,14 @@ class FiscalControlSequence extends Model
         $this->refresh();
 
         return $this->prefijo . str_pad($this->correlativo_actual, $this->longitud, '0', STR_PAD_LEFT);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['correlativo_actual', 'prefijo', 'rango_inicio', 'rango_fin'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

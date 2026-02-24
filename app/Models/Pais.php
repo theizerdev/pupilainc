@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
 
 class Pais extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, HasSpanishActivityLog;
 
     protected $table = 'pais';
 
@@ -58,7 +59,8 @@ class Pais extends Model
                 'activo'
             ])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 
     /**

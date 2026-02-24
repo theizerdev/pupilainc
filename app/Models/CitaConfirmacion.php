@@ -10,10 +10,11 @@ use Carbon\Carbon;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use App\Traits\Multitenantable;
+use App\Traits\HasSpanishActivityLog;
 
 class CitaConfirmacion extends Model
 {
-    use HasFactory, LogsActivity, Multitenantable;
+    use HasFactory, LogsActivity, Multitenantable, HasSpanishActivityLog;
 
     protected $table = 'cita_confirmaciones';
 
@@ -191,7 +192,8 @@ class CitaConfirmacion extends Model
         return LogOptions::defaults()
             ->logOnly(['cita_id', 'metodo', 'destinatario', 'estado', 'respuesta_recibida', 'intentos'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 
     // Boot method for automatic expiration

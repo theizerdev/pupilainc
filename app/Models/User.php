@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasRoles, LogsActivity;
+    use HasFactory, Notifiable, HasRoles, LogsActivity, HasSpanishActivityLog;
 
     /**
      * The attributes that are mass assignable.
@@ -34,6 +35,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'empresa_id',
         'sucursal_id',
         'status',
+        'failed_login_attempts',
+        'locked_until',
+        'last_failed_login_at',
         'two_factor_enabled',
         'two_factor_secret',
         'two_factor_recovery_codes',
@@ -66,6 +70,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_enabled' => 'boolean',
             'two_factor_recovery_codes' => 'array',
             'verification_code_sent_at' => 'datetime',
+            'locked_until' => 'datetime',
+            'last_failed_login_at' => 'datetime',
         ];
     }
 
@@ -238,8 +244,9 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'empresa_id', 'sucursal_id', 'status'])
+            ->logOnly(['name', 'email', 'empresa_id', 'sucursal_id', 'status', 'failed_login_attempts'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

@@ -277,13 +277,33 @@ class CrearNotaCredito extends Component
         // IGTF en Bs (aplica si el pago original fue en divisas)
         $this->igtf_monto_bs = 0;
         if ($this->pago_origen && ($this->pago_origen->aplica_igtf ?? false)) {
-            $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
-                ->where('empresa_id', auth()->user()->empresa_id)
-                ->where('activo', true)
-                ->first();
+            // Verificar si el método de pago original era en divisas
+            $metodoPagoOriginal = $this->pago_origen->metodo_pago;
+            $pagoEnDivisas = false;
+            
+            if ($metodoPagoOriginal === 'mixto') {
+                $pagosMixtos = $this->pago_origen->detalles_pago_mixto ?? json_decode($this->pago_origen->pagos_mixtos, true) ?? [];
+                foreach ($pagosMixtos as $pm) {
+                    if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                        $pagoEnDivisas = true;
+                        break;
+                    }
+                }
+            } elseif (in_array($metodoPagoOriginal, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                $pagoEnDivisas = true;
+            }
+            
+            if ($pagoEnDivisas) {
+                $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
+                    ->where('empresa_id', auth()->user()->empresa_id)
+                    ->where('activo', true)
+                    ->first();
 
-            if ($igtfConfig) {
-                $this->igtf_monto_bs = round($this->subtotal_bs * ((float) $igtfConfig->porcentaje / 100), 2);
+                if ($igtfConfig) {
+                    // IGTF = 3% sobre la base imponible (monto en divisas = subtotal + IVA)
+                    $baseImponibleIGTF = $this->subtotal_bs + $this->iva_monto_bs;
+                    $this->igtf_monto_bs = round($baseImponibleIGTF * ((float) $igtfConfig->porcentaje / 100), 2);
+                }
             }
         }
 

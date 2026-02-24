@@ -10,6 +10,8 @@ use App\Models\User;
 use Livewire\Attributes\Url;
 use App\Models\Medico;
 use App\Models\Cita;
+use App\Models\AuditLog;
+use App\Traits\HasSpanishActivityLog;
 
 class ActivityLog extends Component
 {
@@ -43,13 +45,16 @@ class ActivityLog extends Component
     #[Url]
     public $onlyCitaEstados = false;
     
+    #[Url]
+    public $securityFilter = '';
+    
     public $perPage = 10;
     
     public $selectedActivities = [];
     
     public $selectAll = false;
 
-    protected $queryString = ['search', 'userFilter', 'dateRange', 'actionFilter', 'subjectTypeFilter', 'sortBy', 'sortDirection', 'doctorFilter', 'onlyCitaEstados'];
+    protected $queryString = ['search', 'userFilter', 'dateRange', 'actionFilter', 'subjectTypeFilter', 'sortBy', 'sortDirection', 'doctorFilter', 'onlyCitaEstados', 'securityFilter'];
 
     public function render()
     {
@@ -125,7 +130,56 @@ class ActivityLog extends Component
                 return [$item => $className];
             });
 
-        return view('livewire.admin.activity-log', compact('activities', 'users', 'actions', 'subjectTypes', 'medicos'))
+        // Eventos de seguridad desde audit_logs
+        $securityEvents = collect();
+        if ($this->securityFilter) {
+            $securityQuery = AuditLog::query()
+                ->where('action', 'like', 'seguridad.%')
+                ->when($this->securityFilter === 'login_fallido', fn($q) => $q->where('action', 'seguridad.login_fallido'))
+                ->when($this->securityFilter === 'usuario_bloqueado', fn($q) => $q->where('action', 'seguridad.usuario_bloqueado'))
+                ->when($this->securityFilter === 'acceso_no_autorizado', fn($q) => $q->where('action', 'seguridad.acceso_no_autorizado'))
+                ->when($this->securityFilter === 'restriccion', fn($q) => $q->where('action', 'seguridad.restriccion'))
+                ->when($this->securityFilter === 'acceso_denegado', fn($q) => $q->where('action', 'seguridad.acceso_denegado'))
+                ->when($this->securityFilter === 'acceso_bloqueado', fn($q) => $q->where('action', 'seguridad.acceso_bloqueado'))
+                ->when($this->securityFilter === 'todos', fn($q) => $q)
+                ->when($this->search, function ($q) {
+                    $q->where(function ($sub) {
+                        $sub->where('action', 'like', '%' . $this->search . '%')
+                            ->orWhere('ip_address', 'like', '%' . $this->search . '%')
+                            ->orWhereRaw("JSON_EXTRACT(new_values, '$.identificador') LIKE ?", ['%' . $this->search . '%']);
+                    });
+                })
+                ->when($this->dateRange, function ($q) {
+                    $dates = match($this->dateRange) {
+                        'today' => [now()->startOfDay(), now()->endOfDay()],
+                        'yesterday' => [now()->subDay()->startOfDay(), now()->subDay()->endOfDay()],
+                        'week' => [now()->startOfWeek(), now()->endOfWeek()],
+                        'month' => [now()->startOfMonth(), now()->endOfMonth()],
+                        'last7days' => [now()->subDays(7), now()],
+                        'last30days' => [now()->subDays(30), now()],
+                        default => null,
+                    };
+                    if ($dates) {
+                        $q->whereBetween('created_at', $dates);
+                    }
+                })
+                ->with('user')
+                ->orderBy('created_at', 'desc')
+                ->paginate($this->perPage);
+
+            $securityEvents = $securityQuery;
+        }
+
+        // Contadores de seguridad
+        $securityCounts = [
+            'login_fallido' => AuditLog::where('action', 'seguridad.login_fallido')->count(),
+            'usuario_bloqueado' => AuditLog::where('action', 'seguridad.usuario_bloqueado')->count(),
+            'acceso_no_autorizado' => AuditLog::where('action', 'seguridad.acceso_no_autorizado')->count(),
+            'restriccion' => AuditLog::where('action', 'seguridad.restriccion')->count(),
+            'total' => AuditLog::where('action', 'like', 'seguridad.%')->count(),
+        ];
+
+        return view('livewire.admin.activity-log', compact('activities', 'users', 'actions', 'subjectTypes', 'medicos', 'securityEvents', 'securityCounts'))
             ->layout($this->getLayout(), ['title' => 'Seguimiento de Actividades']);
     }
 
@@ -154,6 +208,11 @@ class ActivityLog extends Component
         $this->resetPage();
     }
 
+    public function updatingSecurityFilter()
+    {
+        $this->resetPage();
+    }
+
     public function updatedSelectAll($value)
     {
         if ($value) {
@@ -172,6 +231,7 @@ class ActivityLog extends Component
         $this->subjectTypeFilter = '';
         $this->sortBy = 'created_at';
         $this->sortDirection = 'desc';
+        $this->securityFilter = '';
         $this->resetPage();
         
         $this->dispatch('showToast', [
@@ -220,18 +280,28 @@ class ActivityLog extends Component
 
     public function getActionColor($action)
     {
-        return match($action) {
-            'created' => 'success',
-            'updated' => 'warning',
-            'deleted' => 'danger',
-            'restored' => 'info',
-            'force-deleted' => 'danger',
-            'login' => 'primary',
-            'logout' => 'secondary',
-            'password-updated' => 'warning',
-            'profile-updated' => 'info',
-            default => 'primary',
-        };
+        if (str_contains($action, 'creó') || $action === 'created') return 'success';
+        if (str_contains($action, 'editó') || $action === 'updated') return 'warning';
+        if (str_contains($action, 'eliminó') || $action === 'deleted' || $action === 'force-deleted') return 'danger';
+        if ($action === 'restored') return 'info';
+        if ($action === 'login') return 'primary';
+        if ($action === 'logout') return 'secondary';
+        if ($action === 'password-updated') return 'warning';
+        if ($action === 'profile-updated') return 'info';
+        return 'primary';
+    }
+
+    public function getActionIcon($action)
+    {
+        if (str_contains($action, 'creó') || $action === 'created') return 'plus';
+        if (str_contains($action, 'editó') || $action === 'updated') return 'edit';
+        if (str_contains($action, 'eliminó') || $action === 'deleted' || $action === 'force-deleted') return 'trash';
+        if ($action === 'restored') return 'undo';
+        if ($action === 'login') return 'sign-in-alt';
+        if ($action === 'logout') return 'sign-out-alt';
+        if ($action === 'password-updated') return 'key';
+        if ($action === 'profile-updated') return 'user-edit';
+        return 'circle';
     }
 
     public function export($format = 'csv')

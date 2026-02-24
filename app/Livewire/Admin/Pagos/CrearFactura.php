@@ -11,6 +11,7 @@ use App\Models\ExchangeRate;
 use App\Models\ImpuestoConfiguracion;
 use App\Traits\HasDynamicLayout;
 use App\Events\PagoCreated;
+use App\Services\Seniat\FiscalCalculator;
 
 class CrearFactura extends Component
 {
@@ -30,6 +31,7 @@ class CrearFactura extends Component
     public $descripcion;
     public $cantidad = 1;
     public $precio_unitario = 0;
+    public $pagos_mixtos = [];
 
     public $tipo_pago = 'factura';
     public $metodo_pago = 'efectivo_bs';
@@ -62,6 +64,21 @@ class CrearFactura extends Component
     {
         $this->tasa_usd = ExchangeRate::getLatestRate('USD') ?? 1;
         $this->obtenerProximoNumero();
+        $this->pagos_mixtos = [];
+        if ($this->tipo_pago === 'factura') {
+            $this->es_factura_fiscal = true;
+        }
+    }
+
+    public function updatedTipoPago($value)
+    {
+        $this->obtenerProximoNumero();
+        if ($value === 'factura') {
+            $this->es_factura_fiscal = true;
+        } else {
+            $this->es_factura_fiscal = false;
+        }
+        $this->calcularTotales();
     }
 
     public function obtenerProximoNumero()
@@ -177,6 +194,12 @@ class CrearFactura extends Component
             'precio_unitario' => 'required|numeric|min:0'
         ]);
 
+        // Validar que el precio no sea cero
+        if ($this->precio_unitario <= 0) {
+            $this->dispatch('notify', type: 'error', message: 'El precio del servicio no puede ser cero');
+            return;
+        }
+
         $baremo = $this->baremo_id ? Baremo::find($this->baremo_id) : null;
 
         $this->detalles[] = [
@@ -275,10 +298,37 @@ class CrearFactura extends Component
             $this->iva_monto = 0;
         }
 
-        $aplicaIGTF = in_array($this->metodo_pago, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal']);
-        $this->igtf_monto = $aplicaIGTF ? (($this->subtotal * $this->tasa_usd) + $this->iva_monto) * 0.03 : 0;
+        $fiscalIgtf = FiscalCalculator::calcularIgtfDesdeDatos(
+            auth()->user()->empresa_id,
+            $this->metodo_pago,
+            $this->metodo_pago === 'mixto',
+            $this->pagos_mixtos,
+            $this->subtotal
+        );
+        $this->igtf_monto = ($fiscalIgtf['aplica_igtf'] ?? false) ? ($fiscalIgtf['igtf_monto'] * $this->tasa_usd) : 0;
 
         $this->total = ($this->subtotal * $this->tasa_usd) + $this->iva_monto + $this->igtf_monto;
+    }
+
+    public function agregarPagoMixto()
+    {
+        $this->pagos_mixtos[] = [
+            'metodo' => 'efectivo_bs',
+            'monto_bs' => 0,
+            'monto_usd' => 0
+        ];
+    }
+
+    public function eliminarPagoMixto($index)
+    {
+        unset($this->pagos_mixtos[$index]);
+        $this->pagos_mixtos = array_values($this->pagos_mixtos);
+        $this->calcularTotales();
+    }
+
+    public function updatedPagosMixtos()
+    {
+        $this->calcularTotales();
     }
 
     public function guardar()
@@ -293,6 +343,12 @@ class CrearFactura extends Component
             'detalles.required' => 'Debe agregar al menos un servicio',
             'detalles.min' => 'Debe agregar al menos un servicio'
         ]);
+
+        // Validar que el total no sea cero
+        if ($this->total <= 0) {
+            session()->flash('error', 'El total del pago no puede ser cero. Agregue servicios con precio.');
+            return;
+        }
 
         if ($this->es_factura_fiscal) {
             $this->validate([
@@ -323,6 +379,19 @@ class CrearFactura extends Component
                 auth()->user()->sucursal_id
             );
 
+            // Validar que no exista el número de factura
+            $numeroCompleto = $numeracion['serie'] . '-' . $numeracion['numero'];
+            $existe = Pago::where('serie', $numeracion['serie'])
+                ->where('numero', $numeracion['numero'])
+                ->where('empresa_id', auth()->user()->empresa_id)
+                ->exists();
+
+            if ($existe) {
+                \DB::rollBack();
+                session()->flash('error', 'El número de factura ' . $numeroCompleto . ' ya existe. Por favor, intente nuevamente.');
+                return;
+            }
+
             $pago = Pago::create([
                 'consulta_id' => $this->consulta_id,
                 'caja_id' => $caja->id,
@@ -351,6 +420,8 @@ class CrearFactura extends Component
                 'igtf_monto' => $this->igtf_monto,
                 'aplica_igtf' => $this->igtf_monto > 0,
                 'condicion_pago' => $this->condicion_pago,
+                'pagos_mixtos' => $this->metodo_pago === 'mixto' ? json_encode($this->pagos_mixtos) : null,
+                'detalles_pago_mixto' => $this->metodo_pago === 'mixto' ? $this->pagos_mixtos : null,
             ]);
 
             foreach ($this->detalles as $item) {

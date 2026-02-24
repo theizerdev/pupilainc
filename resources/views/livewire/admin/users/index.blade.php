@@ -225,14 +225,23 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox"
-                                                   id="statusSwitch{{ $user->id }}"
-                                                   {{ $user->status ? 'checked' : '' }}
-                                                   @can('edit users') wire:click="toggleStatus({{ $user->id }})" @endcan>
-                                            <label class="form-check-label" for="statusSwitch{{ $user->id }}">
-                                                {{ $user->status ? 'Activo' : 'Inactivo' }}
-                                            </label>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox"
+                                                       id="statusSwitch{{ $user->id }}"
+                                                       {{ $user->status ? 'checked' : '' }}
+                                                       @can('edit users') wire:click="toggleStatus({{ $user->id }})" @endcan>
+                                                <label class="form-check-label" for="statusSwitch{{ $user->id }}">
+                                                    {{ $user->status ? 'Activo' : 'Inactivo' }}
+                                                </label>
+                                            </div>
+                                            @if($user->locked_until && $user->locked_until->isFuture())
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        wire:click="unlockUser({{ $user->id }})" 
+                                                        title="Usuario bloqueado hasta {{ $user->locked_until->format('d/m/Y H:i') }}">
+                                                    <i class="ri-lock-2-fill"></i> Desbloquear
+                                                </button>
+                                            @endif
                                         </div>
                                     </td>
                                     <td>{{ $user->created_at->format('d/m/Y H:i') }}</td>

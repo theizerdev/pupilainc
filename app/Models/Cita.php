@@ -11,10 +11,11 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use Illuminate\Support\Str;
 use App\Traits\Multitenantable;
+use App\Traits\HasSpanishActivityLog;
 
 class Cita extends Model
 {
-    use HasFactory, LogsActivity, Multitenantable;
+    use HasFactory, LogsActivity, Multitenantable, HasSpanishActivityLog;
 
     protected $table = 'citas';
 
@@ -336,7 +337,8 @@ class Cita extends Model
         return LogOptions::defaults()
             ->logOnly(['paciente_id', 'medico_id', 'especialidad_id', 'subespecialidad_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'estado', 'notas'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 
     // Método para iniciar confirmación automática

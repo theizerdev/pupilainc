@@ -7,10 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Multitenantable;
 use App\Services\Seniat\FiscalCalculator;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
+use App\Traits\FiscalAuditable;
 
 class Pago extends Model
 {
-    use HasFactory, Multitenantable, SoftDeletes;
+    use HasFactory, Multitenantable, SoftDeletes, LogsActivity, HasSpanishActivityLog, FiscalAuditable;
 
     const TIPO_FACTURA = 'factura';
     const TIPO_BOLETA = 'boleta';
@@ -50,7 +54,6 @@ class Pago extends Model
         'motivo_nota',
         'empresa_id',
         'sucursal_id',
-        // Campos fiscales
         'cliente_fiscal_id',
         'numero_control_fiscal',
         'es_factura_fiscal',
@@ -166,6 +169,11 @@ class Pago extends Model
         return $this->morphOne(Comprobante::class, 'comprobanteable');
     }
 
+    public function auditLogs()
+    {
+        return $this->morphMany(AuditLog::class, 'auditable');
+    }
+
     public static function getTipos()
     {
         return [
@@ -192,6 +200,20 @@ class Pago extends Model
             return str_pad($this->numero, $this->serieModel->longitud_correlativo, '0', STR_PAD_LEFT);
         }
         return $this->serie . '-' . $this->numero;
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'tipo_pago', 'estado', 'total', 'total_usd', 'total_bs',
+                'numero_control_fiscal', 'es_factura_fiscal',
+                'base_imponible', 'iva_monto', 'igtf_monto', 'total_con_impuestos',
+                'metodo_pago', 'cliente_fiscal_id',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 
     public function serieModel()
@@ -222,7 +244,6 @@ class Pago extends Model
                 ->first();
         }
 
-        // Si no existe serie, crear una automáticamente
         if (!$serieModel) {
             $prefijos = [
                 'factura' => 'F001',
@@ -261,7 +282,6 @@ class Pago extends Model
         parent::boot();
 
         static::creating(function ($pago) {
-            // Solo generar numeración si no viene ya asignada
             if (!$pago->serie || !$pago->numero) {
                 try {
                     if (class_exists('\App\Models\Serie')) {
@@ -275,26 +295,66 @@ class Pago extends Model
                         $pago->serie = $numeracion['serie'];
                         $pago->numero = $numeracion['numero'];
 
-                        // Solo asignar control fiscal para documentos fiscales
                         if (!$pago->numero_control_fiscal && $pago->es_factura_fiscal 
                             && in_array($pago->tipo_pago, [self::TIPO_FACTURA, self::TIPO_NOTA_CREDITO, self::TIPO_NOTA_DEBITO])) {
                             $pago->numero_control_fiscal = $numeracion['control_fiscal'];
                         }
                     } else {
-                        // Fallback si no existe la clase Serie
                         $pago->serie = 'R001';
                         $pago->numero = 1;
                     }
                 } catch (\Exception $e) {
-                    // Fallback en caso de error
                     $pago->serie = 'R001';
                     $pago->numero = 1;
                 }
             }
         });
 
+        static::created(function ($pago) {
+            try {
+                $auditService = app(\App\Services\Audit\AuditService::class);
+                $action = match($pago->tipo_pago) {
+                    self::TIPO_NOTA_CREDITO => 'pago.nota_credito.created',
+                    self::TIPO_NOTA_DEBITO => 'pago.nota_debito.created',
+                    default => 'pago.created'
+                };
+                $auditService->logModelEvent($action, $pago, [], $pago->getAttributes());
+            } catch (\Exception $e) {
+                \Log::error('Error en auditoría de pago creado: ' . $e->getMessage());
+            }
+        });
+
+        static::updating(function ($pago) {
+            $pago->_oldAttributes = $pago->getOriginal();
+        });
+
+        static::updated(function ($pago) {
+            try {
+                $auditService = app(\App\Services\Audit\AuditService::class);
+                $oldAttributes = $pago->_oldAttributes ?? [];
+                $newAttributes = $pago->getAttributes();
+                
+                $action = 'pago.updated';
+                if (isset($oldAttributes['estado']) && $oldAttributes['estado'] !== $newAttributes['estado']) {
+                    $action = "pago.estado.changed.{$oldAttributes['estado']}_to_{$newAttributes['estado']}";
+                }
+                
+                $auditService->logModelEvent($action, $pago, $oldAttributes, $newAttributes);
+            } catch (\Exception $e) {
+                \Log::error('Error en auditoría de pago actualizado: ' . $e->getMessage());
+            }
+        });
+
+        static::deleted(function ($pago) {
+            try {
+                $auditService = app(\App\Services\Audit\AuditService::class);
+                $auditService->logModelEvent('pago.deleted', $pago, $pago->getAttributes(), []);
+            } catch (\Exception $e) {
+                \Log::error('Error en auditoría de pago eliminado: ' . $e->getMessage());
+            }
+        });
+
         static::saved(function ($pago) {
-            // Cambiar estado de consulta a pagada
             if ($pago->consulta_id && $pago->estado === self::ESTADO_APROBADO) {
                 $consulta = $pago->consulta;
                 if ($consulta && $consulta->estado === Consulta::ESTADO_FINALIZADA) {
@@ -309,7 +369,6 @@ class Pago extends Model
         $subtotal = $this->detalles()->sum('subtotal');
         $total = $subtotal - $this->descuento;
 
-        // Obtener tasa del día
         $tasaUSD = ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1;
 
         $totalUSD = 0;
@@ -362,10 +421,15 @@ class Pago extends Model
             'aplica_igtf' => $aplicaIGTF,
         ];
 
-        if ($this->es_factura_fiscal) {
-            $fiscal = FiscalCalculator::calcular($this);
+        $fiscal = FiscalCalculator::calcular($this);
+        $updateData = array_merge($updateData, [
+            'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
+            'igtf_monto' => $fiscal['igtf_monto'],
+            'aplica_igtf' => $fiscal['aplica_igtf'],
+        ]);
 
-            // Base imponible (16%) = monto * tasa del día
+        if ($this->es_factura_fiscal) {
+
             $baseImponible16 = $total * $tasaUSD;
 
             $updateData = array_merge($updateData, [
@@ -377,7 +441,6 @@ class Pago extends Model
                 'iva_monto_reducida' => $fiscal['iva_monto_reducida'],
                 'iva_porcentaje' => $fiscal['iva_porcentaje'] ?? $this->iva_porcentaje,
                 'iva_monto' => $fiscal['iva_monto'],
-                'igtf_monto' => $fiscal['igtf_monto'],
                 'total_con_impuestos' => $fiscal['total_con_impuestos'],
                 'seniat_tipo_documento' => $fiscal['seniat_tipo_documento'] ?? $this->getSeniatTipoDocumentoCode(),
             ]);
@@ -400,5 +463,10 @@ class Pago extends Model
         $notasCredito = $this->notasCredito()->where('estado', self::ESTADO_APROBADO)->sum('total');
         $notasDebito = $this->notasDebito()->where('estado', self::ESTADO_APROBADO)->sum('total');
         return $this->total - $notasCredito + $notasDebito;
+    }
+
+    public function getAuditTrail()
+    {
+        return $this->auditLogs()->orderBy('created_at', 'desc')->get();
     }
 }

@@ -4,9 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
+use App\Traits\FiscalAuditable;
 
 class ExchangeRate extends Model
 {
+    use LogsActivity, HasSpanishActivityLog, FiscalAuditable;
+
     protected $fillable = [
         'date',
         'usd_rate',
@@ -36,5 +42,14 @@ class ExchangeRate extends Model
     public static function getTodayRate()
     {
         return self::whereDate('date', today())->first();
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['date', 'usd_rate', 'eur_rate', 'source'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

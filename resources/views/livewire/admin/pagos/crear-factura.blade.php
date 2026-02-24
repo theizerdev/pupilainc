@@ -101,7 +101,7 @@
                             <div class="card-body py-3">
                                 <div class="row">
                                     <!-- Tipo de Documento -->
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label fw-bold">Tipo Documento *</label>
                                         <select wire:model.live="tipo_pago" wire:change="obtenerProximoNumero" class="form-select">
                                             <option value="recibo">Recibo</option>
@@ -116,7 +116,7 @@
                                     </div>
 
                                     <!-- Número de Control Fiscal -->
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label fw-bold">
                                             <i class="fas fa-shield-alt text-primary"></i> N° Control Fiscal
                                         </label>
@@ -146,28 +146,6 @@
                                             <option value="mixto">Mixto</option>
                                         </select>
                                     </div>
-                                </div>
-
-                                <div class="row">
-
-                                </div>
-
-                                <div class="row">
-                                    <!-- Factura Fiscal -->
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label fw-bold d-block">Documento Fiscal</label>
-                                        <div class="form-check form-switch mt-1">
-                                            <input wire:model.live="es_factura_fiscal" class="form-check-input" type="checkbox" id="factura_fiscal" role="switch">
-                                            <label class="form-check-label" for="factura_fiscal">
-                                                @if($es_factura_fiscal)
-                                                    <span class="badge bg-primary"><i class="fas fa-check"></i> Factura Fiscal SENIAT</span>
-                                                @else
-                                                    <span class="text-muted">No fiscal</span>
-                                                @endif
-                                            </label>
-                                        </div>
-                                    </div>
-
                                     <!-- Condición de Pago -->
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label fw-bold">Condición de Pago</label>
@@ -183,6 +161,8 @@
                                         <input wire:model="referencia" type="text" class="form-control" placeholder="N° referencia bancaria">
                                     </div>
                                 </div>
+
+                                
 
                                 {{-- Datos Fiscales SENIAT (del Paciente) --}}
                                 @if($es_factura_fiscal)
@@ -295,6 +275,33 @@
                                     </div>
                                 </div>
                                 @endforeach
+                                
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-info py-2 mb-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>Total a Pagar:</strong> Bs. {{ number_format($total, 2, ',', '.') }}
+                                                </div>
+                                                <div>
+                                                    @php
+                                                        $totalPagado = collect($pagos_mixtos)->sum(function($p) use ($tasa_usd) {
+                                                            return (floatval($p['monto_bs'] ?? 0)) + (floatval($p['monto_usd'] ?? 0) * floatval($tasa_usd));
+                                                        });
+                                                        $balance = floatval($total) - $totalPagado;
+                                                    @endphp
+                                                    <strong>Total Pagado:</strong> Bs. {{ number_format($totalPagado, 2, ',', '.') }}
+                                                </div>
+                                                <div>
+                                                    <strong class="{{ $balance > 0 ? 'text-danger' : ($balance < 0 ? 'text-warning' : 'text-success') }}">
+                                                        Balance: Bs. {{ number_format($balance, 2, ',', '.') }}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <button type="button" wire:click="agregarPagoMixto" class="btn btn-sm btn-outline-info mt-1">
                                     <i class="fas fa-plus me-1"></i> Agregar Método de Pago
                                 </button>

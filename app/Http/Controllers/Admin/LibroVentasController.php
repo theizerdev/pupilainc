@@ -19,25 +19,27 @@ class LibroVentasController extends Controller
             ->whereIn('tipo_pago', ['factura', 'nota_credito', 'nota_debito'])
             ->where('estado', 'aprobado')
             ->whereBetween('fecha', [$desde, $hasta])
-            ->with(['clienteFiscal', 'pagoOrigen'])
+            ->with(['clienteFiscal', 'pagoOrigen', 'consulta.paciente', 'caja', 'user'])
             ->orderBy('fecha')
             ->orderBy('numero_control_fiscal')
             ->get();
 
         $totales = [
-            'base_imponible' => $documentos->where('tipo_pago', 'factura')->sum('base_imponible')
-                - $documentos->where('tipo_pago', 'nota_credito')->sum('base_imponible')
-                + $documentos->where('tipo_pago', 'nota_debito')->sum('base_imponible'),
-            'iva_monto' => $documentos->where('tipo_pago', 'factura')->sum('iva_monto')
-                - $documentos->where('tipo_pago', 'nota_credito')->sum('iva_monto')
-                + $documentos->where('tipo_pago', 'nota_debito')->sum('iva_monto'),
-            'monto_exento' => $documentos->where('tipo_pago', 'factura')->sum('monto_exento')
-                - $documentos->where('tipo_pago', 'nota_credito')->sum('monto_exento')
-                + $documentos->where('tipo_pago', 'nota_debito')->sum('monto_exento'),
-            'total' => $documentos->where('tipo_pago', 'factura')->sum('total_con_impuestos')
-                - $documentos->where('tipo_pago', 'nota_credito')->sum('total_con_impuestos')
-                + $documentos->where('tipo_pago', 'nota_debito')->sum('total_con_impuestos'),
-            'igtf_monto' => $documentos->sum('igtf_monto'),
+            'base_imponible' => $documentos->sum(function ($doc) {
+                return $doc->tipo_pago === 'nota_credito' ? -$doc->base_imponible : $doc->base_imponible;
+            }),
+            'iva_monto' => $documentos->sum(function ($doc) {
+                return $doc->tipo_pago === 'nota_credito' ? -$doc->iva_monto : $doc->iva_monto;
+            }),
+            'monto_exento' => $documentos->sum(function ($doc) {
+                return $doc->tipo_pago === 'nota_credito' ? -$doc->monto_exento : $doc->monto_exento;
+            }),
+            'total' => $documentos->sum(function ($doc) {
+                return $doc->tipo_pago === 'nota_credito' ? -((float) $doc->total_con_impuestos) : ((float) $doc->total_con_impuestos);
+            }),
+            'igtf_monto' => $documentos->sum(function ($doc) {
+                return $doc->tipo_pago === 'nota_credito' ? -$doc->igtf_monto : $doc->igtf_monto;
+            }),
         ];
 
         return view('admin.seniat.libro-ventas', compact('documentos', 'totales', 'desde', 'hasta'));

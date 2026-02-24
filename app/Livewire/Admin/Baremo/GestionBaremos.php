@@ -41,7 +41,7 @@ class GestionBaremos extends Component
             'especialidad_id' => 'required',
             'codigo' => 'required|unique:baremos,codigo',
             'nombre_servicio' => 'required|min:3',
-            'costo_usd' => 'required|numeric|min:0',
+            'costo_usd' => 'required|numeric|gt:0',
             'duracion_minutos' => 'nullable|numeric|min:5'
         ];
 
@@ -60,7 +60,7 @@ class GestionBaremos extends Component
         'nombre_servicio.min' => 'El nombre debe tener al menos 3 caracteres',
         'costo_usd.required' => 'El costo es obligatorio',
         'costo_usd.numeric' => 'El costo debe ser un número',
-        'costo_usd.min' => 'El costo debe ser mayor a 0',
+        'costo_usd.gt' => 'El costo debe ser mayor a 0',
         'duracion_minutos.min' => 'La duración mínima es 5 minutos'
     ];
 

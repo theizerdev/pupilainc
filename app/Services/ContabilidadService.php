@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\DB;
 
 class ContabilidadService
 {
+    private function getCodigoCuenta(string $clave): string
+    {
+        return config('contabilidad.cuentas.' . $clave);
+    }
+
     public function generarAsientoFactura(Pago $pago)
     {
         if (!in_array($pago->tipo_pago, ['factura', 'boleta', 'recibo'])) {
@@ -30,8 +35,11 @@ class ContabilidadService
                 'sucursal_id' => $pago->sucursal_id
             ]);
 
-            // DEBE: Cuenta según método de pago
-            $codigoCuenta = $this->getCodigoCuentaPago($pago->metodo_pago);
+            // DEBE: Cuenta según condición de pago
+            $esCredito = strtolower($pago->condicion_pago ?? 'contado') === 'credito';
+            
+            $codigoCuenta = $esCredito ? $this->getCodigoCuenta('cxc') : $this->getCodigoCuentaPago($pago->metodo_pago);
+            
             $cuentaPago = CuentaContable::where('codigo', $codigoCuenta)
                 ->where('empresa_id', $pago->empresa_id)
                 ->first();
@@ -42,16 +50,20 @@ class ContabilidadService
             }
 
             if ($cuentaPago) {
+                $descripcionDebe = $esCredito 
+                    ? "Cuenta por cobrar factura {$pago->numero_completo}"
+                    : "Cobro factura {$pago->numero_completo}";
+                    
                 $asiento->detalles()->create([
                     'cuenta_id' => $cuentaPago->id,
                     'debe' => $totalDebe,
                     'haber' => 0,
-                    'descripcion' => "Cobro factura {$pago->numero_completo}"
+                    'descripcion' => $descripcionDebe
                 ]);
             }
 
             // HABER: Ingresos por Consultas
-            $cuentaIngreso = CuentaContable::where('codigo', '4.1.01')
+            $cuentaIngreso = CuentaContable::where('codigo', $this->getCodigoCuenta('ingreso'))
                 ->where('empresa_id', $pago->empresa_id)
                 ->first();
 
@@ -67,7 +79,7 @@ class ContabilidadService
 
             // HABER: IVA por Pagar
             if (($pago->iva_monto ?? 0) > 0) {
-                $cuentaIVA = CuentaContable::where('codigo', '2.1.01.001')
+                $cuentaIVA = CuentaContable::where('codigo', $this->getCodigoCuenta('iva'))
                     ->where('empresa_id', $pago->empresa_id)
                     ->first();
 
@@ -83,7 +95,7 @@ class ContabilidadService
 
             // HABER: IGTF por Pagar
             if (($pago->igtf_monto ?? 0) > 0) {
-                $cuentaIGTF = CuentaContable::where('codigo', '2.1.01.002')
+                $cuentaIGTF = CuentaContable::where('codigo', $this->getCodigoCuenta('igtf'))
                     ->where('empresa_id', $pago->empresa_id)
                     ->first();
 
@@ -119,7 +131,7 @@ class ContabilidadService
             ]);
 
             // DEBE: Caja/Banco
-            $cuentaCaja = CuentaContable::where('codigo', '1.1.01.001')
+            $cuentaCaja = CuentaContable::where('codigo', $this->getCodigoCuenta('caja'))
                 ->where('empresa_id', $pago->empresa_id)
                 ->first();
 
@@ -133,7 +145,7 @@ class ContabilidadService
             }
 
             // HABER: Cuentas por Cobrar
-            $cuentaPorCobrar = CuentaContable::where('codigo', '1.1.02.001')
+            $cuentaPorCobrar = CuentaContable::where('codigo', $this->getCodigoCuenta('cxc'))
                 ->where('empresa_id', $pago->empresa_id)
                 ->first();
 
@@ -187,7 +199,7 @@ class ContabilidadService
 
             // DEBE: IVA por Pagar
             if (abs($notaCredito->iva_monto ?? 0) > 0) {
-                $cuentaIVA = CuentaContable::where('codigo', '2.1.01.001')
+            $cuentaIVA = CuentaContable::where('codigo', $this->getCodigoCuenta('iva'))
                     ->where('empresa_id', $notaCredito->empresa_id)
                     ->first();
 
@@ -203,7 +215,7 @@ class ContabilidadService
 
             // DEBE: IGTF por Pagar (reversión)
             if (abs($notaCredito->igtf_monto ?? 0) > 0) {
-                $cuentaIGTF = CuentaContable::where('codigo', '2.1.01.002')
+            $cuentaIGTF = CuentaContable::where('codigo', $this->getCodigoCuenta('igtf'))
                     ->where('empresa_id', $notaCredito->empresa_id)
                     ->first();
 
@@ -218,7 +230,7 @@ class ContabilidadService
             }
 
             // HABER: Cuentas por Cobrar
-            $cuentaPorCobrar = CuentaContable::where('codigo', '1.1.02.001')
+            $cuentaPorCobrar = CuentaContable::where('codigo', $this->getCodigoCuenta('cxc'))
                 ->where('empresa_id', $notaCredito->empresa_id)
                 ->first();
 
@@ -257,7 +269,7 @@ class ContabilidadService
             ]);
 
             // DEBE: Cuentas por Cobrar
-            $cuentaPorCobrar = CuentaContable::where('codigo', '1.1.02.001')
+            $cuentaPorCobrar = CuentaContable::where('codigo', $this->getCodigoCuenta('cxc'))
                 ->where('empresa_id', $notaDebito->empresa_id)
                 ->first();
 
@@ -271,7 +283,7 @@ class ContabilidadService
             }
 
             // HABER: Ingresos (cargo adicional)
-            $cuentaIngreso = CuentaContable::where('codigo', '4.1.01')
+            $cuentaIngreso = CuentaContable::where('codigo', $this->getCodigoCuenta('ingreso'))
                 ->where('empresa_id', $notaDebito->empresa_id)
                 ->first();
 
@@ -287,7 +299,7 @@ class ContabilidadService
 
             // HABER: IVA por Pagar
             if ($notaDebito->iva_monto > 0) {
-                $cuentaIVA = CuentaContable::where('codigo', '2.1.01.001')
+            $cuentaIVA = CuentaContable::where('codigo', $this->getCodigoCuenta('iva'))
                     ->where('empresa_id', $notaDebito->empresa_id)
                     ->first();
 
@@ -303,7 +315,7 @@ class ContabilidadService
 
             // HABER: IGTF por Pagar
             if (($notaDebito->igtf_monto ?? 0) > 0) {
-                $cuentaIGTF = CuentaContable::where('codigo', '2.1.01.002')
+            $cuentaIGTF = CuentaContable::where('codigo', $this->getCodigoCuenta('igtf'))
                     ->where('empresa_id', $notaDebito->empresa_id)
                     ->first();
 
@@ -324,14 +336,8 @@ class ContabilidadService
 
     private function getCodigoCuentaPago(?string $metodoPago): string
     {
-        return match ($metodoPago) {
-            'efectivo_bs', 'efectivo_usd' => '1.1.01.001',
-            'transferencia_bs' => '1.1.01.002',
-            'transferencia_usd' => '1.1.01.003',
-            'pago_movil' => '1.1.01.004',
-            'zelle', 'paypal' => '1.1.01.005',
-            default => '1.1.01.001',
-        };
+        $map = config('contabilidad.metodos_pago');
+        return $map[$metodoPago] ?? $this->getCodigoCuenta('caja');
     }
 
     /**
@@ -354,7 +360,7 @@ class ContabilidadService
         }
 
         return DB::transaction(function () use ($empresaId, $mes, $anio, $userId, $sucursalId, $desde, $hasta) {
-            $cuentaResultado = CuentaContable::where('codigo', '3.2.02')
+            $cuentaResultado = CuentaContable::where('codigo', $this->getCodigoCuenta('resultado_ejercicio'))
                 ->where('empresa_id', $empresaId)
                 ->first();
 
@@ -462,11 +468,11 @@ class ContabilidadService
             $desde = \Carbon\Carbon::create($anio, 1, 1)->startOfYear();
             $hasta = \Carbon\Carbon::create($anio, 12, 31)->endOfYear();
 
-            $cuentaResultado = CuentaContable::where('codigo', '3.2.02')
+            $cuentaResultado = CuentaContable::where('codigo', $this->getCodigoCuenta('resultado_ejercicio'))
                 ->where('empresa_id', $empresaId)
                 ->first();
 
-            $cuentaResultadoAcum = CuentaContable::where('codigo', '3.2.01')
+            $cuentaResultadoAcum = CuentaContable::where('codigo', $this->getCodigoCuenta('resultado_acumulado'))
                 ->where('empresa_id', $empresaId)
                 ->first();
 

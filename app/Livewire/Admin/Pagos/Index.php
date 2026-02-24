@@ -5,11 +5,12 @@ namespace App\Livewire\Admin\Pagos;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Pago;
+use App\Traits\HasDynamicLayout;
 use Codedge\Fpdf\Fpdf\Fpdf;
 
 class Index extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicLayout;
 
     public $search = '';
     public $estado = '';
@@ -153,28 +154,60 @@ class Index extends Component
         $pdf->Cell(35, 5, 'SUBTOTAL:', 1, 0, 'R');
         $pdf->Cell(38, 5, 'Bs ' . number_format($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
 
+        // Calcular monto en divisas para base imponible IGTF
+        $montoEnDivisas = 0;
+        if ($pago->metodo_pago === 'mixto' && ($pago->pagos_mixtos || $pago->detalles_pago_mixto)) {
+            $pagosMixtosArray = json_decode($pago->pagos_mixtos, true) ?? $pago->detalles_pago_mixto ?? [];
+            foreach ($pagosMixtosArray as $pm) {
+                if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                    // Sumar tanto monto_bs como monto_usd convertido (el usuario puede ingresar en cualquiera)
+                    $montoEnDivisas += ($pm['monto_bs'] ?? 0) + (($pm['monto_usd'] ?? 0) * $pago->tasa_cambio_usd);
+                }
+            }
+        } elseif (in_array($pago->metodo_pago, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+            $montoEnDivisas = ($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd)) + ($pago->iva_monto ?? 0);
+        }
+
+        // Solo mostrar líneas de IVA si NO es exento
+        $esExento = ($pago->monto_exento ?? 0) > 0 && ($pago->base_imponible ?? 0) == 0;
+
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'EXENTO:', 1, 0, 'R');
         $pdf->Cell(38, 5, 'Bs ' . number_format($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
 
         $pdf->Cell(117, 5, '', 0, 0);
-        $pdf->Cell(35, 5, 'BASE IMP.:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->base_imponible ?? 0, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(35, 5, 'BASE IMP. (IGTF):', 1, 0, 'R');
+        // BASE IMP. muestra SOLO el monto pagado en divisas (para cálculo de IGTF)
+        // Si no hay pago en divisas, muestra la base_imponible normal
+        $baseImponibleMostrar = $montoEnDivisas > 0 ? $montoEnDivisas : ($pago->base_imponible ?? 0);
+        $pdf->Cell(38, 5, 'Bs ' . number_format($baseImponibleMostrar, 2, ',', '.'), 1, 1, 'R');
+if (!$esExento) {
+            $ivaPorcentaje =  16;
+            $pdf->Cell(117, 5, '', 0, 0);
+            $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
+            $pdf->Cell(38, 5, 'Bs ' . number_format($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
+        }
 
-        $ivaPorcentaje =  16;
-        $pdf->Cell(117, 5, '', 0, 0);
-        $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
+        // Mostrar IGTF si aplica
+        if (($pago->igtf_monto ?? 0) > 0) {
+            $pdf->Cell(117, 5, '', 0, 0);
+            $pdf->Cell(35, 5, 'IGTF (3%):', 1, 0, 'R');
+            $pdf->Cell(38, 5, 'Bs ' . number_format($pago->igtf_monto, 2, ',', '.'), 1, 1, 'R');
+        }
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 7, 'TOTAL:', 1, 0, 'R');
         $pdf->Cell(38, 7, 'Bs ' . number_format($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
         $pdf->Ln(2);
-        $pdf->SetXY('40','140');
-          $pdf->SetFont('Arial', 'I', 7);
-        $texto = 'El pago total o parcial de esta factura en moneda diferente a Bs' . chr(10) . 'causará el 3% de IGTF adicional al monto total indicado.';
-        $pdf->MultiCell(0, 3, utf8_decode($texto), 0, 'J');
+
+        // Coletilla IGTF solo si es a crédito
+        if (strtoupper($pago->condicion_pago ?? 'CONTADO') === 'CREDITO' || strtoupper($pago->condicion_pago ?? 'CONTADO') === 'CRÉDITO') {
+            $pdf->SetXY('40','140');
+            $pdf->SetFont('Arial', 'I', 7);
+            $texto = 'El pago total o parcial de esta factura en moneda diferente a Bs' . chr(10) . 'causará el 3% de IGTF adicional al monto total indicado.';
+            $pdf->MultiCell(0, 3, utf8_decode($texto), 0, 'J');
+        }
 
         // Solo mostrar USD si NO es factura fiscal
         if (!$pago->es_factura_fiscal) {
@@ -295,8 +328,22 @@ class Index extends Component
         $pdf->Cell(148, 4, 'EXENTO:', 1, 0, 'R');
         $pdf->Cell(37, 4, 'Bs ' . number_format($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
 
-        $pdf->Cell(148, 4, 'BASE IMP.:', 1, 0, 'R');
-        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->base_imponible ?? 0, 2, ',', '.'), 1, 1, 'R');
+        // Calcular monto en divisas para base imponible IGTF (media carta)
+        $montoEnDivisasMedia = 0;
+        if ($pago->metodo_pago === 'mixto' && ($pago->pagos_mixtos || $pago->detalles_pago_mixto)) {
+            $pagosMixtosArray = json_decode($pago->pagos_mixtos, true) ?? $pago->detalles_pago_mixto ?? [];
+            foreach ($pagosMixtosArray as $pm) {
+                if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                    $montoEnDivisasMedia += ($pm['monto_bs'] ?? 0) + (($pm['monto_usd'] ?? 0) * $pago->tasa_cambio_usd);
+                }
+            }
+        } elseif (in_array($pago->metodo_pago, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+            $montoEnDivisasMedia = ($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd)) + ($pago->iva_monto ?? 0);
+        }
+        $baseImponibleMostrarMedia = $montoEnDivisasMedia > 0 ? $montoEnDivisasMedia : ($pago->base_imponible ?? 0);
+
+        $pdf->Cell(148, 4, 'BASE IMP. (IGTF):', 1, 0, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . number_format($baseImponibleMostrarMedia, 2, ',', '.'), 1, 1, 'R');
 
         $ivaPorcentaje = $pago->iva_porcentaje ?? 16;
         $pdf->Cell(148, 4, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
@@ -321,11 +368,13 @@ class Index extends Component
             $pdf->Cell(0, 4, utf8_decode('SIN DERECHO A CRÉDITO FISCAL'), 0, 1, 'C');
         }
 
-        // Coletilla IGTF
-        $pdf->Ln(2);
-        $pdf->SetFont('Arial', 'I', 6);
-        $texto = 'El pago total o parcial de esta factura en moneda diferente a Bs' . chr(10) . 'causará el 3% de IGTF adicional al monto total indicado.';
-        $pdf->MultiCell(0, 2.5, utf8_decode($texto), 0, 'J');
+        // Coletilla IGTF solo si es a crédito
+        if (strtoupper($pago->condicion_pago ?? 'CONTADO') === 'CREDITO' || strtoupper($pago->condicion_pago ?? 'CONTADO') === 'CRÉDITO') {
+            $pdf->Ln(2);
+            $pdf->SetFont('Arial', 'I', 6);
+            $texto = 'El pago total o parcial de esta factura en moneda diferente a Bs' . chr(10) . 'causará el 3% de IGTF adicional al monto total indicado.';
+            $pdf->MultiCell(0, 2.5, utf8_decode($texto), 0, 'J');
+        }
 
         $pdf->Ln(3);
         $pdf->SetFont('Arial', '', 6);
@@ -395,13 +444,13 @@ class Index extends Component
         $pdf->SetFont('Arial', '', 9);
         $pdf->Cell(50, 5, 'Factura Asociada:', 'LT', 0, 'L');
         $pdf->Cell(70, 5, $facturaOriginal->numero_completo, 'T', 0, 'L');
-        $pdf->Cell(30, 5, 'Fecha:', 'T', 0, 'L');
-        $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'RT', 1, 'L');
+        $pdf->Cell(30, 5, 'Fecha de emision:', 'T', 0, 'L');
+        $pdf->Cell(0, 5, $nota->fecha->format('d/m/Y'), 'RT', 1, 'L');
 
         $pdf->Cell(50, 5, 'Monto Original:', 'L', 0, 'L');
         $pdf->Cell(70, 5, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
-        $pdf->Cell(30, 5, '-', 0, 0, 'L');
-        $pdf->Cell(0, 5, '-', 'R', 1, 'L');
+        $pdf->Cell(30, 5, 'Fecha de la factura', 0, 0, 'L');
+        $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'R', 1, 'L');
 
         $pdf->Cell(50, 5, 'NOTA DE CREDITO NRO:', 'LB', 0, 'L');
         $pdf->SetFont('Arial', '', 8);
@@ -454,32 +503,53 @@ class Index extends Component
 
         $pdf->Ln(2);
 
-        // RESUMEN DE TOTALES (Orden: Subtotal, Exento, Base Imp., IVA, Total)
+        // RESUMEN DE TOTALES - Mostrar montos de la FACTURA ORIGINAL
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'SUBTOTAL:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->subtotal * $nota->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd)), 2, ',', '.'), 1, 1, 'R');
 
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'EXENTO:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->monto_exento ?? 0), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($facturaOriginal->monto_exento ?? 0), 2, ',', '.'), 1, 1, 'R');
+
+        // Calcular monto en divisas de la factura original para BASE IMP. (IGTF)
+        $montoEnDivisasOriginal = 0;
+        if ($facturaOriginal->metodo_pago === 'mixto' && ($facturaOriginal->pagos_mixtos || $facturaOriginal->detalles_pago_mixto)) {
+            $pagosMixtosArray = json_decode($facturaOriginal->pagos_mixtos, true) ?? $facturaOriginal->detalles_pago_mixto ?? [];
+            foreach ($pagosMixtosArray as $pm) {
+                if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                    $montoEnDivisasOriginal += ($pm['monto_bs'] ?? 0) + (($pm['monto_usd'] ?? 0) * $facturaOriginal->tasa_cambio_usd);
+                }
+            }
+        } elseif (in_array($facturaOriginal->metodo_pago, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+            $montoEnDivisasOriginal = ($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd)) + ($facturaOriginal->iva_monto ?? 0);
+        }
+        $baseImponibleMostrarOriginal = $montoEnDivisasOriginal > 0 ? $montoEnDivisasOriginal : ($facturaOriginal->base_imponible ?? 0);
 
         $pdf->Cell(117, 5, '', 0, 0);
-        $pdf->Cell(35, 5, 'BASE IMP.:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->base_imponible ?? 0), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(35, 5, 'BASE IMP. (IGTF):', 1, 0, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($baseImponibleMostrarOriginal), 2, ',', '.'), 1, 1, 'R');
 
-        $ivaPorcentaje = $nota->iva_porcentaje ?? 16;
+        $ivaPorcentaje = $facturaOriginal->iva_porcentaje ?? 16;
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($nota->iva_monto ?? 0), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($facturaOriginal->iva_monto ?? 0), 2, ',', '.'), 1, 1, 'R');
 
-        // TOTAL A ACREDITAR
+        // Mostrar IGTF si aplica en la factura original
+        if (($facturaOriginal->igtf_monto ?? 0) > 0) {
+            $pdf->Cell(117, 5, '', 0, 0);
+            $pdf->Cell(35, 5, 'IGTF (3%):', 1, 0, 'R');
+            $pdf->Cell(38, 5, 'Bs ' . number_format($facturaOriginal->igtf_monto, 2, ',', '.'), 1, 1, 'R');
+        }
+
+        // TOTAL A ACREDITAR (de la nota de crédito)
         $pdf->SetTextColor(200, 0, 0);
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 7, 'TOTAL:', 1, 0, 'R');
         $totalAcreditar = abs($nota->total_bs ?? 0);
-        $pdf->Cell(38, 7, 'Bs ' . number_format($totalAcreditar, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 7, 'Bs ' . number_format($facturaOriginal->total_bs ?? ($facturaOriginal->total * $facturaOriginal->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
 
         if (!$nota->es_factura_fiscal) {
@@ -659,42 +729,62 @@ class Index extends Component
 
         $pdf->Ln(2);
 
-        // Totales fiscales segregados
+        // Totales fiscales - Mostrar montos de la FACTURA ORIGINAL
         $labelW = 117;
         $valueW = 73;
         $pdf->SetFont('Arial', '', 9);
 
         $pdf->Cell($labelW, 5, 'SUBTOTAL:', 0, 0, 'R');
-        $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->subtotal * ($nota->tasa_cambio_usd ?: 1), 2, ',', '.'), 0, 1, 'R');
+        $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd), 2, ',', '.'), 0, 1, 'R');
 
-        if ($nota->es_factura_fiscal) {
-            if ($nota->monto_exento > 0) {
+        if ($facturaOriginal->es_factura_fiscal) {
+            if ($facturaOriginal->monto_exento > 0) {
                 $pdf->Cell($labelW, 5, 'MONTO EXENTO:', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->monto_exento, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->monto_exento, 2, ',', '.'), 0, 1, 'R');
             }
 
-            if ($nota->base_imponible_general > 0) {
-                $pdf->Cell($labelW, 5, utf8_decode('BASE IMPONIBLE (' . ($nota->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->base_imponible_general, 2, ',', '.'), 0, 1, 'R');
+            // Calcular monto en divisas de la factura original para BASE IMP. (IGTF)
+            $montoEnDivisasOriginalND = 0;
+            if ($facturaOriginal->metodo_pago === 'mixto' && ($facturaOriginal->pagos_mixtos || $facturaOriginal->detalles_pago_mixto)) {
+                $pagosMixtosArray = json_decode($facturaOriginal->pagos_mixtos, true) ?? $facturaOriginal->detalles_pago_mixto ?? [];
+                foreach ($pagosMixtosArray as $pm) {
+                    if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                        $montoEnDivisasOriginalND += ($pm['monto_bs'] ?? 0) + (($pm['monto_usd'] ?? 0) * $facturaOriginal->tasa_cambio_usd);
+                    }
+                }
+            } elseif (in_array($facturaOriginal->metodo_pago, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                $montoEnDivisasOriginalND = ($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd)) + ($facturaOriginal->iva_monto ?? 0);
+            }
+            $baseImponibleMostrarOriginalND = $montoEnDivisasOriginalND > 0 ? $montoEnDivisasOriginalND : ($facturaOriginal->base_imponible ?? 0);
+
+            if ($facturaOriginal->base_imponible_general > 0) {
+                $pdf->Cell($labelW, 5, utf8_decode('BASE IMPONIBLE (' . ($facturaOriginal->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->base_imponible_general, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', 'B', 9);
-                $pdf->Cell($labelW, 5, utf8_decode('IVA (' . ($nota->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->iva_monto_general, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($labelW, 5, utf8_decode('IVA (' . ($facturaOriginal->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->iva_monto_general, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', '', 9);
             }
 
-            if ($nota->base_imponible_reducida > 0) {
+            if ($facturaOriginal->base_imponible_reducida > 0) {
                 $pdf->Cell($labelW, 5, 'BASE IMPONIBLE (8%):', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->base_imponible_reducida, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->base_imponible_reducida, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', 'B', 9);
                 $pdf->Cell($labelW, 5, 'IVA (8%):', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->iva_monto_reducida, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->iva_monto_reducida, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', '', 9);
             }
 
-            if ($nota->aplica_igtf && $nota->igtf_monto > 0) {
+            // Mostrar BASE IMP. (IGTF) de la factura original
+            if ($baseImponibleMostrarOriginalND > 0) {
+                $pdf->Cell($labelW, 5, 'BASE IMP. (IGTF):', 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($baseImponibleMostrarOriginalND, 2, ',', '.'), 0, 1, 'R');
+            }
+
+            if ($facturaOriginal->aplica_igtf && $facturaOriginal->igtf_monto > 0) {
                 $pdf->SetFont('Arial', 'B', 9);
-                $pdf->Cell($labelW, 5, utf8_decode('IGTF (' . ($nota->igtf_porcentaje ?? 3) . '%):'), 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($nota->igtf_monto, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($labelW, 5, utf8_decode('IGTF (' . ($facturaOriginal->igtf_porcentaje ?? 3) . '%):'), 0, 0, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->igtf_monto, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', '', 9);
             }
         }
@@ -704,7 +794,11 @@ class Index extends Component
 
         $pdf->SetTextColor(0, 0, 200);
         $pdf->SetFont('Arial', 'B', 11);
-        $pdf->Cell($labelW, 7, 'TOTAL Bs.:', 0, 0, 'R');
+        $pdf->Cell($labelW, 7, 'TOTAL FACTURA:', 0, 0, 'R');
+        $pdf->Cell($valueW, 7, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 1, 'R');
+
+        $pdf->SetFont('Arial', 'B', 10);
+        $pdf->Cell($labelW, 7, 'CARGO ADICIONAL:', 0, 0, 'R');
         $pdf->Cell($valueW, 7, 'Bs ' . number_format($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
 
@@ -834,7 +928,7 @@ class Index extends Component
 
     public function render()
     {
-        $pagos = Pago::with(['consulta.paciente', 'clienteFiscal', 'user', 'notasCredito', 'notasDebito'])
+        $pagos = Pago::with(['consulta.paciente', 'clienteFiscal', 'user', 'notasCredito', 'notasDebito', 'caja'])
             ->whereIn('tipo_pago', ['factura', 'boleta', 'recibo'])
             ->when($this->search, fn($q) => $q->where('serie', 'like', "%{$this->search}%")
                 ->orWhere('numero', 'like', "%{$this->search}%")
@@ -847,6 +941,6 @@ class Index extends Component
             ->latest()
             ->paginate(15);
 
-        return view('livewire.admin.pagos.index', compact('pagos'));
+        return view('livewire.admin.pagos.index', compact('pagos'))->layout($this->getLayout());
     }
 }

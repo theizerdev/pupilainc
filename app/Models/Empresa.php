@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
 
 class Empresa extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, HasSpanishActivityLog;
 
     protected $fillable = [
         'razon_social',
@@ -100,7 +101,8 @@ class Empresa extends Model
         return LogOptions::defaults()
             ->logOnly(['razon_social', 'documento', 'direccion', 'representante_legal', 'status'])
             ->logOnlyDirty()
-            ->dontSubmitEmptyLogs();
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 
     // ==================== Métodos WhatsApp ====================

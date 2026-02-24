@@ -160,11 +160,17 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>N° Factura</th>
-                                <th>N° Control</th>
                                 <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Tipo Doc.</th>
+                                <th>Serie</th>
+                                <th>Factura</th>
+                                <th>N° Control</th>
                                 <th>Cliente/Paciente</th>
+                                <th>Caja</th>
                                 <th>Método</th>
+                                <th>Tasa</th>
+                                <th>Creado por</th>
                                 <th class="text-end">Total </th>
                                 <th class="text-center">Estado</th>
                                 <th class="text-center">Acciones</th>
@@ -173,10 +179,15 @@
                         <tbody>
                             @forelse($pagos as $pago)
                                 <tr>
+                                    <td>{{ $pago->fecha->format('d/m/Y') }}</td>
+                                    <td>{{ $pago->created_at->format('H:i') }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ strtoupper(str_replace('_', ' ', $pago->tipo_pago)) }}</span>
+                                    </td>
+                                    <td>{{ $pago->serie }}</td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
-                                            <span class="fw-bold">{{ $pago->numero_completo }}</span>
-
+                                            <span class="fw-bold">{{ str_pad($pago->numero, 8, '0', STR_PAD_LEFT) }}</span>
                                         </div>
                                     </td>
                                     <td>
@@ -186,10 +197,7 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <div>{{ $pago->fecha->format('d/m/Y') }}</div>
-                                        <small class="text-muted">{{ $pago->fecha->format('H:i') }}</small>
-                                    </td>
+                                  
                                     <td>
                                         @if($pago->clienteFiscal)
                                             <div class="text-truncate" style="max-width: 200px;" title="{{ $pago->clienteFiscal->razon_social }}">
@@ -200,17 +208,18 @@
                                             <div class="text-truncate" style="max-width: 200px;" title="{{ $pago->consulta->paciente->nombre_completo }}">
                                                 {{ $pago->consulta->paciente->nombre_completo }}
                                             </div>
-
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
+                                    <td>{{ $pago->caja->id ?? 'N/A' }}</td>
                                     <td>
                                         <span class="badge bg-info">{{ str_replace('_', ' ', ucwords($pago->metodo_pago)) }}</span>
                                     </td>
+                                    <td>{{ money($pago->tasa_cambio_usd) }}</td>
+                                    <td>{{ $pago->user->name ?? 'N/A' }}</td>
                                     <td class="text-end">
-                                        <div class="fw-bold text-primary"> {{ money($pago->total_bs, 2, ',', '.') }}</div>
-
+                                        <div class="fw-bold text-primary"> {{ money($pago->total_bs) }}</div>
                                     </td>
                                     <td class="text-center">
                                         @php
@@ -218,7 +227,7 @@
                                             $tieneND = $pago->notasDebito->where('estado', 'aprobado')->count() > 0;
                                         @endphp
                                         @if($tieneNC)
-                                        <span class="badge bg-danger">Anulada</span>
+                                        <span class="badge bg-danger">Reversada</span>
                                         @elseif($pago->estado === 'aprobado')
                                         <span class="badge bg-success">Aprobado</span>
                                         @elseif($pago->estado === 'pendiente')

@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\AuditLog;
+use Ramsey\Uuid\Uuid;
 
 class CheckAdminPermission
 {
@@ -26,6 +28,39 @@ class CheckAdminPermission
 
         // Verificar si el usuario tiene el permiso específico
         if (!$user->can($permission)) {
+            // Registrar intento de acceso no autorizado
+            try {
+                AuditLog::create([
+                    'id' => Uuid::uuid4()->toString(),
+                    'user_id' => $user->id,
+                    'action' => 'seguridad.acceso_no_autorizado',
+                    'auditable_type' => 'AccesoNoAutorizado',
+                    'auditable_id' => $user->id,
+                    'old_values' => [],
+                    'new_values' => [
+                        'permiso_requerido' => $permission,
+                        'ruta' => $request->path(),
+                        'url_completa' => $request->fullUrl(),
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'url' => $request->fullUrl(),
+                    'method' => $request->method(),
+                    'tags' => ['seguridad', 'acceso_no_autorizado', 'restriccion'],
+                    'metadata' => [
+                        'descripcion' => "Acceso no autorizado al módulo: {$this->getModuleFromPermission($permission)}",
+                        'tipo_evento' => 'acceso_no_autorizado',
+                        'fecha_hora' => now()->format('Y-m-d H:i:s'),
+                        'usuario_id' => $user->id,
+                        'usuario_nombre' => $user->name,
+                        'permiso_requerido' => $permission,
+                        'ip' => $request->ip(),
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Error registrando acceso no autorizado: ' . $e->getMessage());
+            }
+
             $module = $this->getModuleFromPermission($permission);
             $alternativeModules = $this->getAlternativeModules($user);
             

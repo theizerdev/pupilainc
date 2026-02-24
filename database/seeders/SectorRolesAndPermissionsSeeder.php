@@ -146,8 +146,6 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     'permissions' => [
                         'access pagos',
                         'create pagos',
-                        'edit pagos',
-                        'delete pagos',
                         'view pagos',
                         'process pagos',
                         'cancel pagos',
@@ -228,7 +226,6 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'access notas-credito',
                         'create notas-credito',
                         'view notas-credito',
-                        'delete notas-credito',
                     ]
                 ],
                 'notas_debito' => [
@@ -237,7 +234,6 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'access notas-debito',
                         'create notas-debito',
                         'view notas-debito',
-                        'delete notas-debito',
                     ]
                 ],
                 'contabilidad' => [
@@ -246,6 +242,16 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'access contabilidad',
                         'view contabilidad',
                         'manage contabilidad',
+                    ]
+                ],
+                'anulacion_talonarios' => [
+                    'name' => 'Anulación de Talonarios',
+                    'permissions' => [
+                        'access anulacion-talonarios',
+                        'create anulacion-talonarios',
+                        'edit anulacion-talonarios',
+                        'delete anulacion-talonarios',
+                        'view anulacion-talonarios',
                     ]
                 ],
             ],

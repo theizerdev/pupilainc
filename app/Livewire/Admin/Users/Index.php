@@ -174,6 +174,49 @@ class Index extends Component
         ]);
     }
 
+    public function unlockUser(User $user)
+    {
+        if (!Auth::user()->can('edit users')) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'No tienes permiso para desbloquear usuarios.',
+                'duration' => 4000
+            ]);
+            return;
+        }
+
+        $user->update([
+            'locked_until' => null,
+            'failed_login_attempts' => 0,
+            'status' => true // Reactivar usuario al desbloquear
+        ]);
+
+        // Enviar notificación por WhatsApp si el usuario tiene teléfono
+        if ($user->phone) {
+            try {
+                $whatsappService = app(\App\Services\WhatsAppService::class);
+                
+                // Si la empresa tiene su propia configuración, usarla
+                if ($user->empresa_id) {
+                    $whatsappService = \App\Services\WhatsAppService::forCompany($user->empresa_id);
+                }
+
+                if ($whatsappService->isConfigured()) {
+                    $mensaje = "Hola {$user->name}, tu cuenta ha sido desbloqueada exitosamente por el administrador. Ya puedes acceder al sistema nuevamente.";
+                    $whatsappService->sendMessage($user->phone, $mensaje);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error enviando notificación WhatsApp de desbloqueo: ' . $e->getMessage());
+            }
+        }
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Usuario '{$user->name}' desbloqueado exitosamente.",
+            'duration' => 4000
+        ]);
+    }
+
     public function delete(User $user)
     {
         // Verificar permiso para eliminar usuarios

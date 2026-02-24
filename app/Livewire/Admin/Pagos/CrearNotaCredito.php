@@ -127,9 +127,34 @@ class CrearNotaCredito extends Component
                 $baseImponibleReducida = $this->factura->base_imponible_reducida * $factorProporcional;
                 $ivaMontoReducida = $this->factura->iva_monto_reducida * $factorProporcional;
             }
+            // Calcular IGTF proporcional basado en el método de pago original
+            $igtfMonto = 0;
+            $aplica_igtf = false;
+            
             if ($this->factura->aplica_igtf && $this->factura->igtf_monto > 0) {
-                $aplica_igtf = true;
-                $igtfMonto = $this->factura->igtf_monto * $factorProporcional;
+                // Verificar si el método de pago original era en divisas
+                $metodoPagoOriginal = $this->factura->metodo_pago;
+                $pagoEnDivisas = false;
+                
+                if ($metodoPagoOriginal === 'mixto') {
+                    // Verificar si había pagos en divisas en el mixto
+                    $pagosMixtos = $this->factura->detalles_pago_mixto ?? json_decode($this->factura->pagos_mixtos, true) ?? [];
+                    foreach ($pagosMixtos as $pm) {
+                        if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                            $pagoEnDivisas = true;
+                            break;
+                        }
+                    }
+                } elseif (in_array($metodoPagoOriginal, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                    $pagoEnDivisas = true;
+                }
+                
+                if ($pagoEnDivisas) {
+                    $aplica_igtf = true;
+                    // Calcular IGTF proporcional: 3% sobre la base imponible (monto en divisas)
+                    $baseImponibleIGTF = $montoNotaBs; // El monto de la nota ya está en Bs
+                    $igtfMonto = $baseImponibleIGTF * 0.03;
+                }
             }
 
             // Crear nota de crédito

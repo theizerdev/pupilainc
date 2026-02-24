@@ -1,9 +1,6 @@
 <?php
 
 if (!function_exists('getPermissionSectors')) {
-    /**
-     * Obtener todos los sectores disponibles
-     */
     function getPermissionSectors(): array
     {
         return [
@@ -61,9 +58,6 @@ if (!function_exists('getPermissionSectors')) {
 }
 
 if (!function_exists('getSectorPermissions')) {
-    /**
-     * Obtener permisos por sector
-     */
     function getSectorPermissions(string $sector): \Illuminate\Support\Collection
     {
         return \Spatie\Permission\Models\Permission::where('sector', $sector)
@@ -74,9 +68,6 @@ if (!function_exists('getSectorPermissions')) {
 }
 
 if (!function_exists('getUserSectors')) {
-    /**
-     * Obtener sectores a los que tiene acceso un usuario
-     */
     function getUserSectors($user): array
     {
         $permissions = $user->permissions()->pluck('sector')->unique()->filter()->values();
@@ -89,9 +80,6 @@ if (!function_exists('getUserSectors')) {
 }
 
 if (!function_exists('hasSectorAccess')) {
-    /**
-     * Verificar si un usuario tiene acceso a un sector específico
-     */
     function hasSectorAccess($user, string $sector): bool
     {
         return $user->permissions()->where('sector', $sector)->exists();
@@ -99,9 +87,6 @@ if (!function_exists('hasSectorAccess')) {
 }
 
 if (!function_exists('getSectorColor')) {
-    /**
-     * Obtener el color asociado a un sector
-     */
     function getSectorColor(string $sector): string
     {
         $sectors = getPermissionSectors();
@@ -110,9 +95,6 @@ if (!function_exists('getSectorColor')) {
 }
 
 if (!function_exists('getSectorIcon')) {
-    /**
-     * Obtener el icono/emoji asociado a un sector
-     */
     function getSectorIcon(string $sector): string
     {
         $sectors = getPermissionSectors();
@@ -121,9 +103,6 @@ if (!function_exists('getSectorIcon')) {
 }
 
 if (!function_exists('formatSectorName')) {
-    /**
-     * Formatear el nombre de un sector para mostrar
-     */
     function formatSectorName(string $sector, bool $withIcon = true): string
     {
         $sectors = getPermissionSectors();
@@ -138,9 +117,6 @@ if (!function_exists('formatSectorName')) {
 }
 
 if (!function_exists('getSectorStats')) {
-    /**
-     * Obtener estadísticas de permisos por sector
-     */
     function getSectorStats(): array
     {
         $sectors = getPermissionSectors();
@@ -166,10 +142,6 @@ if (!function_exists('getSectorStats')) {
 }
 
 if (!function_exists('getSectorMenuItems')) {
-    /**
-     * Obtener los items del menú organizados por sector
-     * Cada sector agrupa sus items de menú con permisos, rutas e iconos
-     */
     function getSectorMenuItems(): array
     {
         return [
@@ -284,6 +256,7 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
                             ['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
                             ['label' => 'Caja Chica', 'permission' => 'access cajas', 'route' => 'admin.cajas.index', 'active' => 'admin.cajas.*'],
+                            ['label' => 'Anulación Talonarios', 'permission' => 'access series', 'route' => 'admin.anulacion-talonarios.index', 'active' => 'admin.anulacion-talonarios.*'],
                         ]
                     ],
                     [
@@ -292,6 +265,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access series',
                         'route' => 'admin.series.index',
                         'active' => 'admin.series.*',
+                    ],
+                    [
+                        'label' => 'Configuración Impuestos',
+                        'icon' => 'ri-percent-line',
+                        'permission' => 'access impuestos',
+                        'route' => 'admin.impuestos.index',
+                        'active' => 'admin.impuestos.*',
                     ],
                     [
                         'label' => 'Tasas BCV',
@@ -304,7 +284,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'label' => 'Contabilidad',
                         'icon' => 'ri-calculator-line',
                         'permissions' => ['access contabilidad', 'view contabilidad'],
-                        'active' => 'admin.contabilidad.*',
+                        'active' => 'admin.contabilidad.*|admin.seniat.*',
                         'children' => [
                             ['label' => 'Plan de Cuentas', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.plan-cuentas', 'active' => 'admin.contabilidad.plan-cuentas'],
                             ['label' => 'Asientos Contables', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.asientos', 'active' => 'admin.contabilidad.asientos'],
@@ -314,7 +294,15 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Balance General', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.balance-general', 'active' => 'admin.contabilidad.balance-general'],
                             ['label' => 'Estado de Resultados', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.estado-resultados', 'active' => 'admin.contabilidad.estado-resultados'],
                             ['label' => 'Cierre Contable', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.cierre-contable', 'active' => 'admin.contabilidad.cierre-contable'],
+                            ['label' => 'Libro de Ventas', 'permission' => 'access contabilidad', 'route' => 'admin.seniat.libro-ventas', 'active' => 'admin.seniat.libro-ventas'],
                         ]
+                    ],
+                    [
+                        'label' => 'Anulación de Talonarios',
+                        'icon' => 'ri-file-damage-line',
+                        'permission' => 'access anulacion-talonarios',
+                        'route' => 'admin.anulacion-talonarios.index',
+                        'active' => 'admin.anulacion-talonarios.*',
                     ],
                 ]
             ],
@@ -393,16 +381,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.database-export',
                         'active' => 'admin.database-export',
                     ],
-                ]
+                ],
             ],
         ];
     }
 }
 
 if (!function_exists('isMenuItemActive')) {
-    /**
-     * Verificar si un item de menú está activo basado en la ruta actual
-     */
     function isMenuItemActive(array $item): bool
     {
         if (isset($item['active'])) {
@@ -423,9 +408,6 @@ if (!function_exists('isMenuItemActive')) {
 }
 
 if (!function_exists('isSectorActive')) {
-    /**
-     * Verificar si algún item dentro de un sector está activo
-     */
     function isSectorActive(array $sectorItems): bool
     {
         foreach ($sectorItems as $item) {

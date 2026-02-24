@@ -4,10 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\Multitenantable;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
+use App\Traits\FiscalAuditable;
 
 class Serie extends Model
 {
-    use Multitenantable;
+    use Multitenantable, LogsActivity, HasSpanishActivityLog, FiscalAuditable;
 
     protected $fillable = [
         'tipo_documento',
@@ -106,5 +110,14 @@ class Serie extends Model
     public function scopePorTipo($query, $tipo)
     {
         return $query->where('tipo_documento', $tipo);
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['tipo_documento', 'serie', 'correlativo_actual', 'control_fiscal_actual', 'activo'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

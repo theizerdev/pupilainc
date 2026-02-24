@@ -41,18 +41,20 @@
                         <table class="table align-items-center mb-0">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>Fecha</th>
-                                    <th>Tipo</th>
-                                    <th>N° Documento</th>
-                                    <th>N° Control</th>
-                                    <th>RIF Cliente</th>
-                                    <th>Razón Social</th>
-                                    <th class="text-end">Base Imponible</th>
-                                    <th class="text-end">Monto Exento</th>
-                                    <th class="text-end">IVA</th>
-                                    <th class="text-end">IGTF</th>
-                                    <th class="text-end">Total</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">#</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Fecha</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Tipo Doc.</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">N° Control</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Nro. Factura</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Doc. Afectado</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">RIF / C.I.</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Razón Social / Nombre</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-end">Base Imponible</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-end">Ventas Exentas</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-center">Alíc. %</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-end">IVA</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-end">IGTF</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-end">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -69,19 +71,43 @@
                                             <span class="badge badge-sm bg-danger">03 - N. Crédito</span>
                                         @endif
                                     </td>
-                                    <td>{{ $doc->numero_completo }}</td>
                                     <td>{{ $doc->numero_control_fiscal ?? '-' }}</td>
-                                    <td>{{ $doc->clienteFiscal ? $doc->clienteFiscal->documento_completo : '-' }}</td>
-                                    <td>{{ $doc->clienteFiscal->razon_social ?? '-' }}</td>
+                                    <td>{{ str_pad($doc->numero, 8, '0', STR_PAD_LEFT) }}</td>
+                                    <td>
+                                        @if(($doc->tipo_pago === 'nota_credito' || $doc->tipo_pago === 'nota_debito') && $doc->pagoOrigen)
+                                            <small class="text-muted">{{ $doc->pagoOrigen->numero_completo }}</small>
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($doc->clienteFiscal)
+                                            {{ $doc->clienteFiscal->documento_completo }}
+                                        @elseif($doc->consulta && $doc->consulta->paciente)
+                                            {{ $doc->consulta->paciente->documento_identidad }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($doc->clienteFiscal)
+                                            {{ $doc->clienteFiscal->razon_social }}
+                                        @elseif($doc->consulta && $doc->consulta->paciente)
+                                            {{ $doc->consulta->paciente->nombre_completo }}
+                                        @else
+                                            -
+                                        @endif
+                                    </td>
                                     <td class="text-end">{{ number_format($doc->base_imponible ?? 0, 2, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format($doc->monto_exento ?? 0, 2, ',', '.') }}</td>
+                                    <td class="text-center">{{ number_format($doc->iva_porcentaje ?? 16, 0) }}%</td>
                                     <td class="text-end">{{ number_format($doc->iva_monto ?? 0, 2, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format($doc->igtf_monto ?? 0, 2, ',', '.') }}</td>
                                     <td class="text-end fw-bold">{{ number_format($doc->total_con_impuestos ?? 0, 2, ',', '.') }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="12" class="text-center text-muted py-4">
+                                    <td colspan="14" class="text-center text-muted py-4">
                                         No se encontraron documentos fiscales en el período seleccionado.
                                     </td>
                                 </tr>
@@ -90,9 +116,10 @@
                             @if($documentos->count() > 0)
                             <tfoot>
                                 <tr class="fw-bold table-light">
-                                    <td colspan="7" class="text-end">TOTALES:</td>
+                                    <td colspan="8" class="text-end">TOTALES:</td>
                                     <td class="text-end">{{ number_format($totales['base_imponible'], 2, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format($totales['monto_exento'], 2, ',', '.') }}</td>
+                                    <td></td>
                                     <td class="text-end">{{ number_format($totales['iva_monto'], 2, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format($totales['igtf_monto'], 2, ',', '.') }}</td>
                                     <td class="text-end">{{ number_format($totales['total'], 2, ',', '.') }}</td>

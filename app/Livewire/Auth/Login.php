@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Models\ActiveSession;
+use App\Models\AuditLog;
+use App\Models\User;
+use Ramsey\Uuid\Uuid;
 
 class Login extends Component
 {
@@ -64,6 +67,12 @@ class Login extends Component
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
+
+            $this->registrarEventoSeguridad('Exceso de intentos de acceso', [
+                'identificador' => $this->email,
+                'segundos_restantes' => $seconds,
+            ], 'restriccion');
+
             $this->errors['email'] = ["Demasiados intentos. Intenta de nuevo en {$seconds} segundos."];
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -72,12 +81,76 @@ class Login extends Component
             return;
         }
 
-        $credentials = filter_var($this->email, FILTER_VALIDATE_EMAIL) 
+        // Verificar si la cuenta está bloqueada
+        $userRecord = User::where('email', $this->email)
+            ->orWhere('username', $this->email)
+            ->first();
+
+        if ($userRecord && $userRecord->locked_until && $userRecord->locked_until->isFuture()) {
+            
+            $this->registrarEventoSeguridad('Intento de acceso a cuenta bloqueada', [
+                'identificador' => $this->email,
+                'bloqueado_hasta' => 'Permanente',
+                'user_id' => $userRecord->id,
+            ], 'acceso_bloqueado');
+
+            $this->errors['email'] = ["Cuenta bloqueada por seguridad. Contacta al personal de soporte técnico para habilitar tu usuario."];
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "Cuenta bloqueada. Contacta a soporte técnico.",
+            ]);
+            return;
+        }
+
+        $credentials = filter_var($this->email, FILTER_VALIDATE_EMAIL)
             ? ['email' => $this->email, 'password' => $this->password]
             : ['username' => $this->email, 'password' => $this->password];
-            
+
         if (!Auth::attempt($credentials, $this->remember)) {
             RateLimiter::hit($throttleKey);
+
+            // Incrementar contador de intentos fallidos
+            if ($userRecord) {
+                $userRecord->increment('failed_login_attempts');
+                $userRecord->update(['last_failed_login_at' => now()]);
+                $intentos = $userRecord->fresh()->failed_login_attempts;
+
+                $this->registrarEventoSeguridad('Intento de acceso fallido', [
+                    'identificador' => $this->email,
+                    'intentos_fallidos' => $intentos,
+                    'user_id' => $userRecord->id,
+                    'usuario_nombre' => $userRecord->name,
+                ], 'login_fallido');
+
+                // Bloquear usuario después de 5 intentos fallidos consecutivos
+                if ($intentos >= 5) {
+                    $userRecord->update([
+                        'status' => false,
+                        'locked_until' => now()->addYears(100), // Bloqueo permanente
+                    ]);
+
+                    $this->registrarEventoSeguridad('Usuario bloqueado por datos erróneos', [
+                        'identificador' => $this->email,
+                        'intentos_fallidos' => $intentos,
+                        'user_id' => $userRecord->id,
+                        'usuario_nombre' => $userRecord->name,
+                        'bloqueado_hasta' => 'Permanente',
+                        'motivo' => 'Exceso de intentos fallidos de autenticación',
+                    ], 'usuario_bloqueado');
+
+                    $this->errors['email'] = ['Cuenta bloqueada por seguridad. Contacta a soporte técnico.'];
+                    $this->dispatch('notify', [
+                        'type' => 'error',
+                        'message' => 'Cuenta bloqueada. Contacta a soporte técnico.',
+                    ]);
+                    return;
+                }
+            } else {
+                $this->registrarEventoSeguridad('Intento de acceso con usuario inexistente', [
+                    'identificador' => $this->email,
+                ], 'login_fallido');
+            }
+
             $this->errors['email'] = ['Credenciales incorrectas'];
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -89,8 +162,21 @@ class Login extends Component
         RateLimiter::clear($throttleKey);
         $user = Auth::user();
 
+        // Resetear contador de intentos fallidos al loguearse exitosamente
+        $user->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'last_failed_login_at' => null,
+        ]);
+
         if (!$user->status) {
             Auth::logout();
+            $this->registrarEventoSeguridad('Intento de acceso a cuenta desactivada', [
+                'identificador' => $this->email,
+                'user_id' => $user->id,
+                'usuario_nombre' => $user->name,
+            ], 'acceso_denegado');
+
             $this->errors['email'] = ['Tu cuenta está desactivada. Contacta al administrador.'];
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -227,6 +313,34 @@ class Login extends Component
     public function getError($field)
     {
         return $this->hasError($field) ? $this->errors[$field][0] : '';
+    }
+
+    private function registrarEventoSeguridad(string $descripcion, array $datos = [], string $tipo = 'seguridad'): void
+    {
+        try {
+            AuditLog::create([
+                'id' => Uuid::uuid4()->toString(),
+                'user_id' => $datos['user_id'] ?? null,
+                'action' => "seguridad.{$tipo}",
+                'auditable_type' => 'EventoSeguridad',
+                'auditable_id' => $datos['user_id'] ?? 0,
+                'old_values' => [],
+                'new_values' => $datos,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'url' => request()->fullUrl(),
+                'method' => request()->method(),
+                'tags' => ['seguridad', $tipo, 'auth'],
+                'metadata' => [
+                    'descripcion' => $descripcion,
+                    'tipo_evento' => $tipo,
+                    'fecha_hora' => now()->format('Y-m-d H:i:s'),
+                    'ip' => request()->ip(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error registrando evento de seguridad: ' . $e->getMessage());
+        }
     }
 
     public function render()

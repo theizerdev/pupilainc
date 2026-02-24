@@ -400,12 +400,17 @@ class ContabilidadExcelController extends Controller
         $row = $this->setupHeader($spreadsheet, 'LIBRO DE VENTAS - SENIAT', "Desde: {$desde}  Hasta: {$hasta}");
 
         // Headers
-        $headers = ['#', 'Fecha', 'Tipo Doc.', 'N° Documento', 'N° Control', 'RIF Cliente', 'Razón Social', 'Base Imponible', 'Monto Exento', 'IVA', 'IGTF', 'Total'];
+        $headers = [
+            '#', 'Fecha', 'Hora', 'Tipo Doc.', 'Serie', 'Factura', 
+            'N° Control', 'Doc. Afectado', 'RIF Cliente', 'Razón Social', 
+            'Caja', 'Tasa', 'Creado por', 'Base Imp.', 'Monto Exento', 'IVA', 'IGTF', 'Total'
+        ];
         foreach ($headers as $i => $h) {
-            $col = chr(65 + $i);
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
             $sheet->setCellValue($col . $row, $h);
         }
-        $this->styleHeaderRow($sheet, 'A' . $row . ':L' . $row);
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+        $this->styleHeaderRow($sheet, 'A' . $row . ':' . $lastCol . $row);
         $row++;
 
         $documentos = \App\Models\Pago::where('empresa_id', $empresaId)
@@ -413,12 +418,16 @@ class ContabilidadExcelController extends Controller
             ->whereIn('tipo_pago', ['factura', 'nota_credito', 'nota_debito'])
             ->where('estado', 'aprobado')
             ->whereBetween('fecha', [$desde, $hasta])
-            ->with(['clienteFiscal', 'pagoOrigen'])
+            ->with(['clienteFiscal', 'pagoOrigen', 'caja', 'user'])
             ->orderBy('fecha')
             ->orderBy('numero_control_fiscal')
             ->get();
 
-        $totBaseImp = $totExento = $totIVA = $totIGTF = $totTotal = 0;
+        $totBase = 0;
+        $totExento = 0;
+        $totIva = 0;
+        $totIgtf = 0;
+        $totTotal = 0;
 
         foreach ($documentos as $index => $doc) {
             $tipoDoc = match($doc->tipo_pago) {
@@ -428,61 +437,92 @@ class ContabilidadExcelController extends Controller
                 default => $doc->tipo_pago,
             };
 
-            $baseImp = (float) ($doc->base_imponible ?? 0);
+            $esNC = $doc->tipo_pago === 'nota_credito';
+            $factor = $esNC ? -1 : 1;
+
+            $base = (float) ($doc->base_imponible ?? 0);
             $exento = (float) ($doc->monto_exento ?? 0);
             $iva = (float) ($doc->iva_monto ?? 0);
             $igtf = (float) ($doc->igtf_monto ?? 0);
             $total = (float) ($doc->total_con_impuestos ?? 0);
 
-            $totBaseImp += $baseImp;
-            $totExento += $exento;
-            $totIVA += $iva;
-            $totIGTF += $igtf;
-            $totTotal += $total;
+            $totBase += ($base * $factor);
+            $totExento += ($exento * $factor);
+            $totIva += ($iva * $factor);
+            $totIgtf += ($igtf * $factor);
+            $totTotal += ($total * $factor);
 
             $sheet->setCellValue('A' . $row, $index + 1);
             $sheet->setCellValue('B' . $row, $doc->fecha->format('d/m/Y'));
-            $sheet->setCellValue('C' . $row, $tipoDoc);
-            $sheet->setCellValue('D' . $row, $doc->numero_completo);
-            $sheet->setCellValue('E' . $row, $doc->numero_control_fiscal ?? '-');
-            $sheet->setCellValue('F' . $row, $doc->clienteFiscal->documento_completo ?? '-');
-            $sheet->setCellValue('G' . $row, $doc->clienteFiscal->razon_social ?? '-');
-            $sheet->setCellValue('H' . $row, $baseImp);
-            $sheet->setCellValue('I' . $row, $exento);
-            $sheet->setCellValue('J' . $row, $iva);
-            $sheet->setCellValue('K' . $row, $igtf);
-            $sheet->setCellValue('L' . $row, $total);
-            $sheet->getStyle('H' . $row . ':L' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-            $sheet->getStyle('A' . $row . ':L' . $row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+            $sheet->setCellValue('C' . $row, $doc->created_at->format('H:i'));
+            $sheet->setCellValue('D' . $row, $tipoDoc);
+            $sheet->setCellValue('E' . $row, $doc->serie);
+            $sheet->setCellValue('F' . $row, str_pad($doc->numero, 8, '0', STR_PAD_LEFT));
+            $sheet->setCellValue('G' . $row, $doc->numero_control_fiscal ?? '-');
+            
+            $docAfectado = '-';
+            if (($doc->tipo_pago === 'nota_credito' || $doc->tipo_pago === 'nota_debito') && $doc->pagoOrigen) {
+                $docAfectado = $doc->pagoOrigen->numero_completo;
+            }
+            $sheet->setCellValue('H' . $row, $docAfectado);
+            
+            // Cliente / Paciente
+            $docIdentidad = '-';
+            $razonSocial = '-';
+
+            if ($doc->clienteFiscal) {
+                $docIdentidad = $doc->clienteFiscal->documento_completo;
+                $razonSocial = $doc->clienteFiscal->razon_social;
+            } elseif ($doc->consulta && $doc->consulta->paciente) {
+                $docIdentidad = $doc->consulta->paciente->documento_identidad;
+                $razonSocial = $doc->consulta->paciente->nombre_completo;
+            }
+
+            $sheet->setCellValue('I' . $row, $docIdentidad);
+            $sheet->setCellValue('J' . $row, $razonSocial);
+            $sheet->setCellValue('K' . $row, $doc->caja->nombre ?? '-');
+            $sheet->setCellValue('L' . $row, $doc->tasa_cambio_usd);
+            $sheet->setCellValue('M' . $row, $doc->user->name ?? '-');
+            
+            $sheet->setCellValue('N' . $row, $base);
+            $sheet->setCellValue('O' . $row, $exento);
+            $sheet->setCellValue('P' . $row, $iva);
+            $sheet->setCellValue('Q' . $row, $igtf);
+            $sheet->setCellValue('R' . $row, $total);
+
+            // Formato de número
+            $sheet->getStyle('L' . $row . ':R' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+            $sheet->getStyle('A' . $row . ':R' . $row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
             $row++;
         }
 
         // Totals
-        $sheet->setCellValue('G' . $row, 'TOTALES:');
-        $sheet->getStyle('G' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->setCellValue('H' . $row, $totBaseImp);
-        $sheet->setCellValue('I' . $row, $totExento);
-        $sheet->setCellValue('J' . $row, $totIVA);
-        $sheet->setCellValue('K' . $row, $totIGTF);
-        $sheet->setCellValue('L' . $row, $totTotal);
-        $sheet->getStyle('H' . $row . ':L' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
-        $this->styleTotalsRow($sheet, 'A' . $row . ':L' . $row);
+        $sheet->setCellValue('M' . $row, 'TOTALES:');
+        $sheet->getStyle('M' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        
+        $sheet->setCellValue('N' . $row, $totBase);
+        $sheet->setCellValue('O' . $row, $totExento);
+        $sheet->setCellValue('P' . $row, $totIva);
+        $sheet->setCellValue('Q' . $row, $totIgtf);
+        $sheet->setCellValue('R' . $row, $totTotal);
+        
+        $sheet->getStyle('N' . $row . ':R' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+        $this->styleTotalsRow($sheet, 'A' . $row . ':R' . $row);
 
         $row += 2;
         $sheet->setCellValue('A' . $row, 'Generado el: ' . now()->format('d/m/Y H:i:s'));
 
-        $sheet->getColumnDimension('A')->setWidth(5);
-        $sheet->getColumnDimension('B')->setWidth(12);
-        $sheet->getColumnDimension('C')->setWidth(16);
-        $sheet->getColumnDimension('D')->setWidth(16);
-        $sheet->getColumnDimension('E')->setWidth(14);
-        $sheet->getColumnDimension('F')->setWidth(16);
-        $sheet->getColumnDimension('G')->setWidth(30);
-        $sheet->getColumnDimension('H')->setWidth(16);
-        $sheet->getColumnDimension('I')->setWidth(14);
-        $sheet->getColumnDimension('J')->setWidth(14);
-        $sheet->getColumnDimension('K')->setWidth(14);
-        $sheet->getColumnDimension('L')->setWidth(16);
+        // Ajustar anchos de columna
+        $widths = [
+            'A' => 5, 'B' => 12, 'C' => 8, 'D' => 16, 'E' => 10, 
+            'F' => 12, 'G' => 14, 'H' => 16, 'I' => 16, 'J' => 30, 
+            'K' => 15, 'L' => 10, 'M' => 20, 
+            'N' => 15, 'O' => 15, 'P' => 15, 'Q' => 15, 'R' => 16
+        ];
+        
+        foreach ($widths as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'libro_ventas_' . str_replace('-', '', $desde) . '_' . str_replace('-', '', $hasta) . '.xlsx';

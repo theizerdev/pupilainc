@@ -118,4 +118,37 @@ class FiscalCalculator
 
         return 0;
     }
+
+    public static function calcularIgtfDesdeDatos(int $empresaId, ?string $metodoPago, bool $esPagoMixto, ?array $detallesPagoMixto, float $totalUsd): array
+    {
+        $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
+            ->where('empresa_id', $empresaId)
+            ->where('activo', true)
+            ->first();
+
+        $porcentaje = $igtfConfig ? (float) $igtfConfig->porcentaje : 0;
+        $baseUsd = 0.0;
+
+        if ($esPagoMixto && $detallesPagoMixto) {
+            foreach ($detallesPagoMixto as $detalle) {
+                $met = $detalle['metodo'] ?? null;
+                if (in_array($met, self::METODOS_DIVISA)) {
+                    $baseUsd += (float) ($detalle['monto_usd'] ?? 0);
+                }
+            }
+        } else {
+            if (in_array($metodoPago, self::METODOS_DIVISA)) {
+                $baseUsd = (float) $totalUsd;
+            }
+        }
+
+        $aplica = $porcentaje > 0 && $baseUsd > 0;
+        $monto = $aplica ? $baseUsd * ($porcentaje / 100) : 0.0;
+
+        return [
+            'igtf_porcentaje' => $porcentaje,
+            'igtf_monto' => round($monto, 2),
+            'aplica_igtf' => $aplica,
+        ];
+    }
 }

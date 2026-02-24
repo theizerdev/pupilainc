@@ -2,7 +2,7 @@
   <div class="app-brand demo">
     <a href="{{ url('/') }}" class="app-brand-link">
        <span class="app-brand-logo demo">
-         <img src="/logo/logo.png" height="100px">
+         <img src="/logo/auth.png" height="50px">
         </span>
     </a>
 

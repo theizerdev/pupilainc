@@ -49,7 +49,8 @@ class WhatsAppAPIServer {
       
       // Conectar a base de datos
       await sequelize.authenticate();
-      await sequelize.sync({ alter: true });
+      // await sequelize.sync({ alter: true }); // Desactivado para evitar error de Too many keys
+      await sequelize.sync(); 
       logger.info('✅ Base de datos conectada');
       
       // Crear empresa por defecto si no existe

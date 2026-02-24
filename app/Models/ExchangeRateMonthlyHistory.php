@@ -3,9 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use App\Traits\HasSpanishActivityLog;
+use App\Traits\FiscalAuditable;
 
 class ExchangeRateMonthlyHistory extends Model
 {
+    use LogsActivity, HasSpanishActivityLog, FiscalAuditable;
+
     protected $fillable = [
         'year',
         'month',
@@ -37,5 +43,14 @@ class ExchangeRateMonthlyHistory extends Model
     public function generatedBy()
     {
         return $this->belongsTo(User::class, 'generated_by');
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['year', 'month', 'usd_avg', 'usd_min', 'usd_max', 'eur_avg', 'records_count', 'generated_by'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn(string $eventName) => static::getSpanishDescription($eventName));
     }
 }

@@ -207,6 +207,11 @@ Route::middleware(['checkAdminPermission:access series'])->group(function () {
     Route::get('/series/{serie}/editar', \App\Livewire\Admin\Series\Edit::class)->name('series.edit');
 });
 
+// Anulación de Talonarios
+Route::middleware(['checkAdminPermission:access series'])->group(function () {
+    Route::get('/anulacion-talonarios', \App\Livewire\Admin\AnulacionTalonario\Index::class)->name('anulacion-talonarios.index');
+});
+
 
 
 
@@ -316,3 +321,4 @@ Route::prefix('seniat')->as('seniat.')->middleware(['checkAdminPermission:access
     Route::get('/libro-ventas/txt', [\App\Http\Controllers\Admin\LibroVentasController::class, 'exportTxt'])->name('libro-ventas.export-txt');
     Route::get('/libro-ventas/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroVentas'])->name('libro-ventas.excel');
 });
+Route::get('/impuestos', \App\Livewire\Admin\Impuestos\Index::class)->name('impuestos.index');
