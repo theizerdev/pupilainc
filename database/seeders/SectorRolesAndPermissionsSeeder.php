@@ -126,6 +126,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 💰 SECTOR ADMINISTRACIÓN
+           /*
             'administracion' => [
                 'cajas' => [
                     'name' => 'Cajas',
@@ -255,6 +256,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     ]
                 ],
             ],
+            */
 
             // ⚙️ SECTOR CONFIGURACIÓN
             'configuracion' => [

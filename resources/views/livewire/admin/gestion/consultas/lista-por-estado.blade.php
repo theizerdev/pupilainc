@@ -183,7 +183,7 @@
                                             <i class="ri ri-more-2-fill"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
+                                            <!-- @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
                                                 <li>
                                                     <a class="dropdown-item d-flex align-items-center"
                                                        href="{{ route('admin.consulta.informe', $consulta->id) }}"
@@ -221,7 +221,7 @@
                                                 </li>
                                                 @endcan
                                                 <li><hr class="dropdown-divider"></li>
-                                            @endif
+                                            @endif -->
 
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
                                                 <li>
