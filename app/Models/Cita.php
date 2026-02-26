@@ -305,13 +305,13 @@ class Cita extends Model
     {
         return [
             'id' => $this->id,
-            'title' => Str::limit($this->paciente->nombre_completo, 20, '...'),
+            'title' => $this->paciente->nombre_completo,
             'start' => $this->fecha_inicio->toIso8601String(),
             'end' => $this->fecha_fin->toIso8601String(),
             'allDay' => false,
             'extendedProps' => [
                 'calendar' => $this->estado,
-                'medico' => Str::limit($this->medico->nombre_completo, 20, '...'),
+                'medico' => $this->medico->nombre_completo,
                 'medico_full' => $this->medico->nombre_completo,
                 'paciente' => $this->paciente->nombre_completo,
                 'paciente_id' => $this->paciente_id,

@@ -165,6 +165,22 @@ if (!function_exists('getSectorMenuItems')) {
                         'route_horizontal' => 'admin.recepcion.control-consultorios',
                         'active' => 'admin.recepcion.control-consultorios',
                     ],
+                     [
+                        'label' => 'Gestión de citas',
+                        'icon' => 'ri-calendar-line',
+                        'permission' => 'access citas',
+                        'route' => 'admin.citas.index',
+                        'route_horizontal' => 'admin.citas.index',
+                        'active' => 'admin.citas.index',
+                    ],
+                     [
+                        'label' => 'Gestión de consultas',
+                        'icon' => 'ri-nurse-line',
+                        'permission' => 'access consultas',
+                        'route' => 'admin.gestion.consultas.index',
+                        'route_horizontal' => 'admin.gestion.consultas.index',
+                        'active' => 'admin.gestion.consultas.index',
+                    ],
                 ]
             ],
             'medico' => [

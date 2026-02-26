@@ -11,18 +11,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 
+use Illuminate\Support\Facades\Http;
+
 class CitaNotificationService
 {
-    protected WhatsAppService $whatsApp;
+    // protected WhatsAppService $whatsApp; // Eliminamos dependencia directa si no se usa
     protected ?int $empresaId;
     protected ?string $codigoPais = null;
+    protected ?string $apiKey = null;
 
     public function __construct(?int $empresaId = null)
     {
         $this->empresaId = $empresaId;
-        $this->whatsApp = $empresaId
-            ? WhatsAppService::forCompany($empresaId)
-            : new WhatsAppService();
+        // Resolver API Key de la empresa
+        if ($this->empresaId) {
+            $this->apiKey = DB::table('empresas')->where('id', $this->empresaId)->value('whatsapp_api_key');
+        } elseif (auth()->check() && auth()->user()->empresa_id) {
+            $this->empresaId = auth()->user()->empresa_id;
+            $this->apiKey = DB::table('empresas')->where('id', $this->empresaId)->value('whatsapp_api_key');
+        }
     }
 
     public static function forCompany($empresaId): self
@@ -176,17 +183,22 @@ class CitaNotificationService
     {
         $cita->loadMissing(['paciente.tutor', 'medico']);
 
+        // Notificar Paciente
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        if (empty($telefonos)) return false;
-
-        $mensaje = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
-        $resultado = false;
-
+        $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
+        
         foreach ($telefonos as $telefono) {
-            $resultado = $this->enviar($telefono, $mensaje) || $resultado;
+            $this->enviar($telefono, $mensajePaciente);
         }
 
-        return $resultado;
+        // Notificar Médico (si aplica)
+        if ($cita->medico && $cita->medico->telefono) {
+            $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
+            $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
+            $this->enviar($telefonoMedico, $mensajeMedico);
+        }
+
+        return true;
     }
 
     public function notificarCancelacion(Cita $cita): bool
@@ -195,17 +207,22 @@ class CitaNotificationService
 
         $this->cancelarRecordatoriosPendientes($cita);
 
+        // Notificar Paciente
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        if (empty($telefonos)) return false;
-
-        $mensaje = $this->construirMensajeCancelacion($cita);
-        $resultado = false;
+        $mensajePaciente = $this->construirMensajeCancelacion($cita);
 
         foreach ($telefonos as $telefono) {
-            $resultado = $this->enviar($telefono, $mensaje) || $resultado;
+            $this->enviar($telefono, $mensajePaciente);
         }
 
-        return $resultado;
+        // Notificar Médico
+        if ($cita->medico && $cita->medico->telefono) {
+            $mensajeMedico = $this->construirMensajeCancelacionMedico($cita);
+            $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
+            $this->enviar($telefonoMedico, $mensajeMedico);
+        }
+
+        return true;
     }
 
     public function enviarRecordatorio(Cita $cita): bool
@@ -286,21 +303,46 @@ class CitaNotificationService
         }
     }
 
-    // ===== ENVÍO DIRECTO =====
+    // ===== ENVÍO DIRECTO (SÍNCRONO VÍA HTTP A NODE.JS) =====
 
     protected function enviar(string $telefono, string $mensaje): bool
     {
         try {
-            if (!$this->whatsApp->isConfigured()) {
-                Log::warning('CitaNotificationService: WhatsApp no configurado');
+            if (!$this->apiKey || !$this->empresaId) {
+                Log::warning('CitaNotificationService: API Key o Empresa ID no configurados', [
+                    'empresa_id' => $this->empresaId
+                ]);
                 return false;
             }
 
             $telefonoFormateado = $this->formatearTelefono($telefono);
-            $result = $this->whatsApp->sendMessage($telefonoFormateado, $mensaje);
-            return $result !== null;
+            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            $url = "{$baseUrl}/api/whatsapp/send";
+
+            $response = Http::timeout(5) // Timeout corto para no bloquear demasiado
+                ->withHeaders([
+                    'X-API-Key' => $this->apiKey,
+                    'X-Company-Id' => (string) $this->empresaId,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($url, [
+                    'to' => $telefonoFormateado,
+                    'message' => $mensaje,
+                ]);
+
+            if ($response->successful()) {
+                return true;
+            }
+
+            Log::error('CitaNotificationService: Error HTTP enviando mensaje', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'telefono' => $telefonoFormateado
+            ]);
+            return false;
+
         } catch (\Exception $e) {
-            Log::error('CitaNotificationService: Error enviando mensaje', [
+            Log::error('CitaNotificationService: Excepción enviando mensaje', [
                 'telefono' => $telefono,
                 'error' => $e->getMessage()
             ]);
@@ -438,6 +480,33 @@ class CitaNotificationService
             . "📅 Fecha: {$fecha} a las {$hora}\n\n"
             . "📌 Estado anterior: " . ($estadoLabels[$estadoAnterior] ?? $estadoAnterior) . "\n"
             . "✅ Nuevo estado: " . ($estadoLabels[$cita->estado] ?? $cita->estado);
+    }
+
+    protected function construirMensajeCambioEstadoMedico(Cita $cita, string $estadoAnterior): string
+    {
+        $estadoLabels = Cita::ESTADO_LABELS;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+
+        return "🏥 *Actualización de Cita*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n"
+            . "La cita del paciente *{$cita->paciente->nombre_completo}* ha cambiado de estado.\n\n"
+            . "📅 Fecha: {$fecha} a las {$hora}\n"
+            . "📌 Estado anterior: " . ($estadoLabels[$estadoAnterior] ?? $estadoAnterior) . "\n"
+            . "✅ Nuevo estado: " . ($estadoLabels[$cita->estado] ?? $cita->estado);
+    }
+
+    protected function construirMensajeCancelacionMedico(Cita $cita): string
+    {
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+
+        return "🏥 *Cita Cancelada*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n"
+            . "Se ha cancelado la siguiente cita:\n\n"
+            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
+            . "📅 Fecha: {$fecha} a las {$hora}\n\n"
+            . "El horario ha quedado disponible nuevamente.";
     }
 
     protected function construirMensajeCancelacion(Cita $cita): string

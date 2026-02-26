@@ -1,4 +1,42 @@
 <div id="citas-calendar-component">
+    @push('scripts')
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('paciente-creado', (event) => {
+                const data = event[0];
+                $('#modalPacienteRapido').modal('hide');
+                
+                // Usar el sistema de toasts de la plantilla
+                const toastContainer = document.querySelector('.toast-container');
+                if (toastContainer) {
+                    const toastHtml = `
+                        <div class="bs-toast toast ${data.success ? 'bg-success' : 'bg-danger'}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                            <div class="toast-header">
+                                <i class="ri-check-line me-2"></i>
+                                <div class="me-auto fw-medium">${data.success ? 'Éxito' : 'Error'}</div>
+                                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                            <div class="toast-body">
+                                ${data.message}
+                            </div>
+                        </div>
+                    `;
+                    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                    const newToast = toastContainer.lastElementChild;
+                    new bootstrap.Toast(newToast).show();
+                }
+
+                if (data.success && data.paciente) {
+                    // Si se creó correctamente, añadirlo al select y seleccionarlo
+                    const select = document.getElementById('eventPaciente');
+                    const option = new Option(`${data.paciente.nombre} - ${data.paciente.documento_identidad || ''}`, data.paciente.id, true, true);
+                    select.appendChild(option);
+                    $(select).trigger('change');
+                }
+            });
+        });
+    </script>
+    @endpush
     @push('styles')
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/fullcalendar/fullcalendar.css" />
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/flatpickr/flatpickr.css" />
@@ -18,6 +56,7 @@
             border-radius: 4px !important;
             border-left: 4px solid transparent !important;
             transition: box-shadow 0.15s ease;
+            overflow: hidden;
         }
         .fc .fc-event:hover {
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -174,7 +213,7 @@
 
 @keyframes ripple {
     0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(3.5); opacity: 0; }
+    100% { transform: scale(2.5); opacity: 0; }
 }
 
 /* Celdas del calendario más compactas y anchas */
@@ -223,11 +262,6 @@
             <div class="col app-calendar-sidebar border-end" id="app-calendar-sidebar">
                
                 <div class="px-4">
-                    <div class="border-bottom my-sm-0 mb-4 p-5">
-                      <button type="button" class="btn btn-primary w-100" id="btnModalPacienteRapido" data-bs-toggle="modal" data-bs-target="#modalPacienteRapido">
-                            <i class="ri ri-user-add-line me-1"></i> Nuevo Paciente
-                        </button>
-                    </div>
                     <div class="inline-calendar"></div>
                     
                     <hr class="mb-5 mx-n4 mt-3" />
@@ -241,37 +275,41 @@
                         <label class="form-check-label" for="selectAll">Ver Todos</label>
                     </div>
                     <div class="app-calendar-events-filter text-heading">
-                        <div class="form-check form-check-warning mb-5 ms-3" hidden>
+                        <div class="form-check form-check-warning mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox"  id="select-pendiente" data-value="pendiente" checked />
                             <label class="form-check-label" for="select-pendiente">Pendiente</label>
                         </div>
-                        <div class="form-check mb-5 ms-3" hidden>
+                        <div class="form-check mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-confirmada" data-value="confirmada" checked />
                             <label class="form-check-label" for="select-confirmada">Confirmada</label>
                         </div>
-                        <div class="form-check form-check-info mb-5 ms-3" hidden>
+                        <div class="form-check form-check-info mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-en_curso" data-value="en_curso" checked />
                             <label class="form-check-label" for="select-en_curso">En Curso</label>
                         </div>
-                        <div class="form-check form-check-success mb-5 ms-3" hidden>
+                        <div class="form-check form-check-warning mb-5 ms-3">
+                            <input class="form-check-input input-filter" type="checkbox" id="select-sala_espera" data-value="sala_espera" checked />
+                            <label class="form-check-label" for="select-sala_espera">En Sala de Espera</label>
+                        </div>
+                        <div class="form-check form-check-success mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-completada" data-value="completada" checked />
                             <label class="form-check-label" for="select-completada">Completada</label>
                         </div>
-                        <div class="form-check form-check-danger mb-5 ms-3" hidden>
+                        <div class="form-check form-check-danger mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-cancelada" data-value="cancelada" checked />
                             <label class="form-check-label" for="select-cancelada">Cancelada</label>
                         </div>
-                        <div class="form-check form-check-secondary ms-3" hidden>
+                        <div class="form-check form-check-secondary ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-no_asistio" data-value="no_asistio" checked />
                             <label class="form-check-label" for="select-no_asistio">No Asistió</label>
                         </div>
                     </div>
 
-                    <!-- Tipo de Consulta con filtro -->
+                    <!-- Tipo de Cita con filtro -->
                     @if($this->tiposConsulta->isNotEmpty())
                         <hr class="mb-5 mx-n4 mt-3" />
                         <div class="mb-3 ms-1 d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Tipos de Consulta</h5>
+                            <h5 class="mb-0">Tipos de Cita</h5>
                         </div>
                         <div id="tipos-consulta-con-citas" class="ms-1 perfect-scrollbar-container" style="max-height: 200px; position: relative;">
                             <small class="text-muted">Cargando...</small>
@@ -309,6 +347,11 @@
                     <div class="offcanvas-body">
                         <form class="event-form pt-0" id="eventForm" onsubmit="return false">
                             <!-- 1. Paciente -->
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnModalPacienteRapido" data-bs-toggle="modal" data-bs-target="#modalPacienteRapido">
+                                    <i class="ri ri-user-add-line me-1"></i> Nuevo Paciente
+                                </button>
+                            </div>
                             <div class="form-floating form-floating-outline mb-5 form-control-validation">
                                 <select class="select2 form-select" id="eventPaciente" name="eventPaciente">
                                     <option value="">Seleccionar paciente</option>
@@ -372,17 +415,17 @@
                                 <input type="hidden" id="eventEndDate" name="eventEndDate" />
                             </div>
 
-                            <!-- Tipo de Consulta -->
+                            <!-- Tipo de Cita -->
                             <div class="form-floating form-floating-outline mb-5">
                                 <select class="select2 form-select" id="eventTipoConsulta" name="eventTipoConsulta">
-                                    <option value="">Sin tipo de consulta</option>
+                                    <option value="">Sin tipo de cita</option>
                                     @foreach($tiposConsulta as $tipo)
                                         <option value="{{ $tipo->id }}" data-color="{{ $tipo->color }}">
                                             {{ $tipo->nombre }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <label for="eventTipoConsulta">Tipo de Consulta</label>
+                                <label for="eventTipoConsulta">Tipo de Cita</label>
                             </div>
 
                             <!-- Motivo -->

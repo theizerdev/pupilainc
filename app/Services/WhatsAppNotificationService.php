@@ -87,17 +87,30 @@ class WhatsAppNotificationService
     /**
      * Formatear número de teléfono
      */
-    public function formatPhoneNumber($telefono)
+    public function formatPhoneNumber($telefono, $countryCode = '51')
     {
         // Eliminar espacios y caracteres especiales
         $telefono = preg_replace('/[^0-9+]/', '', $telefono);
         
-        // Si no tiene código de país, agregar +51 (Perú)
-        if (strlen($telefono) === 9 && $telefono[0] !== '+') {
-            $telefono = '+51' . $telefono;
-        } elseif (strlen($telefono) === 11 && $telefono[0] === '5' && $telefono[1] === '1') {
-            $telefono = '+' . $telefono;
+        // Si ya tiene el símbolo +, asumimos que está en formato internacional
+        if (str_starts_with($telefono, '+')) {
+            return $telefono;
         }
+
+        // Si el teléfono tiene la longitud estándar sin código de país (ej. 9 dígitos para Perú)
+        // y no empieza con el código de país, se lo agregamos
+        if (strlen($telefono) >= 9 && !str_starts_with($telefono, $countryCode)) {
+            return '+' . $countryCode . $telefono;
+        }
+
+        // Si ya empieza con el código de país pero sin el +, se lo agregamos
+        if (str_starts_with($telefono, $countryCode)) {
+            return '+' . $telefono;
+        }
+        
+        // Por defecto retornamos con el código configurado
+        return '+' . $countryCode . $telefono;
+    }
         
         // Validar formato
         if (!preg_match('/^\+[1-9]\d{1,14}$/', $telefono)) {

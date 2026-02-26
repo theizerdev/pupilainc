@@ -40,6 +40,7 @@ function initCitasCalendar(events) {
         pendiente: '#ffc107',
         confirmada: '#0d6efd',
         en_curso: '#17a2b8',
+        sala_espera: '#fd7e14',
         completada: '#28a745',
         cancelada: '#dc3545',
         no_asistio: '#6c757d'
@@ -62,6 +63,17 @@ function initCitasCalendar(events) {
     let eventToUpdate = null;
     let inlineCalInstance = null;
     let prefetchCache = {};
+    let prefetchCacheKeys = [];
+    const PREFETCH_CACHE_MAX = 15;
+
+    function cacheSet(key, value) {
+        if (!prefetchCache[key]) prefetchCacheKeys.push(key);
+        prefetchCache[key] = value;
+        while (prefetchCacheKeys.length > PREFETCH_CACHE_MAX) {
+            var oldest = prefetchCacheKeys.shift();
+            delete prefetchCache[oldest];
+        }
+    }
 
     const bsAddEventSidebar = addEventSidebar ? new bootstrap.Offcanvas(addEventSidebar) : null;
 
@@ -592,7 +604,7 @@ function initCitasCalendar(events) {
         } else if (comp) {
             comp.call('fetchEventosRango', info.startStr, info.endStr).then(function(events) {
                 currentEvents = Array.isArray(events) ? events : [];
-                prefetchCache[key] = currentEvents;
+                cacheSet(key, currentEvents);
                 var calendars = selectedCalendars();
                 var filtered = currentEvents.filter(function (event) {
                     var matchEstado = calendars.includes(event.extendedProps.calendar);
@@ -895,7 +907,7 @@ function initCitasCalendar(events) {
         events: fetchEvents,
         editable: true,
         dragScroll: true,
-        dayMaxEvents: 2,
+        dayMaxEvents: 3,
         contentHeight: 'auto',
         expandRows: false,
         eventResizableFromStart: true,
@@ -929,65 +941,81 @@ function initCitasCalendar(events) {
             
             return classes;
         },
-        eventContent: function(arg) {
-            var ep = arg.event.extendedProps;
-            var timeText = arg.timeText || '';
-            var html = '';
-            var menorIcon = ep.es_menor ? '<span style="font-size:0.6em;margin-left:2px;" title="Menor de edad">👶</span>' : '';
-            var color = ep.tipo_consulta_color ? ep.tipo_consulta_color : '';
-            var estadoHex = calendarColors[ep.estado] || '#6c757d';
-            var estadoBadge = ep.estado_label
-                ? '<span style="background:' + estadoHex + ';color:#fff;border-radius:4px;padding:2px 6px;font-size:70%;margin-left:6px;">' + ep.estado_label + '</span>'
-                : '';
-            var tipoTag = ep.tipo_consulta_nombre ? '<span style="font-size:0.6em;opacity:0.7;margin-left:3px;">(' + ep.tipo_consulta_nombre + ')</span>' : '';
-         
-            if (arg.view.type === 'listMonth') {
-                html = '<div style="line-height:1.4;">' +
-                    '<strong style="font-size:0.85rem;">' + arg.event.title + '' + '</strong>' + tipoTag + ' ' + estadoBadge +
-                    '<br><small class="text-muted"><i class="q" style="font-size:0.65em;"></i> ' + (ep.medico || '') + '</small>' +
-                    (ep.motivo ? '<br><small class="text-muted">' + ep.motivo + '</small>' : '') +
-                    '</div>';
-            } else if (arg.view.type === 'dayGridMonth') {
-              html = '<div class="fc-event-main-frame" style="line-height:1.2; display: flex; align-items: center; gap: 15px; padding: 4px; width: 100%; overflow: visible;">' +
-                // El punto ahora usa la clase y la variable, permitiendo que el CSS haga el efecto agua
-                '<div class="punto-agua" style="--color-punto: ' + color + ';"></div>' +
-                
-                '<div class="fc-event-title-container" style="display: flex; flex-direction: column; overflow: hidden;">' +
-                    '<div class="fc-event-title fc-sticky" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' 
-                        + arg.event.title + ' ' + estadoBadge + 
-                    '</div>' +
-                    '<div class="fc-event-title fc-sticky badge bg-label-primary" style="font-size: 70%; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' 
-                        + 'Dr. ' + ep.medico_full + 
-                    '</div>' +
-                '</div>' +
-            '</div>';
+            eventContent: function(arg) {
+                const view = arg.view;
+                const ep = arg.event.extendedProps;
+                const timeText = arg.timeText;
+                let html = '';
 
+                // Nombre del paciente
+                var pacienteNombre = ep.paciente || arg.event.title || '';
+                // Doctor
+                var medicoNombre = ep.medico || ep.medico_full || '';
+                // Estado con color
+                var estadoLabel = ep.estado_label || ep.estado || '';
+                var estadoColor = calendarColors[ep.estado] || '#6c757d';
+                var estadoBadge = '<span class="badge rounded-pill" style="background:' + estadoColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;white-space:nowrap;">' + estadoLabel + '</span>';
 
-            } else {
-                html = '<div class="fc-event-main-frame" style="line-height:1.3;">' +
-                    '<div class="fc-event-time">' + timeText + '</div>' +
-                    '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title fc-sticky">' + arg.event.title + ' ' + estadoBadge + '</div>' +
-                        '<div class="fc-event-subtitle"><i class="q" style="font-size:0.6em;"></i> ' + (ep.medico || '') + '</div>' +
-                    '</div>' +
+                // Tipo de consulta con efecto gota (punto-agua)
+                var tipoConsultaHtml = '';
+                if (ep.tipo_consulta_nombre) {
+                    var tipoColor = ep.tipo_consulta_color || '#6c757d';
+                    tipoConsultaHtml = '<div class="d-flex align-items-center gap-1" style="margin-top:1px;">' +
+                        '<div class="punto-agua" style="--color-punto: ' + tipoColor + ';"></div>' +
+                        '<span style="font-size:0.6rem;color:' + tipoColor + ';font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ep.tipo_consulta_nombre + '</span>' +
+                        '</div>';
+                }
+
+                if (view.type === 'dayGridMonth') {
+                    html = '<div class="fc-event-main-frame">' +
+                        '<div class="fc-event-time">' + timeText + '</div>' +
+                        '<div class="fc-event-title-container">' +
+                            '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                            '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                            '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px;">' + estadoBadge + tipoConsultaHtml + '</div>' +
+                        '</div>' +
                     '</div>';
-            }
-            return { html: html };
-        },
+                } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
+                    html = '<div class="fc-event-main-frame" style="width:100%;">' +
+                        '<div class="fc-event-title-container">' +
+                            '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                            '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                            '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + estadoBadge + tipoConsultaHtml + '</div>' +
+                        '</div>' +
+                    '</div>';
+                } else if (view.type === 'listMonth' || view.type === 'listWeek') {
+                    html = '<div class="fc-list-event-main-frame" style="display:flex;align-items:center;gap:8px;width:100%;">' +
+                        '<div class="fc-event-title-container" style="flex:1;min-width:0;">' +
+                            '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                            '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                        '</div>' +
+                        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + estadoBadge + tipoConsultaHtml + '</div>' +
+                    '</div>';
+                } else {
+                    return { html: '<div>' + arg.event.title + '</div>' };
+                }
+
+                return { html: html };
+            },
         eventDidMount: function(info) {
             var ep = info.event.extendedProps || {};
-            if (ep.tipo_consulta_color) {
-                info.el.style.borderLeftColor = ep.tipo_consulta_color;
-           
-            }
             var stateHex = calendarColors[ep.estado] || null;
             if (stateHex) {
                 info.el.style.backgroundColor = hexToRgba(stateHex, 0.12);
-                info.el.style.borderColor = hexToRgba(stateHex, 0.4);
+                info.el.style.borderTopColor = hexToRgba(stateHex, 0.4);
+                info.el.style.borderRightColor = hexToRgba(stateHex, 0.4);
+                info.el.style.borderBottomColor = hexToRgba(stateHex, 0.4);
             }
+            if (ep.tipo_consulta_color) {
+                info.el.style.borderLeftColor = ep.tipo_consulta_color;
+                info.el.style.borderLeftWidth = '4px';
+            }
+            var startDate = info.event.start;
+            var dateStr = startDate ? startDate.toLocaleDateString('es-VE', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
             var tooltipParts = [
                 ep.paciente || info.event.title,
                 'Dr(a). ' + (ep.medico_full || ep.medico || ''),
+                'Fecha: ' + dateStr,
                 'Estado: ' + (ep.estado_label || ep.estado || ''),
             ];
             if (ep.tipo_consulta_nombre) tooltipParts.push('Tipo: ' + ep.tipo_consulta_nombre);
@@ -1007,6 +1035,10 @@ function initCitasCalendar(events) {
             }
             if (btnDeleteEvent) btnDeleteEvent.classList.add('d-none');
             if (btnSendReminder) btnSendReminder.classList.add('d-none');
+            if (btnConfirmEvent) btnConfirmEvent.classList.add('d-none');
+            if (btnCancelCita) btnCancelCita.classList.add('d-none');
+            if (btnReagendar) btnReagendar.classList.add('d-none');
+            if (btnReagendarAuto) btnReagendarAuto.classList.add('d-none');
 
             if (fechaFlatpickr) fechaFlatpickr.setDate(dateOnly, false);
         },
@@ -1047,12 +1079,12 @@ function initCitasCalendar(events) {
                 var nextKey = fmt(nextStart) + '|' + fmt(nextEnd);
                 if (!prefetchCache[prevKey]) {
                     comp.call('fetchEventosRango', fmt(prevStart), fmt(prevEnd)).then(function(events) {
-                        prefetchCache[prevKey] = Array.isArray(events) ? events : [];
+                        cacheSet(prevKey, Array.isArray(events) ? events : []);
                     });
                 }
                 if (!prefetchCache[nextKey]) {
                     comp.call('fetchEventosRango', fmt(nextStart), fmt(nextEnd)).then(function(events) {
-                        prefetchCache[nextKey] = Array.isArray(events) ? events : [];
+                        cacheSet(nextKey, Array.isArray(events) ? events : []);
                     });
                 }
             }
@@ -1188,6 +1220,12 @@ function initCitasCalendar(events) {
     if (btnDeleteEvent) {
         btnDeleteEvent.addEventListener('click', function (e) {
             if (eventToUpdate) {
+                var ep = eventToUpdate.extendedProps || {};
+                var paciente = ep.paciente || eventToUpdate.title || '';
+                var medico = ep.medico_full || ep.medico || '';
+                var fecha = eventToUpdate.start ? eventToUpdate.start.toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                var msg = '¿Está seguro de eliminar esta cita?\n\nPaciente: ' + paciente + '\nMédico: Dr(a). ' + medico + '\nFecha: ' + fecha + '\n\nEsta acción no se puede deshacer.';
+                if (!confirm(msg)) return;
                 var comp = getLivewireComponent();
                 if (comp) {
                     comp.call('deleteCita', parseInt(eventToUpdate.id));
@@ -1322,6 +1360,8 @@ function initCitasCalendar(events) {
     }
 
     window.addEventListener('cita-saved', function () {
+        prefetchCache = {};
+        prefetchCacheKeys = [];
         var comp = getLivewireComponent();
         if (comp) {
             comp.call('getEventosFresh').then(function(freshEvents) {

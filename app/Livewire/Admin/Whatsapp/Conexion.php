@@ -136,40 +136,55 @@ class Conexion extends Component
         }
 
         try {
+            // URL base del servicio de Node.js
+            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get(config('whatsapp.api_url') . '/api/whatsapp/status');
+                ->get("{$baseUrl}/api/whatsapp/status");
 
             if ($response->successful()) {
                 $data = $response->json();
+                
+                // Actualizar propiedades con la respuesta del endpoint multi-tenant
                 $this->status = $data['connectionState'] ?? 'disconnected';
-                $this->user = $data['user'] ?? null;
-                $this->lastSeen = $data['lastSeen'] ?? null;
-                $this->whatsappPhone = $data['user']['id'] ?? $this->whatsappPhone;
-
-                if ($this->status === 'connected') {
+                
+                // Si está conectado, obtener datos del usuario
+                if ($this->status === 'connected' && isset($data['user'])) {
+                    $this->user = $data['user'];
                     $this->qrCode = null;
-                    $this->pollingActive = false;
                     $this->error = null;
-                    $this->dispatch('connectionUpdated', newStatus: 'connected');
                     
-                    // Actualizar estado en la empresa
-                    $this->updateEmpresaWhatsAppStatus('connected');
-                    
-                    // Actualizar estadísticas
-                    $this->cargarEstadisticasReales();
-                } elseif ($this->status === 'qr_ready') {
-                    $this->checkQR();
+                    // Formatear ID para mostrar
+                    if (isset($this->user['id'])) {
+                        $this->user['formatted_id'] = explode(':', $this->user['id'])[0];
+                    }
+                } 
+                // Si hay QR disponible en el status, mostrarlo
+                elseif (isset($data['qr']) && $data['qr']) {
+                    // Generar QR en base64 si viene raw string
+                    if (!str_starts_with($data['qr'], 'data:image')) {
+                         // El backend ya debería devolverlo como data URL si se usa el endpoint correcto,
+                         // pero si status devuelve el raw string, necesitamos convertirlo o llamar a getQRCode
+                         $this->checkQR(); 
+                    } else {
+                        $this->qrCode = $data['qr'];
+                    }
+                } else {
+                    $this->user = null;
+                    $this->qrCode = null;
                 }
+                
+                $this->connectionError = null;
             } else {
-                // Si la respuesta no es exitosa, mostrar el error detallado
-                $errorData = $response->json();
-                $this->error = 'Error del servidor: ' . ($errorData['error'] ?? 'Error desconocido') . ' (Código: ' . $response->status() . ')';
+                $this->status = 'error';
+                $this->error = 'Error en respuesta del servidor: ' . $response->status();
             }
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             $this->status = 'service_unavailable';
-            $this->error = 'Servicio de WhatsApp no disponible. No se puede conectar al servidor.';
+            $this->error = 'No se puede conectar al servicio de WhatsApp. Verifique que esté ejecutándose.';
         } catch (\Exception $e) {
+            $this->status = 'error';
             $this->error = 'Error al verificar estado: ' . $e->getMessage();
         }
     }
@@ -179,16 +194,18 @@ class Conexion extends Component
         if (!$this->whatsappApiKey) return;
 
         try {
+            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get(config('whatsapp.api_url') . '/api/whatsapp/qr');
+                ->get("{$baseUrl}/api/whatsapp/qr");
 
             if ($response->successful()) {
                 $data = $response->json();
                 if (($data['success'] ?? false) && isset($data['qr'])) {
                     $this->qrCode = $data['qr'];
-                    $this->status = 'qr_ready';
-                    $this->pollingActive = true;
+                    // No cambiar estado a qr_ready forzosamente si ya estamos en connecting,
+                    // dejar que la UI muestre el QR si existe
                 }
             }
         } catch (\Exception $e) {

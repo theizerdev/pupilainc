@@ -16,6 +16,7 @@ router.use(validateApiKey);
 
 
 // Rutas multi-tenant
+router.get('/contact-info', WhatsAppController.getContactInfo);
 router.get('/status', WhatsAppController.getStatus);
 router.post('/connect', WhatsAppController.connect);
 router.delete('/disconnect', WhatsAppController.disconnect);

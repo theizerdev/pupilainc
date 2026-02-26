@@ -104,22 +104,43 @@ class Index extends Component
         }
 
         try {
+            // URL base del servicio de Node.js (usar config o env)
+            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get( env('WHATSAPP_API_URL', 'http://localhost:3001') . '/api/whatsapp/status');
+                ->get("{$baseUrl}/api/whatsapp/status");
 
             if ($response->successful()) {
                 $data = $response->json();
+                
+                // Actualizar propiedades con la respuesta del endpoint multi-tenant
                 $this->status = $data['connectionState'] ?? 'disconnected';
-                $this->user = $data['user'] ?? null;
-                $this->lastSeen = $data['lastSeen'] ?? null;
+                
+                // Si está conectado, obtener datos del usuario
+                if ($this->status === 'connected' && isset($data['user'])) {
+                    $this->user = $data['user'];
+                    // Formatear ID para mostrar
+                    if (isset($this->user['id'])) {
+                        $this->user['formatted_id'] = explode(':', $this->user['id'])[0];
+                    }
+                } else {
+                    $this->user = null;
+                }
+                
+                // Manejar código QR si está disponible
+                if (isset($data['qr']) && $this->status !== 'connected') {
+                    $this->dispatch('qr-code-received', qr: $data['qr']);
+                }
+                
                 $this->connectionError = null;
             } else {
-                $this->handleApiError($response);
+                $this->status = 'error';
+                $this->connectionError = 'Error en respuesta del servidor: ' . $response->status();
             }
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             $this->status = 'service_unavailable';
-            $this->connectionError = 'No se puede conectar al servidor de WhatsApp. Verifique que el servicio esté activo.';
+            $this->connectionError = 'No se puede conectar al servicio de WhatsApp. Verifique que esté ejecutándose.';
         } catch (\Exception $e) {
             $this->status = 'error';
             $this->connectionError = 'Error al verificar estado: ' . $e->getMessage();

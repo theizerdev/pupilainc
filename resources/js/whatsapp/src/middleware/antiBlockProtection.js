@@ -69,20 +69,16 @@ class AntiBlockProtection {
 
   /**
    * Valida horarios comerciales
+   * NOTA: Para sistema médico desactivamos el bloqueo estricto, 
+   * solo registramos advertencia si es muy tarde.
    */
   validateBusinessHours() {
     const now = new Date();
     const hour = now.getHours();
-    const day = now.getDay();
     
-    // Fuera de horario comercial (7 AM - 10 PM)
-    if (hour < this.BUSINESS_HOURS_START || hour >= this.BUSINESS_HOURS_END) {
-      throw new Error(`Mensajes no permitidos fuera del horario comercial (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00)`);
-    }
-    
-    // Domingos (día 0)
-    if (day === 0) {
-      throw new Error('Mensajes no permitidos los domingos');
+    // Solo loguear advertencia si es madrugada (0 AM - 5 AM)
+    if (hour >= 0 && hour < 5) {
+      logger.info(`Anti-block: Mensaje enviado en horario nocturno (${hour}:00)`);
     }
   }
 
@@ -90,7 +86,17 @@ class AntiBlockProtection {
    * Valida el contenido del mensaje contra spam
    */
   validateMessageContent(message) {
- 
+    if (!message) throw new Error('El mensaje no puede estar vacío');
+    
+    if (typeof message !== 'string') return; // Si es objeto (media, template), pasar
+    
+    if (message.length < 1) throw new Error('Mensaje demasiado corto');
+    if (message.length > 4096) throw new Error('Mensaje excede límite de WhatsApp (4096 caracteres)');
+    
+    // Detectar patrones de spam comunes (ej: repetidos excesivos)
+    if (/(\b\w+\b)(?=.*\b\1\b){5,}/i.test(message)) {
+        logger.warn('Posible spam detectado: palabras repetidas excesivamente');
+    }
   }
 
   /**

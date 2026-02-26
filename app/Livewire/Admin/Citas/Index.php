@@ -439,14 +439,19 @@ class Index extends Component
         $this->dispatch('cita-saved');
     }
 
-    public function crearPacienteRapido($data): array
+    public function crearPacienteRapido($data): void
     {
         try {
             $nombres = trim($data['nombres'] ?? '');
             $apellidos = trim($data['apellidos'] ?? '');
             if ($nombres === '' || $apellidos === '') {
-                return ['success' => false, 'errors' => ['Nombres y apellidos son obligatorios'], 'message' => 'Nombres y apellidos son obligatorios'];
+                $this->dispatch('paciente-creado', [
+                    'success' => false, 
+                    'message' => 'Nombres y apellidos son obligatorios.'
+                ]);
+                return;
             }
+
             $paciente = Paciente::create([
                 'nombres' => $nombres,
                 'apellidos' => $apellidos,
@@ -457,8 +462,10 @@ class Index extends Component
                 'sucursal_id' => auth()->user()->sucursal_id,
                 'status' => true,
             ]);
+
             $esMenorFlag = (bool) ($data['es_menor'] ?? false);
             $esMenorFecha = $paciente->es_menor;
+
             if ($esMenorFlag || $esMenorFecha) {
                 $tutorData = $data['tutor'] ?? [];
                 if (!empty($tutorData['nombres']) || !empty($tutorData['apellidos']) || !empty($tutorData['telefono'])) {
@@ -471,10 +478,23 @@ class Index extends Component
                     ]);
                 }
             }
-            return ['success' => true, 'paciente_id' => $paciente->id, 'nombre' => $paciente->nombre_completo, 'errors' => [], 'message' => 'Paciente creado'];
+
+            $this->dispatch('paciente-creado', [
+                'success' => true,
+                'message' => 'Paciente creado exitosamente.',
+                'paciente' => [
+                    'id' => $paciente->id,
+                    'nombre' => $paciente->nombre_completo,
+                    'documento_identidad' => $paciente->documento_identidad,
+                ]
+            ]);
+
         } catch (\Exception $e) {
             Log::error('Error creando paciente rápido', ['error' => $e->getMessage()]);
-            return ['success' => false, 'errors' => [$e->getMessage()], 'message' => 'Error creando paciente: ' . $e->getMessage()];
+            $this->dispatch('paciente-creado', [
+                'success' => false, 
+                'message' => 'Error al crear el paciente: ' . $e->getMessage()
+            ]);
         }
     }
 

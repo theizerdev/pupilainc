@@ -11,6 +11,7 @@ use App\Models\Sucursal;
 use App\Models\Pais;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use App\Traits\HasDynamicLayout;
 use Illuminate\Support\Facades\Hash;
 use App\Services\WhatsAppService;
 use Spatie\Permission\Models\Role;
@@ -18,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 class Edit extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, HasDynamicLayout;
 
     // ID del médico que se está editando
     public $medico_id;
@@ -321,6 +322,6 @@ class Edit extends Component
             'subespecialidades' => $this->subespecialidades,
             'empresas' => $this->empresas,
             'sucursales' => $this->sucursales,
-        ]);
+        ])->layout($this->getLayout());
     }
 }
