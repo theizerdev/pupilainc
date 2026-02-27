@@ -12,7 +12,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Cargar helpers manualmente si composer dump-autoload no funciona
+        if (file_exists(app_path('Helpers/helpers.php'))) {
+            require_once app_path('Helpers/helpers.php');
+        }
+        if (file_exists(app_path('Helpers/SectorPermissionsHelper.php'))) {
+            require_once app_path('Helpers/SectorPermissionsHelper.php');
+        }
     }
 
     /**
