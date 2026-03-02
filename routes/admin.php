@@ -259,6 +259,9 @@ Route::prefix('whatsapp')->as('whatsapp.')->middleware(['checkAdminPermission:ac
     Route::get('/statistics', \App\Livewire\Admin\Whatsapp\WhatsAppStatistics::class)->name('statistics');
 });
 
+// Chat Interno
+Route::get('/chat-interno', \App\Livewire\Admin\Chat\ChatInterno::class)->name('chat-interno.index')->middleware('checkAdminPermission:access chat interno');
+
 // Exportador de Base de Datos
 Route::get('/exportar-base-datos', \App\Livewire\Admin\DatabaseExport::class)->name('database-export')->middleware('checkAdminPermission:access database export');
 

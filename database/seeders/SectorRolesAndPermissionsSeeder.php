@@ -432,6 +432,16 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 ],
             ],
 
+            // 💬 SECTOR CHAT INTERNO
+            'chat' => [
+                'chat_interno' => [
+                    'name' => 'Chat Interno',
+                    'permissions' => [
+                        'access chat interno',
+                    ]
+                ],
+            ],
+
             // 🛎️ SECTOR RECEPCIÓN
             'recepcion' => [
                 'dashboard' => [
@@ -509,7 +519,8 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'delete especialidades',
                 'delete subespecialidades',
             ])->get();
-        $medico->syncPermissions($medicoPermissions);
+        $chatPermission = Permission::where('name', 'access chat interno')->get();
+        $medico->syncPermissions($medicoPermissions->merge($chatPermission));
 
         // Rol Enfermería - Sector médico limitado
         $enfermeria = Role::firstOrCreate(['name' => 'Enfermería']);
@@ -519,7 +530,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'access consultas en enfermeria',
                 'registrar signos vitales',
             ])->get();
-        $enfermeria->syncPermissions($enfermeriaPermissions);
+        $enfermeria->syncPermissions($enfermeriaPermissions->merge($chatPermission));
 
         // Rol Recepción - Sector médico + administración limitada
         $recepcion = Role::firstOrCreate(['name' => 'Recepción']);
@@ -557,7 +568,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'create pagos',
                 'view pagos',
             ])->get();
-        $recepcion->syncPermissions($recepcionPermissions);
+        $recepcion->syncPermissions($recepcionPermissions->merge($chatPermission));
 
         // Rol Cajero - Solo sector administración
         $cajero = Role::firstOrCreate(['name' => 'Cajero']);
