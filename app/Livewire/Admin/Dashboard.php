@@ -80,7 +80,6 @@ class Dashboard extends Component
         $statusKeys = [
             Cita::ESTADO_PENDIENTE,
             Cita::ESTADO_CONFIRMADA,
-            Cita::ESTADO_EN_CURSO,
             Cita::ESTADO_COMPLETADA,
             Cita::ESTADO_CANCELADA,
             Cita::ESTADO_NO_ASISTIO
@@ -88,7 +87,6 @@ class Dashboard extends Component
         $statesSeries = [
             Cita::ESTADO_PENDIENTE => [],
             Cita::ESTADO_CONFIRMADA => [],
-            Cita::ESTADO_EN_CURSO => [],
             Cita::ESTADO_COMPLETADA => [],
             Cita::ESTADO_CANCELADA => [],
             Cita::ESTADO_NO_ASISTIO => [],
