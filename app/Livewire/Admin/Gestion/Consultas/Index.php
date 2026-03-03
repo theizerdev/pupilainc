@@ -60,7 +60,7 @@ class Index extends Component
         $title = $consulta->paciente->nombre_completo;
         
         // Si está en sala de espera, mostrar tiempo de espera en el título
-        if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera) {
+        if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera !== null) {
             $title = $consulta->paciente->nombre_completo . ' (' . $consulta->tiempo_espera_formateado . ')';
         }
         
@@ -75,6 +75,7 @@ class Index extends Component
                 'calendar' => $consulta->estado,
                 'codigo' => $consulta->codigo,
                 'paciente' => $consulta->paciente->nombre_completo,
+                'nickname' => $consulta->paciente->nickname ?? '',
                 'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
                 'medico_full' => $consulta->medico->nombre_completo ?? 'Sin médico',
                 'medico_id' => $consulta->medico_id,

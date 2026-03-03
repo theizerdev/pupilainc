@@ -286,11 +286,12 @@ function initConsultasCalendar(events, estadoColores) {
         initialView: 'dayGridMonth',
         plugins: [dayGridPlugin, interactionPlugin, listPlugin, timegridPlugin],
         events: fetchEvents,
-        editable: false,
+        editable: true,
         dragScroll: true,
-        dayMaxEvents: 2,
+        dayMaxEvents: 3,
         contentHeight: 'auto',
         expandRows: false,
+        eventResizableFromStart: true,
         locale: 'es',
         buttonText: {
             today: 'Hoy',
@@ -309,47 +310,70 @@ function initConsultasCalendar(events, estadoColores) {
         direction: direction,
         initialDate: new Date(),
         navLinks: true,
-        eventContent: function(arg) {
+        eventClassNames: function (arg) {
+            var classes = [];
             var ep = arg.event.extendedProps;
-            var timeText = arg.timeText || '';
-            var html = '';
-            var estadoHex = calendarColors[ep.estado] || '#78909C';
-            var estadoBadge = ep.estado_label
-                ? '<span style="background:' + estadoHex + ';color:#fff;border-radius:4px;padding:2px 6px;font-size:70%;margin-left:6px;">' + ep.estado_label + '</span>'
-                : '';
+            
+            // Aplicar color del estado como estilo
+            if (ep.estado && calendarColors[ep.estado]) {
+                classes.push('estado-' + ep.estado.replace('_', '-'));
+            }
+            
+            return classes;
+        },
+        eventContent: function(arg) {
+            const view = arg.view;
+            const ep = arg.event.extendedProps;
+            const timeText = arg.timeText || '';
+            let html = '';
 
+            // Nombre del paciente con nickname entre paréntesis si está disponible
+            var pacienteNombre = ep.paciente || arg.event.title || '';
+            if (ep.nickname) {
+                pacienteNombre = pacienteNombre + ' (' + ep.nickname + ')';
+            }
+            // Doctor
+            var medicoNombre = ep.medico || ep.medico_full || '';
+            // Estado con color
+            var estadoLabel = ep.estado_label || ep.estado || '';
+            var estadoColor = calendarColors[ep.estado] || '#78909C';
+            var estadoBadge = '<span class="badge rounded-pill" style="background:' + estadoColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;white-space:nowrap;">' + estadoLabel + '</span>';
+
+            // Tiempo en estado actual
             var tiempoEstado = formatTiempoEstado(ep.estado_changed_at);
             var tiempoBadge = tiempoEstado
                 ? '<span style="background:rgba(0,0,0,0.08);color:#555;border-radius:4px;padding:1px 5px;font-size:65%;margin-left:4px;" title="Tiempo en estado actual"><i class="ri ri-time-line" style="font-size:0.6rem;vertical-align:middle;margin-right:2px;"></i>' + tiempoEstado + '</span>'
                 : '';
 
-            if (arg.view.type === 'listMonth') {
-                html = '<div style="line-height:1.4;">' +
-                    '<strong style="font-size:0.85rem;">' + arg.event.title + '</strong> ' + estadoBadge + tiempoBadge +
-                    '<br><small class="text-muted">' + (ep.medico || '') + '</small>' +
-                    (ep.motivo ? '<br><small class="text-muted">' + ep.motivo + '</small>' : '') +
-                    '</div>';
-            } else if (arg.view.type === 'dayGridMonth') {
-                html = '<div class="fc-event-main-frame" style="line-height:1.2; display: flex; align-items: center; gap: 15px; padding: 4px; width: 100%; overflow: visible;">' +
-                    '<div class="punto-agua" style="--color-punto: ' + estadoHex + ';"></div>' +
-                    '<div class="fc-event-title-container" style="display: flex; flex-direction: column; overflow: hidden;">' +
-                        '<div class="fc-event-title fc-sticky" style="font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' +
-                            arg.event.title + ' ' + estadoBadge +
-                        '</div>' +
-                        '<div class="fc-event-title fc-sticky badge bg-label-primary" style="font-size: 70%; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' +
-                            'Dr. ' + ep.medico_full +
-                        '</div>' +
-                    '</div>' +
-                '</div>';
-            } else {
-                html = '<div class="fc-event-main-frame" style="line-height:1.3;">' +
+            if (view.type === 'dayGridMonth') {
+                html = '<div class="fc-event-main-frame">' +
                     '<div class="fc-event-time">' + timeText + '</div>' +
                     '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title fc-sticky">' + arg.event.title + ' ' + estadoBadge + '</div>' +
-                        '<div class="fc-event-subtitle">' + (ep.medico || '') + ' ' + tiempoBadge + '</div>' +
+                        '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                        '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px;">' + estadoBadge + tiempoBadge + '</div>' +
                     '</div>' +
-                    '</div>';
+                '</div>';
+            } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
+                html = '<div class="fc-event-main-frame" style="width:100%;">' +
+                    '<div class="fc-event-title-container">' +
+                        '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                        '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + estadoBadge + tiempoBadge + '</div>' +
+                    '</div>' +
+                '</div>';
+            } else if (view.type === 'listMonth' || view.type === 'listWeek') {
+                html = '<div class="fc-list-event-main-frame" style="display:flex;align-items:center;gap:8px;width:100%;">' +
+                    '<div class="fc-event-title-container" style="flex:1;min-width:0;">' +
+                        '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                        '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + estadoBadge + tiempoBadge + '</div>' +
+                '</div>';
+            } else {
+                return { html: '<div>' + arg.event.title + '</div>' };
             }
+
             return { html: html };
         },
         eventDidMount: function(info) {
@@ -357,11 +381,17 @@ function initConsultasCalendar(events, estadoColores) {
             var stateHex = calendarColors[ep.estado] || null;
             if (stateHex) {
                 info.el.style.backgroundColor = hexToRgba(stateHex, 0.12);
-                info.el.style.borderColor = hexToRgba(stateHex, 0.4);
+                info.el.style.borderTopColor = hexToRgba(stateHex, 0.4);
+                info.el.style.borderRightColor = hexToRgba(stateHex, 0.4);
+                info.el.style.borderBottomColor = hexToRgba(stateHex, 0.4);
             }
+            var startDate = info.event.start;
+            var dateStr = startDate ? startDate.toLocaleDateString('es-VE', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
             var tooltipParts = [
                 ep.paciente || info.event.title,
+                ep.nickname ? 'Cómo le gusta que le digan: ' + ep.nickname : '',
                 'Dr(a). ' + (ep.medico_full || ep.medico || ''),
+                'Fecha: ' + dateStr,
                 'Estado: ' + (ep.estado_label || ep.estado || ''),
             ];
             var tt = formatTiempoEstado(ep.estado_changed_at);

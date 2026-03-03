@@ -134,8 +134,12 @@ class Consulta extends Model
      */
     public function getTiempoSalaEsperaAttribute()
     {
-        if ($this->estado === self::ESTADO_SALA_ESPERA && $this->estado_changed_at) {
-            return Carbon::now()->diffInMinutes($this->estado_changed_at);
+        if ($this->estado === self::ESTADO_SALA_ESPERA) {
+            // Usar estado_changed_at si está disponible, de lo contrario usar updated_at
+            $fechaReferencia = $this->estado_changed_at ?? $this->updated_at;
+            if ($fechaReferencia) {
+                return \Carbon\Carbon::now()->diffInMinutes($fechaReferencia);
+            }
         }
         
         return null;
