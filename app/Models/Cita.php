@@ -12,6 +12,7 @@ use Spatie\Activitylog\LogOptions;
 use Illuminate\Support\Str;
 use App\Traits\Multitenantable;
 use App\Traits\HasSpanishActivityLog;
+use App\Models\Consulta;
 
 class Cita extends Model
 {
@@ -208,8 +209,12 @@ class Cita extends Model
 
     public function cambiarEstado($nuevoEstado)
     {
+        
         $estadoAnterior = $this->estado;
         $this->update(['estado' => $nuevoEstado]);
+        if ($nuevoEstado === 'confirmada') {
+            $this->crearConsultaSiNoExiste();
+        }
         try {
             activity()
                 ->performedOn($this)
@@ -222,6 +227,32 @@ class Cita extends Model
         } catch (\Throwable $e) {
         }
         return $this;
+    }
+
+    protected function crearConsultaSiNoExiste(): void
+    {
+        try {
+            $existe = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->exists();
+            if ($existe) return;
+
+            Consulta::withoutGlobalScopes()->create([
+                'cita_id' => $this->id,
+                'paciente_id' => $this->paciente_id,
+                'medico_id' => $this->medico_id,
+                'especialidad_id' => $this->especialidad_id,
+                'fecha_consulta' => $this->fecha_inicio,
+                'motivo_consulta' => $this->motivo,
+                'estado' => Consulta::ESTADO_POR_LLEGAR,
+                'estado_changed_at' => now(),
+                'empresa_id' => $this->empresa_id,
+                'sucursal_id' => $this->sucursal_id,
+                'created_by' => auth()->id(),
+            ]);
+
+            \Log::info("Consulta por_llegar creada para cita #{$this->id}");
+        } catch (\Throwable $e) {
+            \Log::error("Error creando consulta para cita #{$this->id}: " . $e->getMessage());
+        }
     }
 
     public function programarRecordatorios(): void
@@ -295,9 +326,15 @@ class Cita extends Model
 
     public function toFullCalendarEvent()
     {
-        $nombrePaciente = $this->paciente->nombre_completo;
-        if (!empty($this->paciente->nickname)) {
-            $nombrePaciente = "{$this->paciente->nombre_completo} ({$this->paciente->nickname})";
+        $nickname = $this->paciente->nickname ?? '';
+        $nombreCompleto = $this->paciente->nombre_completo;
+        $edad = $this->paciente->edad;
+        $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+
+        // Formato título: (nickname) Nombre Apellido (sin edad, la edad se muestra solo en vista semana/día vía JS)
+        $nombrePaciente = $nombreCompleto;
+        if (!empty($nickname)) {
+            $nombrePaciente = "({$nickname}) {$nombreCompleto}";
         }
         
         return [
@@ -310,7 +347,9 @@ class Cita extends Model
                 'calendar' => $this->estado,
                 'medico' => $this->medico->nombre_completo,
                 'medico_full' => $this->medico->nombre_completo,
-                'paciente' => $nombrePaciente,
+                'paciente' => $nombreCompleto,
+                'nickname' => $nickname,
+                'edad' => $edadTexto,
                 'paciente_id' => $this->paciente_id,
                 'medico_id' => $this->medico_id,
                 'especialidad_id' => $this->especialidad_id,

@@ -317,6 +317,8 @@ class Index extends Component
 
     public function saveCita($eventData)
     {
+        //dd($eventData);
+
         if (is_array($eventData)) {
             $this->paciente_id = $eventData['paciente_id'] ?? $this->paciente_id;
             $this->especialidad_id = $eventData['especialidad_id'] ?? $this->especialidad_id;
@@ -373,6 +375,10 @@ class Index extends Component
             if ($estadoAnterior !== $this->estado) {
                 $this->notificarCambioEstado($cita, $estadoAnterior);
             }
+
+             if ($estadoAnterior !== $this->estado) {
+                $cita->cambiarEstado($this->estado);
+             }
 
             if ($fechaAnterior !== $cita->fecha_inicio->toDateTimeString()) {
                 // Reprogramar recordatorios si cambió la fecha
@@ -535,6 +541,7 @@ class Index extends Component
 
     public function cambiarEstado($citaId, $nuevoEstado)
     {
+        dd($nuevoEstado);
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);

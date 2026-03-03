@@ -14,6 +14,7 @@ class Consulta extends Model
     protected $table = 'consultas';
 
     const ESTADO_BORRADOR = 'borrador';
+    const ESTADO_POR_LLEGAR = 'por_llegar';
     const ESTADO_FINALIZADA = 'finalizada';
     const ESTADO_PAGADA = 'pagada';
     const ESTADO_SALA_ESPERA = 'sala_espera';
@@ -25,6 +26,7 @@ class Consulta extends Model
     const ESTADO_EN_ESTUDIO = 'en_estudio';
 
     const ESTADOS = [
+        self::ESTADO_POR_LLEGAR,
         self::ESTADO_SALA_ESPERA,
         self::ESTADO_EN_ENFERMERIA,
         self::ESTADO_EN_CONSULTORIO,
@@ -38,6 +40,7 @@ class Consulta extends Model
     ];
 
     const ESTADO_LABELS = [
+        self::ESTADO_POR_LLEGAR => 'Por llegar',
         self::ESTADO_SALA_ESPERA => 'Sala de Espera',
         self::ESTADO_EN_ENFERMERIA => 'En Enfermería',
         self::ESTADO_EN_CONSULTORIO => 'En Consultorio',
@@ -51,6 +54,7 @@ class Consulta extends Model
     ];
 
     const ESTADO_COLORES = [
+        self::ESTADO_POR_LLEGAR => '#9E9E9E',
         self::ESTADO_SALA_ESPERA => '#FFA726',
         self::ESTADO_EN_ENFERMERIA => '#EF5350',
         self::ESTADO_EN_CONSULTORIO => '#42A5F5',

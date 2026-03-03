@@ -20,6 +20,7 @@ class Index extends Component
     public function mount()
     {
         $this->filtroEstados = [
+            Consulta::ESTADO_POR_LLEGAR,
             Consulta::ESTADO_SALA_ESPERA,
             Consulta::ESTADO_EN_ENFERMERIA,
             Consulta::ESTADO_EN_CONSULTORIO,
@@ -57,11 +58,20 @@ class Index extends Component
 
     protected function mapConsultaToEvent($consulta)
     {
-        $title = $consulta->paciente->nombre_completo;
+        $nickname = $consulta->paciente->nickname ?? '';
+        $nombreCompleto = $consulta->paciente->nombre_completo;
+        $edad = $consulta->paciente->edad;
+        $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+
+        // Formato título: (nickname) Nombre Apellido (sin edad, la edad se muestra solo en vista semana/día vía JS)
+        $title = $nombreCompleto;
+        if (!empty($nickname)) {
+            $title = "({$nickname}) {$title}";
+        }
         
-        // Si está en sala de espera, mostrar tiempo de espera en el título
+        // Si está en sala de espera, agregar tiempo de espera
         if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera !== null) {
-            $title = $consulta->paciente->nombre_completo . ' (' . $consulta->tiempo_espera_formateado . ')';
+            $title .= ' [' . $consulta->tiempo_espera_formateado . ']';
         }
         
         return [
@@ -76,6 +86,7 @@ class Index extends Component
                 'codigo' => $consulta->codigo,
                 'paciente' => $consulta->paciente->nombre_completo,
                 'nickname' => $consulta->paciente->nickname ?? '',
+                'edad' => $consulta->paciente->edad !== null ? $consulta->paciente->edad . ' años' : '',
                 'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
                 'medico_full' => $consulta->medico->nombre_completo ?? 'Sin médico',
                 'medico_id' => $consulta->medico_id,

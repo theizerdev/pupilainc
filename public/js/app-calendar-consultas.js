@@ -8,6 +8,21 @@
 function initConsultasCalendar(events, estadoColores) {
     const direction = document.documentElement.getAttribute('dir') === 'rtl' ? 'rtl' : 'ltr';
 
+    (function ensureNowIndicatorStyle() {
+        if (document.getElementById('fc-now-indicator-style')) return;
+        var s = document.createElement('style');
+        s.id = 'fc-now-indicator-style';
+        s.textContent =
+            '.fc .fc-timegrid-now-indicator-line{' +
+                'border:none;height:2px;background:#ea4335;z-index:4;' +
+            '}' +
+            '.fc .fc-timegrid-now-indicator-arrow{' +
+                'border:none;background:#ea4335;width:12px;height:12px;' +
+                'border-radius:50%;margin-top:-5px;left:-1px;' +
+            '}';
+        document.head.appendChild(s);
+    })();
+
     const calendarEl = document.getElementById('calendar');
     const appCalendarSidebar = document.querySelector('.app-calendar-sidebar');
     const appOverlay = document.querySelector('.app-overlay');
@@ -287,6 +302,7 @@ function initConsultasCalendar(events, estadoColores) {
         plugins: [dayGridPlugin, interactionPlugin, listPlugin, timegridPlugin],
         events: fetchEvents,
         editable: true,
+        nowIndicator: true,
         dragScroll: true,
         dayMaxEvents: 3,
         contentHeight: 'auto',
@@ -327,10 +343,15 @@ function initConsultasCalendar(events, estadoColores) {
             const timeText = arg.timeText || '';
             let html = '';
 
-            // Nombre del paciente con nickname entre paréntesis si está disponible
-            var pacienteNombre = ep.paciente || arg.event.title || '';
+            // Nombre base: (nickname) Nombre Apellido
+            var pacienteBase = ep.paciente || arg.event.title || '';
             if (ep.nickname) {
-                pacienteNombre = pacienteNombre + ' (' + ep.nickname + ')';
+                pacienteBase = '(' + ep.nickname + ') ' + pacienteBase;
+            }
+            // Con edad solo para semana/día
+            var pacienteConEdad = pacienteBase;
+            if (ep.edad) {
+                pacienteConEdad = pacienteBase + ' - ' + ep.edad;
             }
             // Doctor
             var medicoNombre = ep.medico || ep.medico_full || '';
@@ -349,7 +370,7 @@ function initConsultasCalendar(events, estadoColores) {
                 html = '<div class="fc-event-main-frame">' +
                     '<div class="fc-event-time">' + timeText + '</div>' +
                     '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                        '<div class="fc-event-title">' + pacienteBase + '</div>' +
                         '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                         '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px;">' + estadoBadge + tiempoBadge + '</div>' +
                     '</div>' +
@@ -357,7 +378,7 @@ function initConsultasCalendar(events, estadoColores) {
             } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
                 html = '<div class="fc-event-main-frame" style="width:100%;">' +
                     '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                        '<div class="fc-event-title">' + pacienteConEdad + '</div>' +
                         '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                         '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + estadoBadge + tiempoBadge + '</div>' +
                     '</div>' +
@@ -365,7 +386,7 @@ function initConsultasCalendar(events, estadoColores) {
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
                 html = '<div class="fc-list-event-main-frame" style="display:flex;align-items:center;gap:8px;width:100%;">' +
                     '<div class="fc-event-title-container" style="flex:1;min-width:0;">' +
-                        '<div class="fc-event-title">' + pacienteNombre + '</div>' +
+                        '<div class="fc-event-title">' + pacienteConEdad + '</div>' +
                         '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                     '</div>' +
                     '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + estadoBadge + tiempoBadge + '</div>' +
@@ -387,9 +408,11 @@ function initConsultasCalendar(events, estadoColores) {
             }
             var startDate = info.event.start;
             var dateStr = startDate ? startDate.toLocaleDateString('es-VE', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+            var tooltipNombre = ep.paciente || info.event.title;
+            if (ep.nickname) tooltipNombre = '(' + ep.nickname + ') ' + tooltipNombre;
+            if (ep.edad) tooltipNombre = tooltipNombre + ' - ' + ep.edad;
             var tooltipParts = [
-                ep.paciente || info.event.title,
-                ep.nickname ? 'Cómo le gusta que le digan: ' + ep.nickname : '',
+                tooltipNombre,
                 'Dr(a). ' + (ep.medico_full || ep.medico || ''),
                 'Fecha: ' + dateStr,
                 'Estado: ' + (ep.estado_label || ep.estado || ''),

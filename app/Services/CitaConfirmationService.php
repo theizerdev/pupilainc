@@ -108,10 +108,10 @@ class CitaConfirmationService
     {
         $confirmacion->marcarComoConfirmada($respuesta);
         
-        // Actualizar estado de la cita
+        // Actualizar estado de la cita y crear consulta "por llegar"
         $cita = $confirmacion->cita;
         if ($cita && $cita->estado === Cita::ESTADO_PENDIENTE) {
-            $cita->update(['estado' => Cita::ESTADO_CONFIRMADA]);
+            $cita->cambiarEstado(Cita::ESTADO_CONFIRMADA);
         }
 
         Log::info('Cita confirmada exitosamente', [
