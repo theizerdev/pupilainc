@@ -106,7 +106,7 @@ class Apertura extends Component
         DB::transaction(function () {
             // Actualizar estado de la cita
             $this->citaSeleccionada->update([
-                'estado' => 'en_curso',
+                'estado' => 'completada',
                 'motivo' => $this->motivoConsulta,
             ]);
 

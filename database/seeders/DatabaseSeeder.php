@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             SerieSeeder::class,
             CuestionarioSeeder::class,
             EspecialidadesSubespecialidadesSeeder::class, // Agregar especialidades y subespecialidades médicas
+            TipoConsultaSeeder::class, // Tipos de consultas médicas
         ]);
     }
 }

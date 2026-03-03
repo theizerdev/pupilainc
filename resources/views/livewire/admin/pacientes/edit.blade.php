@@ -98,9 +98,9 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="nickname">Nickname</label>
+                                    <label for="nickname">¿Cómo le gusta que le digan?</label>
                                     <input type="text" class="form-control @error('nickname') is-invalid @enderror" 
-                                           id="nickname" wire:model="nickname" placeholder="Apodo o nombre corto">
+                                           id="nickname" wire:model="nickname" placeholder="Ej: Juanito, Beba, etc.">
                                     @error('nickname')
                                         <span class="invalid-feedback">{{ $message }}</span>
                                     @enderror

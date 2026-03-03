@@ -84,9 +84,9 @@
             <div class="row">
                 <div class="col-md-4">
                     <div class="form-group mb-3">
-                        <label for="nickname">Nickname / Apodo</label>
+                        <label for="nickname">¿Cómo le gusta que le digan?</label>
                         <input type="text" class="form-control @error('nickname') is-invalid @enderror"
-                               id="nickname" wire:model="nickname" placeholder="Ingrese el apodo">
+                               id="nickname" wire:model="nickname" placeholder="Ej: Juanito, Beba, etc.">
                         @error('nickname')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror

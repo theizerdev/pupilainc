@@ -129,6 +129,43 @@ class Consulta extends Model
         return $this->belongsTo(Paciente::class);
     }
 
+    /**
+     * Calcula el tiempo transcurrido en sala de espera
+     */
+    public function getTiempoSalaEsperaAttribute()
+    {
+        if ($this->estado === self::ESTADO_SALA_ESPERA && $this->estado_changed_at) {
+            return Carbon::now()->diffInMinutes($this->estado_changed_at);
+        }
+        
+        return null;
+    }
+
+    /**
+     * Formatea el tiempo de espera para display
+     */
+    public function getTiempoEsperaFormateadoAttribute()
+    {
+        $minutos = $this->tiempo_sala_espera;
+        
+        if (!$minutos) {
+            return 'No en sala de espera';
+        }
+        
+        if ($minutos < 60) {
+            return "{$minutos} min";
+        }
+        
+        $horas = floor($minutos / 60);
+        $minutosRestantes = $minutos % 60;
+        
+        if ($minutosRestantes === 0) {
+            return "{$horas}h";
+        }
+        
+        return "{$horas}h {$minutosRestantes}min";
+    }
+
     public function medico()
     {
         return $this->belongsTo(Medico::class);

@@ -74,11 +74,7 @@
                                             wire:click="$set('filtroEstado', 'pendiente')">
                                         Pendientes
                                     </button>
-                                    <button type="button" 
-                                            class="btn btn-outline-primary {{ $filtroEstado === 'en_curso' ? 'active' : '' }}"
-                                            wire:click="$set('filtroEstado', 'en_curso')">
-                                        En Curso
-                                    </button>
+
                                 </div>
                             </div>
                             <div class="col-md-6 text-end">
@@ -150,8 +146,6 @@
                                             <td>
                                                 @if($cita->estado === 'pendiente')
                                                     <span class="badge bg-warning">⏳ Pendiente</span>
-                                                @elseif($cita->estado === 'en_curso')
-                                                    <span class="badge bg-success">🔄 En Curso</span>
                                                 @else
                                                     <span class="badge bg-secondary">{{ ucfirst($cita->estado) }}</span>
                                                 @endif

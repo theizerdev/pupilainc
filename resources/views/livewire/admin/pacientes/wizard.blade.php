@@ -262,7 +262,7 @@
                                         <div class="form-floating form-floating-outline">
                                             <input type="text" class="form-control @error('nickname') is-invalid @enderror"
                                                    wire:model="nickname" placeholder="Juanito" id="wz-nickname">
-                                            <label for="wz-nickname">Apodo / Nombre preferido</label>
+                                            <label for="wz-nickname">¿Cómo le gusta que le digan?</label>
                                             @error('nickname') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>

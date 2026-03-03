@@ -143,7 +143,6 @@ class Dashboard extends Component
         $this->stats = [
             'pendientes' => $citasHoy->where('estado', Cita::ESTADO_PENDIENTE)->count(),
             'confirmadas' => $citasHoy->where('estado', Cita::ESTADO_CONFIRMADA)->count(),
-            'en_curso' => $citasHoy->where('estado', Cita::ESTADO_EN_CURSO)->count(),
             'completadas' => $citasHoy->where('estado', Cita::ESTADO_COMPLETADA)->count(),
             'canceladas' => $citasHoy->where('estado', Cita::ESTADO_CANCELADA)->count(),
             'no_asistio' => $citasHoy->where('estado', Cita::ESTADO_NO_ASISTIO)->count(),
@@ -181,8 +180,7 @@ class Dashboard extends Component
                     'citas' => function($query) {
                     $query->whereIn('estado', [
                             Cita::ESTADO_PENDIENTE, 
-                            Cita::ESTADO_CONFIRMADA, 
-                            Cita::ESTADO_EN_CURSO
+                            Cita::ESTADO_CONFIRMADA
                         ])
                         ->whereDate('fecha_inicio', '>=', Carbon::today())
                         ->orderBy('fecha_inicio', 'asc');

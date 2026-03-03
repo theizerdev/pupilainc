@@ -57,9 +57,16 @@ class Index extends Component
 
     protected function mapConsultaToEvent($consulta)
     {
+        $title = $consulta->paciente->nombre_completo;
+        
+        // Si está en sala de espera, mostrar tiempo de espera en el título
+        if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera) {
+            $title = $consulta->paciente->nombre_completo . ' (' . $consulta->tiempo_espera_formateado . ')';
+        }
+        
         return [
             'id' => $consulta->id,
-            'title' => $consulta->paciente->nombre_completo,
+            'title' => $title,
             'start' => $consulta->fecha_consulta->toIso8601String(),
             'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
             'backgroundColor' => $this->getEstadoColor($consulta->estado),
@@ -78,6 +85,8 @@ class Index extends Component
                 'estado_changed_at' => $consulta->estado_changed_at?->toIso8601String(),
                 'motivo' => $consulta->motivo_consulta,
                 'preconsulta' => $consulta->preconsulta,
+                'tiempo_espera' => $consulta->tiempo_sala_espera,
+                'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
             ],
         ];
     }

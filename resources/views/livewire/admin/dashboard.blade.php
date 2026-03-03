@@ -499,7 +499,6 @@
             var colors = {
                 pendiente: '#ffc107',
                 confirmada: '#0d6efd',
-                en_curso: '#17a2b8',
                 completada: '#28a745',
                 cancelada: '#dc3545',
                 no_asistio: '#6c757d'
@@ -507,12 +506,11 @@
             var names = {
                 pendiente: 'Pendiente',
                 confirmada: 'Confirmada',
-                en_curso: 'En Curso',
                 completada: 'Completada',
                 cancelada: 'Cancelada',
                 no_asistio: 'No Asistió'
             };
-            ['pendiente','confirmada','en_curso','completada','cancelada','no_asistio'].forEach(function(st){
+            ['pendiente','confirmada','completada','cancelada','no_asistio'].forEach(function(st){
                 var data = Array.isArray(states && states[st]) ? states[st].map(function(v){ return Number(v) || 0; }) : [];
                 series.push({ name: names[st], data: data });
             });
@@ -522,7 +520,7 @@
                 stroke: { curve: 'smooth', width: 3 },
                 fill: { type: 'gradient', gradient: { shadeIntensity: 0.6, opacityFrom: 0.35, opacityTo: 0.1, stops: [0, 90, 100] } },
                 grid: { strokeDashArray: 4 },
-                colors: [colors.pendiente, colors.confirmada, colors.en_curso, colors.completada, colors.cancelada, colors.no_asistio],
+                colors: [colors.pendiente, colors.confirmada, colors.completada, colors.cancelada, colors.no_asistio],
                 series: series,
                 xaxis: { categories: labels },
                 yaxis: { min: 0, labels: { formatter: function(val){ return Math.round(val); } } },

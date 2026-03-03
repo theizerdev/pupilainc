@@ -205,7 +205,7 @@
                                             <i class="fas fa-user"></i>
                                         </div>
                                         <div>
-                                            <span class="fw-semibold d-block">{{ $cita->paciente->nombre_completo ?? '-' }}</span>
+                                            <span class="fw-semibold d-block">{{ $cita->paciente->nombre_completo }}{{ $cita->paciente->nickname ? " ($cita->paciente->nickname)" : "" }}</span>
                                             <small class="text-muted">
                                                 <i class="fas fa-phone me-1"></i>{{ $cita->paciente->telefono ?? '-' }}
                                             </small>
@@ -374,7 +374,7 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <small class="text-muted d-block">Paciente</small>
-                                    <span class="fw-semibold">{{ $citaSeleccionada->paciente->nombre_completo ?? '-' }}</span>
+                                    <span class="fw-semibold">{{ $citaSeleccionada->paciente->nombre_completo }}{{ $citaSeleccionada->paciente->nickname ? " ($citaSeleccionada->paciente->nickname)" : "" }}</span>
                                 </div>
                                 <div class="col-md-4">
                                     <small class="text-muted d-block">Médico</small>

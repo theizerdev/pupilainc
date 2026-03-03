@@ -55,7 +55,7 @@ class Preconsulta extends Component
         // Buscar cita de hoy (pendiente o confirmada)
         $this->cita = $paciente->citas()
             ->whereDate('fecha_inicio', Carbon::today())
-            ->whereIn('estado', [Cita::ESTADO_PENDIENTE, Cita::ESTADO_CONFIRMADA, Cita::ESTADO_EN_CURSO])
+            ->whereIn('estado', [Cita::ESTADO_PENDIENTE, Cita::ESTADO_CONFIRMADA])
             ->first();
 
         if ($this->cita) {

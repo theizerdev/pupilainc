@@ -73,7 +73,7 @@
                                             {{ \Carbon\Carbon::parse($recordatorio->cita->fecha_inicio)->format('d/m/Y H:i') }}
                                         </td>
                                         <td>
-                                            <strong>{{ $recordatorio->cita->paciente->nombre_completo }}</strong><br>
+                                            <strong>{{ $recordatorio->cita->paciente->nombre_completo }}{{ $recordatorio->cita->paciente->nickname ? " ($recordatorio->cita->paciente->nickname)" : "" }}</strong><br>
                                             <small class="text-muted">{{ $recordatorio->cita->paciente->telefono }}</small>
                                         </td>
                                         <td>

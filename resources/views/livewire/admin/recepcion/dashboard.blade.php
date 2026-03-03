@@ -61,23 +61,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-2">
-            <div class="card card-border-shadow-info h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-2">
-                        <div class="avatar me-2">
-                            <span class="avatar-initial rounded bg-label-info">
-                                <i class="ri ri-user-follow-line ri-20px"></i>
-                            </span>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">{{ $stats['en_curso'] }}</h4>
-                            <small class="text-muted">En Curso</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+
         <div class="col-sm-6 col-lg-2">
             <div class="card card-border-shadow-success h-100">
                 <div class="card-body">
@@ -659,9 +643,9 @@
     document.addEventListener('livewire:init', function () {
         var citasBarsOptions = {
             chart: { type: 'bar', height: 240, toolbar: { show: false } },
-            series: [{ name: 'Citas', data: [{{ $stats['pendientes'] }}, {{ $stats['confirmadas'] }}, {{ $stats['en_curso'] }}, {{ $stats['completadas'] }}, {{ $stats['canceladas'] }}, {{ $stats['no_asistio'] }}] }],
-            colors: ['#ffc107', '#7367f0', '#00bad1', '#28c76f', '#ff4c51', '#a8aaae'],
-            xaxis: { categories: ['Pendientes', 'Confirmadas', 'En curso', 'Completadas', 'Canceladas', 'No asistió'] },
+            series: [{ name: 'Citas', data: [{{ $stats['pendientes'] }}, {{ $stats['confirmadas'] }}, {{ $stats['completadas'] }}, {{ $stats['canceladas'] }}, {{ $stats['no_asistio'] }}] }],
+            colors: ['#ffc107', '#7367f0', '#28c76f', '#ff4c51', '#a8aaae'],
+            xaxis: { categories: ['Pendientes', 'Confirmadas', 'Completadas', 'Canceladas', 'No asistió'] },
             plotOptions: { bar: { columnWidth: '45%', borderRadius: 6, distributed: true } },
             dataLabels: { enabled: true },
             legend: { show: false },

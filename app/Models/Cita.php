@@ -21,8 +21,6 @@ class Cita extends Model
 
     const ESTADO_PENDIENTE = 'pendiente';
     const ESTADO_CONFIRMADA = 'confirmada';
-    const ESTADO_EN_CURSO = 'en_curso';
-    const ESTADO_SALA_ESPERA = 'sala_espera';
     const ESTADO_COMPLETADA = 'completada';
     const ESTADO_CANCELADA = 'cancelada';
     const ESTADO_NO_ASISTIO = 'no_asistio';
@@ -30,8 +28,6 @@ class Cita extends Model
     const ESTADOS = [
         self::ESTADO_PENDIENTE,
         self::ESTADO_CONFIRMADA,
-        self::ESTADO_EN_CURSO,
-        self::ESTADO_SALA_ESPERA,
         self::ESTADO_COMPLETADA,
         self::ESTADO_CANCELADA,
         self::ESTADO_NO_ASISTIO,
@@ -40,8 +36,6 @@ class Cita extends Model
     const ESTADO_COLORES = [
         'pendiente' => 'warning',
         'confirmada' => 'primary',
-        'en_curso' => 'info',
-        'sala_espera' => 'warning',
         'completada' => 'success',
         'cancelada' => 'danger',
         'no_asistio' => 'secondary',
@@ -50,8 +44,6 @@ class Cita extends Model
     const ESTADO_LABELS = [
         'pendiente' => 'Pendiente',
         'confirmada' => 'Confirmada',
-        'en_curso' => 'En Curso',
-        'sala_espera' => 'En Sala de Espera',
         'completada' => 'Completada',
         'cancelada' => 'Cancelada',
         'no_asistio' => 'No Asistió',
@@ -303,9 +295,14 @@ class Cita extends Model
 
     public function toFullCalendarEvent()
     {
+        $nombrePaciente = $this->paciente->nombre_completo;
+        if (!empty($this->paciente->nickname)) {
+            $nombrePaciente = "{$this->paciente->nombre_completo} ({$this->paciente->nickname})";
+        }
+        
         return [
             'id' => $this->id,
-            'title' => $this->paciente->nombre_completo,
+            'title' => $nombrePaciente,
             'start' => $this->fecha_inicio->toIso8601String(),
             'end' => $this->fecha_fin->toIso8601String(),
             'allDay' => false,
@@ -313,7 +310,7 @@ class Cita extends Model
                 'calendar' => $this->estado,
                 'medico' => $this->medico->nombre_completo,
                 'medico_full' => $this->medico->nombre_completo,
-                'paciente' => $this->paciente->nombre_completo,
+                'paciente' => $nombrePaciente,
                 'paciente_id' => $this->paciente_id,
                 'medico_id' => $this->medico_id,
                 'especialidad_id' => $this->especialidad_id,

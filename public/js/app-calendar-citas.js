@@ -155,6 +155,7 @@ function initCitasCalendar(events) {
                 apellidos: document.getElementById('mpApellidos')?.value || '',
                 documento_identidad: document.getElementById('mpDocumento')?.value || '',
                 telefono: document.getElementById('mpTelefono')?.value || '',
+                nickname: document.getElementById('mpNickname')?.value || '',
                 fecha_nacimiento: document.getElementById('mpFechaNacimiento')?.value || '',
                 es_menor: !!(mpEsMenor && mpEsMenor.checked),
                 tutor: {

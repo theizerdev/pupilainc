@@ -29,7 +29,8 @@
                 if (data.success && data.paciente) {
                     // Si se creó correctamente, añadirlo al select y seleccionarlo
                     const select = document.getElementById('eventPaciente');
-                    const option = new Option(`${data.paciente.nombre} - ${data.paciente.documento_identidad || ''}`, data.paciente.id, true, true);
+                    const nombreMostrar = data.paciente.nickname ? `${data.paciente.nombre} (${data.paciente.nickname}) - ${data.paciente.documento_identidad || ''}` : `${data.paciente.nombre} - ${data.paciente.documento_identidad || ''}`;
+                    const option = new Option(nombreMostrar, data.paciente.id, true, true);
                     select.appendChild(option);
                     $(select).trigger('change');
                 }
@@ -283,14 +284,7 @@
                             <input class="form-check-input input-filter" type="checkbox" id="select-confirmada" data-value="confirmada" checked />
                             <label class="form-check-label" for="select-confirmada">Confirmada</label>
                         </div>
-                        <div class="form-check form-check-info mb-5 ms-3">
-                            <input class="form-check-input input-filter" type="checkbox" id="select-en_curso" data-value="en_curso" checked />
-                            <label class="form-check-label" for="select-en_curso">En Curso</label>
-                        </div>
-                        <div class="form-check form-check-warning mb-5 ms-3">
-                            <input class="form-check-input input-filter" type="checkbox" id="select-sala_espera" data-value="sala_espera" checked />
-                            <label class="form-check-label" for="select-sala_espera">En Sala de Espera</label>
-                        </div>
+
                         <div class="form-check form-check-success mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-completada" data-value="completada" checked />
                             <label class="form-check-label" for="select-completada">Completada</label>
@@ -357,7 +351,7 @@
                                     <option value="">Seleccionar paciente</option>
                                     @foreach($pacientes as $paciente)
                                         <option value="{{ $paciente->id }}">
-                                            {{ $paciente->nombre_completo }} - {{ $paciente->documento_identidad }}
+                                            {{ $paciente->nombre_completo }}{{ $paciente->nickname ? " ($paciente->nickname)" : "" }} - {{ $paciente->documento_identidad }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -505,6 +499,12 @@
                                         <div class="form-floating form-floating-outline">
                                             <input type="text" class="form-control" id="mpTelefono" placeholder="Teléfono">
                                             <label for="mpTelefono">Teléfono</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-floating form-floating-outline">
+                                            <input type="text" class="form-control" id="mpNickname" placeholder="Ej: Juanito, Beba, etc.">
+                                            <label for="mpNickname">¿Cómo le gusta que le digan?</label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">

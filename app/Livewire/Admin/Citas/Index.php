@@ -90,9 +90,44 @@ class Index extends Component
             })
             ->get();
 
-        return $citas->map(function ($cita) {
+        // Obtener consultas en sala de espera para mostrarlas también en el calendario
+        $consultasEnSalaEspera = [];
+        if (class_exists('App\\Models\\Consulta')) {
+            $consultasEnSalaEspera = \App\Models\Consulta::with(['paciente', 'medico', 'especialidad'])
+                ->where('estado', \App\Models\Consulta::ESTADO_SALA_ESPERA)
+                ->where('fecha_consulta', '>=', now()->subDay())
+                ->get()
+                ->map(function ($consulta) {
+                    return [
+                        'id' => 'consulta_' . $consulta->id,
+                        'title' => $consulta->paciente->nombre_completo . ' (' . $consulta->tiempo_espera_formateado . ')',
+                        'start' => $consulta->fecha_consulta->toIso8601String(),
+                        'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
+                        'backgroundColor' => '#FFA500', // Naranja para sala de espera
+                        'borderColor' => '#FF8C00',
+                        'extendedProps' => [
+                            'tipo' => 'consulta',
+                            'calendar' => 'sala_espera',
+                            'paciente' => $consulta->paciente->nombre_completo,
+                            'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
+                            'medico_id' => $consulta->medico_id,
+                            'especialidad' => $consulta->especialidad->nombre ?? 'Sin especialidad',
+                            'estado' => $consulta->estado,
+                            'estado_label' => 'Sala de Espera',
+                            'tiempo_espera' => $consulta->tiempo_sala_espera,
+                            'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
+                            'motivo' => $consulta->motivo_consulta,
+                        ],
+                    ];
+                })->toArray();
+        }
+
+        $eventosCitas = $citas->map(function ($cita) {
             return $cita->toFullCalendarEvent();
         })->toArray();
+
+        // Combinar citas y consultas en sala de espera
+        return array_merge($eventosCitas, $consultasEnSalaEspera);
     }
 
     public function fetchEventosRango($inicio, $fin)

@@ -295,7 +295,7 @@
                                             <i class="fas fa-user"></i>
                                         </div>
                                         <div>
-                                            <span class="fw-semibold d-block">{{ $recordatorio->cita->paciente->nombre_completo ?? '-' }}</span>
+                                            <span class="fw-semibold d-block">{{ $recordatorio->cita->paciente->nombre_completo }}{{ $recordatorio->cita->paciente->nickname ? " ($recordatorio->cita->paciente->nickname)" : "" }}</span>
                                             <small class="text-muted">
                                                 <i class="fas fa-phone me-1"></i>{{ $recordatorio->cita->paciente->telefono ?? '-' }}
                                             </small>
@@ -496,7 +496,7 @@
                                         {{ ucfirst($viendoRecordatorio->estado) }}
                                     </span>
                                 </div>
-                                <p class="mb-1 fw-semibold">{{ $viendoRecordatorio->cita->paciente->nombre_completo ?? '-' }}</p>
+                                <p class="mb-1 fw-semibold">{{ $viendoRecordatorio->cita->paciente->nombre_completo }}{{ $viendoRecordatorio->cita->paciente->nickname ? " ($viendoRecordatorio->cita->paciente->nickname)" : "" }}</p>
                             </div>
 
                             <div class="mb-3">
