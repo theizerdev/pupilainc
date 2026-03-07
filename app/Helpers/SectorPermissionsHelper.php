@@ -166,21 +166,14 @@ if (!function_exists('getSectorMenuItems')) {
                         'active' => 'admin.recepcion.control-consultorios',
                     ],
                      [
-                        'label' => 'Gestión de citas',
-                        'icon' => 'ri-calendar-line',
+                        'label' => 'Calendario General',
+                        'icon' => 'ri-calendar-2-line',
                         'permission' => 'access citas',
-                        'route' => 'admin.citas.index',
-                        'route_horizontal' => 'admin.citas.index',
-                        'active' => 'admin.citas.index',
+                        'route' => 'admin.calendario',
+                        'route_horizontal' => 'admin.calendario',
+                        'active' => 'admin.calendario',
                     ],
-                     [
-                        'label' => 'Gestión de consultas',
-                        'icon' => 'ri-nurse-line',
-                        'permission' => 'access consultas',
-                        'route' => 'admin.gestion.consultas.index',
-                        'route_horizontal' => 'admin.gestion.consultas.index',
-                        'active' => 'admin.gestion.consultas.index',
-                    ],
+                    
                 ]
             ],
             'medico' => [
@@ -224,6 +217,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access citas',
                         'active' => 'admin.citas.*',
                         'children' => [
+                            ['label' => 'Calendario', 'route' => 'admin.calendario', 'active' => 'admin.calendario'],
                             ['label' => 'Gestión de Citas', 'route' => 'admin.citas.index', 'active' => 'admin.citas.index'],
                             ['label' => 'Analytics', 'route' => 'admin.citas.analytics', 'active' => 'admin.citas.analytics'],
                             ['label' => 'Recordatorios', 'route' => 'admin.citas.recordatorios', 'active' => 'admin.citas.recordatorios'],

@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Livewire\Admin\Citas;
+namespace App\Livewire\Admin;
 
 use App\Models\Cita;
+use App\Models\Consulta;
 use App\Models\Medico;
 use App\Models\Paciente;
 use App\Models\Especialidad;
@@ -12,15 +13,21 @@ use App\Models\TipoConsulta;
 use App\Services\CitaNotificationService;
 use App\Services\CitaConfirmationBotonesService;
 use App\Services\CitaReagendamientoService;
-use Livewire\Component; 
+use Livewire\Component;
 use App\Traits\HasDynamicLayout;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 
-class Index extends Component
+class Calendario extends Component
 {
     use HasDynamicLayout;
 
+    public $mostrarCitas = true;
+    public $mostrarConsultas = true;
+    public $filtroMedico = '';
+
+    // Cita form properties
     public $citaId = null;
     public $paciente_id = '';
     public $especialidad_id = '';
@@ -34,9 +41,21 @@ class Index extends Component
     public $tipo_consulta_id = '';
 
     public $filtroEstados = [];
-    public $filtroMedico = '';
 
-    protected $listeners = ['refreshCalendar' => '$refresh'];
+    protected $listeners = [
+        'refreshCalendario' => '$refresh',
+        'refreshCalendar' => '$refresh',
+    ];
+
+    protected $messages = [
+        'paciente_id.required' => 'Seleccione un paciente.',
+        'especialidad_id.required' => 'Seleccione una especialidad.',
+        'medico_id.required' => 'Seleccione un médico.',
+        'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
+        'fecha_fin.required' => 'La fecha de fin es obligatoria.',
+        'fecha_fin.after' => 'La fecha de fin debe ser posterior a la fecha de inicio.',
+        'motivo.required' => 'El motivo de la cita es obligatorio.',
+    ];
 
     public function mount()
     {
@@ -59,18 +78,6 @@ class Index extends Component
         ];
     }
 
-    protected $messages = [
-        'paciente_id.required' => 'Seleccione un paciente.',
-        'especialidad_id.required' => 'Seleccione una especialidad.',
-        'medico_id.required' => 'Seleccione un médico.',
-        'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
-        'fecha_fin.required' => 'La fecha de fin es obligatoria.',
-        'fecha_fin.after' => 'La fecha de fin debe ser posterior a la fecha de inicio.',
-        'motivo.required' => 'El motivo de la cita es obligatorio.',
-    ];
-
-    // ===== DATA FETCHING FOR CASCADING SELECTS (called from JS) =====
-
     public function getEventosProperty()
     {
         return $this->fetchEventos();
@@ -83,51 +90,94 @@ class Index extends Component
 
     protected function fetchEventos()
     {
-        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
-            ->forUser()
-            ->when($this->filtroMedico, function ($q) {
-                $q->porMedico($this->filtroMedico);
-            })
-            ->get();
+        $eventos = [];
 
-        // Obtener consultas en sala de espera para mostrarlas también en el calendario
-        $consultasEnSalaEspera = [];
-        if (class_exists('App\\Models\\Consulta')) {
-            $consultasEnSalaEspera = \App\Models\Consulta::with(['paciente', 'medico', 'especialidad'])
-                ->where('estado', \App\Models\Consulta::ESTADO_SALA_ESPERA)
-                ->where('fecha_consulta', '>=', now()->subDay())
-                ->get()
-                ->map(function ($consulta) {
-                    return [
-                        'id' => 'consulta_' . $consulta->id,
-                        'title' => $consulta->paciente->nombre_completo . ' (' . $consulta->tiempo_espera_formateado . ')',
-                        'start' => $consulta->fecha_consulta->toIso8601String(),
-                        'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
-                        'backgroundColor' => '#FFA500', // Naranja para sala de espera
-                        'borderColor' => '#FF8C00',
-                        'extendedProps' => [
-                            'tipo' => 'consulta',
-                            'calendar' => 'sala_espera',
-                            'paciente' => $consulta->paciente->nombre_completo,
-                            'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
-                            'medico_id' => $consulta->medico_id,
-                            'especialidad' => $consulta->especialidad->nombre ?? 'Sin especialidad',
-                            'estado' => $consulta->estado,
-                            'estado_label' => 'Sala de Espera',
-                            'tiempo_espera' => $consulta->tiempo_sala_espera,
-                            'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
-                            'motivo' => $consulta->motivo_consulta,
-                        ],
-                    ];
-                })->toArray();
+        if ($this->mostrarCitas) {
+            $eventos = array_merge($eventos, $this->fetchCitas());
         }
 
-        $eventosCitas = $citas->map(function ($cita) {
-            return $cita->toFullCalendarEvent();
-        })->toArray();
+        if ($this->mostrarConsultas) {
+            $eventos = array_merge($eventos, $this->fetchConsultas());
+        }
 
-        // Combinar citas y consultas en sala de espera
-        return array_merge($eventosCitas, $consultasEnSalaEspera);
+        return $eventos;
+    }
+
+    protected function fetchCitas()
+    {
+        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+            ->forUser()
+            ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
+            ->get();
+
+        return $citas->map(function ($cita) {
+            $event = $cita->toFullCalendarEvent();
+            $event['extendedProps']['tipo_evento'] = 'cita';
+            $event['id'] = 'cita_' . $cita->id;
+            return $event;
+        })->toArray();
+    }
+
+    protected function fetchConsultas()
+    {
+        $query = Consulta::with(['paciente', 'medico', 'especialidad']);
+
+        if (auth()->user()->hasRole('Doctor')) {
+            $medico = Medico::where('user_id', auth()->id())->first();
+            if ($medico) {
+                $query->where('medico_id', $medico->id);
+            }
+        }
+
+        $consultas = $query
+            ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
+            ->get();
+
+        return $consultas->map(function ($consulta) {
+            return $this->mapConsultaToEvent($consulta);
+        })->toArray();
+    }
+
+    protected function mapConsultaToEvent($consulta)
+    {
+        $nickname = $consulta->paciente->nickname ?? '';
+        $nombreCompleto = $consulta->paciente->nombre_completo;
+        $edad = $consulta->paciente->edad;
+        $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+
+        $title = $nombreCompleto;
+        if (!empty($nickname)) {
+            $title = "({$nickname}) {$title}";
+        }
+
+        if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera !== null) {
+            $title .= ' [' . $consulta->tiempo_espera_formateado . ']';
+        }
+
+        return [
+            'id' => 'consulta_' . $consulta->id,
+            'title' => $title,
+            'start' => $consulta->fecha_consulta->toIso8601String(),
+            'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
+            'backgroundColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
+            'borderColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
+            'extendedProps' => [
+                'tipo_evento' => 'consulta',
+                'calendar' => $consulta->estado,
+                'codigo' => $consulta->codigo,
+                'paciente' => $nombreCompleto,
+                'nickname' => $nickname,
+                'edad' => $edadTexto,
+                'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
+                'medico_full' => $consulta->medico->nombre_completo ?? 'Sin médico',
+                'medico_id' => $consulta->medico_id,
+                'especialidad' => $consulta->especialidad->nombre ?? 'Sin especialidad',
+                'estado' => $consulta->estado,
+                'estado_label' => Consulta::ESTADO_LABELS[$consulta->estado] ?? ucfirst($consulta->estado),
+                'motivo' => $consulta->motivo_consulta,
+                'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
+            ],
+        ];
     }
 
     public function fetchEventosRango($inicio, $fin)
@@ -139,18 +189,72 @@ class Index extends Component
             return [];
         }
 
-        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
-            ->forUser()
-            ->enRango($inicioCarbon, $finCarbon)
-            ->when($this->filtroMedico, function ($q) {
-                $q->porMedico($this->filtroMedico);
-            })
-            ->get();
+        $eventos = [];
 
-        return $citas->map(function ($cita) {
-            return $cita->toFullCalendarEvent();
-        })->toArray();
+        if ($this->mostrarCitas) {
+            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+                ->forUser()
+                ->enRango($inicioCarbon, $finCarbon)
+                ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
+                ->get();
+
+            $eventos = $citas->map(function ($cita) {
+                $event = $cita->toFullCalendarEvent();
+                $event['extendedProps']['tipo_evento'] = 'cita';
+                $event['id'] = 'cita_' . $cita->id;
+                return $event;
+            })->toArray();
+        }
+
+        if ($this->mostrarConsultas) {
+            $query = Consulta::with(['paciente', 'medico', 'especialidad'])
+                ->whereBetween('fecha_consulta', [$inicioCarbon, $finCarbon])
+                ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico));
+
+            if (auth()->user()->hasRole('Doctor')) {
+                $medico = Medico::where('user_id', auth()->id())->first();
+                if ($medico) {
+                    $query->where('medico_id', $medico->id);
+                }
+            }
+
+            $consultasEvents = $query->get()->map(fn($c) => $this->mapConsultaToEvent($c))->toArray();
+            $eventos = array_merge($eventos, $consultasEvents);
+        }
+
+        return $eventos;
     }
+
+    public function toggleCitas()
+    {
+        $this->mostrarCitas = !$this->mostrarCitas;
+        $this->dispatch('calendario-updated');
+    }
+
+    public function toggleConsultas()
+    {
+        $this->mostrarConsultas = !$this->mostrarConsultas;
+        $this->dispatch('calendario-updated');
+    }
+
+    public function getStatsProperty()
+    {
+        $hoy = Carbon::today();
+
+        return [
+            'citas_hoy' => Cita::whereDate('fecha_inicio', $hoy)->count(),
+            'consultas_hoy' => Consulta::whereDate('fecha_consulta', $hoy)->count(),
+            'citas_pendientes' => Cita::porEstado(Cita::ESTADO_PENDIENTE)->count(),
+            'consultas_en_espera' => Consulta::porEstado(Consulta::ESTADO_SALA_ESPERA)->count(),
+        ];
+    }
+
+    public function getMedicosProperty()
+    {
+        return Medico::activos()->orderBy('nombres')->get();
+    }
+
+    // ===== COMPUTED PROPERTIES =====
 
     public function getPacientesProperty()
     {
@@ -160,6 +264,15 @@ class Index extends Component
             ->limit(50)
             ->get();
     }
+
+    public function getTiposConsultaProperty()
+    {
+        return TipoConsulta::activos()
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    // ===== DATA FETCHING FOR CASCADING SELECTS =====
 
     public function fetchEspecialidades()
     {
@@ -300,24 +413,34 @@ class Index extends Component
         ];
     }
 
-    public function getStatsProperty()
-    {
-        $base = Cita::forUser();
-        $hoy = Carbon::today();
-
-        return [
-            'total_hoy' => (clone $base)->whereDate('fecha_inicio', $hoy)->count(),
-            'pendientes' => (clone $base)->porEstado('pendiente')->count(),
-            'confirmadas' => (clone $base)->porEstado('confirmada')->count(),
-            'completadas_hoy' => (clone $base)->porEstado('completada')->whereDate('fecha_inicio', $hoy)->count(),
-        ];
-    }
-
     // ===== CRUD =====
 
     public function saveCita($eventData)
     {
+        // Rate limiting para guardar citas
+        $rateLimitKey = 'calendario_save_cita_' . auth()->id();
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Demasiadas operaciones. Por favor, espere un momento.'
+            ]);
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 60); // 10 intentos por minuto
+
         //dd($eventData);
+
+        // Validación de permisos para edición
+        if ($this->citaId) {
+            $citaExistente = Cita::find($this->citaId);
+            if (!$citaExistente || !$this->authorizeCitaAction($citaExistente, 'update')) {
+                $this->dispatch('show-toast', [
+                    'type' => 'error',
+                    'message' => 'No tienes permisos para editar esta cita.'
+                ]);
+                return;
+            }
+        }
 
         if (is_array($eventData)) {
             $this->paciente_id = $eventData['paciente_id'] ?? $this->paciente_id;
@@ -370,7 +493,11 @@ class Index extends Component
             $cita = Cita::findOrFail($this->citaId);
             $estadoAnterior = $cita->estado;
             $fechaAnterior = $cita->fecha_inicio->toDateTimeString();
+            
+            // Log de auditoría para actualización
+            $oldData = $cita->toArray();
             $cita->update($data);
+            $this->logCitaAction('update', $cita, $oldData);
 
             if ($estadoAnterior !== $this->estado) {
                 $this->notificarCambioEstado($cita, $estadoAnterior);
@@ -392,6 +519,9 @@ class Index extends Component
         } else {
             $data['created_by'] = auth()->id();
             $cita = Cita::create($data);
+            
+            // Log de auditoría para creación
+            $this->logCitaAction('create', $cita);
 
             // Notificar y capturar errores
             $notificacion = $this->notificarNuevaCita($cita);
@@ -424,7 +554,30 @@ class Index extends Component
 
     public function updateCitaFechas($id, $start, $end)
     {
+        // Rate limiting para actualizar fechas
+        $rateLimitKey = 'calendario_update_fechas_' . auth()->id() . '_' . $id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Demasiados intentos de reprogramación. Por favor, espere un momento.'
+            ]);
+            $this->dispatch('cita-saved');
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 60); // 10 intentos por minuto
+
         $cita = Cita::findOrFail($id);
+        
+        // Validación de permisos para actualizar fechas
+        if (!$this->authorizeCitaAction($cita, 'update')) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No tienes permisos para reprogramar esta cita.'
+            ]);
+            $this->dispatch('cita-saved');
+            return;
+        }
+        
         $inicio = Carbon::parse($start);
         $fin = Carbon::parse($end);
 
@@ -438,10 +591,13 @@ class Index extends Component
             return;
         }
 
+        // Log de auditoría para reprogramación
+        $oldData = $cita->toArray();
         $cita->update([
             'fecha_inicio' => $inicio,
             'fecha_fin' => $fin,
         ]);
+        $this->logCitaAction('reschedule', $cita, $oldData);
 
         $this->reprogramarRecordatorios($cita);
 
@@ -454,7 +610,31 @@ class Index extends Component
 
     public function deleteCita($id)
     {
+        // Rate limiting para eliminar citas
+        $rateLimitKey = 'calendario_delete_cita_' . auth()->id() . '_' . $id;
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Demasiados intentos de eliminación. Por favor, espere un momento.'
+            ]);
+            return;
+        }
+        RateLimiter::hit($rateLimitKey, 300); // 5 intentos en 5 minutos
+
         $cita = Cita::findOrFail($id);
+        
+        // Validación de permisos para eliminar
+        if (!$this->authorizeCitaAction($cita, 'delete')) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'No tienes permisos para eliminar esta cita.'
+            ]);
+            return;
+        }
+        
+        // Log de auditoría antes de eliminar
+        $this->logCitaAction('delete', $cita);
+        
         $notificacion = $this->notificarCancelacion($cita);
         $cita->delete();
         $this->resetForm();
@@ -483,8 +663,21 @@ class Index extends Component
     public function crearPacienteRapido($data): void
     {
         try {
-            $nombres = trim($data['nombres'] ?? '');
-            $apellidos = trim($data['apellidos'] ?? '');
+            // Rate limiting para crear pacientes rápidos
+            $rateLimitKey = 'calendario_crear_paciente_' . auth()->id();
+            if (RateLimiter::tooManyAttempts($rateLimitKey, 15)) {
+                $this->dispatch('paciente-creado', [
+                    'success' => false, 
+                    'message' => 'Demasiados intentos de crear pacientes. Por favor, espere un momento.'
+                ]);
+                return;
+            }
+            RateLimiter::hit($rateLimitKey, 300); // 15 intentos en 5 minutos
+
+            // Sanitización de datos de entrada
+            $nombres = strip_tags(trim($data['nombres'] ?? ''));
+            $apellidos = strip_tags(trim($data['apellidos'] ?? ''));
+            
             if ($nombres === '' || $apellidos === '') {
                 $this->dispatch('paciente-creado', [
                     'success' => false, 
@@ -493,12 +686,21 @@ class Index extends Component
                 return;
             }
 
+            // Validación de longitud de campos
+            if (strlen($nombres) > 100 || strlen($apellidos) > 100) {
+                $this->dispatch('paciente-creado', [
+                    'success' => false, 
+                    'message' => 'Nombres y apellidos no pueden exceder 100 caracteres.'
+                ]);
+                return;
+            }
+
             $paciente = Paciente::create([
                 'nombres' => $nombres,
                 'apellidos' => $apellidos,
-                'documento_identidad' => $data['documento_identidad'] ?? null,
-                'telefono' => $data['telefono'] ?? null,
-                'fecha_nacimiento' => $data['fecha_nacimiento'] ?? null,
+                'documento_identidad' => isset($data['documento_identidad']) ? preg_replace('/[^0-9]/', '', $data['documento_identidad']) : null,
+                'telefono' => isset($data['telefono']) ? preg_replace('/[^0-9]/', '', $data['telefono']) : null,
+                'fecha_nacimiento' => isset($data['fecha_nacimiento']) && $data['fecha_nacimiento'] ? Carbon::parse($data['fecha_nacimiento']) : null,
                 'empresa_id' => auth()->user()->empresa_id,
                 'sucursal_id' => auth()->user()->sucursal_id,
                 'status' => true,
@@ -510,15 +712,37 @@ class Index extends Component
             if ($esMenorFlag || $esMenorFecha) {
                 $tutorData = $data['tutor'] ?? [];
                 if (!empty($tutorData['nombres']) || !empty($tutorData['apellidos']) || !empty($tutorData['telefono'])) {
-                    \App\Models\Tutor::create([
-                        'paciente_id' => $paciente->id,
-                        'nombres' => $tutorData['nombres'] ?? '',
-                        'apellidos' => $tutorData['apellidos'] ?? '',
-                        'telefono' => $tutorData['telefono'] ?? '',
-                        'parentesco' => 'Tutor',
-                    ]);
+                    // Sanitización de datos del tutor
+                    $tutorNombres = strip_tags(trim($tutorData['nombres'] ?? ''));
+                    $tutorApellidos = strip_tags(trim($tutorData['apellidos'] ?? ''));
+                    $tutorTelefono = isset($tutorData['telefono']) ? preg_replace('/[^0-9]/', '', $tutorData['telefono']) : null;
+                    
+                    // Validación de longitud para tutor
+                    if (strlen($tutorNombres) <= 100 && strlen($tutorApellidos) <= 100) {
+                        \App\Models\Tutor::create([
+                            'paciente_id' => $paciente->id,
+                            'nombres' => $tutorNombres,
+                            'apellidos' => $tutorApellidos,
+                            'telefono' => $tutorTelefono,
+                            'parentesco' => 'Tutor',
+                        ]);
+                    }
                 }
             }
+
+            // Log de auditoría para creación de paciente
+            activity()
+                ->causedBy(auth()->user())
+                ->performedOn($paciente)
+                ->withProperties([
+                    'nombres' => $nombres,
+                    'apellidos' => $apellidos,
+                    'documento_identidad' => $paciente->documento_identidad,
+                    'telefono' => $paciente->telefono,
+                    'ip' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ])
+                ->log("Paciente creado desde calendario: {$paciente->nombre_completo}");
 
             $this->dispatch('paciente-creado', [
                 'success' => true,
@@ -541,6 +765,7 @@ class Index extends Component
 
     public function cambiarEstado($citaId, $nuevoEstado)
     {
+        dd($nuevoEstado);
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);
@@ -669,6 +894,8 @@ class Index extends Component
         $this->resetValidation();
     }
 
+    // ===== PROTECTED HELPERS =====
+
     protected function validarHorarioMedico($medicoId, Carbon $inicio, Carbon $fin): bool
     {
         $diaSemana = $inicio->dayOfWeekIso;
@@ -741,6 +968,47 @@ class Index extends Component
         }
     }
 
+    protected function authorizeCitaAction(Cita $cita, string $action): bool
+    {
+        return match($action) {
+            'update' => auth()->user()->can('update-cita', $cita),
+            'delete' => auth()->user()->can('delete-cita', $cita),
+            'change-status' => auth()->user()->can('change-status-cita', $cita),
+            default => false
+        };
+    }
+
+    protected function sanitizeInput(array $data): array
+    {
+        return [
+            'paciente_id' => (int) ($data['paciente_id'] ?? 0),
+            'especialidad_id' => (int) ($data['especialidad_id'] ?? 0),
+            'subespecialidad_id' => (int) ($data['subespecialidad_id'] ?? 0),
+            'medico_id' => (int) ($data['medico_id'] ?? 0),
+            'fecha_inicio' => Carbon::parse($data['fecha_inicio'] ?? now()),
+            'fecha_fin' => Carbon::parse($data['fecha_fin'] ?? now()->addHour()),
+            'motivo' => strip_tags(trim($data['motivo'] ?? '')),
+            'notas' => strip_tags(trim($data['notas'] ?? '')),
+            'estado' => in_array($data['estado'] ?? '', Cita::ESTADOS) ? $data['estado'] : 'pendiente',
+            'tipo_consulta_id' => (int) ($data['tipo_consulta_id'] ?? 0),
+        ];
+    }
+
+    protected function logCitaAction(string $action, Cita $cita, array $oldData = []): void
+    {
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($cita)
+            ->withProperties([
+                'action' => $action,
+                'old_data' => $oldData,
+                'new_data' => $cita->toArray(),
+                'ip' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ])
+            ->log("Cita {$action}: {$cita->paciente->nombre_completo}");
+    }
+
     protected function reprogramarRecordatorios(Cita $cita): void
     {
         try {
@@ -768,34 +1036,34 @@ class Index extends Component
 
     protected function getPageTitle(): string
     {
-        return 'Citas Médicas';
+        return 'Calendario General';
     }
 
     protected function getBreadcrumb(): array
     {
         return [
             'admin.dashboard' => 'Dashboard',
-            'admin.citas.index' => 'Citas Médicas',
+            'admin.calendario' => 'Calendario General',
         ];
-    }
-
-    public function getTiposConsultaProperty()
-    {
-        return TipoConsulta::activos()
-            ->orderBy('nombre')
-            ->get();
     }
 
     public function render()
     {
-        return view('livewire.admin.citas.index', [
+        return view('livewire.admin.calendario', [
             'eventos' => $this->eventos,
-            'pacientes' => $this->pacientes,
             'stats' => $this->stats,
+            'medicos' => $this->medicos,
+            'pacientes' => $this->pacientes,
             'estados' => Cita::ESTADOS,
             'estadoLabels' => Cita::ESTADO_LABELS,
             'estadoColores' => Cita::ESTADO_COLORES,
             'tiposConsulta' => $this->tiposConsulta,
+            'citaEstados' => Cita::ESTADOS,
+            'citaEstadoLabels' => Cita::ESTADO_LABELS,
+            'citaEstadoColores' => Cita::ESTADO_COLORES,
+            'consultaEstados' => array_keys(Consulta::ESTADO_LABELS),
+            'consultaEstadoLabels' => Consulta::ESTADO_LABELS,
+            'consultaEstadoColores' => Consulta::ESTADO_COLORES,
         ])->layout($this->getLayout());
     }
 }

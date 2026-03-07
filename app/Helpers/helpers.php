@@ -431,3 +431,28 @@ if (!function_exists('getSectorStats')) {
         return $stats;
     }
 }
+
+// ===== HELPERS ADICIONALES PARA CONFIGURACIÓN REGIONAL =====
+
+if (!function_exists('current_regional_config')) {
+    /**
+     * Obtener la configuración regional actual
+     * 
+     * @return array|null
+     */
+    function current_regional_config() {
+        return \App\Services\RegionalConfigurationService::getCurrentConfiguration();
+    }
+}
+
+if (!function_exists('current_pais')) {
+    /**
+     * Obtener el país actual
+     * 
+     * @return string|null
+     */
+    function current_pais() {
+        $config = \App\Services\RegionalConfigurationService::getCurrentConfiguration();
+        return $config['pais'] ?? null;
+    }
+}

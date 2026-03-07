@@ -12,14 +12,7 @@ function initCitasCalendar(events) {
         if (document.getElementById('fc-now-indicator-style')) return;
         var s = document.createElement('style');
         s.id = 'fc-now-indicator-style';
-        s.textContent =
-            '.fc .fc-timegrid-now-indicator-line{' +
-                'border:none;height:2px;background:#ea4335;z-index:4;' +
-            '}' +
-            '.fc .fc-timegrid-now-indicator-arrow{' +
-                'border:none;background:#ea4335;width:12px;height:12px;' +
-                'border-radius:50%;margin-top:-5px;left:-1px;' +
-            '}';
+        s.textContent = '.fc .fc-timegrid-now-indicator-line{border-color:#d00}.fc .fc-timegrid-now-indicator-arrow{border-top-color:#d00}';
         document.head.appendChild(s);
     })();
 
@@ -979,16 +972,8 @@ function initCitasCalendar(events) {
                 const timeText = arg.timeText;
                 let html = '';
 
-                // Nombre base: (nickname) Nombre Apellido
-                var pacienteBase = ep.paciente || arg.event.title || '';
-                if (ep.nickname) {
-                    pacienteBase = '(' + ep.nickname + ') ' + pacienteBase;
-                }
-                // Con edad solo para semana/día
-                var pacienteConEdad = pacienteBase;
-                if (ep.edad) {
-                    pacienteConEdad = pacienteBase + ' - ' + ep.edad;
-                }
+                // Nombre del paciente
+                var pacienteNombre = ep.paciente || arg.event.title || '';
                 // Doctor
                 var medicoNombre = ep.medico || ep.medico_full || '';
                 // Estado con color
@@ -1010,7 +995,7 @@ function initCitasCalendar(events) {
                     html = '<div class="fc-event-main-frame">' +
                         '<div class="fc-event-time">' + timeText + '</div>' +
                         '<div class="fc-event-title-container">' +
-                            '<div class="fc-event-title">' + pacienteBase + '</div>' +
+                            '<div class="fc-event-title">' + pacienteNombre + '</div>' +
                             '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                             '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px;">' + estadoBadge + tipoConsultaHtml + '</div>' +
                         '</div>' +
@@ -1018,7 +1003,7 @@ function initCitasCalendar(events) {
                 } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
                     html = '<div class="fc-event-main-frame" style="width:100%;">' +
                         '<div class="fc-event-title-container">' +
-                            '<div class="fc-event-title">' + pacienteConEdad + '</div>' +
+                            '<div class="fc-event-title">' + pacienteNombre + '</div>' +
                             '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                             '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + estadoBadge + tipoConsultaHtml + '</div>' +
                         '</div>' +
@@ -1026,7 +1011,7 @@ function initCitasCalendar(events) {
                 } else if (view.type === 'listMonth' || view.type === 'listWeek') {
                     html = '<div class="fc-list-event-main-frame" style="display:flex;align-items:center;gap:8px;width:100%;">' +
                         '<div class="fc-event-title-container" style="flex:1;min-width:0;">' +
-                            '<div class="fc-event-title">' + pacienteConEdad + '</div>' +
+                            '<div class="fc-event-title">' + pacienteNombre + '</div>' +
                             '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                         '</div>' +
                         '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + estadoBadge + tipoConsultaHtml + '</div>' +

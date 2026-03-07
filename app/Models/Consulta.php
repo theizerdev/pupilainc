@@ -142,7 +142,9 @@ class Consulta extends Model
             // Usar estado_changed_at si está disponible, de lo contrario usar updated_at
             $fechaReferencia = $this->estado_changed_at ?? $this->updated_at;
             if ($fechaReferencia) {
-                return \Carbon\Carbon::now()->diffInMinutes($fechaReferencia);
+                $minutos = \Carbon\Carbon::now()->diffInMinutes($fechaReferencia);
+                // Evitar valores negativos - si es negativo, significa que la fecha es futura
+                return max(0, $minutos);
             }
         }
         
@@ -158,6 +160,11 @@ class Consulta extends Model
         
         if (!$minutos) {
             return 'No en sala de espera';
+        }
+        
+        // Si es menos de 1 minuto, mostrar "Ahora"
+        if ($minutos < 1) {
+            return 'Ahora';
         }
         
         if ($minutos < 60) {

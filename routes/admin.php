@@ -275,6 +275,11 @@ Route::middleware(['checkAdminPermission:access conceptos pago'])->group(functio
     Route::get('/conceptos-pago/{concepto}/editar', ConceptosPagoEdit::class)->name('conceptos-pago.edit');
 });
 
+// Calendario General (Citas + Consultas)
+Route::middleware(['checkAdminPermission:access citas'])->group(function () {
+    Route::get('/calendario', \App\Livewire\Admin\Calendario::class)->name('calendario');
+});
+
 // Citas Médicas
 Route::middleware(['checkAdminPermission:access citas'])->group(function () {
     Route::get('/citas', \App\Livewire\Admin\Citas\Index::class)->name('citas.index');
