@@ -356,17 +356,395 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         });
     }
     if (mpEsMenor && mpTutorFields) { mpEsMenor.addEventListener('change', function() { mpTutorFields.style.display = mpEsMenor.checked ? '' : 'none'; }); }
+    
+    // Eventos para validación en tiempo real de todos los campos requeridos
+    function agregarEventosValidacionRealTime() {
+        // Nombres
+        var nombresInput = document.getElementById('mpNombres');
+        if (nombresInput) {
+            nombresInput.addEventListener('blur', function() {
+                var value = this.value.trim();
+                clearFieldError('mpNombres');
+                if (!value) {
+                    showFieldError('nombres', 'Este campo es requerido');
+                } else if (value.length < 2) {
+                    showFieldError('nombres', 'Los nombres deben tener al menos 2 caracteres');
+                }
+                actualizarEstadoBotonSubmit();
+            });
+            
+            nombresInput.addEventListener('input', function() {
+                clearFieldError('mpNombres');
+                actualizarEstadoBotonSubmit();
+            });
+        }
+        
+        // Apellidos
+        var apellidosInput = document.getElementById('mpApellidos');
+        if (apellidosInput) {
+            apellidosInput.addEventListener('blur', function() {
+                var value = this.value.trim();
+                clearFieldError('mpApellidos');
+                if (!value) {
+                    showFieldError('apellidos', 'Este campo es requerido');
+                } else if (value.length < 2) {
+                    showFieldError('apellidos', 'Los apellidos deben tener al menos 2 caracteres');
+                }
+                actualizarEstadoBotonSubmit();
+            });
+            
+            apellidosInput.addEventListener('input', function() {
+                clearFieldError('mpApellidos');
+                actualizarEstadoBotonSubmit();
+            });
+        }
+        
+        // Documento
+        var documentoInput = document.getElementById('mpDocumento');
+        if (documentoInput) {
+            documentoInput.addEventListener('blur', function() {
+                var value = this.value.trim();
+                clearFieldError('mpDocumento');
+                if (!value) {
+                    showFieldError('documento_identidad', 'Este campo es requerido');
+                } else {
+                    var documentoLimpio = value.replace(/[^0-9]/g, '');
+                    if (documentoLimpio.length < 6 || documentoLimpio.length > 12) {
+                        showFieldError('documento_identidad', 'El documento debe tener entre 6 y 12 dígitos');
+                    }
+                }
+                actualizarEstadoBotonSubmit();
+            });
+            
+            documentoInput.addEventListener('input', function() {
+                clearFieldError('mpDocumento');
+                actualizarEstadoBotonSubmit();
+            });
+        }
+        
+        // Teléfono
+        var telefonoInput = document.getElementById('mpTelefono');
+        if (telefonoInput) {
+            telefonoInput.addEventListener('blur', function() {
+                var value = this.value.trim();
+                clearFieldError('mpTelefono');
+                if (!value) {
+                    showFieldError('telefono', 'Este campo es requerido');
+                } else {
+                    var telefonoLimpio = value.replace(/[^0-9]/g, '');
+                    if (telefonoLimpio.length < 7 || telefonoLimpio.length > 15) {
+                        showFieldError('telefono', 'El teléfono debe tener entre 7 y 15 dígitos');
+                    }
+                }
+                actualizarEstadoBotonSubmit();
+            });
+            
+            telefonoInput.addEventListener('input', function() {
+                clearFieldError('mpTelefono');
+                actualizarEstadoBotonSubmit();
+            });
+        }
+        
+        // Fecha de nacimiento
+        var fechaNacimientoInput = document.getElementById('mpFechaNacimiento');
+        if (fechaNacimientoInput) {
+            fechaNacimientoInput.addEventListener('blur', function() {
+                var fechaValue = this.value;
+                clearFieldError('mpFechaNacimiento');
+                
+                if (!fechaValue || fechaValue.trim() === '') {
+                    showFieldError('fecha_nacimiento', 'Este campo es requerido');
+                } else {
+                    var fecha = new Date(fechaValue);
+                    var hoy = new Date();
+                    var fechaMinima = new Date();
+                    fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
+                    
+                    if (isNaN(fecha.getTime())) {
+                        showFieldError('fecha_nacimiento', 'La fecha no es válida');
+                    } else if (fecha > hoy) {
+                        showFieldError('fecha_nacimiento', 'La fecha no puede ser futura');
+                    } else if (fecha < fechaMinima) {
+                        showFieldError('fecha_nacimiento', 'La fecha no puede ser mayor a 120 años');
+                    }
+                }
+                actualizarEstadoBotonSubmit();
+            });
+            
+            fechaNacimientoInput.addEventListener('input', function() {
+                clearFieldError('mpFechaNacimiento');
+                actualizarEstadoBotonSubmit();
+            });
+        }
+    }
+    
+    // Llamar a la función cuando el modal se muestre
     if (modalPacienteRapidoEl) {
-        modalPacienteRapidoEl.addEventListener('hidden.bs.modal', function() {
-            ['mpNombres','mpApellidos','mpDocumento','mpTelefono','mpNickname','mpFechaNacimiento','mpTutorNombres','mpTutorApellidos','mpTutorTelefono'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value=''; });
-            if(mpEsMenor) mpEsMenor.checked=false; if(mpTutorFields) mpTutorFields.style.display='none';
+        modalPacienteRapidoEl.addEventListener('shown.bs.modal', function() {
+            agregarEventosValidacionRealTime();
         });
     }
+    
+    if (modalPacienteRapidoEl) {
+        modalPacienteRapidoEl.addEventListener('hidden.bs.modal', function() {
+            // Limpiar campos
+            ['mpNombres','mpApellidos','mpDocumento','mpTelefono','mpNickname','mpFechaNacimiento','mpTutorNombres','mpTutorApellidos','mpTutorTelefono'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value=''; });
+            if(mpEsMenor) mpEsMenor.checked=false; if(mpTutorFields) mpTutorFields.style.display='none';
+            
+            // Limpiar errores de validación
+            clearPacienteValidationErrors();
+        });
+    }
+    // Función para validar todos los campos requeridos del modal
+    function validarCamposPacienteRequeridos() {
+        var errores = [];
+        
+        // Validar nombres
+        var nombresInput = document.getElementById('mpNombres');
+        var nombresValue = nombresInput.value.trim();
+        clearFieldError('mpNombres');
+        
+        if (!nombresValue) {
+            showFieldError('nombres', 'Este campo es requerido');
+            errores.push('nombres');
+        } else if (nombresValue.length < 2) {
+            showFieldError('nombres', 'Los nombres deben tener al menos 2 caracteres');
+            errores.push('nombres');
+        }
+        
+        // Validar apellidos
+        var apellidosInput = document.getElementById('mpApellidos');
+        var apellidosValue = apellidosInput.value.trim();
+        clearFieldError('mpApellidos');
+        
+        if (!apellidosValue) {
+            showFieldError('apellidos', 'Este campo es requerido');
+            errores.push('apellidos');
+        } else if (apellidosValue.length < 2) {
+            showFieldError('apellidos', 'Los apellidos deben tener al menos 2 caracteres');
+            errores.push('apellidos');
+        }
+        
+        // Validar documento de identidad
+        var documentoInput = document.getElementById('mpDocumento');
+        var documentoValue = documentoInput.value.trim();
+        clearFieldError('mpDocumento');
+        
+        if (!documentoValue) {
+            showFieldError('documento_identidad', 'Este campo es requerido');
+            errores.push('documento_identidad');
+        } else {
+            var documentoLimpio = documentoValue.replace(/[^0-9]/g, '');
+            if (documentoLimpio.length < 6 || documentoLimpio.length > 12) {
+                showFieldError('documento_identidad', 'El documento debe tener entre 6 y 12 dígitos');
+                errores.push('documento_identidad');
+            }
+        }
+        
+        // Validar teléfono
+        var telefonoInput = document.getElementById('mpTelefono');
+        var telefonoValue = telefonoInput.value.trim();
+        clearFieldError('mpTelefono');
+        
+        if (!telefonoValue) {
+            showFieldError('telefono', 'Este campo es requerido');
+            errores.push('telefono');
+        } else {
+            var telefonoLimpio = telefonoValue.replace(/[^0-9]/g, '');
+            if (telefonoLimpio.length < 7 || telefonoLimpio.length > 15) {
+                showFieldError('telefono', 'El teléfono debe tener entre 7 y 15 dígitos');
+                errores.push('telefono');
+            }
+        }
+        
+        // Validar fecha de nacimiento
+        var fechaInput = document.getElementById('mpFechaNacimiento');
+        var fechaValue = fechaInput.value;
+        clearFieldError('mpFechaNacimiento');
+        
+        if (!fechaValue || fechaValue.trim() === '') {
+            showFieldError('fecha_nacimiento', 'Este campo es requerido');
+            errores.push('fecha_nacimiento');
+        } else {
+            var fecha = new Date(fechaValue);
+            var hoy = new Date();
+            var fechaMinima = new Date();
+            fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
+            
+            if (isNaN(fecha.getTime())) {
+                showFieldError('fecha_nacimiento', 'La fecha no es válida');
+                errores.push('fecha_nacimiento');
+            } else if (fecha > hoy) {
+                showFieldError('fecha_nacimiento', 'La fecha no puede ser futura');
+                errores.push('fecha_nacimiento');
+            } else if (fecha < fechaMinima) {
+                showFieldError('fecha_nacimiento', 'La fecha no puede ser mayor a 120 años');
+                errores.push('fecha_nacimiento');
+            }
+        }
+        
+        return errores.length === 0;
+    }
+
+    // Función para actualizar estado del botón submit
+    function actualizarEstadoBotonSubmit() {
+        var submitBtn = document.getElementById('modalPacienteCreateBtn');
+        if (!submitBtn) return;
+        
+        // Verificar si hay errores de validación
+        var tieneErrores = document.querySelectorAll('#modalPacienteRapido .is-invalid').length > 0;
+        
+        if (tieneErrores) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('disabled');
+        } else {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('disabled');
+        }
+    }
+
     if (modalPacienteCreateBtn) {
         modalPacienteCreateBtn.addEventListener('click', function() {
-            var data = { nombres: (document.getElementById('mpNombres')||{}).value||'', apellidos: (document.getElementById('mpApellidos')||{}).value||'', documento_identidad: (document.getElementById('mpDocumento')||{}).value||'', telefono: (document.getElementById('mpTelefono')||{}).value||'', nickname: (document.getElementById('mpNickname')||{}).value||'', fecha_nacimiento: (document.getElementById('mpFechaNacimiento')||{}).value||'', es_menor: mpEsMenor ? mpEsMenor.checked : false, tutor: { nombres: (document.getElementById('mpTutorNombres')||{}).value||'', apellidos: (document.getElementById('mpTutorApellidos')||{}).value||'', telefono: (document.getElementById('mpTutorTelefono')||{}).value||'' } };
-            var comp = getLivewireComponent(); if(comp) comp.call('crearPacienteRapido', data);
+            // Limpiar errores previos
+            clearPacienteValidationErrors();
+            
+            // Validar todos los campos requeridos antes de enviar
+            if (!validarCamposPacienteRequeridos()) {
+                actualizarEstadoBotonSubmit();
+                return; // Prevenir envío si hay error
+            }
+            
+            var data = { 
+                nombres: (document.getElementById('mpNombres')||{}).value||'', 
+                apellidos: (document.getElementById('mpApellidos')||{}).value||'', 
+                documento_identidad: (document.getElementById('mpDocumento')||{}).value||'', 
+                telefono: (document.getElementById('mpTelefono')||{}).value||'', 
+                nickname: (document.getElementById('mpNickname')||{}).value||'', 
+                fecha_nacimiento: (document.getElementById('mpFechaNacimiento')||{}).value||'', 
+                es_menor: mpEsMenor ? mpEsMenor.checked : false, 
+                tutor: { 
+                    nombres: (document.getElementById('mpTutorNombres')||{}).value||'', 
+                    apellidos: (document.getElementById('mpTutorApellidos')||{}).value||'', 
+                    telefono: (document.getElementById('mpTutorTelefono')||{}).value||'' 
+                } 
+            };
+            
+            var comp = getLivewireComponent(); 
+            if(comp) {
+                comp.call('crearPacienteRapido', data).then(function(response) {
+                    if (response && response.errors) {
+                        showPacienteValidationErrors(response.errors);
+                        actualizarEstadoBotonSubmit();
+                    }
+                });
+            }
         });
+    }
+
+    // Función para mostrar errores de validación en el modal
+    function showPacienteValidationErrors(errors) {
+        // Mostrar errores generales
+        if (errors.general) {
+            showErrorAlert(errors.general);
+        }
+        
+        // Mostrar errores por campo
+        for (var field in errors) {
+            if (field !== 'general') {
+                showFieldError(field, errors[field]);
+            }
+        }
+    }
+
+    // Función para mostrar error en un campo específico
+    function showFieldError(fieldName, errorMessage) {
+        var fieldId = getFieldIdByName(fieldName);
+        var field = document.getElementById(fieldId);
+        
+        if (field) {
+            // Agregar clase de error
+            field.classList.add('is-invalid');
+            
+            // Crear o actualizar mensaje de error
+            var errorElement = document.getElementById(fieldId + '_error');
+            if (!errorElement) {
+                errorElement = document.createElement('div');
+                errorElement.id = fieldId + '_error';
+                errorElement.className = 'invalid-feedback d-block';
+                field.parentNode.appendChild(errorElement);
+            }
+            errorElement.textContent = errorMessage;
+            
+            // Agregar evento para limpiar error al escribir
+            field.addEventListener('input', function() {
+                clearFieldError(fieldId);
+            }, { once: true });
+        }
+    }
+
+    // Función para obtener el ID del campo por nombre
+    function getFieldIdByName(fieldName) {
+        var fieldMap = {
+            'nombres': 'mpNombres',
+            'apellidos': 'mpApellidos',
+            'documento_identidad': 'mpDocumento',
+            'telefono': 'mpTelefono',
+            'nickname': 'mpNickname',
+            'fecha_nacimiento': 'mpFechaNacimiento',
+            'tutor_nombres': 'mpTutorNombres',
+            'tutor_apellidos': 'mpTutorApellidos',
+            'tutor_telefono': 'mpTutorTelefono'
+        };
+        return fieldMap[fieldName] || fieldName;
+    }
+
+    // Función para limpiar error de un campo
+    function clearFieldError(fieldId) {
+        var field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.remove('is-invalid');
+            var errorElement = document.getElementById(fieldId + '_error');
+            if (errorElement) {
+                errorElement.remove();
+            }
+        }
+    }
+
+    // Función para limpiar todos los errores de validación
+    function clearPacienteValidationErrors() {
+        // Limpiar clases de error
+        var fields = ['mpNombres', 'mpApellidos', 'mpDocumento', 'mpTelefono', 'mpNickname', 'mpFechaNacimiento', 'mpTutorNombres', 'mpTutorApellidos', 'mpTutorTelefono'];
+        fields.forEach(function(fieldId) {
+            clearFieldError(fieldId);
+        });
+        
+        // Limpiar alerta de error general
+        clearErrorAlert();
+    }
+
+    // Función para mostrar alerta de error general
+    function showErrorAlert(message) {
+        var alertContainer = document.getElementById('pacienteValidationAlert');
+        if (!alertContainer) {
+            alertContainer = document.createElement('div');
+            alertContainer.id = 'pacienteValidationAlert';
+            alertContainer.className = 'alert alert-danger alert-dismissible fade show mb-3';
+            alertContainer.innerHTML = '<button type="button" class="btn-close" data-bs-dismiss="alert"></button><span id="pacienteValidationAlertText"></span>';
+            
+            var modalBody = document.querySelector('#modalPacienteRapido .modal-body');
+            if (modalBody) {
+                modalBody.insertBefore(alertContainer, modalBody.firstChild);
+            }
+        }
+        document.getElementById('pacienteValidationAlertText').textContent = message;
+    }
+
+    // Función para limpiar alerta de error general
+    function clearErrorAlert() {
+        var alertContainer = document.getElementById('pacienteValidationAlert');
+        if (alertContainer) {
+            alertContainer.remove();
+        }
     }
 
     // ===================== CASCADE LOGIC =====================

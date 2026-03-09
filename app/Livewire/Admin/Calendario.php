@@ -668,32 +668,19 @@ class Calendario extends Component
             if (RateLimiter::tooManyAttempts($rateLimitKey, 15)) {
                 $this->dispatch('paciente-creado', [
                     'success' => false, 
-                    'message' => 'Demasiados intentos de crear pacientes. Por favor, espere un momento.'
+                    'message' => 'Demasiados intentos de crear pacientes. Por favor, espere un momento.',
+                    'errors' => ['general' => 'Demasiados intentos. Por favor, espere.']
                 ]);
                 return;
             }
             RateLimiter::hit($rateLimitKey, 300); // 15 intentos en 5 minutos
 
+            
+    
+
             // Sanitización de datos de entrada
             $nombres = strip_tags(trim($data['nombres'] ?? ''));
             $apellidos = strip_tags(trim($data['apellidos'] ?? ''));
-            
-            if ($nombres === '' || $apellidos === '') {
-                $this->dispatch('paciente-creado', [
-                    'success' => false, 
-                    'message' => 'Nombres y apellidos son obligatorios.'
-                ]);
-                return;
-            }
-
-            // Validación de longitud de campos
-            if (strlen($nombres) > 100 || strlen($apellidos) > 100) {
-                $this->dispatch('paciente-creado', [
-                    'success' => false, 
-                    'message' => 'Nombres y apellidos no pueden exceder 100 caracteres.'
-                ]);
-                return;
-            }
 
             $paciente = Paciente::create([
                 'nombres' => $nombres,
@@ -701,7 +688,7 @@ class Calendario extends Component
                 'documento_identidad' => isset($data['documento_identidad']) ? preg_replace('/[^0-9]/', '', $data['documento_identidad']) : null,
                 'telefono' => isset($data['telefono']) ? preg_replace('/[^0-9]/', '', $data['telefono']) : null,
                 'fecha_nacimiento' => isset($data['fecha_nacimiento']) && $data['fecha_nacimiento'] ? Carbon::parse($data['fecha_nacimiento']) : null,
-                'empresa_id' => auth()->user()->empresa_id,
+                'empresa_id' =>  auth()->user()->empresa_id,
                 'sucursal_id' => auth()->user()->sucursal_id,
                 'status' => true,
             ]);

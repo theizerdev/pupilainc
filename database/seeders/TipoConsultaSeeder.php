@@ -39,7 +39,7 @@ class TipoConsultaSeeder extends Seeder
                 'sucursal_id' => $sucursal->id,
             ],
             [
-                'nombre' => 'Consulta General',
+                'nombre' => 'Consulta Consecuente',
                 'descripcion' => 'Consulta médica general para evaluación de síntomas y diagnóstico',
                 'color' => '#3B82F6',
                 'icono' => 'fa-stethoscope',
@@ -49,8 +49,8 @@ class TipoConsultaSeeder extends Seeder
                 'sucursal_id' => $sucursal->id,
             ],
             [
-                'nombre' => 'Control de Rutina',
-                'descripcion' => 'Control médico periódico para seguimiento de condiciones crónicas',
+                'nombre' => 'Cirugía',
+                'descripcion' => 'Control para cirugía',
                 'color' => '#10B981',
                 'icono' => 'fa-heartbeat',
                 'codigo' => $this->generarCodigoUnico($codigosGenerados),
@@ -58,93 +58,6 @@ class TipoConsultaSeeder extends Seeder
                 'empresa_id' => $empresa->id,
                 'sucursal_id' => $sucursal->id,
             ],
-            [
-                'nombre' => 'Urgencia',
-                'descripcion' => 'Atención médica urgente para casos que requieren atención inmediata',
-                'color' => '#EF4444',
-                'icono' => 'fa-ambulance',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-            ],
-            [
-                'nombre' => 'Consulta Especializada',
-                'descripcion' => 'Consulta con médico especialista en área específica',
-                'color' => '#8B5CF6',
-                'icono' => 'fa-user-md',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ],
-            [
-                'nombre' => 'Revisión de Exámenes',
-                'descripcion' => 'Consulta para revisión e interpretación de resultados de exámenes',
-                'color' => '#06B6D4',
-                'icono' => 'fa-file-medical',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ],
-            [
-                'nombre' => 'Consulta Prenatal',
-                'descripcion' => 'Control y seguimiento del embarazo',
-                'color' => '#EC4899',
-                'icono' => 'fa-baby',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ],
-            [
-                'nombre' => 'Vacunación',
-                'descripcion' => 'Aplicación de vacunas y esquemas de vacunación',
-                'color' => '#F59E0B',
-                'icono' => 'fa-syringe',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ],
-            [
-                'nombre' => 'Cirugía Ambulatoria',
-                'descripcion' => 'Procedimientos quirúrgicos que no requieren hospitalización',
-                'color' => '#6366F1',
-                'icono' => 'fa-scissors',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ],
-            [
-                'nombre' => 'Terapia',
-                'descripcion' => 'Sesiones de terapia física, ocupacional o psicológica',
-                'color' => '#84CC16',
-                'icono' => 'fa-hands-helping',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ],
-            [
-                'nombre' => 'Emergencia',
-                'descripcion' => 'Atención de emergencia médica crítica',
-                'color' => '#DC2626',
-                'icono' => 'fa-plus-circle',
-                'codigo' => $this->generarCodigoUnico($codigosGenerados),
-                'status' => true,
-                 'empresa_id' => $empresa->id,
-                'sucursal_id' => $sucursal->id,
-
-            ]
         ];
 
         foreach ($tiposConsultas as $tipoConsulta) {

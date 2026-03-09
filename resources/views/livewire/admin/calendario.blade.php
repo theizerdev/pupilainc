@@ -4,7 +4,11 @@
         document.addEventListener('livewire:init', () => {
             Livewire.on('paciente-creado', (event) => {
                 const data = event[0];
-                $('#modalPacienteRapido').modal('hide');
+                
+                // Solo cerrar el modal si fue exitoso y no hay errores de validación
+                if (data.success && !data.errors) {
+                    $('#modalPacienteRapido').modal('hide');
+                }
                 
                 // Usar el sistema de toasts de la plantilla
                 const toastContainer = document.querySelector('.toast-container');
@@ -306,6 +310,60 @@
             padding: 0 !important;
             border: none !important;
             opacity: 0;
+        }
+
+        /* Estilos para validación de pacientes */
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .invalid-feedback {
+            display: none;
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
+        }
+
+        .invalid-feedback.d-block {
+            display: block;
+        }
+
+        .form-floating > .form-control.is-invalid ~ label {
+            color: #dc3545;
+        }
+
+        .form-floating > .form-control.is-invalid ~ label::after {
+            background-color: transparent !important;
+        }
+
+        .form-floating > .form-control:focus.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+
+        .form-floating > .form-control:not(:placeholder-shown).is-invalid ~ label {
+            color: #dc3545;
+        }
+
+        /* Estilos específicos para mensaje de error de fecha de nacimiento */
+        #mpFechaNacimiento_error {
+            color: #dc3545 !important;
+            font-size: 14px !important;
+            margin-top: 0.25rem !important;
+            margin-bottom: 0 !important;
+            font-weight: 400 !important;
+            line-height: 1.5 !important;
+        }
+
+        /* Estilo para botón deshabilitado */
+        #modalPacienteCreateBtn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
         }
 
         /* Toggle button in calendar header */
@@ -740,26 +798,26 @@
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control" id="mpNombres" placeholder="Nombres">
-                                            <label for="mpNombres">Nombres</label>
+                                            <input type="text" class="form-control" id="mpNombres" placeholder="Nombres" required>
+                                            <label for="mpNombres">Nombres <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-12">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control" id="mpApellidos" placeholder="Apellidos">
-                                            <label for="mpApellidos">Apellidos</label>
+                                            <input type="text" class="form-control" id="mpApellidos" placeholder="Apellidos" required>
+                                            <label for="mpApellidos">Apellidos <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control" id="mpDocumento" placeholder="Documento de identidad">
-                                            <label for="mpDocumento">Documento</label>
+                                            <input type="text" class="form-control" id="mpDocumento" placeholder="Documento de identidad" required>
+                                            <label for="mpDocumento">Documento <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control" id="mpTelefono" placeholder="Teléfono">
-                                            <label for="mpTelefono">Teléfono</label>
+                                            <input type="text" class="form-control" id="mpTelefono" placeholder="Teléfono" required>
+                                            <label for="mpTelefono">Teléfono <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-12">
@@ -770,20 +828,20 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="date" class="form-control" id="mpFechaNacimiento" placeholder="Fecha de nacimiento">
-                                            <label for="mpFechaNacimiento">Fecha de Nacimiento</label>
+                                            <input type="date" class="form-control" id="mpFechaNacimiento" placeholder="Fecha de nacimiento" required>
+                                            <label for="mpFechaNacimiento">Fecha de Nacimiento <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
                                     <div class="col-md-6 d-flex align-items-center">
                                         <div class="form-check mt-2">
                                             <input class="form-check-input" type="checkbox" id="mpEsMenor">
-                                            <label class="form-check-label" for="mpEsMenor">Es menor</label>
+                                            <label class="form-check-label" for="mpEsMenor">Es menor de edad</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div id="mpTutorFields" class="mt-3" style="display:none;">
                                     <div class="alert alert-info py-2 px-3 mb-3">
-                                        Datos del tutor (si es menor)
+                                        <i class="ri ri-information-line me-1"></i> Datos del tutor (opcional si es menor)
                                     </div>
                                     <div class="row g-3">
                                         <div class="col-md-6">
