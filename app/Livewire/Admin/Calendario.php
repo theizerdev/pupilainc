@@ -433,7 +433,7 @@ class Calendario extends Component
         // Validación de permisos para edición
         if ($this->citaId) {
             $citaExistente = Cita::find($this->citaId);
-            if (!$citaExistente || !$this->authorizeCitaAction($citaExistente, 'update')) {
+            if (!$citaExistente || \Gate::denies('edit citas', $citaExistente)) {
                 $this->dispatch('show-toast', [
                     'type' => 'error',
                     'message' => 'No tienes permisos para editar esta cita.'

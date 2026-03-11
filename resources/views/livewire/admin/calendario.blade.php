@@ -719,7 +719,7 @@
                             <div id="slotsContainer" class="mb-5" style="display:none;">
                                 <label class="form-label fw-medium mb-2">Horarios Disponibles</label>
                                 <div id="slotsMessage" class="alert alert-warning d-none py-2 px-3 mb-2" role="alert"></div>
-                                <div id="slotsList" class="slots-container d-flex flex-wrap gap-2"></div>
+                                <div id="slotsList" class="slots-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem;"></div>
                             </div>
 
                             <!-- Hidden: fecha_inicio / fecha_fin -->
@@ -835,7 +835,7 @@
                                     <div class="col-md-6 d-flex align-items-center">
                                         <div class="form-check mt-2">
                                             <input class="form-check-input" type="checkbox" id="mpEsMenor">
-                                            <label class="form-check-label" for="mpEsMenor">Es menor de edad</label>
+                                            <label class="form-check-label" for="mpEsMenor">¿Requiere tutor?</label>
                                         </div>
                                     </div>
                                 </div>
@@ -856,7 +856,7 @@
                                                 <label for="mpTutorApellidos">Apellidos del tutor</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-12">
                                             <div class="form-floating form-floating-outline">
                                                 <input type="text" class="form-control" id="mpTutorTelefono" placeholder="Teléfono del tutor">
                                                 <label for="mpTutorTelefono">Teléfono del tutor</label>

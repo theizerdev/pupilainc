@@ -766,10 +766,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             if(slotsMessage) slotsMessage.classList.add('d-none');
             currentSlotDuration = result.duracion_cita || 30;
             var matched = false;
-            result.slots.forEach(function(slot) {
+           result.slots.forEach(function(slot) {
                 var btn = document.createElement('button'); btn.type='button';
+                // Formato compacto: solo hora de inicio
+                var timeOnly = slot.label.split(' - ')[0];
                 btn.className = 'btn btn-sm rounded-pill slot-btn ' + (slot.disponible ? 'btn-outline-primary' : 'btn-outline-secondary ocupado');
-                btn.textContent = slot.label; btn.disabled = !slot.disponible;
+                btn.textContent = timeOnly; btn.disabled = !slot.disponible;
                 if (slot.disponible) {
                     if (selectStartFull && slot.inicio_full === selectStartFull) { btn.classList.add('selected','btn-primary'); btn.classList.remove('btn-outline-primary'); if(eventStartDate) eventStartDate.value=slot.inicio_full; if(eventEndDate) eventEndDate.value=slot.fin_full; matched=true; }
                     btn.addEventListener('click', function() {
@@ -864,14 +866,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if (bsAddEventSidebar) bsAddEventSidebar.show();
         if (offcanvasTitle) offcanvasTitle.innerHTML = 'Editar Cita';
         if (btnSubmit) { btnSubmit.innerHTML = '<i class="ri ri-save-line me-1"></i> Actualizar'; btnSubmit.classList.add('btn-update-event'); btnSubmit.classList.remove('btn-add-event'); }
-        if (btnDeleteEvent) btnDeleteEvent.classList.remove('d-none');
+        
         if (btnSendReminder) btnSendReminder.classList.remove('d-none');
 
         // Create extra buttons if needed
-        if (!btnConfirmEvent && btnSendReminder && btnSendReminder.parentNode) { btnConfirmEvent = document.createElement('button'); btnConfirmEvent.type='button'; btnConfirmEvent.className='btn btn-sm btn-success ms-2 btn-confirm-event'; btnConfirmEvent.textContent='Confirmar'; btnSendReminder.parentNode.insertBefore(btnConfirmEvent,btnSendReminder.nextSibling); bindExtraButtons(); }
-        if (!btnCancelCita && btnSendReminder && btnSendReminder.parentNode) { btnCancelCita = document.createElement('button'); btnCancelCita.type='button'; btnCancelCita.className='btn btn-sm btn-outline-danger ms-2 btn-cancel-cita'; btnCancelCita.textContent='Cancelar Cita'; btnSendReminder.parentNode.insertBefore(btnCancelCita,btnSendReminder.nextSibling); bindExtraButtons(); }
-        if (!btnReagendar && btnSendReminder && btnSendReminder.parentNode) { btnReagendar = document.createElement('button'); btnReagendar.type='button'; btnReagendar.className='btn btn-sm btn-outline-primary ms-2 btn-reagendar'; btnReagendar.textContent='Re-agendar'; btnSendReminder.parentNode.insertBefore(btnReagendar,btnSendReminder.nextSibling); bindExtraButtons(); }
-        if (!btnReagendarAuto && btnSendReminder && btnSendReminder.parentNode) { btnReagendarAuto = document.createElement('button'); btnReagendarAuto.type='button'; btnReagendarAuto.className='btn btn-sm btn-outline-secondary ms-2 btn-reagendar-auto'; btnReagendarAuto.textContent='Auto'; btnSendReminder.parentNode.insertBefore(btnReagendarAuto,btnSendReminder.nextSibling); bindExtraButtons(); }
+       
 
         if(btnConfirmEvent) btnConfirmEvent.classList.remove('d-none');
         if(btnCancelCita) btnCancelCita.classList.remove('d-none');
@@ -1140,8 +1139,8 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             if(bsAddEventSidebar) bsAddEventSidebar.show();
             if(offcanvasTitle) offcanvasTitle.innerHTML='Nueva Cita';
             if(btnSubmit){btnSubmit.innerHTML='<i class="ri ri-add-line me-1"></i> Agregar';btnSubmit.classList.remove('btn-update-event');btnSubmit.classList.add('btn-add-event');}
-            if(btnDeleteEvent) btnDeleteEvent.classList.add('d-none');
-            if(btnSendReminder) btnSendReminder.classList.add('d-none');
+           
+            
             if(btnConfirmEvent) btnConfirmEvent.classList.add('d-none');
             if(btnCancelCita) btnCancelCita.classList.add('d-none');
             if(btnReagendar) btnReagendar.classList.add('d-none');
@@ -1273,16 +1272,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
 
     // ===================== DELETE =====================
-    if (btnDeleteEvent) {
-        btnDeleteEvent.addEventListener('click', function() {
-            if (!eventToUpdate) return;
-            var ep=eventToUpdate.extendedProps||{};
-            var msg='¿Está seguro de eliminar esta cita?\n\nPaciente: '+(ep.paciente||eventToUpdate.title)+'\nMédico: Dr(a). '+(ep.medico_full||ep.medico||'')+'\n\nEsta acción no se puede deshacer.';
-            if(!confirm(msg)) return;
-            var comp=getLivewireComponent();if(comp) comp.call('deleteCita', getCitaId(eventToUpdate.id));
-            if(bsAddEventSidebar) bsAddEventSidebar.hide();
-        });
-    }
+   
 
     // ===================== REMINDER =====================
     if (btnSendReminder) {
