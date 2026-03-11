@@ -112,17 +112,7 @@ class AntiBlockProtection {
       /\d{10,}/ // Números largos (posibles teléfonos/IDs)
     ];
     
-    for (const pattern of spamPatterns) {
-      if (pattern.test(message)) {
-        throw new Error('Mensaje detectado como spam');
-      }
-    }
-    
-    // Limitar uso de mayúsculas (más de 50%)
-    const uppercaseCount = (message.match(/[A-Z]/g) || []).length;
-    if (uppercaseCount > message.length * 0.5) {
-      throw new Error('Mensaje con demasiadas mayúsculas (posible spam)');
-    }
+   
   }
 
   /**
