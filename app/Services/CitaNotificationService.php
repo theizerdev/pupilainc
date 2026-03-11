@@ -43,7 +43,7 @@ class CitaNotificationService
             return $this->codigoPais;
         }
 
-        $this->codigoPais = '58';
+        //$this->codigoPais = '58';
 
         $empId = $this->empresaId;
         if (!$empId && auth()->check() && auth()->user()->empresa_id) {
@@ -67,13 +67,32 @@ class CitaNotificationService
     {
         $limpio = preg_replace('/\D/', '', $telefono);
 
+        // Eliminar ceros a la izquierda
         if (str_starts_with($limpio, '0')) {
             $limpio = substr($limpio, 1);
         }
 
         $codigo = $this->obtenerCodigoPais();
 
-        if (!str_starts_with($limpio, $codigo) && strlen($limpio) >= 7 && strlen($limpio) <= 12) {
+        // Si no hay código de país configurado, retornar el número limpio
+        if (empty($codigo)) {
+            return '+' . $limpio;
+        }
+
+        // Verificar si el número ya tiene el código de país
+        if (str_starts_with($limpio, $codigo)) {
+            // El número ya tiene el código de país, retornar tal cual
+            return '+' . $limpio;
+        }
+
+        // Verificar si el número tiene un código de país diferente (más de 10 dígitos)
+        if (strlen($limpio) > 10) {
+            // Asumimos que ya tiene código de país, retornar tal cual
+            return '+' . $limpio;
+        }
+
+        // Si el número tiene entre 7 y 10 dígitos, agregar el código de país
+        if (strlen($limpio) >= 7 && strlen($limpio) <= 10) {
             $limpio = $codigo . $limpio;
         }
 
@@ -315,7 +334,12 @@ class CitaNotificationService
                 return false;
             }
 
-            $telefonoFormateado = $this->formatearTelefono($telefono);
+            // El teléfono ya viene formateado de obtenerTelefonosPaciente()
+            // Solo verificamos que tenga el formato correcto
+            if (!str_starts_with($telefono, '+')) {
+                $telefono = '+' . $telefono;
+            }
+
             $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
             $url = "{$baseUrl}/api/whatsapp/send";
 
@@ -326,7 +350,7 @@ class CitaNotificationService
                     'Content-Type' => 'application/json',
                 ])
                 ->post($url, [
-                    'to' => $telefonoFormateado,
+                    'to' => $telefono,
                     'message' => $mensaje,
                 ]);
 
@@ -337,7 +361,7 @@ class CitaNotificationService
             Log::error('CitaNotificationService: Error HTTP enviando mensaje', [
                 'status' => $response->status(),
                 'body' => $response->body(),
-                'telefono' => $telefonoFormateado
+                'telefono' => $telefono
             ]);
             return false;
 

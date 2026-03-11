@@ -115,7 +115,7 @@
 
                     <!-- Action Buttons -->
                     <div class="d-grid gap-2 mt-4">
-                        @if($status === 'disconnected' || $status === 'error' || $status === 'service_unavailable')
+                       
                             <button wire:click="connect"
                                     class="btn btn-success btn-lg"
                                     wire:loading.attr="disabled"
@@ -127,7 +127,7 @@
                                     <span class="spinner-border spinner-border-sm me-2"></span>Conectando...
                                 </span>
                             </button>
-                        @endif
+                    
 
                         @if($status === 'connected')
                             <button wire:click="disconnect"
