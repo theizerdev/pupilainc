@@ -233,25 +233,44 @@
                                 <div class="row g-3">
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control @error('nombres') is-invalid @enderror"
-                                                   wire:model="nombres" placeholder="Juan Carlos" id="wz-nombres">
-                                            <label for="wz-nombres">Nombres <span class="text-danger">*</span></label>
+                                            <input type="text" 
+                                                   class="form-control @error('nombres') is-invalid @enderror"
+                                                   wire:model.blur="nombres" 
+                                                   placeholder="Juan Carlos" 
+                                                   id="wz-nombres"
+                                                   autocomplete="given-name">
+                                            <label for="wz-nombres">
+                                                <i class="ri ri-user-smile-line me-1"></i>Nombres <span class="text-danger">*</span>
+                                            </label>
                                             @error('nombres') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control @error('apellidos') is-invalid @enderror"
-                                                   wire:model="apellidos" placeholder="Pérez García" id="wz-apellidos">
-                                            <label for="wz-apellidos">Apellidos <span class="text-danger">*</span></label>
+                                            <input type="text" 
+                                                   class="form-control @error('apellidos') is-invalid @enderror"
+                                                   wire:model.blur="apellidos" 
+                                                   placeholder="Pérez García" 
+                                                   id="wz-apellidos"
+                                                   autocomplete="family-name">
+                                            <label for="wz-apellidos">
+                                                <i class="ri ri-user-star-line me-1"></i>Apellidos <span class="text-danger">*</span>
+                                            </label>
                                             @error('apellidos') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control @error('documento_identidad') is-invalid @enderror"
-                                                   wire:model.live.debounce.500ms="documento_identidad" placeholder="12345678" id="wz-doc">
-                                            <label for="wz-doc">Documento de Identidad <span class="text-danger">*</span></label>
+                                            <input type="text" 
+                                                   class="form-control @error('documento_identidad') is-invalid @enderror"
+                                                   wire:model.live.debounce.500ms="documento_identidad" 
+                                                   wire:change="formatDocumento"
+                                                   placeholder="12345678" 
+                                                   id="wz-doc"
+                                                   autocomplete="off">
+                                            <label for="wz-doc">
+                                                <i class="ri ri-id-card-line me-1"></i>Documento de Identidad <span class="text-danger">*</span>
+                                            </label>
                                             <div wire:loading wire:target="documento_identidad" class="mt-1">
                                                 <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span>Verificando...</small>
                                             </div>
@@ -260,29 +279,51 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control @error('nickname') is-invalid @enderror"
-                                                   wire:model="nickname" placeholder="Juanito" id="wz-nickname">
-                                            <label for="wz-nickname">¿Cómo le gusta que le digan?</label>
+                                            <input type="text" 
+                                                   class="form-control @error('nickname') is-invalid @enderror"
+                                                   wire:model.blur="nickname" 
+                                                   placeholder="Juanito, Beba..." 
+                                                   id="wz-nickname"
+                                                   maxlength="100">
+                                            <label for="wz-nickname">
+                                                <i class="ri ri-emotion-line me-1"></i>¿Cómo le gusta que le digan?
+                                            </label>
                                             @error('nickname') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="date" class="form-control @error('fecha_nacimiento') is-invalid @enderror"
-                                                   wire:model.live="fecha_nacimiento" max="{{ date('Y-m-d') }}" id="wz-fnac">
-                                            <label for="wz-fnac">Fecha de Nacimiento <span class="text-danger">*</span></label>
+                                            <input type="date" 
+                                                   class="form-control @error('fecha_nacimiento') is-invalid @enderror"
+                                                   wire:model.live="fecha_nacimiento" 
+                                                   max="{{ date('Y-m-d') }}" 
+                                                   id="wz-fnac">
+                                            <label for="wz-fnac">
+                                                <i class="ri ri-calendar-event-line me-1"></i>Fecha de Nacimiento <span class="text-danger">*</span>
+                                            </label>
                                             @error('fecha_nacimiento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                            @if($edadFormateada)
+                                                <div class="mt-1">
+                                                    <small class="text-success">
+                                                        <i class="ri ri-birthday-cake-line me-1"></i>Edad: <strong>{{ $edadFormateada }}</strong>
+                                                    </small>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <select class="form-select @error('genero') is-invalid @enderror" wire:model="genero" id="wz-genero">
+                                            <select class="form-select @error('genero') is-invalid @enderror" 
+                                                    wire:model="genero" 
+                                                    id="wz-genero">
                                                 <option value="">Seleccione...</option>
                                                 @foreach($generos as $g)
                                                     <option value="{{ $g }}">{{ $g }}</option>
                                                 @endforeach
                                             </select>
-                                            <label for="wz-genero">Género</label>
+                                            <label for="wz-genero">
+                                                <i class="ri ri-genderless-line me-1"></i>Género
+                                            </label>
                                             @error('genero') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
@@ -298,25 +339,50 @@
                                 <div class="row g-3">
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control @error('telefono') is-invalid @enderror"
-                                                   wire:model="telefono" placeholder="+58 412 1234567" id="wz-tel">
-                                            <label for="wz-tel"><i class="ri ri-phone-line me-1"></i>Teléfono</label>
+                                            <input type="tel" 
+                                                   class="form-control @error('telefono') is-invalid @enderror"
+                                                   wire:model.blur="telefono" 
+                                                   wire:change="formatPhone"
+                                                   placeholder="+58 412 1234567" 
+                                                   id="wz-tel"
+                                                   autocomplete="tel"
+                                                   pattern="[\d\s\-\+\(\)]+"
+                                                   title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                                   onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
+                                            <label for="wz-tel">
+                                                <i class="ri ri-phone-line me-1"></i>Teléfono
+                                            </label>
                                             @error('telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                            <small class="text-muted mt-1 d-block">
+                                                <i class="ri ri-information-line me-1"></i>Solo números. Ej: +58 412 1234567
+                                            </small>
                                         </div>
                                     </div>
                                     <div class="col-sm-6">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                                   wire:model="email" placeholder="paciente@email.com" id="wz-email">
-                                            <label for="wz-email"><i class="ri ri-mail-line me-1"></i>Correo Electrónico</label>
+                                            <input type="email" 
+                                                   class="form-control @error('email') is-invalid @enderror"
+                                                   wire:model.blur="email" 
+                                                   placeholder="paciente@email.com" 
+                                                   id="wz-email"
+                                                   autocomplete="email">
+                                            <label for="wz-email">
+                                                <i class="ri ri-mail-line me-1"></i>Correo Electrónico
+                                            </label>
                                             @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
                                     <div class="col-12">
                                         <div class="form-floating form-floating-outline">
                                             <textarea class="form-control @error('direccion') is-invalid @enderror"
-                                                      wire:model="direccion" placeholder="Av. Principal, Edificio..." id="wz-dir" style="height: 88px"></textarea>
-                                            <label for="wz-dir"><i class="ri ri-map-pin-line me-1"></i>Dirección</label>
+                                                      wire:model.blur="direccion" 
+                                                      placeholder="Av. Principal, Edificio..." 
+                                                      id="wz-dir" 
+                                                      style="height: 88px"
+                                                      autocomplete="street-address"></textarea>
+                                            <label for="wz-dir">
+                                                <i class="ri ri-map-pin-line me-1"></i>Dirección
+                                            </label>
                                             @error('direccion') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                     </div>
@@ -443,10 +509,22 @@
                                 </div>
                                 <div class="col-sm-6">
                                     <div class="form-floating form-floating-outline">
-                                        <input type="text" class="form-control @error('tutor.telefono') is-invalid @enderror"
-                                               wire:model="tutor.telefono" placeholder="+58 412 9876543" id="wz-tut-tel">
-                                        <label for="wz-tut-tel"><i class="ri ri-phone-line me-1"></i>Teléfono <span class="text-danger">*</span></label>
+                                        <input type="tel" 
+                                               class="form-control @error('tutor.telefono') is-invalid @enderror"
+                                               wire:model.blur="tutor.telefono" 
+                                               placeholder="+58 412 9876543" 
+                                               id="wz-tut-tel"
+                                               autocomplete="tel"
+                                               pattern="[\d\s\-\+\(\)]+"
+                                               title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                               onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
+                                        <label for="wz-tut-tel">
+                                            <i class="ri ri-phone-line me-1"></i>Teléfono <span class="text-danger">*</span>
+                                        </label>
                                         @error('tutor.telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        <small class="text-muted mt-1 d-block">
+                                            <i class="ri ri-information-line me-1"></i>Solo números. Ej: +58 412 9876543
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="col-sm-6">

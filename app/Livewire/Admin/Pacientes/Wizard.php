@@ -65,6 +65,15 @@ class Wizard extends Component
     public $estadosCiviles = ['Soltero/a', 'Casado/a', 'Divorciado/a', 'Viudo/a', 'Unión libre'];
     public $parentescos = ['Padre', 'Madre', 'Tutor legal', 'Abuelo/a', 'Tío/a', 'Hermano/a', 'Otro'];
 
+    // Propiedad computada para la edad
+    protected ?string $edadCache = null;
+
+    protected $queryString = [
+        'pasoActual' => ['except' => 1],
+        'empresa_id' => ['except' => ''],
+        'sucursal_id' => ['except' => ''],
+    ];
+
     protected $messages = [
         'nombres.required' => 'El nombre del paciente es obligatorio.',
         'apellidos.required' => 'Los apellidos son obligatorios.',
@@ -79,6 +88,8 @@ class Wizard extends Component
         'tutor.documento_identidad.required' => 'El documento del tutor es obligatorio.',
         'tutor.parentesco.required' => 'Debe seleccionar el parentesco.',
         'tutor.telefono.required' => 'El teléfono del tutor es obligatorio.',
+        'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones, paréntesis y el signo +.',
+        'tutor.telefono.regex' => 'El teléfono del tutor solo puede contener números, espacios, guiones, paréntesis y el signo +.',
     ];
 
     public function mount($pacienteId = null)
@@ -220,6 +231,28 @@ class Wizard extends Component
         $this->fotoExistente = null;
     }
 
+
+    public function updatedTutor($value, $field)
+    {
+        if ($this->pasoActual === 3) {
+            $this->validateOnly("tutor.{$field}");
+        }
+    }
+
+    public function formatDocumento()
+    {
+        if ($this->documento_identidad) {
+            $this->documento_identidad = strtoupper(trim($this->documento_identidad));
+        }
+    }
+
+    public function formatPhone()
+    {
+        if ($this->telefono) {
+            $this->telefono = preg_replace('/[^0-9+]/', '', $this->telefono);
+        }
+    }
+
     protected function verificarMenorEdad()
     {
         try {
@@ -261,7 +294,7 @@ class Wizard extends Component
                 'max:50',
                 Rule::unique('pacientes')->ignore($this->pacienteId),
             ],
-            'telefono' => 'nullable|string|max:20',
+            'telefono' => 'nullable|regex:/^[\d\s\-\+\(\)]+$/|max:20',
             'email' => 'nullable|email|max:255',
             'direccion' => 'nullable|string|max:500',
             'nickname' => 'nullable|string|max:100',
@@ -293,7 +326,7 @@ class Wizard extends Component
             'tutor.apellidos' => 'required|string|max:255',
             'tutor.documento_identidad' => 'required|string|max:50',
             'tutor.parentesco' => 'required|in:' . implode(',', $this->parentescos),
-            'tutor.telefono' => 'required|string|max:20',
+            'tutor.telefono' => 'required|regex:/^[\d\s\-\+\(\)]+$/|max:20',
             'tutor.email' => 'nullable|email|max:255',
             'tutor.direccion' => 'nullable|string|max:500',
         ];
@@ -529,24 +562,26 @@ class Wizard extends Component
         return null;
     }
 
-    public function getEdadFormateadaProperty()
+    public function getEdadFormateadaProperty(): ?string
     {
-        if (!$this->fecha_nacimiento) return null;
-
-        $nacimiento = Carbon::parse($this->fecha_nacimiento);
-        $años = $nacimiento->age;
-
-        if ($años < 1) {
-            $meses = (int) $nacimiento->diffInMonths(now());
-            return $meses === 1 ? '1 mes' : "{$meses} meses";
+        if (empty($this->fecha_nacimiento)) {
+            return null;
         }
 
-        if ($años < 2) {
-            $meses = (int) $nacimiento->diffInMonths(now()) % 12;
-            return "1 año" . ($meses > 0 ? " y {$meses} meses" : "");
+        try {
+            $years = Carbon::parse($this->fecha_nacimiento)->age;
+            $months = Carbon::parse($this->fecha_nacimiento)->diffInMonths(now()) % 12;
+            
+            if ($years > 0) {
+                return "{$years} año" . ($years > 1 ? 's' : '') . ($months > 0 ? " y {$months} mes" . ($months > 1 ? 'es' : '') : '');
+            } elseif ($months > 0) {
+                return "{$months} mes" . ($months > 1 ? 'es' : '');
+            } else {
+                return 'Recién nacido';
+            }
+        } catch (\Exception $e) {
+            return null;
         }
-
-        return "{$años} años";
     }
 
     public function getProgresoProperty()
