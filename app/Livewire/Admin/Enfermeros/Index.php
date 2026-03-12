@@ -103,6 +103,7 @@ class Index extends Component
         
         try {
             $enfermero = Enfermero::findOrFail($id);
+            $nombreEnfermero = $enfermero->nombres . ' ' . $enfermero->apellidos;
             $nuevoEstado = !$enfermero->status;
             
             // Actualizar el estado del enfermero
@@ -115,8 +116,8 @@ class Index extends Component
             
             $this->dispatch('notify', [
                 'type' => 'success',
-                'message' => 'Estado del enfermero/a actualizado exitosamente.',
-                'duration' => 3000
+                'message' => "Estado de '{$nombreEnfermero}' actualizado a " . ($nuevoEstado ? 'Activo' : 'Inactivo'),
+                'duration' => 4000
             ]);
             
         } catch (\Exception $e) {

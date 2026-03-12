@@ -15,54 +15,75 @@
 
     <!-- Estadísticas -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Total</h6>
-                            <h3>{{ $stats['total'] }}</h3>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Enfermeros
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['total'] }}</div>
                         </div>
-                        <i class="fas fa-user-nurse fa-2x"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-user-nurse fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Activos</h6>
-                            <h3>{{ $stats['activos'] }}</h3>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Enfermeros Activos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['activos'] }}</div>
                         </div>
-                        <i class="fas fa-user-check fa-2x"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Inactivos</h6>
-                            <h3>{{ $stats['inactivos'] }}</h3>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Enfermeros Inactivos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['inactivos'] }}</div>
                         </div>
-                        <i class="fas fa-user-times fa-2x"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-pause-circle fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase">Promedio Experiencia</h6>
-                            <h3>{{ $stats['promedio_experiencia'] }} años</h3>
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Años Promedio Experiencia
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ $stats['promedio_experiencia'] }} años
+                            </div>
                         </div>
-                        <i class="fas fa-chart-line fa-2x"></i>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -100,7 +121,7 @@
                 <div class="col-md-2">
                     <div class="form-group">
                         <label for="status">Estado</label>
-                        <select class="form-control" id="status" wire:model="status">
+                        <select class="form-control" id="status" wire:model.change="status">
                             <option value="">Todos</option>
                             <option value="1">Activo</option>
                             <option value="0">Inactivo</option>
@@ -110,7 +131,7 @@
                 <div class="col-md-2">
                     <div class="form-group">
                         <label for="nivel_experiencia">Nivel</label>
-                        <select class="form-control" id="nivel_experiencia" wire:model="nivel_experiencia">
+                        <select class="form-control" id="nivel_experiencia" wire:model.change="nivel_experiencia">
                             <option value="">Todos</option>
                             <option value="Básico">Básico</option>
                             <option value="Intermedio">Intermedio</option>
@@ -121,7 +142,7 @@
                 <div class="col-md-2">
                     <div class="form-group">
                         <label for="tipo_enfermero">Tipo</label>
-                        <select class="form-control" id="tipo_enfermero" wire:model="tipo_enfermero">
+                        <select class="form-control" id="tipo_enfermero" wire:model.change="tipo_enfermero">
                             <option value="">Todos</option>
                             <option value="General">General</option>
                             <option value="Especialista">Especialista</option>
@@ -232,12 +253,19 @@
                                     </small>
                                 </td>
                                 <td>
-                                    <div class="form-check form-switch d-flex justify-content-center">
-                                        <input class="form-check-input" type="checkbox" 
-                                               wire:change="toggleStatus({{ $enfermero->id }})"
-                                               @if($enfermero->status) checked @endif
-                                               style="cursor: pointer;">
-                                    </div>
+                                    @can('edit enfermeros')
+                                        <div class="form-check form-switch form-switch-lg">
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="statusSwitch{{ $enfermero->id }}"
+                                                   wire:click="toggleStatus({{ $enfermero->id }})"
+                                                   {{ $enfermero->status ? 'checked' : '' }}
+                                                   style="cursor: pointer;">
+                                        </div>
+                                    @else
+                                        <span class="badge badge-{{ $enfermero->status ? 'success' : 'secondary' }}">
+                                            {{ $enfermero->status ? 'Activo' : 'Inactivo' }}
+                                        </span>
+                                    @endcan
                                 </td>
                                 <td>
                                     <div class="dropdown">
