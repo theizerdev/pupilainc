@@ -260,7 +260,7 @@
                 <div class="card shadow-sm border-0 sticky-top" style="top: 20px; z-index: 100; border-radius: 15px; overflow: hidden;">
                     <!-- Animated Header -->
                     <div class="card-header text-white py-3" 
-                         style="background: linear-gradient(135deg, {{ $color ?: '#3B82F6' }} 0%, {{ '#3B82F6', 20 ?: '#1E40AF' }} 100%); transition: all 0.3s ease;">
+                         style="background: linear-gradient(135deg, {{ $color ?: '#3B82F6' }} 0%, #1E40AF 100%); transition: all 0.3s ease;">
                         <div class="d-flex justify-content-between align-items-center">
                             <h6 class="m-0">
                                 <i class="fas fa-eye me-2"></i>Vista Previa
@@ -274,7 +274,7 @@
                     <div class="card-body p-0">
                         <!-- Hero Preview Section -->
                         <div class="text-center p-4" 
-                             style="background: linear-gradient(135deg, rgba({{ '#3B82F6' }}, 0.1) 0%, rgba({{ '#3B82F6' }}, 0.05) 100%);">
+                             style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);">
                             
                             <!-- Animated Badge Preview -->
                             <div class="mb-3" style="transition: transform 0.3s ease;" 
