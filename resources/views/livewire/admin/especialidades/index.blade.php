@@ -229,11 +229,21 @@
                                                 </a>
                                                 @endcan
                                                 @can('delete especialidades')
-                                                <button type="button" class="dropdown-item text-danger"
-                                                        wire:click="deleteEspecialidad({{ $especialidad->id }})"
-                                                        wire:confirm="¿Estás seguro de eliminar esta especialidad?">
-                                                    <i class="ri ri-delete-bin-line me-1"></i> Eliminar
-                                                </button>
+                                                @if($this->tieneRelaciones($especialidad->id))
+                                                    <button type="button" class="dropdown-item text-secondary" 
+                                                            disabled 
+                                                            title="{{ $this->getInfoRelaciones($especialidad->id) }}"
+                                                            data-bs-toggle="tooltip"
+                                                            data-bs-placement="left">
+                                                      <span class="text-danger"><i class="ri ri-delete-bin-line me-1"></i> No se puede eliminar</span>
+                                                    </button>
+                                                @else
+                                                    <button type="button" class="dropdown-item text-danger"
+                                                            wire:click="deleteEspecialidad({{ $especialidad->id }})"
+                                                            wire:confirm="¿Estás seguro de eliminar esta especialidad?">
+                                                        <i class="ri ri-delete-bin-line me-1"></i> Eliminar
+                                                    </button>
+                                                @endif
                                                 @endcan
                                             </div>
                                         </div>
@@ -255,3 +265,24 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    // Inicializar tooltips de Bootstrap cuando el componente se actualice
+    Livewire.hook('message.processed', (message, component) => {
+        // Inicializar tooltips en elementos que tengan data-bs-toggle="tooltip"
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+
+    // Inicializar tooltips al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+@endpush

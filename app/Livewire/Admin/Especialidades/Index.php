@@ -29,6 +29,67 @@ class Index extends Component
         'sucursal_id' => ['except' => '']
     ];
 
+    /**
+     * Verificar si una especialidad tiene relaciones activas
+     */
+    public function tieneRelaciones($especialidadId)
+    {
+        $especialidad = Especialidad::find($especialidadId);
+        
+        if (!$especialidad) {
+            return false;
+        }
+
+        // Verificar si tiene médicos activos
+        $tieneMedicos = $especialidad->medicos()->where('medicos.status', true)->exists();
+        
+        // Verificar si tiene subespecialidades activas
+        $tieneSubespecialidades = $especialidad->subespecialidades()->where('status', true)->exists();
+        
+        // Verificar si tiene citas asociadas (consultas)
+        $tieneCitas = \DB::table('citas')
+            ->where('especialidad_id', $especialidadId)
+            ->exists();
+
+        return $tieneMedicos || $tieneSubespecialidades || $tieneCitas;
+    }
+
+    /**
+     * Obtener información detallada sobre las relaciones de una especialidad
+     */
+    public function getInfoRelaciones($especialidadId)
+    {
+        $especialidad = Especialidad::find($especialidadId);
+        
+        if (!$especialidad) {
+            return '';
+        }
+
+        $relaciones = [];
+
+        // Contar médicos activos
+        $medicosCount = $especialidad->medicos()->where('medicos.status', true)->count();
+        if ($medicosCount > 0) {
+            $relaciones[] = $medicosCount . ' médico(s) activo(s)';
+        }
+
+        // Contar subespecialidades activas
+        $subespecialidadesCount = $especialidad->subespecialidades()->where('status', true)->count();
+        if ($subespecialidadesCount > 0) {
+            $relaciones[] = $subespecialidadesCount . ' subespecialidad(es) activa(s)';
+        }
+
+        // Contar citas asociadas
+        $citasCount = \DB::table('citas')
+            ->where('especialidad_id', $especialidadId)
+            ->count();
+        if ($citasCount > 0) {
+            $relaciones[] = $citasCount . ' cita(s) asociada(s)';
+        }
+
+        return !empty($relaciones) ? 'No se puede eliminar: ' . implode(', ', $relaciones) : '';
+    }
+
     protected $paginationTheme = 'bootstrap';
 
     public function updatingSearch()
@@ -76,6 +137,22 @@ class Index extends Component
                 'message' => "Especialidad '{$nombreEspecialidad}' eliminada exitosamente.",
                 'duration' => 4000
             ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Verificar si es un error de integridad referencial (foreign key constraint)
+            if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'foreign key constraint fails')) {
+                $this->dispatch('notify', [
+                    'type' => 'warning',
+                    'message' => 'No se puede eliminar esta especialidad porque tiene consultas relacionadas. Primero debe eliminar o reasignar las consultas asociadas.',
+                    'duration' => 6000
+                ]);
+            } else {
+                // Otro error de base de datos
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'Error al eliminar la especialidad: ' . $e->getMessage(),
+                    'duration' => 5000
+                ]);
+            }
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -156,15 +233,39 @@ class Index extends Component
 
     public function deleteEspecialidad($especialidad)
     {
-        $especialidad = Especialidad::find($especialidad);
-        $nombreEspecialidad = $especialidad->nombre;
-        $especialidad->delete();
+        try {
+            $especialidad = Especialidad::findOrFail($especialidad);
+            $nombreEspecialidad = $especialidad->nombre;
+            $especialidad->delete();
 
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => "Especialidad '{$nombreEspecialidad}' eliminada exitosamente.",
-            'duration' => 4000
-        ]);
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Especialidad '{$nombreEspecialidad}' eliminada exitosamente.",
+                'duration' => 4000
+            ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Verificar si es un error de integridad referencial (foreign key constraint)
+            if ($e->getCode() === '23000' && str_contains($e->getMessage(), 'foreign key constraint fails')) {
+                $this->dispatch('notify', [
+                    'type' => 'warning',
+                    'message' => 'No se puede eliminar esta especialidad porque tiene consultas relacionadas. Primero debe eliminar o reasignar las consultas asociadas.',
+                    'duration' => 6000
+                ]);
+            } else {
+                // Otro error de base de datos
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'Error al eliminar la especialidad: ' . $e->getMessage(),
+                    'duration' => 5000
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al eliminar la especialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
     }
 
     public function render()
