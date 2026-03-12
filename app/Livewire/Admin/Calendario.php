@@ -62,6 +62,25 @@ class Calendario extends Component
         $this->filtroEstados = Cita::ESTADOS;
     }
 
+    // Métodos de formateo para el formulario de paciente rápido
+    public function formatPhone($value)
+    {
+        // Eliminar todo excepto números y el signo +
+        return preg_replace('/[^0-9+]/', '', $value);
+    }
+
+    public function formatDni($value)
+    {
+        // Eliminar todo excepto números y letras (para documento de identidad)
+        return strtoupper(preg_replace('/[^0-9A-Z]/i', '', $value));
+    }
+
+    public function formatText($value)
+    {
+        // Eliminar etiquetas HTML y trim
+        return strip_tags(trim($value));
+    }
+
     protected function rules()
     {
         return [
@@ -734,7 +753,7 @@ class Calendario extends Component
                 'nombres' => $nombres,
                 'apellidos' => $apellidos,
                 'documento_identidad' => isset($data['documento_identidad']) ? preg_replace('/[^0-9]/', '', $data['documento_identidad']) : null,
-                'telefono' => isset($data['telefono']) ? preg_replace('/[^0-9]/', '', $data['telefono']) : null,
+                'telefono' => isset($data['telefono']) ? preg_replace('/[^0-9+\-\s\(\)]/', '', $data['telefono']) : null,
                 'fecha_nacimiento' => isset($data['fecha_nacimiento']) && $data['fecha_nacimiento'] ? Carbon::parse($data['fecha_nacimiento']) : null,
                 'empresa_id' =>  auth()->user()->empresa_id,
                 'sucursal_id' => auth()->user()->sucursal_id,
@@ -750,7 +769,7 @@ class Calendario extends Component
                     // Sanitización de datos del tutor
                     $tutorNombres = strip_tags(trim($tutorData['nombres'] ?? ''));
                     $tutorApellidos = strip_tags(trim($tutorData['apellidos'] ?? ''));
-                    $tutorTelefono = isset($tutorData['telefono']) ? preg_replace('/[^0-9]/', '', $tutorData['telefono']) : null;
+                    $tutorTelefono = isset($tutorData['telefono']) ? preg_replace('/[^0-9+\-\s\(\)]/', '', $tutorData['telefono']) : null;
                     
                     // Validación de longitud para tutor
                     if (strlen($tutorNombres) <= 100 && strlen($tutorApellidos) <= 100) {

@@ -829,16 +829,26 @@
                                             <label for="mpApellidos">Apellidos <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <div class="form-floating form-floating-outline">
                                             <input type="text" class="form-control" id="mpDocumento" placeholder="Documento de identidad" required>
                                             <label for="mpDocumento">Documento <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control" id="mpTelefono" placeholder="Teléfono" required>
+                                            <input type="tel" 
+                                                   class="form-control" 
+                                                   id="mpTelefono" 
+                                                   placeholder="+58 412 1234567" 
+                                                   required
+                                                   pattern="[\d\s\-\+\(\)]+"
+                                                   title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                                   onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
                                             <label for="mpTelefono">Teléfono <span class="text-danger">*</span></label>
+                                            <small class="text-muted mt-1 d-block">
+                                                <i class="ri ri-information-line me-1"></i>Solo números. Ej: +58 412 1234567
+                                            </small>
                                         </div>
                                     </div>
                                     <div class="col-12">
@@ -846,14 +856,14 @@
                                             <input type="text" class="form-control" id="mpNickname" placeholder="Ej: Juanito, Beba, etc.">
                                             <label for="mpNickname">¿Cómo le gusta que le digan?</label>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
+                                    </div><br><br>
+                                    <div class="col-md-12 mb-4">
                                         <div class="form-floating form-floating-outline">
                                             <input type="date" class="form-control" id="mpFechaNacimiento" placeholder="Fecha de nacimiento" required>
                                             <label for="mpFechaNacimiento">Fecha de Nacimiento <span class="text-danger">*</span></label>
                                         </div>
                                     </div>
-                                    <div class="col-md-6 d-flex align-items-center">
+                                    <div class="col-md-12 d-flex align-items-center">
                                         <div class="form-check mt-2">
                                             <input class="form-check-input" type="checkbox" id="mpEsMenor">
                                             <label class="form-check-label" for="mpEsMenor">¿Requiere tutor?</label>
@@ -865,13 +875,13 @@
                                         <i class="ri ri-information-line me-1"></i> Datos del tutor (opcional si es menor)
                                     </div>
                                     <div class="row g-3">
-                                        <div class="col-md-6">
+                                        <div class="col-md-12">
                                             <div class="form-floating form-floating-outline">
                                                 <input type="text" class="form-control" id="mpTutorNombres" placeholder="Nombres del tutor">
                                                 <label for="mpTutorNombres">Nombres del tutor</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-12">
                                             <div class="form-floating form-floating-outline">
                                                 <input type="text" class="form-control" id="mpTutorApellidos" placeholder="Apellidos del tutor">
                                                 <label for="mpTutorApellidos">Apellidos del tutor</label>
@@ -879,8 +889,17 @@
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-floating form-floating-outline">
-                                                <input type="text" class="form-control" id="mpTutorTelefono" placeholder="Teléfono del tutor">
+                                                <input type="tel" 
+                                                       class="form-control" 
+                                                       id="mpTutorTelefono" 
+                                                       placeholder="Teléfono del tutor"
+                                                       pattern="[\d\s\-\+\(\)]+"
+                                                       title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                                       onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
                                                 <label for="mpTutorTelefono">Teléfono del tutor</label>
+                                                <small class="text-muted mt-1 d-block">
+                                                    <i class="ri ri-information-line me-1"></i>Solo números. Ej: +58 412 1234567
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
