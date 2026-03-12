@@ -5,7 +5,9 @@ namespace App\Livewire\Admin\TipoConsultas;
 use App\Models\TipoConsulta;
 use Livewire\Component;
 use App\Traits\HasDynamicLayout;
+use Livewire\Attributes\Title;
 
+#[Title('Ver Tipo de Atención')]
 class Show extends Component
 {
     use HasDynamicLayout;

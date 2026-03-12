@@ -6,8 +6,10 @@ use App\Models\TipoConsulta;
 use App\Models\Empresa;
 use App\Models\Sucursal;
 use Livewire\Component;
+use Livewire\Attributes\Title;
 use App\Traits\HasDynamicLayout;
 
+#[Title('Editar Tipo de Atención')]
 class Edit extends Component
 {
     use HasDynamicLayout;

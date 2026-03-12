@@ -3,8 +3,6 @@
 namespace App\Livewire\Admin\TipoConsultas;
 
 use App\Models\TipoConsulta;
-use App\Models\Empresa;
-use App\Models\Sucursal;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Traits\HasDynamicLayout;
@@ -17,32 +15,17 @@ class Index extends Component
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
     public $status = '';
-    public $empresa_id = '';
-    public $sucursal_id = '';
 
     protected $queryString = [
         'search' => ['except' => ''],
         'sortField' => ['except' => 'created_at'],
         'sortDirection' => ['except' => 'desc'],
-        'status' => ['except' => ''],
-        'empresa_id' => ['except' => ''],
-        'sucursal_id' => ['except' => '']
+        'status' => ['except' => '']
     ];
 
     protected $paginationTheme = 'bootstrap';
 
     public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingEmpresaId()
-    {
-        $this->resetPage();
-        $this->sucursal_id = '';
-    }
-
-    public function updatingSucursalId()
     {
         $this->resetPage();
     }
@@ -114,43 +97,18 @@ class Index extends Component
             ->when($this->status !== '', function ($query) {
                 $query->where('status', $this->status);
             })
-            ->when($this->empresa_id, function ($query) {
-                $query->where('empresa_id', $this->empresa_id);
-            })
-            ->when($this->sucursal_id, function ($query) {
-                $query->where('sucursal_id', $this->sucursal_id);
-            })
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
-    }
-
-    public function getEmpresasProperty()
-    {
-        return Empresa::forUser()->get();
-    }
-
-    public function getSucursalesProperty()
-    {
-        return Sucursal::when($this->empresa_id, function ($query) {
-                $query->where('empresa_id', $this->empresa_id);
-            })
-            ->forUser()
-            ->get();
     }
 
     public function getStatsProperty()
     {
         $query = TipoConsulta::forUser();
         
-        // Obtener el promedio y asegurar que sea un número válido
-        
-        //$promedioCosto = is_numeric($avgCost) ? round((float)$avgCost, 2) : 0;
-        
         return [
             'total' => $query->count(),
             'activas' => $query->where('status', true)->count(),
             'inactivas' => $query->where('status', false)->count(),
-            'promedio_costo' => 0,
         ];
     }
 
@@ -171,8 +129,6 @@ class Index extends Component
     {
         return view('livewire.admin.tipo-consultas.index', [
             'tipoConsultas' => $this->tipoConsultas,
-            'empresas' => $this->empresas,
-            'sucursales' => $this->sucursales,
             'stats' => $this->stats
         ])->layout($this->getLayout());
     }

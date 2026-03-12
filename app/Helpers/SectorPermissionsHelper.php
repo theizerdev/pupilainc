@@ -241,7 +241,7 @@ if (!function_exists('getSectorMenuItems')) {
                         ]
                     ],
                     [
-                        'label' => 'Tipos de Consultas',
+                        'label' => 'Tipos de Atención',
                         'icon' => 'ri-building-line',
                         'permission' => 'access tipo-consultas',
                         'route' => 'admin.tipo-consultas.index',

@@ -12,7 +12,7 @@ use Livewire\Attributes\Validate;
 use App\Traits\HasDynamicLayout;
 
 
-#[Title('Crear Tipo de Consulta')]
+#[Title('Crear Tipo de Atención')]
 class Create extends Component
 {
     use HasDynamicLayout;
