@@ -92,25 +92,81 @@ class Index extends Component
 
     protected $paginationTheme = 'bootstrap';
 
+    protected $listeners = [
+        'filterUpdated' => 'handleFilterUpdated'
+    ];
+
     public function updatingSearch()
     {
         $this->resetPage();
+        \Log::debug('Filtro search actualizado', ['search' => $this->search]);
+        $this->dispatch('filterUpdated');
     }
 
     public function updatingEmpresaId()
     {
         $this->resetPage();
-        $this->sucursal_id = '';
+        \Log::debug('Filtro empresa_id actualizado', ['empresa_id' => $this->empresa_id]);
+        // Solo resetear sucursal si la empresa actual no tiene relación con la sucursal seleccionada
+        if ($this->sucursal_id && $this->empresa_id) {
+            $sucursalValida = \App\Models\Sucursal::where('id', $this->sucursal_id)
+                ->where('empresa_id', $this->empresa_id)
+                ->exists();
+            if (!$sucursalValida) {
+                $this->sucursal_id = '';
+            }
+        } elseif ($this->empresa_id) {
+            // Si se selecciona una empresa específica, resetear sucursal
+            $this->sucursal_id = '';
+        }
+        $this->dispatch('filterUpdated');
     }
 
     public function updatingSucursalId()
     {
         $this->resetPage();
+        \Log::debug('Filtro sucursal_id actualizado', ['sucursal_id' => $this->sucursal_id]);
+        $this->dispatch('filterUpdated');
     }
 
     public function updatingStatus()
     {
         $this->resetPage();
+        \Log::debug('Filtro status actualizado', ['status' => $this->status]);
+        $this->dispatch('filterUpdated');
+    }
+
+    /**
+     * Limpiar todos los filtros
+     */
+    public function clearFilters()
+    {
+        $this->reset(['search', 'empresa_id', 'sucursal_id', 'status']);
+        $this->resetPage();
+    }
+
+    /**
+     * Obtener información de debug para los filtros
+     */
+    public function getDebugInfoProperty()
+    {
+        return [
+            'search' => $this->search,
+            'empresa_id' => $this->empresa_id,
+            'sucursal_id' => $this->sucursal_id,
+            'status' => $this->status,
+            'user_empresa_id' => auth()->user()->empresa_id ?? null,
+            'user_sucursal_id' => auth()->user()->sucursal_id ?? null,
+            'user_role' => auth()->user()->roles->first()->name ?? null,
+        ];
+    }
+
+    /**
+     * Manejar actualización de filtros
+     */
+    public function handleFilterUpdated()
+    {
+       
     }
 
     public function sortBy($field)
@@ -171,16 +227,23 @@ class Index extends Component
             $especialidad->status = !$especialidad->status;
             $especialidad->save();
 
-            session()->flash('success', 'Estado actualizado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Especialidad '{$especialidad->nombre}' ha cambiado a estado " . ($especialidad->status ? 'activo' : 'inactivo') . '.',
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar el estado: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar el estado: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
     public function getEspecialidadesProperty()
     {
         return Especialidad::with(['empresa', 'sucursal'])
-            ->forUser()
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('nombre', 'like', '%' . $this->search . '%')
@@ -197,6 +260,7 @@ class Index extends Component
             ->when($this->sucursal_id, function ($query) {
                 $query->where('sucursal_id', $this->sucursal_id);
             })
+            ->forUser() // Mover forUser() al final para que los filtros tengan prioridad
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(10);
     }

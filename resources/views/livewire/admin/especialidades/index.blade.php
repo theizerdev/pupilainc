@@ -88,6 +88,16 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <div>
+                                <button type="button" class="btn btn-secondary btn-sm" wire:click="clearFilters">
+                                    <i class="fas fa-times"></i> Limpiar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -99,42 +109,46 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="search">Búsqueda:</label>
-                            <input type="text" class="form-control" id="search" wire:model.debounce.300ms="search" placeholder="Buscar especialidad...">
+                            <input type="text" class="form-control" id="search" wire:model.live="search" placeholder="Buscar especialidad...">
+                            <small class="form-text text-muted">Valor actual: {{ $search ?: 'vacío' }}</small>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="empresa_id">Empresa:</label>
-                            <select class="form-control" id="empresa_id" wire:model="empresa_id">
+                            <select class="form-control" id="empresa_id" wire:model.live="empresa_id">
                                 <option value="">Todas las empresas</option>
                                 @foreach($empresas as $empresa)
                                     <option value="{{ $empresa->id }}">{{ $empresa->razon_social }}</option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted">Valor actual: {{ $empresa_id ?: 'todas' }}</small>
                         </div>
                     </div>
 
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="sucursal_id">Sucursal:</label>
-                            <select class="form-control" id="sucursal_id" wire:model="sucursal_id">
+                            <select class="form-control" id="sucursal_id" wire:model.live="sucursal_id">
                                 <option value="">Todas las sucursales</option>
                                 @foreach($sucursales as $sucursal)
                                     <option value="{{ $sucursal->id }}">{{ $sucursal->nombre }}</option>
                                 @endforeach
                             </select>
+                            <small class="form-text text-muted">Valor actual: {{ $sucursal_id ?: 'todas' }}</small>
                         </div>
                     </div>
 
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="status">Estado:</label>
-                            <select class="form-control" id="status" wire:model="status">
+                            <select class="form-control" id="status" wire:model.live="status">
                                 <option value="">Todos los estados</option>
                                 <option value="1">Activo</option>
                                 <option value="0">Inactivo</option>
                             </select>
+                            <small class="form-text text-muted">Valor actual: {{ $status === '' ? 'todos' : ($status == '1' ? 'activo' : 'inactivo') }}</small>
                         </div>
                     </div>
                 </div>
@@ -145,8 +159,17 @@
         <div class="card shadow">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Listado de Especialidades</h6>
+                
             </div>
             <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">
+                        Mostrando {{ $especialidades->firstItem() }} - {{ $especialidades->lastItem() }} de {{ $especialidades->total() }} especialidades
+                        @if($especialidades->total() > 0)
+                            ({{ $especialidades->count() }} en esta página)
+                        @endif
+                    </small>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>

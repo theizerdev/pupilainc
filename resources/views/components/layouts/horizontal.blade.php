@@ -40,6 +40,7 @@
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/apex-charts/apex-charts.css" />
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/swiper/swiper.css" />
+    <link rel="stylesheet" href="/materialize/assets/vendor/libs/sweetalert2/sweetalert2.css" />
 
     <!-- Page CSS -->
     <link rel="stylesheet" href="/materialize/assets/vendor/css/pages/cards-statistics.css" />
@@ -139,6 +140,7 @@
     <!-- Vendors JS -->
     <script src="/materialize/assets/vendor/libs/apex-charts/apexcharts.js"></script>
     <script src="/materialize/assets/vendor/libs/swiper/swiper.js"></script>
+     <script src="/materialize/assets/vendor/libs/sweetalert2/sweetalert2.js"></script>
 
     <!-- Main JS -->
     <script src="/materialize/assets/js/main.js"></script>

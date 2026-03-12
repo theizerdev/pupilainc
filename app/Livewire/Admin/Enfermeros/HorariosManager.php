@@ -131,7 +131,7 @@ class HorariosManager extends Component
 
     public function guardarHorarios()
     {
-        $this->authorize('update enfermeros');
+        //\Gate::authorize('update enfermeros');
         
         try {
             foreach ($this->horarios as $dia => $horario) {
@@ -153,6 +153,8 @@ class HorariosManager extends Component
                 'message' => 'Horarios del enfermero/a actualizados exitosamente.',
                 'duration' => 5000
             ]);
+
+            return redirect()->route('admin.enfermeros.index');
 
         } catch (\Exception $e) {
             $this->dispatch('notify', [

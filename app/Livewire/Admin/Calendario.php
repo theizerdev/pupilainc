@@ -157,8 +157,8 @@ class Calendario extends Component
         return [
             'id' => 'consulta_' . $consulta->id,
             'title' => $title,
-            'start' => $consulta->fecha_consulta->toIso8601String(),
-            'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
+            'start' => $consulta->fecha_consulta->format('Y-m-d\TH:i:s'),
+            'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->format('Y-m-d\TH:i:s'),
             'backgroundColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
             'borderColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
             'extendedProps' => [
@@ -176,6 +176,7 @@ class Calendario extends Component
                 'estado_label' => Consulta::ESTADO_LABELS[$consulta->estado] ?? ucfirst($consulta->estado),
                 'motivo' => $consulta->motivo_consulta,
                 'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
+                'estado_changed_at' => $consulta->estado_changed_at ? $consulta->estado_changed_at->format('Y-m-d H:i:s') : null,
             ],
         ];
     }
@@ -420,9 +421,11 @@ class Calendario extends Component
         // Rate limiting para guardar citas
         $rateLimitKey = 'calendario_save_cita_' . auth()->id();
         if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'error',
-                'message' => 'Demasiadas operaciones. Por favor, espere un momento.'
+                'title' => 'Demasiados intentos',
+                'message' => 'Demasiadas operaciones. Por favor, espere un momento.',
+                'icon' => 'warning'
             ]);
             return;
         }
@@ -433,10 +436,12 @@ class Calendario extends Component
         // Validación de permisos para edición
         if ($this->citaId) {
             $citaExistente = Cita::find($this->citaId);
-            if (!$citaExistente || \Gate::denies('edit citas', $citaExistente)) {
-                $this->dispatch('show-toast', [
+            if (!$citaExistente || \Gate::denies('edit citas')) {
+                $this->dispatch('show-alert', [
                     'type' => 'error',
-                    'message' => 'No tienes permisos para editar esta cita.'
+                    'title' => 'Permiso denegado',
+                    'message' => 'No tienes permisos para editar esta cita.',
+                    'icon' => 'error'
                 ]);
                 return;
             }
@@ -460,19 +465,34 @@ class Calendario extends Component
         $inicio = Carbon::parse($this->fecha_inicio);
         $fin = Carbon::parse($this->fecha_fin);
 
+        // Validación de fecha pasada
+        if ($inicio < now()) {
+            $this->dispatch('show-alert', [
+                'type' => 'warning',
+                'title' => 'Fecha no permitida',
+                'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
+                'icon' => 'warning'
+            ]);
+            return;
+        }
+
         $conflictos = Cita::sinConflicto($this->medico_id, $inicio, $fin, $this->citaId)->count();
         if ($conflictos > 0) {
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'error',
-                'message' => 'El médico ya tiene una cita programada en ese horario.'
+                'title' => 'Conflicto de horario',
+                'message' => 'El médico ya tiene una cita programada en ese horario.',
+                'icon' => 'error'
             ]);
             return;
         }
 
         if (!$this->validarHorarioMedico($this->medico_id, $inicio, $fin)) {
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'warning',
-                'message' => 'La cita está fuera del horario de atención del médico.'
+                'title' => 'Fuera de horario',
+                'message' => 'La cita está fuera del horario de atención del médico.',
+                'icon' => 'warning'
             ]);
         }
 
@@ -512,9 +532,11 @@ class Calendario extends Component
                 $cita->programarRecordatorios();
             }
 
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'success',
-                'message' => 'Cita actualizada exitosamente.'
+                'title' => 'Éxito',
+                'message' => 'Cita actualizada exitosamente.',
+                'icon' => 'success'
             ]);
         } else {
             $data['created_by'] = auth()->id();
@@ -531,19 +553,25 @@ class Calendario extends Component
 
             // Mostrar mensaje apropiado según el resultado de la notificación
             if ($notificacion['success'] && empty($notificacion['errors'])) {
-                $this->dispatch('show-toast', [
+                $this->dispatch('show-alert', [
                     'type' => 'success',
-                    'message' => 'Cita creada exitosamente. Notificaciones enviadas.'
+                    'title' => 'Cita creada',
+                    'message' => 'Cita creada exitosamente. Notificaciones enviadas.',
+                    'icon' => 'success'
                 ]);
             } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
-                $this->dispatch('show-toast', [
+                $this->dispatch('show-alert', [
                     'type' => 'warning',
-                    'message' => 'Cita creada. ' . $notificacion['message']
+                    'title' => 'Cita creada',
+                    'message' => 'Cita creada. ' . $notificacion['message'],
+                    'icon' => 'warning'
                 ]);
             } else {
-                $this->dispatch('show-toast', [
+                $this->dispatch('show-alert', [
                     'type' => 'error',
-                    'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
+                    'title' => 'Error al notificar',
+                    'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors']),
+                    'icon' => 'error'
                 ]);
             }
         }
@@ -557,9 +585,11 @@ class Calendario extends Component
         // Rate limiting para actualizar fechas
         $rateLimitKey = 'calendario_update_fechas_' . auth()->id() . '_' . $id;
         if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'error',
-                'message' => 'Demasiados intentos de reprogramación. Por favor, espere un momento.'
+                'title' => 'Demasiados intentos',
+                'message' => 'Demasiados intentos de reprogramación. Por favor, espere un momento.',
+                'icon' => 'warning'
             ]);
             $this->dispatch('cita-saved');
             return;
@@ -570,9 +600,11 @@ class Calendario extends Component
         
         // Validación de permisos para actualizar fechas
         if (!$this->authorizeCitaAction($cita, 'update')) {
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'error',
-                'message' => 'No tienes permisos para reprogramar esta cita.'
+                'title' => 'Permiso denegado',
+                'message' => 'No tienes permisos para reprogramar esta cita.',
+                'icon' => 'error'
             ]);
             $this->dispatch('cita-saved');
             return;
@@ -581,11 +613,25 @@ class Calendario extends Component
         $inicio = Carbon::parse($start);
         $fin = Carbon::parse($end);
 
+        // Validación de fecha pasada
+        if ($inicio < now()) {
+            $this->dispatch('show-alert', [
+                'type' => 'warning',
+                'title' => 'Fecha no permitida',
+                'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
+                'icon' => 'warning'
+            ]);
+            $this->dispatch('cita-saved');
+            return;
+        }
+
         $conflictos = Cita::sinConflicto($cita->medico_id, $inicio, $fin, $id)->count();
         if ($conflictos > 0) {
-            $this->dispatch('show-toast', [
+            $this->dispatch('show-alert', [
                 'type' => 'error',
-                'message' => 'No se puede mover: conflicto de horario.'
+                'title' => 'Conflicto de horario',
+                'message' => 'No se puede mover: conflicto de horario.',
+                'icon' => 'error'
             ]);
             $this->dispatch('cita-saved');
             return;
@@ -601,9 +647,11 @@ class Calendario extends Component
 
         $this->reprogramarRecordatorios($cita);
 
-        $this->dispatch('show-toast', [
+        $this->dispatch('show-alert', [
             'type' => 'success',
-            'message' => 'Cita reprogramada exitosamente.'
+            'title' => 'Cita reprogramada',
+            'message' => 'La cita ha sido reprogramada exitosamente.',
+            'icon' => 'success'
         ]);
         $this->dispatch('cita-saved');
     }

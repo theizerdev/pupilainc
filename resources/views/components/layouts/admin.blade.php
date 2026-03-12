@@ -72,6 +72,9 @@
      <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
     
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
     <!-- Chat y Biblioteca CSS -->
     <link rel="stylesheet" href="{{ asset('css/chat-biblioteca.css') }}">
     
@@ -224,6 +227,9 @@
 
     <!-- Core JS -->
      <script src="/materialize/assets/vendor/libs/jquery/jquery.js"></script>
+
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script src="/materialize/assets/vendor/libs/popper/popper.js"></script>
     <script src="/materialize/assets/vendor/js/bootstrap.js"></script>

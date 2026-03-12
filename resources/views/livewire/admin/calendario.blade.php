@@ -2,6 +2,46 @@
     @push('scripts')
     <script>
         document.addEventListener('livewire:init', () => {
+            // Listener para alertas con SweetAlert2
+            Livewire.on('show-alert', (event) => {
+                const data = event[0];
+                
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: data.icon || 'info',
+                       
+                        text: data.message || '',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: data.type === 'success' ? '#28a745' : 
+                                          data.type === 'error' ? '#dc3545' : 
+                                          data.type === 'warning' ? '#ffc107' : '#0d6efd',
+                    });
+                } else {
+                    // Fallback a toast nativo si no hay SweetAlert
+                    const toastContainer = document.querySelector('.toast-container');
+                    if (toastContainer) {
+                        const bgClass = data.type === 'success' ? 'bg-success' : 
+                                       data.type === 'error' ? 'bg-danger' : 
+                                       data.type === 'warning' ? 'bg-warning' : 'bg-info';
+                        const toastHtml = `
+                            <div class="bs-toast toast ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                                <div class="toast-header">
+                                    <i class="ri ri-check-line me-2"></i>
+                                    <div class="me-auto fw-medium">${data.title || 'Alerta'}</div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>
+                                <div class="toast-body">
+                                    ${data.message}
+                                </div>
+                            </div>
+                        `;
+                        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                        const newToast = toastContainer.lastElementChild;
+                        new bootstrap.Toast(newToast).show();
+                    }
+                }
+            });
+
             Livewire.on('paciente-creado', (event) => {
                 const data = event[0];
                 
@@ -50,11 +90,11 @@
     <link rel="stylesheet" href="/materialize/assets/vendor/css/pages/app-calendar.css" />
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
     <style>
-        .slot-btn { cursor: pointer; transition: all .2s; border: 1px solid #e0e0e0; }
-        .slot-btn:hover { transform: scale(1.05); }
-        .slot-btn.selected { border-color: var(--bs-primary); box-shadow: 0 0 0 2px var(--bs-primary); }
-        .slot-btn.ocupado { opacity: .45; cursor: not-allowed; text-decoration: line-through; }
-        .slots-container { max-height: 200px; overflow-y: auto; }
+        .slot-btn { cursor: pointer; transition: all .15s; font-size: 0.75rem; padding: 0.25rem 0.5rem; min-width: 0; text-align: center; }
+        .slot-btn:hover:not(.ocupado) { transform: scale(1.04); }
+        .slot-btn.selected { border-color: var(--bs-primary); box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.25); }
+        .slot-btn.ocupado { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
+        .slots-container { max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
         .cascade-arrow { text-align: center; color: #aaa; font-size: .75rem; margin: 2px 0; }
 
         .fc .fc-event {
@@ -68,15 +108,34 @@
             z-index: 10;
         }
         .fc .fc-daygrid-event {
-            padding: 1px 4px !important;
-            margin-bottom: 1px !important;
+            padding: 3px 6px !important;
+            margin-bottom: 2px !important;
+            line-height: 1.5;
         }
         .fc .fc-daygrid-event .fc-event-time {
-            font-size: 0.68rem;
+            font-size: 0.8rem;
             font-weight: 600;
+            flex-shrink: 0;
         }
         .fc .fc-daygrid-event .fc-event-title {
-            font-size: 0.70rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .fc .fc-daygrid-event .fc-event-type-badge {
+            font-size: 0.6rem !important;
+            padding: 1px 6px !important;
+            line-height: 1.5;
+        }
+        .fc .fc-daygrid-event .badge {
+            font-size: 0.6rem !important;
+            padding: 1px 6px !important;
+        }
+        .fc .fc-daygrid-event .fc-event-subtitle {
+            font-size: 0.7rem;
+            opacity: 0.7;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -121,17 +180,17 @@
         }
 
         .fc .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
-            min-height: 60px !important;
-            padding: 2px 4px !important;
+            min-height: 100px !important;
+            padding: 3px 5px !important;
         }
         .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
-            margin-top: 1px !important;
+            margin-top: 2px !important;
         }
         .fc .fc-daygrid-day-top {
-            padding: 2px 4px !important;
+            padding: 3px 5px !important;
         }
         .fc td.fc-daygrid-day {
-            min-height: 60px !important;
+            min-height: 100px !important;
         }
         .fc .fc-scrollgrid-sync-table {
             width: 100% !important;
@@ -492,7 +551,7 @@
                     <hr class="mb-4 mx-n4 mt-3" />-->
 
                     <!-- Filtros Container -->
-                    <div id="filtrosContainer" class="perfect-scrollbar-container" style="max-height: 500px; position: relative;">
+                    <div id="filtrosContainer" style="overflow-y: auto;">
                     
                     <!-- Filtro por Especialidad -->
                     <div class="mb-3">
@@ -507,19 +566,10 @@
 
                     <hr class="mb-4 mx-n4" />
 
-                    <!-- Toggle Citas -->
-                    <div class="toggle-section">
-                        <div class="d-flex align-items-center">
-                            <span class="legend-bar me-2" style="background-color: #0d6efd;"></span>
-                            <h6 class="mb-0">Citas</h6>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input toggle-citas" type="checkbox" id="toggleCitas" checked />
-                        </div>
-                    </div>
-
                     <!-- Filtros de estados de Citas -->
-                    <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-citas">
+                    <div class="mb-3">
+                        <h6 class="mb-2">Estados de Citas</h6>
+                        <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-citas">
                         @foreach($citaEstadoLabels as $value => $label)
                             <div class="form-check mb-2 ms-2">
                                 <input class="form-check-input input-filter-cita" type="checkbox"
@@ -532,23 +582,15 @@
                                 </label>
                             </div>
                         @endforeach
+                        </div>
                     </div>
 
                     <hr class="mb-4 mx-n4" />
 
-                    <!-- Toggle Consultas -->
-                    <div class="toggle-section">
-                        <div class="d-flex align-items-center">
-                            <span class="legend-bar me-2" style="background-color: #6f42c1;"></span>
-                            <h6 class="mb-0">Consultas</h6>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input toggle-consultas" type="checkbox" id="toggleConsultas" />
-                        </div>
-                    </div>
-
                     <!-- Filtros de estados de Consultas -->
-                    <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-consultas">
+                    <div class="mb-3">
+                        <h6 class="mb-2">Estados de atención en clínica</h6>
+                        <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-consultas">
                         @foreach($consultaEstadoLabels as $value => $label)
                             <div class="form-check mb-2 ms-2">
                                 <input class="form-check-input input-filter-consulta" type="checkbox"
@@ -561,6 +603,7 @@
                                 </label>
                             </div>
                         @endforeach
+                        </div>
                     </div>
 
                     <!-- Médicos -->
@@ -605,28 +648,6 @@
 
             <!-- Calendar Content -->
             <div class="col app-calendar-content" style="position: relative;">
-                <!-- Floating Toggles -->
-                <div id="floatingToggles">
-                    <div class="toggle-item">
-                        <div class="d-flex align-items-center">
-                            <span class="legend-bar me-2" style="background-color: #0d6efd; width: 4px; height: 16px; border-radius: 2px; display: inline-block;"></span>
-                            <span class="fw-medium">Citas</span>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="floatingToggleCitas" checked />
-                        </div>
-                    </div>
-                    <div class="toggle-item">
-                        <div class="d-flex align-items-center">
-                            <span class="legend-bar me-2" style="background-color: #6f42c1; width: 4px; height: 16px; border-radius: 2px; display: inline-block;"></span>
-                            <span class="fw-medium">Consultas</span>
-                        </div>
-                        <div class="form-check form-switch mb-0">
-                            <input class="form-check-input" type="checkbox" id="floatingToggleConsultas" />
-                        </div>
-                    </div>
-                </div>
-
                 <div class="card shadow-none border-0">
                     <div class="card-body pb-0" style="position: relative;">
                         <!-- Loading Overlay -->
@@ -719,7 +740,7 @@
                             <div id="slotsContainer" class="mb-5" style="display:none;">
                                 <label class="form-label fw-medium mb-2">Horarios Disponibles</label>
                                 <div id="slotsMessage" class="alert alert-warning d-none py-2 px-3 mb-2" role="alert"></div>
-                                <div id="slotsList" class="slots-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem;"></div>
+                                <div id="slotsList" class="slots-container"></div>
                             </div>
 
                             <!-- Hidden: fecha_inicio / fecha_fin -->

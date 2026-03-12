@@ -340,8 +340,8 @@ class Cita extends Model
         return [
             'id' => $this->id,
             'title' => $nombrePaciente,
-            'start' => $this->fecha_inicio->toIso8601String(),
-            'end' => $this->fecha_fin->toIso8601String(),
+            'start' => $this->fecha_inicio->format('Y-m-d\TH:i:s'),
+            'end' => $this->fecha_fin->format('Y-m-d\TH:i:s'),
             'allDay' => false,
             'extendedProps' => [
                 'calendar' => $this->estado,
