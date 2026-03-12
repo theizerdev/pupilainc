@@ -60,6 +60,41 @@ class Index extends Component
         $this->resetPage();
     }
 
+    /**
+     * Limpiar todos los filtros
+     */
+    public function clearFilters()
+    {
+        $this->reset(['search', 'especialidad_id', 'empresa_id', 'sucursal_id', 'status']);
+        $this->resetPage();
+    }
+
+    /**
+     * Cambiar el estado de una subespecialidad
+     */
+    public function toggleStatus($id)
+    {
+        $this->authorize('edit subespecialidades');
+        
+        try {
+            $subespecialidad = Subespecialidad::findOrFail($id);
+            $subespecialidad->status = !$subespecialidad->status;
+            $subespecialidad->save();
+            
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Estado de '{$subespecialidad->nombre}' actualizado a " . ($subespecialidad->status ? 'Activo' : 'Inactivo'),
+                'duration' => 4000
+            ]);
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar el estado: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
+    }
+
     public function sortBy($field)
     {
         if ($this->sortField === $field) {
@@ -98,10 +133,11 @@ class Index extends Component
         return Subespecialidad::with(['especialidad', 'empresa', 'sucursal'])
             ->forUser()
             ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('nombre', 'like', '%' . $this->search . '%')
-                      ->orWhere('descripcion', 'like', '%' . $this->search . '%')
-                      ->orWhere('codigo', 'like', '%' . $this->search . '%');
+                $searchTerm = '%' . $this->search . '%';
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('nombre', 'like', $searchTerm)
+                      ->orWhere('descripcion', 'like', $searchTerm)
+                      ->orWhere('codigo', 'like', $searchTerm);
                 });
             })
             ->when($this->status !== '', function ($query) {

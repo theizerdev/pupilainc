@@ -110,7 +110,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="search">Búsqueda:</label>
-                            <input type="text" class="form-control" id="search" wire:model.debounce.300ms="search" placeholder="Buscar subespecialidad...">
+                            <input type="text" class="form-control" id="search" wire:model.live.debounce.300ms="search" placeholder="Buscar subespecialidad..." autocomplete="off">
                         </div>
                     </div>
                     
