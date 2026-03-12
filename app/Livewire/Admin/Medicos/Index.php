@@ -86,7 +86,7 @@ class Index extends Component
 
     public function delete($id)
     {
-        $this->authorize('admin.medicos.destroy');
+        $this->authorize('delete medicos');
         
         try {
             $medico = Medico::findOrFail($id);
@@ -100,16 +100,25 @@ class Index extends Component
 
     public function toggleStatus($id)
     {
-        $this->authorize('admin.medicos.edit');
+        $this->authorize('edit citas');
         
         try {
             $medico = Medico::findOrFail($id);
+            $nombreMedico = $medico->nombres . ' ' . $medico->apellidos;
             $medico->status = !$medico->status;
             $medico->save();
             
-            session()->flash('success', 'Estado actualizado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Estado de '{$nombreMedico}' actualizado a " . ($medico->status ? 'Activo' : 'Inactivo'),
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar el estado: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar el estado: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

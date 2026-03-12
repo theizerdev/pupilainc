@@ -99,14 +99,14 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label for="search">Búsqueda:</label>
-                            <input type="text" class="form-control" id="search" wire:model.debounce.300ms="search" placeholder="Buscar médico...">
+                            <input type="text" class="form-control" id="search" wire:model.live.debounce.300ms="search" placeholder="Buscar médico...">
                         </div>
                     </div>
                     
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="empresa_id">Empresa:</label>
-                            <select class="form-control" id="empresa_id" wire:model="empresa_id">
+                            <select class="form-control" id="empresa_id" wire:model.change="empresa_id">
                                 <option value="">Todas las empresas</option>
                                 @foreach($empresas as $empresa)
                                     <option value="{{ $empresa->id }}">{{ $empresa->razon_social }}</option>
@@ -118,7 +118,7 @@
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="sucursal_id">Sucursal:</label>
-                            <select class="form-control" id="sucursal_id" wire:model="sucursal_id">
+                            <select class="form-control" id="sucursal_id" wire:model.change="sucursal_id">
                                 <option value="">Todas las sucursales</option>
                                 @foreach($sucursales as $sucursal)
                                     <option value="{{ $sucursal->id }}">{{ $sucursal->nombre }}</option>
@@ -130,7 +130,7 @@
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="especialidad_id">Especialidad:</label>
-                            <select class="form-control" id="especialidad_id" wire:model="especialidad_id">
+                            <select class="form-control" id="especialidad_id" wire:model.change="especialidad_id">
                                 <option value="">Todas las especialidades</option>
                                 @foreach($especialidades as $especialidad)
                                     <option value="{{ $especialidad->id }}">{{ $especialidad->nombre }}</option>
@@ -142,7 +142,7 @@
                     <div class="col-md-2">
                         <div class="form-group">
                             <label for="status">Estado:</label>
-                            <select class="form-control" id="status" wire:model="status">
+                            <select class="form-control" id="status" wire:model.change="status">
                                 <option value="">Todos los estados</option>
                                 <option value="1">Activo</option>
                                 <option value="0">Inactivo</option>
@@ -258,9 +258,19 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-{{ $medico->status ? 'success' : 'secondary' }}">
-                                            {{ $medico->status ? 'Activo' : 'Inactivo' }}
-                                        </span>
+                                        @can('edit medicos')
+                                            <div class="form-check form-switch form-switch-lg">
+                                                <input class="form-check-input" type="checkbox"
+                                                       id="statusSwitch{{ $medico->id }}"
+                                                       wire:click="toggleStatus({{ $medico->id }})"
+                                                       {{ $medico->status ? 'checked' : '' }}
+                                                       style="cursor: pointer;">
+                                            </div>
+                                        @else
+                                            <span class="badge badge-{{ $medico->status ? 'success' : 'secondary' }}">
+                                                {{ $medico->status ? 'Activo' : 'Inactivo' }}
+                                            </span>
+                                        @endcan
                                     </td>
                                     <td>{{ $medico->created_at->format('d/m/Y') }}</td>
                                     <td>
@@ -323,3 +333,4 @@
         </div>
     </div>
 </div>
+
