@@ -437,6 +437,7 @@ class Calendario extends Component
 
     public function saveCita($eventData)
     {
+        
         // Rate limiting para guardar citas
         $rateLimitKey = 'calendario_save_cita_' . auth()->id();
         if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
@@ -475,8 +476,9 @@ class Calendario extends Component
             $this->fecha_fin = $eventData['end'] ?? $eventData['fecha_fin'] ?? $this->fecha_fin;
             $this->motivo = $eventData['motivo'] ?? $this->motivo;
             $this->notas = $eventData['notas'] ?? $this->notas;
-            $this->estado = $eventData['estado'] ?? $this->estado;
             $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
+            $this->estado = $eventData['estado'] ?? $this->estado;
+            
         }
 
         $this->validate();
@@ -524,8 +526,8 @@ class Calendario extends Component
             'fecha_fin' => $fin,
             'motivo' => $this->motivo,
             'notas' => $this->notas,
-            'estado' => $this->estado,
             'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
+            'estado' => $this->estado ?: null,
         ];
 
         if ($this->citaId) {
@@ -559,8 +561,12 @@ class Calendario extends Component
             ]);
         } else {
             $data['created_by'] = auth()->id();
-            $cita = Cita::create($data);
             
+            $cita = new Cita();
+            $cita->fill($data);
+        
+            $cita->save();
+
             // Log de auditoría para creación
             $this->logCitaAction('create', $cita);
 
@@ -1043,7 +1049,7 @@ class Calendario extends Component
             'fecha_fin' => Carbon::parse($data['fecha_fin'] ?? now()->addHour()),
             'motivo' => strip_tags(trim($data['motivo'] ?? '')),
             'notas' => strip_tags(trim($data['notas'] ?? '')),
-            'estado' => in_array($data['estado'] ?? '', Cita::ESTADOS) ? $data['estado'] : 'pendiente',
+            'estado' => $this->citaId ? (in_array($data['estado'] ?? '', Cita::ESTADOS) ? $data['estado'] : 'pendiente') : 'pendiente',
             'tipo_consulta_id' => (int) ($data['tipo_consulta_id'] ?? 0),
         ];
     }

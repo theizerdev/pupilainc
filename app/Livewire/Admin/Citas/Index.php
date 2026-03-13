@@ -362,7 +362,7 @@ class Index extends Component
             'fecha_fin' => $fin,
             'motivo' => $this->motivo,
             'notas' => $this->notas,
-            'estado' => $this->estado,
+            'estado' => $this->citaId ? $this->estado : 'pendiente',
             'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
         ];
 
