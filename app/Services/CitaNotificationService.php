@@ -421,17 +421,17 @@ class CitaNotificationService
             $saludo = "Estimado representante de *{$cita->paciente->nombre_completo}*";
           }
 
-        $urlConfirmar = route('citas.confirmar', [
-            'token' => $confirmacion->token_confirmacion,
-            'expires' => now()->addHours(24)->timestamp,
-            'signature' => hash_hmac('sha256', $confirmacion->token_confirmacion, config('app.key'))
-        ]);
+        $urlConfirmar = URL::temporarySignedRoute(
+            'citas.confirmar',
+            now()->addHours(24),
+            ['token' => $confirmacion->token_confirmacion]
+        );
 
-        $urlCancelar = route('citas.cancelar', [
-            'token' => $confirmacion->token_confirmacion,
-            'expires' => now()->addHours(24)->timestamp,
-            'signature' => hash_hmac('sha256', $confirmacion->token_confirmacion . '_cancelar', config('app.key'))
-        ]);
+        $urlCancelar = URL::temporarySignedRoute(
+            'citas.cancelar',
+            now()->addHours(24),
+            ['token' => $confirmacion->token_confirmacion]
+        );
 
         $especialidad = $cita->especialidad->nombre ?? '';
 
@@ -447,11 +447,7 @@ class CitaNotificationService
             . "Por favor, llegue 15 minutos antes de su cita.\n\n"
             . "━━━━━━━━━━━━━━━━━━━━\n"
             . "📋 *¿Confirma su asistencia?*\n\n"
-            . "✅ *CONFIRMAR CITA*\n"
-            . "👉 {$urlConfirmar}\n\n"
-            . "❌ *CANCELAR CITA*\n"
-            . "👉 {$urlCancelar}\n\n"
-            . "📱 También puede responder:\n"
+            . "📱 Responda por este chat:\n"
             . "*SI* - para confirmar\n"
             . "*NO* - para cancelar\n\n"
             . "⏰ Tiene 24 horas para responder.";

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CitaConfirmacion;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 
 class CitaConfirmationBotonesService
 {
@@ -81,17 +82,17 @@ class CitaConfirmationBotonesService
         $especialidad = $cita->especialidad;
         
         // Construir enlaces de confirmación
-        $urlConfirmar = route('citas.confirmar', [
-            'token' => $confirmacion->token_confirmacion,
-            'expires' => $confirmacion->fecha_envio->addHours(24)->timestamp,
-            'signature' => hash_hmac('sha256', $confirmacion->token_confirmacion, config('app.key'))
-        ]);
-        
-        $urlCancelar = route('citas.cancelar', [
-            'token' => $confirmacion->token_confirmacion,
-            'expires' => $confirmacion->fecha_envio->addHours(24)->timestamp,
-            'signature' => hash_hmac('sha256', $confirmacion->token_confirmacion . '_cancelar', config('app.key'))
-        ]);
+        $urlConfirmar = URL::temporarySignedRoute(
+            'citas.confirmar',
+            $confirmacion->fecha_envio->addHours(24),
+            ['token' => $confirmacion->token_confirmacion]
+        );
+
+        $urlCancelar = URL::temporarySignedRoute(
+            'citas.cancelar',
+            $confirmacion->fecha_envio->addHours(24),
+            ['token' => $confirmacion->token_confirmacion]
+        );
         
         // Formato con botones simulados para WhatsApp
         $mensaje = "🏥 *CONFIRMACIÓN DE CITA MÉDICA* 🏥\n\n";

@@ -209,31 +209,60 @@ class Cita extends Model
 
     public function cambiarEstado($nuevoEstado)
     {
-        
-      if(!in_array($nuevoEstado, self::ESTADOS)) {
+        if (!in_array($nuevoEstado, self::ESTADOS)) {
             throw new \InvalidArgumentException("Estado inválido: {$nuevoEstado}");
         }
 
         $estadoAnterior = $this->estado;
+
+        // No realizar acciones si el estado no cambia
+        if ($estadoAnterior === $nuevoEstado) {
+            \Log::info('cambiarEstado: mismo estado, no hace nada', ['cita_id' => $this->id, 'estado' => $nuevoEstado]);
+            return;
+        }
+
+        \Log::info('cambiarEstado: cambio detectado', ['cita_id' => $this->id, 'estadoAnterior' => $estadoAnterior, 'nuevoEstado' => $nuevoEstado, 'stack' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5)]);
+
         $this->estado = $nuevoEstado;
         $this->save();
 
-        // Solo crear consulta si la cita se confirma o se mantiene pendiente
-        if (in_array($nuevoEstado, [self::ESTADO_CONFIRMADA])) {
-            $this->crearConsultaSiNoExiste();
-        }  else {
-            // Si se cancela o no asiste, eliminar consulta
+        if ($nuevoEstado === self::ESTADO_CONFIRMADA) {
+            // Crear consulta solo en la transición pendiente -> confirmada
+            if ($estadoAnterior === self::ESTADO_PENDIENTE) {
+                $this->crearConsultaSiNoExiste();
+            }
+        } elseif ($nuevoEstado === self::ESTADO_PENDIENTE) {
+            // Cuando vuelva a pendiente no crear ni eliminar consultas automáticamente
+            // (mantener la consulta si existía por error, pero no crear nueva)
+        } else {
+            // Cancelada/completada/no_asistio: eliminar consulta asociada
             Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->delete();
-        } 
+        }
     } 
 
 
 
     protected function crearConsultaSiNoExiste(): void
     {
+        if ($this->estado !== self::ESTADO_CONFIRMADA) {
+            \Log::info('crearConsultaSiNoExiste llamada sin estado confirmada', ['cita_id' => $this->id, 'estado' => $this->estado]);
+            return;
+        }
+
         try {
             $existe = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->exists();
-            if ($existe) return;
+            if ($existe) {
+                \Log::info('consulta ya existe para cita', ['cita_id' => $this->id]);
+                return;
+            }
+
+            // Solo crear consulta cuando exista confirmación activa confirmada
+            if (!\App\Models\CitaConfirmacion::where('cita_id', $this->id)
+                ->where('estado', \App\Models\CitaConfirmacion::ESTADO_CONFIRMADO)
+                ->exists()) {
+                \Log::warning('No hay confirmacion confirmada, no se crea consulta', ['cita_id' => $this->id]);
+                return;
+            }
 
             Consulta::withoutGlobalScopes()->create([
                 'cita_id' => $this->id,
@@ -400,13 +429,21 @@ class Cita extends Model
     {
         static::creating(function ($cita) {
             // Forzar estado pendiente para todas las nuevas citas
+            if ($cita->estado !== self::ESTADO_PENDIENTE) {
+                \Log::warning("Cita creando con estado no-pendiente: {$cita->estado}. Forzando pendiente", ['cita' => $cita->toArray()]);
+            }
             $cita->estado = self::ESTADO_PENDIENTE;
         });
 
+        static::saving(function ($cita) {
+            if (!$cita->exists && $cita->estado !== self::ESTADO_PENDIENTE) {
+                \Log::warning("Cita guardando nueva con estado no-pendiente: {$cita->estado}. Forzando pendiente", ['cita' => $cita->toArray()]);
+                $cita->estado = self::ESTADO_PENDIENTE;
+            }
+        });
+
         static::created(function ($cita) {
-            // No despachar el job de confirmación separado.
-            // La confirmación ahora se incluye dentro de la notificación
-            // de nueva cita en CitaNotificationService::notificarNuevaCita()
+            \Log::info('Cita creada con estado: ' . $cita->estado, ['cita_id' => $cita->id]);
             \Log::info('Cita ' . $cita->id . ' creada - confirmación se enviará integrada en la notificación');
         });
     }

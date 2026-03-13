@@ -73,14 +73,39 @@ class CitaConfirmationService
         $respuestaNormalizada = strtolower(trim($respuesta));
 
         // Procesar respuestas de botones interactivos o texto
-        if (in_array($respuestaNormalizada, ['si', 'sí', 'yes', 'ok', 'confirmo']) || 
-            str_contains($respuesta, 'confirmar_')) {
+        if (in_array($respuestaNormalizada, ['si', 'sí', 'yes', 'ok', 'confirmo'])) {
             $this->confirmarCita($confirmacion, $respuesta);
             return true;
-        } elseif (in_array($respuestaNormalizada, ['no', 'cancelar', 'reprogramar']) || 
-                  str_contains($respuesta, 'cancelar_')) {
+        }
+
+        // Soporte para token de botón interactivo enviado desde webhook: confirmar_<token>
+        if (preg_match('/^confirmar_([a-z0-9]+)$/i', $respuestaNormalizada, $matches)) {
+            if ($matches[1] === $confirmacion->token_confirmacion) {
+                $this->confirmarCita($confirmacion, $respuesta);
+                return true;
+            }
+            Log::warning('Token de confirmación no coincide en respuesta de botón', [
+                'confirmacion_token' => $confirmacion->token_confirmacion,
+                'respuesta_token' => $matches[1]
+            ]);
+            return false;
+        }
+
+        if (in_array($respuestaNormalizada, ['no', 'cancelar', 'reprogramar'])) {
             $this->rechazarCita($confirmacion, $respuesta);
             return true;
+        }
+
+        if (preg_match('/^cancelar_([a-z0-9]+)$/i', $respuestaNormalizada, $matches)) {
+            if ($matches[1] === $confirmacion->token_confirmacion) {
+                $this->rechazarCita($confirmacion, $respuesta);
+                return true;
+            }
+            Log::warning('Token de cancelación no coincide en respuesta de botón', [
+                'confirmacion_token' => $confirmacion->token_confirmacion,
+                'respuesta_token' => $matches[1]
+            ]);
+            return false;
         }
 
         // Respuesta ambigua - solicitar clarificación

@@ -65,11 +65,15 @@ class CitaConfirmationController extends Controller
                 ]);
             }
 
-            // IGNORAR MENSAJES QUE CONTIENEN ENLACES DE CONFIRMACIÓN (MENSAJES SALIENTES)
-            if (str_contains($mensaje, 'CONFIRMAR CITA') || str_contains($mensaje, 'CANCELAR CITA') || str_contains($mensaje, route('citas.confirmar', [], false))) {
+            // IGNORAR MENSAJES QUE CONTIENEN ENLACES DE CONFIRMACIÓN (MENSAJES SALIENTES / ECHO BOT)
+            $lowerMensaje = mb_strtolower($mensaje);
+            if (str_contains($lowerMensaje, 'confirmar cita') || str_contains($lowerMensaje, 'cancelar cita') ||
+                str_contains($lowerMensaje, route('citas.confirmar', [], false)) || str_contains($lowerMensaje, route('citas.cancelar', [], false)) ||
+                (str_contains($lowerMensaje, 'http') && (str_contains($lowerMensaje, '/citas/confirmar') || str_contains($lowerMensaje, '/citas/cancelar')))
+            ) {
                 Log::info('Ignorando mensaje saliente con enlaces de confirmación', [
                     'telefono' => $telefono,
-                    'mensaje' => substr($mensaje, 0, 100) . '...'
+                    'mensaje' => substr($mensaje, 0, 200) . '...'
                 ]);
                 return response()->json([
                     'success' => true,
@@ -125,11 +129,45 @@ class CitaConfirmationController extends Controller
     }
 
     /**
+     * Verificar firma y expiración de la URL de confirmación/cancelación
+     */
+    private function validarFirma(Request $request): bool
+    {
+        if ($request->hasValidSignature()) {
+            return true;
+        }
+
+        // compatibilidad con firma heredada (token+expires+signature)
+        $token = $request->query('token');
+        $expires = $request->query('expires');
+        $signature = $request->query('signature');
+
+        if (!$token || !$expires || !$signature) {
+            return false;
+        }
+
+        if (!is_numeric($expires) || (int)$expires < time()) {
+            return false;
+        }
+
+        $expected = hash_hmac('sha256', $token, config('app.key'));
+
+        return hash_equals($expected, $signature);
+    }
+
+    /**
      * Confirmar cita vía enlace (GET)
      */
     public function confirmar(Request $request): JsonResponse
     {
         try {
+            if (!$this->validarFirma($request)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Enlace inválido o expirado'
+                ], 403);
+            }
+
             $token = $request->query('token');
 
             if (!$token) {
@@ -172,6 +210,13 @@ class CitaConfirmationController extends Controller
     public function cancelar(Request $request): JsonResponse
     {
         try {
+            if (!$this->validarFirma($request)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Enlace inválido o expirado'
+                ], 403);
+            }
+
             $token = $request->query('token');
 
             if (!$token) {

@@ -825,7 +825,7 @@ class Calendario extends Component
 
     public function cambiarEstado($citaId, $nuevoEstado)
     {
-        dd($nuevoEstado);
+     
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);
