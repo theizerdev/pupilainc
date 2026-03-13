@@ -210,23 +210,7 @@ class Cita extends Model
     public function cambiarEstado($nuevoEstado)
     {
         
-        $estadoAnterior = $this->estado;
-        $this->update(['estado' => $nuevoEstado]);
-        if ($nuevoEstado === 'confirmada') {
-            $this->crearConsultaSiNoExiste();
-        }
-        try {
-            activity()
-                ->performedOn($this)
-                ->causedBy(auth()->user() ?? null)
-                ->withProperties([
-                    'previous' => $estadoAnterior,
-                    'new' => $nuevoEstado,
-                ])
-                ->log('cita_estado_cambiado');
-        } catch (\Throwable $e) {
-        }
-        return $this;
+
     }
 
     protected function crearConsultaSiNoExiste(): void
