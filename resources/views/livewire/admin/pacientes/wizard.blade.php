@@ -151,7 +151,7 @@
                             </div>
 
                             <div class="d-flex flex-column align-items-center text-center">
-                                <label for="wz-foto-input" class="wz-photo mb-3">
+                                <label for="wz-foto-input" class="wz-photo mb-3" style="{{ $errors->has('foto') ? 'border-color: #dc3545; background: rgba(220, 53, 69, 0.05);' : '' }}">
                                     @if($foto)
                                         <img src="{{ $foto->temporaryUrl() }}" alt="Foto del paciente">
                                         <div class="wz-photo-overlay"><i class="ri ri-camera-line ri-2x text-white"></i></div>
@@ -166,7 +166,7 @@
                                     @endif
                                 </label>
 
-                                <input type="file" wire:model="foto" id="wz-foto-input" accept="image/*" class="d-none">
+                                <input type="file" wire:model.live="foto" id="wz-foto-input" accept="image/*" class="d-none">
 
                                 <div class="d-flex flex-wrap justify-content-center gap-2 mb-2">
                                     <button type="button" class="btn btn-sm btn-primary" data-wz-camera-start>
@@ -198,19 +198,55 @@
                                 </div>
 
                                 <div class="text-muted small">
-                                    JPG, PNG o GIF. Máximo 2MB.
+                                    <i class="ri ri-information-line me-1"></i>
+                                    JPG, PNG, GIF o WebP. Máximo 2MB.
                                 </div>
 
+                                <!-- Loading indicator -->
                                 <div wire:loading wire:target="foto" class="mt-3">
                                     <div class="d-inline-flex align-items-center text-primary">
                                         <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                        <small>Cargando imagen...</small>
+                                        <small>Subiendo imagen...</small>
                                     </div>
                                 </div>
 
+                                <!-- Success message when photo is valid -->
+                                @if($foto && !$errors->has('foto'))
+                                    <div class="alert alert-success mt-3 mb-0 py-2 px-3" role="alert">
+                                        <small>
+                                            <i class="ri ri-check-line me-1"></i>
+                                            ✅ Imagen válida: {{ $foto->getClientOriginalName() }} ({{ round($foto->getSize() / 1024, 2) }} KB)
+                                        </small>
+                                    </div>
+                                @endif
+
+                                <!-- Error messages with better UX -->
                                 @error('foto')
-                                    <div class="alert alert-danger mt-3 mb-0 py-2 px-3" role="alert">
-                                        <small>{{ $message }}</small>
+                                    <div class="alert alert-{{ str_contains($message, 'video') ? 'danger' : 'warning' }} mt-3 mb-0 py-3 px-3 w-100" role="alert">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="ri ri-{{ str_contains($message, 'video') ? 'forbid-line' : 'error-warning-line' }} ri-lg text-{{ str_contains($message, 'video') ? 'danger' : 'warning' }} flex-shrink-0"></i>
+                                            <div class="flex-grow-1">
+                                                <strong class="d-block mb-1">
+                                                    {{ str_contains($message, 'video') ? '🎬 ¡ARCHIVO DE VIDEO NO PERMITIDO!' : '⚠️ Problema con la imagen' }}
+                                                </strong>
+                                                <small>{{ $message }}</small>
+                                                
+                                                @if(!str_contains($message, 'video'))
+                                                    <hr class="my-2 opacity-25">
+                                                    <ul class="mb-0 small ps-3">
+                                                        <li>✅ Formatos aceptados: JPG, PNG, GIF, WebP</li>
+                                                        <li>✅ Tamaño máximo: 2 MB</li>
+                                                        <li>✅ Asegúrate que el archivo no esté corrupto</li>
+                                                        <li>❌ NO subir videos, documentos u otros archivos</li>
+                                                    </ul>
+                                                @else
+                                                    <hr class="my-2 opacity-25">
+                                                    <div class="small text-danger">
+                                                        <strong>⚠️ Recuerda:</strong> Solo se permiten imágenes. Los archivos de video serán rechazados automáticamente.
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
                                     </div>
                                 @enderror
                             </div>
@@ -672,6 +708,57 @@
                 el.classList.add('d-none');
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const input = getEl('wz-foto-input');
+            
+            if (input) {
+                // Validar archivo antes de subirlo
+                input.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    
+                    if (!file) {
+                        return;
+                    }
+
+                    // 🚫 VALIDACIÓN CRÍTICA: Detectar y rechazar videos
+                    const videoTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
+                    if (videoTypes.includes(file.type) || file.type.startsWith('video/')) {
+                        alert('🎬 ❌ NO SE PERMITEN ARCHIVOS DE VIDEO\n\nArchivo detectado: ' + file.name + '\nTipo: ' + file.type + '\n\nSolo se pueden subir imágenes (JPG, PNG, GIF, WebP).');
+                        this.value = '';
+                        return;
+                    }
+
+                    // ✅ Validar tipo MIME - Solo imágenes
+                    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                    if (!allowedTypes.includes(file.type)) {
+                        // Detectar si es otro tipo de archivo
+                        if (file.type.startsWith('application/') || file.type.startsWith('text/')) {
+                            alert('📄 ❌ El archivo NO es una imagen\n\nArchivo: ' + file.name + '\nTipo: ' + file.type + '\n\nSolo se pueden subir imágenes (JPG, PNG, GIF, WebP).');
+                        } else {
+                            alert('⚠️ El archivo debe ser una imagen válida (JPG, PNG, GIF o WebP).\n\nTipo detectado: ' + file.type);
+                        }
+                        this.value = '';
+                        return;
+                    }
+
+                    // 📏 Validar tamaño máximo (2MB)
+                    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
+                    if (file.size > maxSize) {
+                        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                        alert(`📏 La imagen es demasiado grande (${sizeMB} MB)\n\nTamaño actual: ${sizeMB} MB\nTamaño máximo: 2 MB\n\nPor favor comprime la imagen o usa otra más pequeña.`);
+                        this.value = '';
+                        return;
+                    }
+
+                    console.log('✅ Imagen válida:', {
+                        nombre: file.name,
+                        tipo: file.type,
+                        tamaño: (file.size / 1024).toFixed(2) + ' KB'
+                    });
+                });
+            }
+        });
 
         async function startCamera() {
             const panel = getEl('wz-camera-panel');

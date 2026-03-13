@@ -90,6 +90,13 @@ class Wizard extends Component
         'tutor.telefono.required' => 'El teléfono del tutor es obligatorio.',
         'telefono.regex' => 'El teléfono solo puede contener números, espacios, guiones, paréntesis y el signo +.',
         'tutor.telefono.regex' => 'El teléfono del tutor solo puede contener números, espacios, guiones, paréntesis y el signo +.',
+        
+        // Mensajes personalizados para validación de fotos - TODOS LOS CASOS
+        'foto.image' => 'El archivo debe ser una imagen válida (JPG, PNG, GIF).',
+        'foto.max' => 'La imagen no debe superar los 2MB de tamaño.',
+        'foto.max.file' => 'La imagen no debe superar los 2MB de tamaño.',
+        'foto.mimes' => 'El formato de imagen no es válido. Solo se permiten JPG, PNG y GIF.',
+        'foto.dimensions' => 'Las dimensiones de la imagen no son válidas.',
     ];
 
     public function mount($pacienteId = null)
@@ -198,10 +205,63 @@ class Wizard extends Component
 
     public function updatedFoto($value)
     {
-        if ($value && !$value->isValid()) {
-            $this->addError('foto', 'El archivo no es una imagen válida.');
-            $this->foto = null;
+        if (!$value) {
+            return;
         }
+
+        // Validar que sea una imagen
+        if (!$value->isValid()) {
+            $this->addError('foto', '❌ Error al subir el archivo. El archivo está corrupto o no es válido.');
+            $this->foto = null;
+            return;
+        }
+
+        // Obtener información del archivo
+        $mimeType = $value->getMimeType();
+        $sizeInKB = $value->getSize() / 1024;
+        $fileName = $value->getClientOriginalName();
+        
+        // 🚫 VALIDACIÓN CRÍTICA: Detectar y rechazar videos explícitamente
+        $videoMimeTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'];
+        if (in_array($mimeType, $videoMimeTypes) || str_starts_with($mimeType, 'video/')) {
+            $this->addError('foto', "🎬 ❌ NO se permiten archivos de video.\n\nArchivo detectado: {$fileName}\nTipo: {$mimeType}\n\nSolo se pueden subir imágenes (JPG, PNG, GIF, WebP).");
+            $this->foto = null;
+            return;
+        }
+
+        // ✅ Validar tipo MIME explícitamente - Solo imágenes
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        
+        if (!in_array($mimeType, $allowedMimeTypes)) {
+            // Verificar si es otro tipo de archivo no permitido
+            if (str_starts_with($mimeType, 'application/') || str_starts_with($mimeType, 'text/')) {
+                $this->addError('foto', "📄 ❌ El archivo NO es una imagen.\n\nArchivo: {$fileName}\nTipo: {$mimeType}\n\nSolo se pueden subir imágenes (JPG, PNG, GIF, WebP).");
+            } else {
+                $this->addError('foto', "⚠️ El archivo debe ser una imagen válida (JPG, PNG, GIF o WebP).\n\nArchivo: {$fileName}\nTipo detectado: {$mimeType}");
+            }
+            $this->foto = null;
+            return;
+        }
+
+        // 📏 Validar tamaño máximo (2MB = 2048 KB)
+        $maxSize = 2048; // en KB
+        
+        if ($sizeInKB > $maxSize) {
+            $sizeInMB = round($sizeInKB / 1024, 2);
+            $this->addError('foto', "📏 La imagen es demasiado grande ({$sizeInMB} MB).\n\nTamaño actual: {$sizeInMB} MB\nTamaño máximo: 2 MB\n\nPor favor comprime la imagen o usa otra más pequeña.");
+            $this->foto = null;
+            return;
+        }
+
+        // ✅ Si pasa todas las validaciones, limpiar errores previos
+        $this->resetErrorBag('foto');
+        $this->resetValidation('foto');
+        
+        Log::info('✅ Imagen validada correctamente', [
+            'nombre' => $fileName,
+            'tipo' => $mimeType,
+            'tamaño_kb' => $sizeInKB
+        ]);
     }
 
     public function updatedDocumentoIdentidad($value)
@@ -279,7 +339,7 @@ class Wizard extends Component
     protected function getRulesPaso1()
     {
         return [
-            'foto' => 'nullable|image|max:2048', // 2MB máximo
+            'foto' => 'nullable|image|mimes:jpeg,png,gif,webp|max:2048', // Solo imágenes, 2MB máximo
         ];
     }
 

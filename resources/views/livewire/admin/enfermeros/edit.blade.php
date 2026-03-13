@@ -395,11 +395,7 @@
                         <button type="submit" class="btn btn-primary w-100 mb-2">
                             <i class="fas fa-save me-2"></i>Guardar Cambios
                         </button>
-                        <button type="button" class="btn btn-danger w-100 mb-2" 
-                                wire:click="delete"
-                                onclick="confirm('¿Está seguro de eliminar este enfermero/a? Esta acción no se puede deshacer.') || event.stopImmediatePropagation()">
-                            <i class="fas fa-trash me-2"></i>Eliminar Enfermero/a
-                        </button>
+                       
                         <a href="{{ route('admin.enfermeros.index') }}" class="btn btn-secondary w-100">
                             <i class="fas fa-times me-2"></i>Cancelar
                         </a>

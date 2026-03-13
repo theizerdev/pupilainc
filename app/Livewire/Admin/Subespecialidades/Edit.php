@@ -20,6 +20,7 @@ class Edit extends Component
     public $descripcion;
     public $codigo;
     public $color;
+    public $icono;
     public $costo_consulta;
     public $duracion_consulta;
     public $requiere_cita_previa;
@@ -35,6 +36,7 @@ class Edit extends Component
             'descripcion' => 'nullable|string|max:1000',
             'codigo' => 'required|string|max:10|unique:subespecialidades,codigo,' . $this->subespecialidad->id,
             'color' => 'required|string|max:7',
+            'icono' => 'required|string|max:100', // Validación para el ícono
             'costo_consulta' => 'required|numeric|min:0',
             'duracion_consulta' => 'required|integer|min:15|max:240',
             'requiere_cita_previa' => 'boolean',
@@ -60,6 +62,7 @@ class Edit extends Component
         $this->descripcion = $subespecialidad->descripcion;
         $this->codigo = $subespecialidad->codigo;
         $this->color = $subespecialidad->color;
+        $this->icono = $subespecialidad->icono; // Cargar ícono
         $this->costo_consulta = $subespecialidad->costo_consulta;
         $this->duracion_consulta = $subespecialidad->duracion_consulta;
         $this->requiere_cita_previa = $subespecialidad->requiere_cita_previa;
@@ -91,6 +94,7 @@ class Edit extends Component
                 'descripcion' => $this->descripcion,
                 'codigo' => $this->codigo,
                 'color' => $this->color,
+                'icono' => $this->icono, // Agregar ícono
                 'costo_consulta' => $this->costo_consulta,
                 'duracion_consulta' => $this->duracion_consulta,
                 'requiere_cita_previa' => $this->requiere_cita_previa,

@@ -191,8 +191,8 @@
                                     <tbody>
                                         @foreach($especialidad->medicos as $medico)
                                             <tr>
-                                                <td>{{ $medico->name }}</td>
-                                                <td>{{ $medico->email }}</td>
+                                                <td>{{ $medico->nombres.' '.$medico->apellidos }}</td>
+                                                <td>{{ $medico->user->email }}</td>
                                                 <td>{{ $medico->telefono ?? '-' }}</td>
                                                 <td>
                                                     <span class="badge badge-{{ $medico->status ? 'success' : 'secondary' }}">

@@ -18,6 +18,7 @@ class Create extends Component
     public $descripcion;
     public $codigo;
     public $color = '#3B82F6';
+    public $icono = 'fa-stethoscope'; // Icono por defecto
     public $costo_consulta = 0;
     public $duracion_consulta = 30;
     public $requiere_cita_previa = true;
@@ -33,6 +34,7 @@ class Create extends Component
             'descripcion' => 'nullable|string|max:1000',
             'codigo' => 'nullable|string|max:10|unique:subespecialidades',
             'color' => 'required|string|max:7',
+            'icono' => 'required|string|max:100', // Validación para el ícono
             'costo_consulta' => 'required|numeric|min:0',
             'duracion_consulta' => 'required|integer|min:15|max:240',
             'requiere_cita_previa' => 'boolean',
@@ -64,9 +66,11 @@ class Create extends Component
         if ($value) {
             $especialidad = Especialidad::find($value);
             if ($especialidad) {
+                // Sugerir valores basados en la especialidad padre
                 $this->costo_consulta = $especialidad->costo_consulta;
                 $this->duracion_consulta = $especialidad->duracion_consulta;
                 $this->color = $especialidad->color;
+                $this->icono = $especialidad->icono; // Copiar ícono del padre
                 $this->requiere_cita_previa = $especialidad->requiere_cita_previa;
             }
         }

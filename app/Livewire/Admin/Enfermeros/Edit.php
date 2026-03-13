@@ -331,7 +331,16 @@ class Edit extends Component
             
             // Crear y enviar mensaje de bienvenida
             $mensaje = $this->crearMensajeBienvenida($user, $this->enfermero, $plainPassword);
+            $telefonoOriginal = $this->enfermero->telefono;
             $telefono = $this->formatearTelefono($this->enfermero->telefono);
+            
+            // Log para depuración (se puede eliminar después)
+            \Log::info('Formateo de teléfono', [
+                'original' => $telefonoOriginal,
+                'formateado' => $telefono,
+                'pais' => auth()->user()?->empresa?->pais?->nombre ?? 'N/A',
+                'codigo_pais' => auth()->user()?->empresa?->pais?->codigo_telefonico ?? 'N/A'
+            ]);
             
             $whatsAppService = new WhatsAppService($user->empresa_id);
             
@@ -403,12 +412,72 @@ class Edit extends Component
         // Eliminar espacios y caracteres no numéricos
         $telefono = preg_replace('/[^0-9]/', '', $telefono);
         
-        // Si es un número peruano (9 dígitos y empieza con 9), agregar +51
-        if (strlen($telefono) === 9 && $telefono[0] === '9') {
-            $telefono = '+51' . $telefono;
+        // Obtener el país de la empresa del usuario logueado
+        $pais = null;
+        if (auth()->user() && auth()->user()->empresa) {
+            $pais = auth()->user()->empresa->pais;
+        }
+        
+        // Si no hay teléfono limpio, retornar vacío
+        if (empty($telefono)) {
+            return '';
+        }
+        
+        // Agregar código del país si está disponible
+        if ($pais && $pais->codigo_telefonico) {
+            // Verificar si el teléfono ya incluye el código del país
+            if (!str_starts_with($telefono, $pais->codigo_telefonico)) {
+                $telefono = $pais->codigo_telefonico . $telefono;
+            } else {
+                $telefono = $telefono;
+            }
+        } else {
+            // Si no hay código de país, intentar detectar por longitud (fallback)
+            if (strlen($telefono) === 9 && $telefono[0] === '9') {
+                $telefono = '+51' . $telefono; // Perú por defecto
+            } elseif (strlen($telefono) === 10) {
+                $telefono = '+52' . $telefono; // México por defecto
+            }
         }
         
         return $telefono;
+    }
+
+    public function resetPassword()
+    {
+        $this->authorize('edit enfermeros');
+        
+        try {
+            if (!$this->user) {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'El enfermero no tiene usuario asociado.',
+                    'duration' => 3000
+                ]);
+                return;
+            }
+            
+            // Generar contraseña temporal usando el documento de identidad
+            $plainPassword = $this->enfermero->documento_identidad;
+            
+            // Actualizar la contraseña del usuario
+            $this->user->update([
+                'password' => Hash::make($plainPassword)
+            ]);
+            
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Contraseña restablecida exitosamente. La nueva contraseña temporal es: {$plainPassword}",
+                'duration' => 5000
+            ]);
+            
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al restablecer la contraseña: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
     }
 
     public function getEmpresasProperty()

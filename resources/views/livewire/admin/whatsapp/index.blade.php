@@ -68,18 +68,7 @@
                                 </span>
                             </button>
                             
-                            @if($status === 'connected')
-                                <button wire:click="testConnection" 
-                                        class="btn btn-outline-success" 
-                                        wire:loading.attr="disabled">
-                                    <span wire:loading.remove wire:target="testConnection">
-                                        <i class="ri ri-pulse-line me-1"></i>Test
-                                    </span>
-                                    <span wire:loading wire:target="testConnection">
-                                        <span class="spinner-border spinner-border-sm me-1"></span>Probando...
-                                    </span>
-                                </button>
-                            @endif
+                           
                         </div>
                     </div>
                 </div>
@@ -614,17 +603,7 @@
     </div>
 
     <!-- Enhanced Loading Overlay -->
-    <div wire:loading.flex wire:target="refresh, loadDashboard, testConnection, exportStats" 
-         class="position-fixed top-0 start-0 w-100 h-100 justify-content-center align-items-center" 
-         style="background: rgba(255,255,255,0.85); z-index: 1050;">
-        <div class="text-center bg-white rounded shadow-lg p-4">
-            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
-            <h5 class="mb-2">Procesando</h5>
-            <p class="text-muted mb-0">Por favor espere un momento</p>
-        </div>
-    </div>
+    
 </div>
 
 @push('scripts')

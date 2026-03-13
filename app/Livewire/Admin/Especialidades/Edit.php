@@ -152,16 +152,43 @@ class Edit extends Component
     public function getIconosProperty()
     {
         return [
-            'fa-stethoscope' => 'Estetoscopio',
-            'fa-eye' => 'Ojo',
-            'fa-heartbeat' => 'Cardíaco',
-            'fa-user-md' => 'Médico',
-            'fa-medkit' => 'Botiquín',
-            'fa-wheelchair' => 'Silla de ruedas',
-            'fa-ambulance' => 'Ambulancia',
+            // Médicos
+            'fa-stethoscope' => 'Estetoscopio (General)',
+            'fa-user-doctor' => 'Médico Especialista',
+            'fa-user-nurse' => 'Enfermero/a',
+            'fa-heartbeat' => 'Cardiología',
+            'fa-lungs' => 'Neumología',
+            'fa-brain' => 'Neurología',
+            'fa-eye' => 'Oftalmología',
+            'fa-tooth' => 'Odontología',
+            'fa-bone' => 'Ortopedia',
+            'fa-baby' => 'Pediatría',
+            
+            // Especialidades
+            'fa-flask' => 'Laboratorio',
+            'fa-microscope' => 'Patología',
+            'fa-x-ray' => 'Radiología',
+            'fa-pills' => 'Farmacología',
+            'fa-syringe' => 'Vacunación',
+            'fa-hand-holding-medical' => 'Terapia',
+            'fa-crutch' => 'Rehabilitación',
+            'fa-wheelchair' => 'Discapacidad',
+            
+            // Instalaciones
             'fa-hospital' => 'Hospital',
+            'fa-hospital-user' => 'Consulta Externa',
+            'fa-hospital-symbol' => 'Emergencias',
+            'fa-ambulance' => 'Urgencias',
+            'fa-procedures' => 'Hospitalización',
+            'fa-clinic-medical' => 'Clínica',
+            
+            // Gestión
+            'fa-file-medical' => 'Historia Clínica',
+            'fa-notes-medical' => 'Recetas',
+            'fa-user-injured' => 'Traumatología',
+            'fa-first-aid' => 'Primeros Auxilios',
+            'fa-medkit' => 'Botiquín',
             'fa-heart' => 'Corazón',
-            'fa-brain' => 'Cerebro'
         ];
     }
 

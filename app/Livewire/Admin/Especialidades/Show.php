@@ -20,16 +20,13 @@ class Show extends Component
     public function getEstadisticasProperty()
     {
         return [
-            'total_medicos' => $this->especialidad->medicos()->where('status', true)->count(),
+            'total_medicos' => $this->especialidad->medicos()->where('medicos.status', true)->count(),
             'citas_mes' => \App\Models\Cita::where('especialidad_id', $this->especialidad->id)
-                ->whereMonth('fecha_hora', now()->month)
+                ->whereMonth('created_at', now()->month)
                 ->count(),
-            'ingresos_mes' => \App\Models\Cita::where('especialidad_id', $this->especialidad->id)
-                ->whereMonth('fecha_hora', now()->month)
-                ->where('estado', 'completada')
-                ->sum('monto_pago'),
+            'ingresos_mes' => 0.00, // Aquí podrías calcular los ingresos del mes si tienes esa información en tu modelo de Cita
             'citas_hoy' => \App\Models\Cita::where('especialidad_id', $this->especialidad->id)
-                ->whereDate('fecha_hora', today())
+                ->whereDate('created_at', today())
                 ->count(),
         ];
     }

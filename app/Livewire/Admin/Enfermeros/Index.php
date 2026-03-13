@@ -85,15 +85,42 @@ class Index extends Component
 
     public function delete($id)
     {
-        $this->authorize('admin.enfermeros.destroy');
+        $this->authorize('edit enfermeros');
         
         try {
             $enfermero = Enfermero::findOrFail($id);
+            
+            // Verificar si tiene citas asociadas antes de eliminar
+            if ($enfermero->citas && $enfermero->citas->count() > 0) {
+                throw new \Exception('No se puede eliminar un enfermero con citas asociadas.');
+            }
+            
+            // Eliminar horarios primero
+            $enfermero->horarios()->delete();
+            
+            // Eliminar especialidades
+            $enfermero->especialidades()->delete();
+            
+            // Eliminar usuario asociado si existe
+            if ($enfermero->user) {
+                $enfermero->user->delete();
+            }
+            
+            // Finalmente eliminar el enfermero
             $enfermero->delete();
             
-            session()->flash('success', 'Enfermero/a eliminado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Enfermero/a eliminado exitosamente.',
+                'duration' => 3000
+            ]);
+            
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al eliminar el enfermero/a: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al eliminar el enfermero/a: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 
