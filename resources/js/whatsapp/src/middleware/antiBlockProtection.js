@@ -11,7 +11,7 @@ class AntiBlockProtection {
     this.MAX_MESSAGES_PER_HOUR_PER_USER = parseInt(process.env.ANTI_BLOCK_MAX_PER_HOUR) || 10;
     this.MAX_MESSAGES_PER_DAY_PER_USER = parseInt(process.env.ANTI_BLOCK_MAX_PER_DAY) || 50;
     this.BUSINESS_HOURS_START = parseInt(process.env.ANTI_BLOCK_BUSINESS_HOURS_START) || 7; // 7 AM
-    this.BUSINESS_HOURS_END = parseInt(process.env.ANTI_BLOCK_BUSINESS_HOURS_END) || 22; // 10 PM
+    this.BUSINESS_HOURS_END = parseInt(process.env.ANTI_BLOCK_BUSINESS_HOURS_END) || 0; // 10 PM
     
     // Limpiar cache cada hora
     setInterval(() => {
@@ -80,10 +80,6 @@ class AntiBlockProtection {
       throw new Error(`Mensajes no permitidos fuera del horario comercial (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00)`);
     }
     
-    // Domingos (día 0)
-    if (day === 0) {
-      throw new Error('Mensajes no permitidos los domingos');
-    }
   }
 
   /**
