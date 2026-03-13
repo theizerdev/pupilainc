@@ -28,6 +28,8 @@ class CitaConfirmationController extends Controller
                 'phone' => 'required|string',
                 'message' => 'required|string',
                 'timestamp' => 'nullable|date',
+                'messageId' => 'nullable|string',
+                'isFromMe' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -40,11 +42,40 @@ class CitaConfirmationController extends Controller
 
             $telefono = $request->input('phone');
             $mensaje = trim($request->input('message'));
+            $isFromMe = $request->input('isFromMe', false);
+            $messageId = $request->input('messageId');
 
             Log::info('Procesando respuesta WhatsApp', [
                 'telefono' => $telefono,
-                'mensaje' => $mensaje
+                'mensaje' => $mensaje,
+                'isFromMe' => $isFromMe,
+                'messageId' => $messageId,
+                'request_data' => $request->all()
             ]);
+
+            // IGNORAR MENSAJES ENVIADOS POR NOSOTROS MISMOS
+            if ($isFromMe) {
+                Log::info('Ignorando mensaje enviado por el sistema', [
+                    'telefono' => $telefono,
+                    'mensaje' => $mensaje
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Mensaje enviado por el sistema - ignorado'
+                ]);
+            }
+
+            // IGNORAR MENSAJES QUE CONTIENEN ENLACES DE CONFIRMACIÓN (MENSAJES SALIENTES)
+            if (str_contains($mensaje, 'CONFIRMAR CITA') || str_contains($mensaje, 'CANCELAR CITA') || str_contains($mensaje, route('citas.confirmar', [], false))) {
+                Log::info('Ignorando mensaje saliente con enlaces de confirmación', [
+                    'telefono' => $telefono,
+                    'mensaje' => substr($mensaje, 0, 100) . '...'
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Mensaje saliente con enlaces - ignorado'
+                ]);
+            }
 
             // Buscar confirmación pendiente para este número
             $confirmacion = CitaConfirmacion::where('destinatario', $telefono)

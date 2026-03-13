@@ -1285,6 +1285,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     if (btnSubmit) {
         btnSubmit.addEventListener('click', function() {
             if (!isFormValid) return;
+            var isNewCita = btnSubmit.classList.contains('btn-add-event');
             var eventData = {
                 paciente_id: eventPaciente.val(),
                 especialidad_id: selectedEspecialidadId,
@@ -1294,7 +1295,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 end: eventEndDate ? eventEndDate.value : '',
                 motivo: eventMotivo ? eventMotivo.value : '',
                 notas: eventNotas ? eventNotas.value : '',
-                estado: eventEstado.val() || 'pendiente',
+                estado: isNewCita ? 'pendiente' : (eventEstado.val() || 'pendiente'),
                 tipo_consulta_id: eventTipoConsulta.val() || ''
             };
             var comp = getLivewireComponent(); if(!comp) return;

@@ -1205,7 +1205,7 @@ function initCitasCalendar(events) {
                         end: eventEndDate.value,
                         motivo: eventMotivo ? eventMotivo.value : '',
                         notas: eventNotas ? eventNotas.value : '',
-                        estado: eventEstado.val() || 'pendiente',
+                        estado: 'pendiente',
                         tipo_consulta_id: eventTipoConsulta.val() || ''
                     };
 
