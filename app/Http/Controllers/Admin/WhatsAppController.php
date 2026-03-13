@@ -14,7 +14,7 @@ class WhatsAppController extends Controller
 
     public function __construct()
     {
-        $this->apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
+        $this->apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
         $this->jwtSecret = config('whatsapp.jwt_secret', 'base64:ItiVlmjSSgrh2LFDfR0JGtPXHRAthPOWSMw6WyrgwIk=');
     }
 

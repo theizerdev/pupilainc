@@ -97,7 +97,7 @@ php artisan queue:work
 
 ### 4. Configurar WhatsApp API
 ```env
-WHATSAPP_API_URL=http://localhost:3001
+WHATSAPP_API_URL=http://82.165.213.124:8092
 WHATSAPP_API_KEY=tu-api-key
 ```
 
@@ -219,7 +219,7 @@ Cancelar: [URL]
 ### En `config/whatsapp.php`
 ```php
 return [
-    'api_url' => env('WHATSAPP_API_URL', 'http://localhost:3001'),
+    'api_url' => env('WHATSAPP_API_URL', 'http://82.165.213.124:8092'),
     'api_key' => env('WHATSAPP_API_KEY'),
     'timeout' => 30,
     'max_retries' => 3,
@@ -266,7 +266,7 @@ php artisan tinker --execute="config('whatsapp.api_url');"
 php artisan queue:status
 
 # Probar WhatsApp API
-curl http://localhost:3001/api/whatsapp/status
+curl http://82.165.213.124:8092/api/whatsapp/status
 ```
 
 ### Problema: Jobs no se ejecutan

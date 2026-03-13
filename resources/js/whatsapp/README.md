@@ -270,23 +270,23 @@ src/
 ### Obtener estado de WhatsApp para empresa específica
 ```bash
 # Empresa 1
-curl -H "X-API-Key: wa_1_a1b2c3d4e5f6" -H "X-Company-Id: 1" http://localhost:3001/api/whatsapp/status
+curl -H "X-API-Key: wa_1_a1b2c3d4e5f6" -H "X-Company-Id: 1" http://82.165.213.124:8092/api/whatsapp/status
 
 # Empresa 2
-curl -H "X-API-Key: wa_2_x7y8z9w0q1r2" -H "X-Company-Id: 2" http://localhost:3001/api/whatsapp/status
+curl -H "X-API-Key: wa_2_x7y8z9w0q1r2" -H "X-Company-Id: 2" http://82.165.213.124:8092/api/whatsapp/status
 ```
 
 ### Enviar mensaje desde empresa diferente
 ```bash
 # Empresa 1
-curl -X POST http://localhost:3001/api/whatsapp/send \
+curl -X POST http://82.165.213.124:8092/api/whatsapp/send \
   -H "X-API-Key: wa_1_a1b2c3d4e5f6" \
   -H "X-Company-Id: 1" \
   -H "Content-Type: application/json" \
   -d '{"to": "4121234567", "message": "Hola desde Empresa 1"}'
 
 # Empresa 2
-curl -X POST http://localhost:3001/api/whatsapp/send \
+curl -X POST http://82.165.213.124:8092/api/whatsapp/send \
   -H "X-API-Key: wa_2_x7y8z9w0q1r2" \
   -H "X-Company-Id: 2" \
   -H "Content-Type: application/json" \
@@ -296,10 +296,10 @@ curl -X POST http://localhost:3001/api/whatsapp/send \
 ### Ver mensajes por empresa
 ```bash
 # Mensajes de Empresa 1
-curl -H "X-API-Key: wa_1_a1b2c3d4e5f6" -H "X-Company-Id: 1" "http://localhost:3001/api/whatsapp/messages?page=1&limit=50"
+curl -H "X-API-Key: wa_1_a1b2c3d4e5f6" -H "X-Company-Id: 1" "http://82.165.213.124:8092/api/whatsapp/messages?page=1&limit=50"
 
 # Mensajes de Empresa 2
-curl -H "X-API-Key: wa_2_x7y8z9w0q1r2" -H "X-Company-Id: 2" "http://localhost:3001/api/whatsapp/messages?page=1&limit=50"
+curl -H "X-API-Key: wa_2_x7y8z9w0q1r2" -H "X-Company-Id: 2" "http://82.165.213.124:8092/api/whatsapp/messages?page=1&limit=50"
 ```
 
 ## 🐛 Solución de Problemas

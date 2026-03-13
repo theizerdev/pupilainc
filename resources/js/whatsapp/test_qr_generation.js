@@ -3,7 +3,7 @@ const axios = require('axios');
 async function testQRGeneration() {
   console.log('🧪 Probando generación de código QR...\n');
   
-  const baseURL = 'http://localhost:3001';
+  const baseURL = 'http://82.165.213.124:8092';
   const apiKey = 'test-api-key-vargas-centro';
   
   try {

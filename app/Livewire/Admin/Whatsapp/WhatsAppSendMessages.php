@@ -84,7 +84,7 @@ class WhatsAppSendMessages extends Component
         try {
             $response = Http::withHeaders([
                 'X-API-Key' => $this->jwtToken
-            ])->timeout(10)->get(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/status');
+            ])->timeout(10)->get(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/status');
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -283,7 +283,7 @@ class WhatsAppSendMessages extends Component
             $response = Http::withHeaders([
                 'X-API-Key' => $this->jwtToken,
                 'Content-Type' => 'application/json'
-            ])->timeout(30)->post(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/send', [
+            ])->timeout(30)->post(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/send', [
                 'to' => $this->formatPhoneNumber($this->recipient),
                 'message' => $messageContent,
                 'type' => 'text'
@@ -325,7 +325,7 @@ class WhatsAppSendMessages extends Component
                 $response = Http::withHeaders([
                     'X-API-Key' => $this->jwtToken,
                     'Content-Type' => 'application/json'
-                ])->timeout(30)->post(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/send', [
+                ])->timeout(30)->post(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/send', [
                     'to' => $this->formatPhoneNumber($student['phone']),
                     'message' => $this->bulkMessage,
                     'type' => 'text'

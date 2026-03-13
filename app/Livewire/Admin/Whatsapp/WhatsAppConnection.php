@@ -80,7 +80,7 @@ class WhatsAppConnection extends Component
         }
 
         try {
-            $apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            $apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
             
             // Verificar si el servicio está disponible
             $healthResponse = Http::timeout(5)->get($apiUrl . '/health');
@@ -137,7 +137,7 @@ class WhatsAppConnection extends Component
         try {
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/qr');
+                ->get(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/qr');
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -161,7 +161,7 @@ class WhatsAppConnection extends Component
         try {
             $response = Http::timeout(30)
                 ->withHeaders($this->getApiHeaders())
-                ->post(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/connect');
+                ->post(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/connect');
 
             if ($response->successful()) {
                 $this->checkConnection();
@@ -186,7 +186,7 @@ class WhatsAppConnection extends Component
         try {
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->delete(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/disconnect');
+                ->delete(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/disconnect');
 
             if ($response->successful()) {
                 $this->status = 'disconnected';

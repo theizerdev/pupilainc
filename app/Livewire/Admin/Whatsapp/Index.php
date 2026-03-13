@@ -105,7 +105,7 @@ class Index extends Component
 
         try {
             // URL base del servicio de Node.js (usar config o env)
-            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            $baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
             
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
@@ -189,7 +189,7 @@ class Index extends Component
         try {
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get( env('WHATSAPP_API_URL', 'http://localhost:3001') . '/api/whatsapp/messages', ['limit' => 10]);
+                ->get( env('WHATSAPP_API_URL', 'http://82.165.213.124:8092') . '/api/whatsapp/messages', ['limit' => 10]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -205,7 +205,7 @@ class Index extends Component
         try {
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get( env('WHATSAPP_API_URL', 'http://localhost:3001') . '/api/whatsapp/messages', ['limit' => 50]);
+                ->get( env('WHATSAPP_API_URL', 'http://82.165.213.124:8092') . '/api/whatsapp/messages', ['limit' => 50]);
 
             if ($response->successful()) {
                 $data = $response->json();

@@ -295,7 +295,7 @@ class EnvioMensajes extends Component
                 throw new \Exception('Número de teléfono inválido después del formateo');
             }
 
-            $baseUrl = 'http://localhost:3001';
+            $baseUrl = 'http://82.165.213.124:8092';
             
             \Log::info('Attempting to send WhatsApp message', [
                 'to' => $formattedPhone,

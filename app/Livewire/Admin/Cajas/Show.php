@@ -408,7 +408,7 @@ class Show extends Component
                 'X-API-Key' => $jwtToken
             ])->attach(
                 'document', file_get_contents($rutaArchivo), $nombreArchivo
-            )->timeout(60)->post(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/send-document', [
+            )->timeout(60)->post(config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/send-document', [
                 'to' => $telefonoFormateado,
                 'caption' => $caption
             ]);

@@ -340,7 +340,7 @@ class CitaNotificationService
                 $telefono = '+' . $telefono;
             }
 
-            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            $baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
             $url = "{$baseUrl}/api/whatsapp/send";
 
             $response = Http::timeout(5) // Timeout corto para no bloquear demasiado

@@ -16,7 +16,7 @@ echo "=============================\n\n";
 
 // Obtener configuración
 try {
-    $apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
+    $apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
     $apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
     
     echo "📍 Configuración WhatsApp:\n";
@@ -26,7 +26,7 @@ try {
 } catch (\Exception $e) {
     echo "❌ Error obteniendo configuración: " . $e->getMessage() . "\n";
     echo "   Usando valores por defecto\n\n";
-    $apiUrl = 'http://localhost:3001';
+    $apiUrl = 'http://82.165.213.124:8092';
     $apiKey = 'test-api-key-vargas-centro';
 }
 

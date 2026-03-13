@@ -12,7 +12,7 @@ $kernel->bootstrap();
 use Illuminate\Support\Facades\Http;
 
 // Configuración desde el .env
-$apiUrl = config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/send-document';
+$apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092') . '/api/whatsapp/send-document';
 $apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
 
 // Número de teléfono de prueba (cambiar por un número real)

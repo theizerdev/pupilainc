@@ -23,7 +23,7 @@ class WhatsAppService
      */
     public function __construct($empresa = null)
     {
-        $this->baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+        $this->baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
         $this->timeout = config('whatsapp.timeout', 30);
 
         // Resolver la empresa y obtener su API key

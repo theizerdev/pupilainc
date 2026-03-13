@@ -13,7 +13,7 @@ echo "🧪 TEST FINAL WHATSAPP DOCUMENT\n";
 echo "=================================\n\n";
 
 // Configuración
-$apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
+$apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
 $apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
 $phone = '584121234567';
 

@@ -7,7 +7,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Illuminate\Support\Facades\Http;
 
 // Configuración
-$apiUrl = 'http://localhost:3001/api/whatsapp/send-document';
+$apiUrl = 'http://82.165.213.124:8092/api/whatsapp/send-document';
 $apiKey = 'test-api-key-vargas-centro'; // Cambiar por el valor real del .env
 
 // Número de teléfono de prueba (cambiar por un número real)

@@ -137,7 +137,7 @@ class Conexion extends Component
 
         try {
             // URL base del servicio de Node.js
-            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            $baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
 
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
@@ -194,7 +194,7 @@ class Conexion extends Component
         if (!$this->whatsappApiKey) return;
 
         try {
-            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+            $baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
             
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())

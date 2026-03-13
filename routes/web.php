@@ -112,8 +112,8 @@ Route::prefix('preconsulta')->name('preconsulta.')->group(function () {
 // Test WhatsApp API
 Route::get('/test-whatsapp', function () {
     try {
-        $health = Http::timeout(5)->get('http://localhost:3001/health');
-        $status = Http::withHeaders(['X-API-Key' => 'test-api-key-vargas-centro'])->timeout(10)->get('http://localhost:3001/api/whatsapp/status');
+        $health = Http::timeout(5)->get('http://82.165.213.124:8092/health');
+        $status = Http::withHeaders(['X-API-Key' => 'test-api-key-vargas-centro'])->timeout(10)->get('http://82.165.213.124:8092/api/whatsapp/status');
 
         return response()->json([
             'health' => ['success' => $health->successful(), 'status' => $health->status(), 'body' => $health->json()],

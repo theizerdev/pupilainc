@@ -193,6 +193,6 @@ return [
     | This value is the URL of the WhatsApp API service.
     |
     */
-    'whatsapp_api_url' => env('WHATSAPP_API_URL', 'http://localhost:3001'),
+    'whatsapp_api_url' => env('WHATSAPP_API_URL', 'http://82.165.213.124:8092'),
 
 ];

@@ -83,7 +83,7 @@ try {
     echo "📏 Tamaño: " . number_format(filesize($tempPath) / 1024, 2) . " KB\n\n";
     
     // Configuración WhatsApp
-    $apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
+    $apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
     $apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
     
     // Formatear número
