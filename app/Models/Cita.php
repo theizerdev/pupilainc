@@ -210,8 +210,24 @@ class Cita extends Model
     public function cambiarEstado($nuevoEstado)
     {
         
+      if(!in_array($nuevoEstado, self::ESTADOS)) {
+            throw new \InvalidArgumentException("Estado inválido: {$nuevoEstado}");
+        }
 
-    }
+        $estadoAnterior = $this->estado;
+        $this->estado = $nuevoEstado;
+        $this->save();
+
+        // Solo crear consulta si la cita se confirma o se mantiene pendiente
+        if (in_array($nuevoEstado, [self::ESTADO_CONFIRMADA])) {
+            $this->crearConsultaSiNoExiste();
+        }  else {
+            // Si se cancela o no asiste, eliminar consulta
+            Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->delete();
+        } 
+    } 
+
+
 
     protected function crearConsultaSiNoExiste(): void
     {
@@ -382,6 +398,11 @@ class Cita extends Model
     // Sobreescribir método de creación para auto-confirmación
     protected static function booted()
     {
+        static::creating(function ($cita) {
+            // Forzar estado pendiente para todas las nuevas citas
+            $cita->estado = self::ESTADO_PENDIENTE;
+        });
+
         static::created(function ($cita) {
             // No despachar el job de confirmación separado.
             // La confirmación ahora se incluye dentro de la notificación
