@@ -295,7 +295,7 @@ class EnvioMensajes extends Component
                 throw new \Exception('Número de teléfono inválido después del formateo');
             }
 
-            $baseUrl = 'http://82.165.213.124:8092';
+            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
             
             \Log::info('Attempting to send WhatsApp message', [
                 'to' => $formattedPhone,
@@ -321,9 +321,10 @@ class EnvioMensajes extends Component
             }
 
             // Si ambas verificaciones pasan, proceder con el envío
+            // CORRECCIÓN: Usar el endpoint correcto /api/whatsapp/send en lugar de /api/messages/send
             $response = Http::timeout(15)
                 ->withHeaders($this->getApiHeaders())
-                ->post($baseUrl . '/api/messages/send', [
+                ->post($baseUrl . '/api/whatsapp/send', [
                     'to' => $formattedPhone,
                     'message' => $this->message,
                     'type' => 'text'
@@ -552,9 +553,10 @@ class EnvioMensajes extends Component
                     $this->message
                 );
 
+                // CORRECCIÓN: Usar el endpoint correcto /api/whatsapp/send en lugar de /api/messages/send
                 $response = Http::timeout(10)
                     ->withHeaders($this->getApiHeaders())
-                    ->post($baseUrl . '/api/messages/send', [
+                    ->post($baseUrl . '/api/whatsapp/send', [
                         'to' => $phone,
                         'message' => $personalizedMessage,
                         'type' => 'text'
@@ -609,10 +611,10 @@ class EnvioMensajes extends Component
         if (!$this->whatsappApiKey) return;
 
         try {
-            $baseUrl = config('whatsapp.api_url', 'http://localhost:3000');
+            $baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
             $response = Http::timeout(10)
                 ->withHeaders($this->getApiHeaders())
-                ->get($baseUrl . '/messages/recent', [
+                ->get($baseUrl . '/api/whatsapp/messages', [
                     'limit' => 10
                 ]);
 
