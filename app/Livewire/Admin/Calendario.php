@@ -618,7 +618,7 @@ class Calendario extends Component
         $cita = Cita::findOrFail($id);
         
         // Validación de permisos para actualizar fechas
-        if (!\Gate::denies('edit citas')) {
+       if (!$cita || \Gate::denies('edit citas')) {
             $this->dispatch('show-alert', [
                 'type' => 'error',
                 'title' => 'Permiso denegado',
