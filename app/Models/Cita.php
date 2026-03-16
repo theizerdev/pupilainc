@@ -49,6 +49,29 @@ class Cita extends Model
         'cancelada' => 'Cancelada',
         'no_asistio' => 'No Asistió',
     ];
+    
+    // Nuevos: Prioridades de citas
+    const PRIORIDAD_NORMAL = 'normal';
+    const PRIORIDAD_ALTA = 'alta';
+    const PRIORIDAD_URGENTE = 'urgente';
+    
+    const PRIORIDADES = [
+        self::PRIORIDAD_NORMAL,
+        self::PRIORIDAD_ALTA,
+        self::PRIORIDAD_URGENTE,
+    ];
+    
+    const PRIORIDAD_COLORES = [
+        'normal' => '#78909C',
+        'alta' => '#ffc107',
+        'urgente' => '#dc3545',
+    ];
+    
+    const PRIORIDAD_LABELS = [
+        'normal' => 'Normal',
+        'alta' => 'Alta',
+        'urgente' => 'Urgente',
+    ];
 
     protected $fillable = [
         'paciente_id',
@@ -65,6 +88,7 @@ class Cita extends Model
         'empresa_id',
         'sucursal_id',
         'created_by',
+        'prioridad', // Agregado: campo de prioridad
     ];
 
     protected $casts = [
@@ -393,6 +417,9 @@ class Cita extends Model
                 'tipo_consulta_nombre' => $this->tipoConsulta?->nombre,
                 'tipo_consulta_color' => $this->tipoConsulta?->color,
                 'sucursal_id' => $this->sucursal_id,
+                'prioridad' => $this->prioridad ?? 'normal', // Agregado: prioridad
+                'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal', // Label de prioridad
+                'prioridad_color' => self::PRIORIDAD_COLORES[$this->prioridad ?? 'normal'] ?? '#78909C', // Color de prioridad
             ],
         ];
     }

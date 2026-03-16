@@ -53,7 +53,7 @@ class Create extends Component
             'apellidos' => 'required|string|max:255',
             'genero' => 'nullable|string|max:20',
             'documento_identidad' => 'required|string|max:50|unique:enfermeros,documento_identidad',
-            'telefono' => 'nullable|string|max:20',
+            'telefono' => 'nullable|string|max:10',
             'direccion' => 'nullable|string|max:500',
             'licencia_enfermeria' => 'required|string|max:50|unique:enfermeros,licencia_enfermeria',
             'anios_experiencia' => 'required|integer|min:0|max:50',
@@ -63,6 +63,13 @@ class Create extends Component
             'especialidades.*' => 'required|string|max:100|min:2',
             'email' => 'required|email|unique:users,email',
             'password' => 'nullable|string|min:8',
+            
+            // Validación de horarios
+            'horarios' => 'required|array',
+            'horarios.*.activo' => 'boolean',
+            'horarios.*.hora_inicio' => 'required_if:horarios.*.activo,true|date_format:H:i',
+            'horarios.*.hora_fin' => 'required_if:horarios.*.activo,true|date_format:H:i|after:horarios.*.hora_inicio',
+            'horarios.*.duracion_cita' => 'required_if:horarios.*.activo,true|integer|min:15|max:180|multiple_of:15',
         ];
 
         // Para usuarios normales, no incluir reglas de empresa/sucursal
@@ -104,7 +111,12 @@ class Create extends Component
     {
         $this->authorize('create enfermeros');
         
+        \Log::info('=== INICIANDO STORE DE ENFERMERO ===');
+        \Log::info('Horarios antes de validación', ['horarios' => $this->horarios]);
+        
         $validated = $this->validate();
+        
+        \Log::info('Horarios después de validación', ['horarios' => $this->horarios]);
 
         try {
            \DB::beginTransaction();
@@ -160,16 +172,36 @@ class Create extends Component
 
 
             // Guardar horarios del enfermero
-            foreach ($this->horarios as $dia => $horario) {
-                if ($horario['activo']) {
-                    $enfermero->horarios()->create([
-                        'dia_semana' => $dia,
-                        'hora_inicio' => $horario['hora_inicio'],
-                        'hora_fin' => $horario['hora_fin'],
-                        'duracion_cita' => $horario['duracion_cita'],
-                        'activo' => true,
-                    ]);
+            \Log::info('Horarios recibidos para guardar', ['horarios' => $this->horarios]);
+            
+            $horariosGuardados = 0;
+            try {
+                foreach ($this->horarios as $dia => $horario) {
+                    if ($horario['activo']) {
+                        \Log::info('Guardando horario', [
+                            'dia' => $dia,
+                            'horario' => $horario
+                        ]);
+                        
+                        $enfermero->horarios()->create([
+                            'dia_semana' => $dia,
+                            'hora_inicio' => $horario['hora_inicio'],
+                            'hora_fin' => $horario['hora_fin'],
+                            'duracion_cita' => $horario['duracion_cita'],
+                            'activo' => true,
+                            'empresa_id' => $enfermero->empresa_id,
+                            'sucursal_id' => $enfermero->sucursal_id,
+                        ]);
+                        $horariosGuardados++;
+                    }
                 }
+                \Log::info('Total de horarios guardados', ['total' => $horariosGuardados]);
+            } catch (\Exception $e) {
+                \Log::error('Error al guardar horarios', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw $e;
             }
 
             // Enviar mensaje de WhatsApp de bienvenida
@@ -405,5 +437,13 @@ class Create extends Component
             'empresas' => $this->empresas,
             'sucursales' => $this->sucursales,
         ])->layout($this->getLayout());
+    }
+
+    
+    public function formatPhone()
+    {
+        if ($this->telefono) {
+            $this->telefono = preg_replace('/[^0-9+]/', '', $this->telefono);
+        }
     }
 }

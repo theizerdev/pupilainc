@@ -84,20 +84,28 @@
                                 </div>
                             </div>
                             <div class="col-md-12">
-                                <div class="form-group mb-3">
-                                    <label for="telefono">Teléfono</label>
-                                    <input type="text" class="form-control @error('telefono') is-invalid @enderror" 
-                                           id="telefono" wire:model="telefono" placeholder="Ingrese el teléfono">
-                                    @if($pais)
-                                        <small class="form-text text-muted">
-                                            Formato: {{ $pais->formato_telefono ?? 'Sin formato específico' }}
-                                        </small>
-                                    @endif
-                                    @error('telefono')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                </div>
+                              <div class="form-group mb-3">
+                                <label for="telefono" class="fw-bold">
+                                    <i class="fas fa-phone me-1"></i>Teléfono
+                                </label>
+                                <input type="tel" 
+                                    class="form-control form-control @error('telefono') is-invalid @enderror"
+                                    id="telefono" 
+                                    wire:model.blur="telefono"
+                                    wire:change="formatPhone"
+                                    placeholder="Ej: +58 412 1234567"
+                                    autocomplete="tel"
+                                    pattern="[\d\s\-\+\(\)]+"
+                                    title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                    onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
+                                @error('telefono')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                                <small class="text-muted mt-1 d-block">
+                                    <i class="fas fa-info-circle me-1"></i>Solo se permiten números y caracteres de teléfono
+                                </small>
                             </div>
+                           </div>
                         </div>
                         <div class="row">
                             <div class="col-md-12">
@@ -279,17 +287,17 @@
                                             <td>
                                                 <input type="time" class="form-control form-control-sm" 
                                                        wire:model="horarios.{{ $dia }}.hora_inicio"
-                                                       @disabled(!isset($horarios[$dia]['activo']) || !$horarios[$dia]['activo'])>
+                                                       @if(!isset($horarios[$dia]['activo']) || !$horarios[$dia]['activo']) readonly @endif>
                                             </td>
                                             <td>
                                                 <input type="time" class="form-control form-control-sm" 
                                                        wire:model="horarios.{{ $dia }}.hora_fin"
-                                                       @disabled(!isset($horarios[$dia]['activo']) || !$horarios[$dia]['activo'])>
+                                                       @if(!isset($horarios[$dia]['activo']) || !$horarios[$dia]['activo']) readonly @endif>
                                             </td>
                                             <td>
                                                 <select class="form-control form-control-sm" 
                                                         wire:model="horarios.{{ $dia }}.duracion_cita"
-                                                        @disabled(!isset($horarios[$dia]['activo']) || !$horarios[$dia]['activo'])>
+                                                        @if(!isset($horarios[$dia]['activo']) || !$horarios[$dia]['activo']) disabled @endif>
                                                     <option value="15">15 min</option>
                                                     <option value="30">30 min</option>
                                                     <option value="45">45 min</option>

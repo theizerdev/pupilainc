@@ -78,6 +78,11 @@ class Enfermero extends Model
         return $this->hasMany(Cita::class);
     }
 
+    public function consultas(): HasMany
+    {
+        return $this->hasMany(Consulta::class);
+    }
+
     public function especialidades(): HasMany
     {
         return $this->hasMany(EnfermeroEspecialidad::class);

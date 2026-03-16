@@ -90,9 +90,9 @@ class Index extends Component
         try {
             $enfermero = Enfermero::findOrFail($id);
             
-            // Verificar si tiene citas asociadas antes de eliminar
-            if ($enfermero->citas && $enfermero->citas->count() > 0) {
-                throw new \Exception('No se puede eliminar un enfermero con citas asociadas.');
+            // Verificar si tiene signos vitales asociados antes de eliminar
+            if ($enfermero->signosVitales && $enfermero->signosVitales->count() > 0) {
+                throw new \Exception('No se puede eliminar un enfermero con signos vitales asociados.');
             }
             
             // Eliminar horarios primero

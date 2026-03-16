@@ -63,7 +63,7 @@ class Edit extends Component
                 'max:50',
                 Rule::unique('enfermeros')->ignore($this->enfermero->id)
             ],
-            'telefono' => 'nullable|string|max:20',
+            'telefono' => 'nullable|string|max:10',
             'direccion' => 'nullable|string|max:500',
             'licencia_enfermeria' => [
                 'required',
@@ -499,5 +499,12 @@ class Edit extends Component
             'empresas' => $this->empresas,
             'sucursales' => $this->sucursales,
         ])->layout($this->getLayout());
+    }
+
+    public function formatPhone()
+    {
+        if ($this->telefono) {
+            $this->telefono = preg_replace('/[^0-9+]/', '', $this->telefono);
+        }
     }
 }

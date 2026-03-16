@@ -267,11 +267,11 @@
                                         </span>
                                     @endcan
                                 </td>
-                                <td>
+                                <td> 
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                            <i class="fas fa-cog"></i>
-                                        </button>
+                                        <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                <i class="ri ri-more-2-line"></i>
+                                            </button>
                                         <div class="dropdown-menu">
                                             <a class="dropdown-item" href="{{ route('admin.enfermeros.edit', $enfermero->id) }}">
                                                 <i class="fas fa-edit me-2"></i>Editar
@@ -288,10 +288,14 @@
                                                     onclick="confirm('¿Está seguro de cambiar el estado?') || event.stopImmediatePropagation()">
                                                 <i class="fas fa-power-off me-2"></i>{{ $enfermero->status ? 'Desactivar' : 'Activar' }}
                                             </button>
-                                            <button class="dropdown-item text-danger" wire:click="delete({{ $enfermero->id }})"
+                                            @if($enfermero->signosVitales->count() > 0)
+                                               <i class="fas fa-trash-outline"></i><span class="dropdown-item text-danger">No puede ser eliminado</span>
+                                               @else
+                                               <button class="dropdown-item text-danger" wire:click="delete({{ $enfermero->id }})"
                                                     onclick="confirm('¿Está seguro de eliminar este enfermero/a? Esta acción no se puede deshacer.') || event.stopImmediatePropagation()">
                                                 <i class="fas fa-trash me-2"></i>Eliminar
                                             </button>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
