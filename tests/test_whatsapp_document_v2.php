@@ -99,7 +99,7 @@ try {
     $writer->save($tempFile);
     
     echo "✅ Archivo Excel creado: " . basename($tempFile) . "\n";
-    echo "📏 Tamaño: " . number_format(filesize($tempFile) / 1024, 2) . " KB\n\n";
+    echo "📏 Tamaño: " . format_money(filesize($tempFile) / 1024, 2) . " KB\n\n";
     
     // Enviar por WhatsApp
     echo "📤 Enviando documento a WhatsApp...\n";

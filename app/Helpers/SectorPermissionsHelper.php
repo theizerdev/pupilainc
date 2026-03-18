@@ -160,7 +160,7 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'Control Consultorios',
                         'icon' => 'ri-hospital-line',
-                        'permission' => 'manage consultorios',
+                        'permission' => 'access consultorios',
                         'route' => 'admin.recepcion.control-consultorios',
                         'route_horizontal' => 'admin.recepcion.control-consultorios',
                         'active' => 'admin.recepcion.control-consultorios',
@@ -263,7 +263,7 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Pagos', 'permission' => 'access pagos', 'route' => 'admin.pagos.index', 'active' => 'admin.pagos.*'],
                             ['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
                             ['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
-                            ['label' => 'Baremos', 'permission' => 'access baremos', 'route' => 'admin.baremos.index', 'active' => 'admin.baremos.*'],
+                            ['label' => 'Servicios', 'permission' => 'access baremos', 'route' => 'admin.baremos.index', 'active' => 'admin.baremos.*'],
                             ['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
                             ['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
                             ['label' => 'Caja Chica', 'permission' => 'access cajas', 'route' => 'admin.cajas.index', 'active' => 'admin.cajas.*'],
@@ -285,7 +285,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'active' => 'admin.impuestos.*',
                     ],
                     [
-                        'label' => 'Tasas BCV',
+                        'label' => 'Tasa de cambio',
                         'icon' => 'ri-exchange-dollar-line',
                         'permission' => 'view exchange-rates',
                         'route' => 'admin.exchange-rates',

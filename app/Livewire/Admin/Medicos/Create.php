@@ -451,6 +451,14 @@ class Create extends Component
         return collect();
     }
 
+    
+    public function formatPhone()
+    {
+        if ($this->telefono) {
+            $this->telefono = preg_replace('/[^0-9+]/', '', $this->telefono);
+        }
+    }
+
     public function render()
     {
         return view('livewire.admin.medicos.create', [

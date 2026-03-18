@@ -281,7 +281,7 @@
                 </div>
 
                 <div class="mt-3">
-                    {{ $pagos->links() }}
+                    {{ $pagos->links('livewire.pagination') }}
                 </div>
             </div>
         </div>

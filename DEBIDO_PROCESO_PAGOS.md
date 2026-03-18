@@ -397,7 +397,7 @@ $caja->calcularTotales();
 $diferencia = $montoFisicoContado - $caja->monto_final;
 if (abs($diferencia) > 0.01) {
     // Registrar diferencia en observaciones
-    $observaciones .= " | Diferencia: Bs. " . number_format($diferencia, 2);
+    $observaciones .= " | Diferencia: Bs. " . format_money($diferencia, 2);
 }
 
 // 3. Cerrar caja

@@ -363,7 +363,7 @@ class ContabilidadExcelController extends Controller
         $this->styleTotalsRow($sheet, 'A' . $row . ':F' . $row);
 
         $row += 2;
-        $cuadrado = round($totSD, 2) === round($totSA, 2) ? '✓ Balance Cuadrado' : '✗ Descuadre: ' . number_format(abs($totSD - $totSA), 2, ',', '.');
+        $cuadrado = round($totSD, 2) === round($totSA, 2) ? '✓ Balance Cuadrado' : '✗ Descuadre: ' . format_money(abs($totSD - $totSA), 2, ',', '.');
         $sheet->setCellValue('A' . $row, $cuadrado);
         $sheet->getStyle('A' . $row)->getFont()->setBold(true);
         $row++;

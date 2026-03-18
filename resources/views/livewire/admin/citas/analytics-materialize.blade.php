@@ -146,7 +146,7 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <h6 class="card-title mb-1">Total Citas</h6>
-                                    <h3 class="mb-0">{{ number_format($analyticsData['resumen']['total'] ?? 0) }}</h3>
+                                    <h3 class="mb-0">{{ format_money($analyticsData['resumen']['total'] ?? 0) }}</h3>
                                     <small class="opacity-75">
                                         <i class="fas fa-calendar-check me-1"></i>
                                         {{ $analyticsData['resumen']['porcentaje_crecimiento'] ?? 0 }}% vs período anterior
@@ -166,10 +166,10 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <h6 class="card-title mb-1">Completadas</h6>
-                                    <h3 class="mb-0">{{ number_format($analyticsData['resumen']['completadas'] ?? 0) }}</h3>
+                                    <h3 class="mb-0">{{ format_money($analyticsData['resumen']['completadas'] ?? 0) }}</h3>
                                     <small class="opacity-75">
                                         <i class="fas fa-check-circle me-1"></i>
-                                        {{ number_format($analyticsData['asistencia']['tasa_asistencia'] ?? 0, 1) }}% de asistencia
+                                        {{ format_money($analyticsData['asistencia']['tasa_asistencia'] ?? 0, 1) }}% de asistencia
                                     </small>
                                 </div>
                                 <div class="stats-icon">
@@ -186,10 +186,10 @@
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <h6 class="card-title mb-1">Canceladas</h6>
-                                    <h3 class="mb-0">{{ number_format($analyticsData['resumen']['canceladas'] ?? 0) }}</h3>
+                                    <h3 class="mb-0">{{ format_money($analyticsData['resumen']['canceladas'] ?? 0) }}</h3>
                                     <small class="opacity-75">
                                         <i class="fas fa-times-circle me-1"></i>
-                                        {{ number_format($analyticsData['cancelaciones']['tasa_cancelacion'] ?? 0, 1) }}% tasa de cancelación
+                                        {{ format_money($analyticsData['cancelaciones']['tasa_cancelacion'] ?? 0, 1) }}% tasa de cancelación
                                     </small>
                                 </div>
                                 <div class="stats-icon">
@@ -380,7 +380,7 @@
                                                     <div class="progress progress-sm" style="width: 60px;">
                                                         <div class="progress-bar" style="width: {{ $especialidad['porcentaje'] }}%; background-color: {{ $color }};"></div>
                                                     </div>
-                                                    <small class="text-muted">{{ number_format($especialidad['porcentaje'], 1) }}%</small>
+                                                    <small class="text-muted">{{ format_money($especialidad['porcentaje'], 1) }}%</small>
                                                 </td>
                                                 <td class="text-center">
                                                     @if(($especialidad['tendencia'] ?? 0) > 0)

@@ -102,7 +102,7 @@
                         </div>
 
                         <div class="mt-3">
-                            {{ $impuestos->links() }}
+                            {{ $impuestos->links('livewire.pagination') }}
                         </div>
                     </div>
                 </div>

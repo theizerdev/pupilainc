@@ -72,7 +72,7 @@
                                                     @endif
                                                 </small>
                                             </div>
-                                            <span class="text-primary fw-bold">${{ number_format($servicio->costo_usd, 2) }}</span>
+                                            <span class="text-primary fw-bold">{{ format_money($servicio->costo_usd, 2) }}</span>
                                         </button>
                                         @empty
                                         <div class="list-group-item">No se encontraron servicios</div>
@@ -112,8 +112,8 @@
                                                     <td>
                                                         <input type="number" wire:change="actualizarCantidad('{{ $key }}', $event.target.value)" value="{{ $item['cantidad'] }}" class="form-control form-control-sm" min="1">
                                                     </td>
-                                                    <td class="text-end">${{ number_format($item['precio_unitario'], 2) }}</td>
-                                                    <td class="text-end fw-bold">${{ number_format($item['cantidad'] * $item['precio_unitario'], 2) }}</td>
+                                                    <td class="text-end">{{ format_money($item['precio_unitario'], 2) }}</td>
+                                                    <td class="text-end fw-bold">{{ format_money($item['cantidad'] * $item['precio_unitario'], 2) }}</td>
                                                     <td>
                                                         <button type="button" wire:click="eliminarItem('{{ $key }}')" class="btn btn-sm btn-danger">
                                                             <i class="fas fa-trash"></i>
@@ -184,36 +184,36 @@
                                             <table class="table table-sm">
                                                 <tr>
                                                     <td>Subtotal:</td>
-                                                    <td class="text-end">${{ number_format($subtotal, 2) }}</td>
+                                                    <td class="text-end">{{ format_money($subtotal, 2) }}</td>
                                                 </tr>
                                                 @if($descuento > 0)
                                                 <tr>
                                                     <td>Descuento:</td>
-                                                    <td class="text-end text-danger">-${{ number_format($descuento, 2) }}</td>
+                                                    <td class="text-end text-danger">-{{ format_money($descuento, 2) }}</td>
                                                 </tr>
                                                 @endif
                                                 @if($iva_monto > 0)
                                                 <tr>
                                                     <td>IVA (16%):</td>
-                                                    <td class="text-end">${{ number_format($iva_monto, 2) }}</td>
+                                                    <td class="text-end">{{ format_money($iva_monto, 2) }}</td>
                                                 </tr>
                                                 @endif
                                                 @if($igtf_monto > 0)
                                                 <tr>
                                                     <td>IGTF (3%):</td>
-                                                    <td class="text-end">${{ number_format($igtf_monto, 2) }}</td>
+                                                    <td class="text-end">{{ format_money($igtf_monto, 2) }}</td>
                                                 </tr>
                                                 @endif
                                                 <tr class="fw-bold border-top">
                                                     <td>Total USD:</td>
-                                                    <td class="text-end text-primary">${{ number_format($total, 2) }}</td>
+                                                    <td class="text-end text-primary">{{ format_money($total, 2) }}</td>
                                                 </tr>
                                                 <tr class="fw-bold">
                                                     <td>Total Bs:</td>
-                                                    <td class="text-end text-success">Bs {{ number_format($total * $tasa_usd, 2) }}</td>
+                                                    <td class="text-end text-success">Bs {{ format_money($total * $tasa_usd, 2) }}</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="2"><small class="text-muted">Tasa: $1 = Bs {{ number_format($tasa_usd, 2) }}</small></td>
+                                                    <td colspan="2"><small class="text-muted">Tasa: $1 = Bs {{ format_money($tasa_usd, 2) }}</small></td>
                                                 </tr>
                                             </table>
 

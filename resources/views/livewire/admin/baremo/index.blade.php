@@ -177,7 +177,7 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <strong>${{ number_format($baremo->costo_usd, 2) }}</strong>
+                                        <strong>{{ format_money($baremo->costo_usd, 2) }}</strong>
                                         @if($baremo->aplica_iva && !$baremo->exento_iva)
                                             <br><small class="text-muted">+ IVA</small>
                                         @endif
@@ -189,11 +189,7 @@
                                                    type="checkbox" 
                                                    wire:click="toggleEstado({{ $baremo->id }})"
                                                    {{ $baremo->activo ? 'checked' : '' }}>
-                                            <label class="form-check-label">
-                                                <span class="badge badge-{{ $baremo->activo ? 'success' : 'secondary' }}">
-                                                    {{ $baremo->activo ? 'Activo' : 'Inactivo' }}
-                                                </span>
-                                            </label>
+                                            
                                         </div>
                                     </td>
                                     <td>

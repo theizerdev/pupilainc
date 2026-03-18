@@ -45,7 +45,7 @@ trait HasDualCurrency
      */
     public function formatUsd(float $usdAmount): string
     {
-        return '$' . number_format($usdAmount, 2, '.', ',');
+        return '$' . format_money($usdAmount, 2, '.', ',');
     }
 
     /**

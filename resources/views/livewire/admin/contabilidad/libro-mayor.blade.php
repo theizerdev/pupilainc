@@ -87,7 +87,7 @@
                                             <td colspan="3">Saldo Anterior</td>
                                             <td class="text-end">-</td>
                                             <td class="text-end">-</td>
-                                            <td class="text-end fw-bold">Bs {{ number_format($saldoInicial, 2, ',', '.') }}</td>
+                                            <td class="text-end fw-bold">Bs {{ format_money($saldoInicial, 2, ',', '.') }}</td>
                                         </tr>
                                         @forelse($movimientos as $mov)
                                             <tr>
@@ -96,15 +96,15 @@
                                                 <td>{{ Str::limit($mov->descripcion, 60) }}</td>
                                                 <td class="text-end">
                                                     @if($mov->debe > 0)
-                                                        {{ number_format($mov->debe, 2, ',', '.') }}
+                                                        {{ format_money($mov->debe, 2, ',', '.') }}
                                                     @endif
                                                 </td>
                                                 <td class="text-end">
                                                     @if($mov->haber > 0)
-                                                        {{ number_format($mov->haber, 2, ',', '.') }}
+                                                        {{ format_money($mov->haber, 2, ',', '.') }}
                                                     @endif
                                                 </td>
-                                                <td class="text-end fw-bold">Bs {{ number_format($mov->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end fw-bold">Bs {{ format_money($mov->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         @empty
                                             <tr>
@@ -116,9 +116,9 @@
                                         <tfoot class="table-dark fw-bold">
                                             <tr>
                                                 <td colspan="3" class="text-end">TOTALES PERÍODO</td>
-                                                <td class="text-end">{{ number_format($movimientos->sum('debe'), 2, ',', '.') }}</td>
-                                                <td class="text-end">{{ number_format($movimientos->sum('haber'), 2, ',', '.') }}</td>
-                                                <td class="text-end">Bs {{ number_format($movimientos->last()->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ format_money($movimientos->sum('debe'), 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ format_money($movimientos->sum('haber'), 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($movimientos->last()->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         </tfoot>
                                     @endif

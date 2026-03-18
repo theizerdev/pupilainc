@@ -25,7 +25,7 @@ trait HasRegionalFormatting
         $currencySymbol = $this->regionalConfig['currency_symbol'] ?? '$';
 
         // Convertir el formato a número
-        $formatted = number_format($amount, 2, '.', ',');
+        $formatted = format_money($amount, 2, '.', ',');
 
         if ($includeSymbol) {
             return $currencySymbol . $formatted;

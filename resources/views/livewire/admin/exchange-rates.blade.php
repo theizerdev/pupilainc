@@ -133,12 +133,12 @@
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-md-6 border-end">
-                            <h2 class="display-6 text-primary">{{ number_format($todayRate->usd_rate, 4) }}</h2>
+                            <h2 class="display-6 text-primary mt-3">{{ number_format($todayRate->usd_rate, 4) }}</h2>
                             <p class="mb-0 text-muted">Bolívares por Dólar (USD)</p>
                             <small class="text-muted">Fuente: {{ $todayRate->source }}</small>
                         </div>
                         <div class="col-md-6">
-                            <h2 class="display-6 text-primary">{{ number_format($todayRate->eur_rate, 4) }}</h2>
+                            <h2 class="display-6 text-primary mt-3">{{ number_format($todayRate->eur_rate, 4) }}</h2>
                             <p class="mb-0 text-muted">Bolívares por Euro (EUR)</p>
                             <small class="text-muted">Actualizado: {{ $todayRate->fetch_time->format('H:i') }}</small>
                         </div>

@@ -9,4 +9,4 @@
     $decimals = $config['decimals'] ?? 2;
 @endphp
 
-<span class="{{ $class }}">{{ $currencySymbol }}{{ number_format($amountValue, $decimals, $decimalSep, $thousandSep) }}</span>
+<span class="{{ $class }}">{{ $currencySymbol }}{{ format_money($amountValue, $decimals, $decimalSep, $thousandSep) }}</span>

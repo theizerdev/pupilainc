@@ -233,7 +233,7 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h5 class="card-title mb-1">Ingresos Mes</h5>
-                            <h2 class="mb-0">${{ number_format($stats['ingresos_mes'], 0) }}</h2>
+                            <h2 class="mb-0">{{ format_money($stats['ingresos_mes'], 0) }}</h2>
                             <small class="opacity-75">{{ now()->format('F') }}</small>
                         </div>
                         <div class="stats-icon">
@@ -392,7 +392,7 @@
                     <h5 class="mb-2">Pagos</h5>
                     <p class="text-muted mb-2 small">Gestión de pagos y comprobantes</p>
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="badge bg-danger">${{ number_format($stats['ingresos_mes'], 0) }} mes</span>
+                        <span class="badge bg-danger">{{ format_money($stats['ingresos_mes'], 0) }} mes</span>
                         <i class="fas fa-arrow-right text-danger"></i>
                     </div>
                 </div>

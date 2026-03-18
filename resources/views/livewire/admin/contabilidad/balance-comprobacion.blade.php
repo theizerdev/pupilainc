@@ -46,16 +46,16 @@
                                         <tr>
                                             <td><strong>{{ $cuenta->codigo }}</strong></td>
                                             <td>{{ $cuenta->nombre }}</td>
-                                            <td class="text-end">{{ number_format($cuenta->debe, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ number_format($cuenta->haber, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($cuenta->debe, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($cuenta->haber, 2, ',', '.') }}</td>
                                             <td class="text-end">
                                                 @if($cuenta->saldo_deudor > 0)
-                                                    {{ number_format($cuenta->saldo_deudor, 2, ',', '.') }}
+                                                    {{ format_money($cuenta->saldo_deudor, 2, ',', '.') }}
                                                 @endif
                                             </td>
                                             <td class="text-end">
                                                 @if($cuenta->saldo_acreedor > 0)
-                                                    {{ number_format($cuenta->saldo_acreedor, 2, ',', '.') }}
+                                                    {{ format_money($cuenta->saldo_acreedor, 2, ',', '.') }}
                                                 @endif
                                             </td>
                                         </tr>
@@ -69,10 +69,10 @@
                                     <tfoot class="table-dark fw-bold">
                                         <tr>
                                             <td colspan="2" class="text-end">TOTALES</td>
-                                            <td class="text-end">{{ number_format($totales->debe, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ number_format($totales->haber, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ number_format($totales->saldo_deudor, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ number_format($totales->saldo_acreedor, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->debe, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->haber, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->saldo_deudor, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->saldo_acreedor, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif
@@ -84,7 +84,7 @@
                                 @if(round($totales->saldo_deudor, 2) === round($totales->saldo_acreedor, 2))
                                     <span class="badge bg-success fs-6"><i class="ri-check-line me-1"></i> Balance Cuadrado</span>
                                 @else
-                                    <span class="badge bg-danger fs-6"><i class="ri-error-warning-line me-1"></i> Descuadre: Bs {{ number_format(abs($totales->saldo_deudor - $totales->saldo_acreedor), 2, ',', '.') }}</span>
+                                    <span class="badge bg-danger fs-6"><i class="ri-error-warning-line me-1"></i> Descuadre: Bs {{ format_money(abs($totales->saldo_deudor - $totales->saldo_acreedor), 2, ',', '.') }}</span>
                                 @endif
                             </div>
                         @endif

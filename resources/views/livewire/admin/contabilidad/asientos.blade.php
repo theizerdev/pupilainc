@@ -212,8 +212,8 @@
                                         </span>
                                     </td>
                                     <td>{{ Str::limit($asiento->descripcion, 50) }}</td>
-                                    <td class="text-end">Bs {{ number_format($asiento->total_debe, 2) }}</td>
-                                    <td class="text-end">Bs {{ number_format($asiento->total_haber, 2) }}</td>
+                                    <td class="text-end">Bs {{ format_money($asiento->total_debe, 2) }}</td>
+                                    <td class="text-end">Bs {{ format_money($asiento->total_haber, 2) }}</td>
                                     <td>
                                         @if($asiento->estado === 'aprobado')
                                             <span class="badge bg-label-success">Aprobado</span>
@@ -258,7 +258,7 @@
                 </div>
 
                 <div class="mt-3">
-                    {{ $asientos->links() }}
+                    {{ $asientos->links('livewire.pagination') }}
                 </div>
             </div>
         </div>
@@ -312,12 +312,12 @@
                                             <td>{{ $detalle->descripcion }}</td>
                                             <td class="text-end">
                                                 @if($detalle->debe > 0)
-                                                    Bs {{ number_format($detalle->debe, 2) }}
+                                                    Bs {{ format_money($detalle->debe, 2) }}
                                                 @endif
                                             </td>
                                             <td class="text-end">
                                                 @if($detalle->haber > 0)
-                                                    Bs {{ number_format($detalle->haber, 2) }}
+                                                    Bs {{ format_money($detalle->haber, 2) }}
                                                 @endif
                                             </td>
                                         </tr>
@@ -326,8 +326,8 @@
                                 <tfoot class="table-light">
                                     <tr>
                                         <th colspan="2" class="text-end">TOTALES:</th>
-                                        <th class="text-end">Bs {{ number_format($asientoSeleccionado->total_debe, 2) }}</th>
-                                        <th class="text-end">Bs {{ number_format($asientoSeleccionado->total_haber, 2) }}</th>
+                                        <th class="text-end">Bs {{ format_money($asientoSeleccionado->total_debe, 2) }}</th>
+                                        <th class="text-end">Bs {{ format_money($asientoSeleccionado->total_haber, 2) }}</th>
                                     </tr>
                                     <tr>
                                         <th colspan="2" class="text-end">Balance:</th>

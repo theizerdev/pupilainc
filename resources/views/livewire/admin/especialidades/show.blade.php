@@ -64,7 +64,7 @@
                                     Ingresos del Mes
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    ${{ number_format($estadisticas['ingresos_mes'], 2) }}
+                                    {{ format_money($estadisticas['ingresos_mes'], 2) }}
                                 </div>
                             </div>
                             <div class="col-auto">

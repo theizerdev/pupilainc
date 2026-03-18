@@ -83,9 +83,9 @@ class LibroVentasController extends Controller
 
             $numDoc = $doc->numero_completo ?? '0';
             $numControl = $doc->numero_control_fiscal ?? '0';
-            $montoDoc = number_format($doc->total_con_impuestos ?? $doc->total_usd, 2, '.', '');
-            $baseImponible = number_format($doc->base_imponible ?? 0, 2, '.', '');
-            $montoIva = number_format($doc->iva_monto ?? 0, 2, '.', '');
+            $montoDoc = format_money($doc->total_con_impuestos ?? $doc->total_usd, 2, '.', '');
+            $baseImponible = format_money($doc->base_imponible ?? 0, 2, '.', '');
+            $montoIva = format_money($doc->iva_monto ?? 0, 2, '.', '');
 
             // Documento afectado (para NC/ND)
             $docAfectado = '0';
@@ -97,9 +97,9 @@ class LibroVentasController extends Controller
                 $fechaAfectado = $doc->pagoOrigen->fecha ? $doc->pagoOrigen->fecha->format('Y-m-d') : '0';
             }
 
-            $montoExento = number_format($doc->monto_exento ?? 0, 2, '.', '');
-            $alicuota = number_format($doc->iva_porcentaje ?? 16, 2, '.', '');
-            $igtfMonto = number_format($doc->igtf_monto ?? 0, 2, '.', '');
+            $montoExento = format_money($doc->monto_exento ?? 0, 2, '.', '');
+            $alicuota = format_money($doc->iva_porcentaje ?? 16, 2, '.', '');
+            $igtfMonto = format_money($doc->igtf_monto ?? 0, 2, '.', '');
 
             // Format: RIF|Periodo|Fecha|TipoOp|TipoDoc|RifComprador|NumDoc|NumControl|MontoDoc|BaseImp|MontoIVA|DocAfectado|ControlAfectado|FechaAfectado|MontoExento|Alicuota|IGTF
             $lines[] = implode("\t", [

@@ -180,9 +180,11 @@
                                         @error('costo_usd')
                                             <span class="invalid-feedback">{{ $message }}</span>
                                         @enderror
+                                        @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
                                         <small class="form-text text-muted">
                                             Tasa de cambio actual: <strong>Bs. {{ number_format($tasa_usd, 2) }}</strong>
                                         </small>
+                                        @endif
                                     </div>
                                 </div>
 
@@ -320,7 +322,7 @@
                             @if($costo_usd)
                             <div class="mb-3">
                                 <span class="badge bg-success" style="font-size: 1.2em;">
-                                    <i class="fas fa-dollar-sign me-1"></i>${{ number_format($costo_usd, 2) }}
+                                    <i class="fas fa-dollar-sign me-1"></i>{{ format_money($costo_usd, 2) }}
                                 </span>
                                 @if($aplica_iva && !$exento_iva)
                                     <br><small class="text-muted">+ IVA</small>

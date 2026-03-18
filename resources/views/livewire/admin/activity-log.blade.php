@@ -7,7 +7,7 @@
                     <div class="d-flex align-items-center">
                         <i class="fas fa-history text-primary mr-2"></i>
                         <h3 class="card-title mb-0">Registro de Actividades</h3>
-                        <span class="badge badge-secondary ml-2">{{ number_format($activities->total()) }} actividades</span>
+                        <span class="badge badge-secondary ml-2">{{ format_money($activities->total()) }} actividades</span>
                     </div>
                     <div class="card-tools">
                         <div class="btn-group" role="group">
@@ -674,7 +674,7 @@
                 <div class="card-footer d-flex justify-content-between align-items-center bg-light">
                     <div class="d-flex align-items-center">
                         <span class="text-muted mr-3">
-                            Mostrando {{ $activities->firstItem() ?? 0 }} a {{ $activities->lastItem() ?? 0 }} de {{ number_format($activities->total()) }} actividades
+                            Mostrando {{ $activities->firstItem() ?? 0 }} a {{ $activities->lastItem() ?? 0 }} de {{ format_money($activities->total()) }} actividades
                         </span>
                         <select wire:model.live="perPage" class="form-control form-control-sm" style="width: auto;">
                             <option value="10">10 por página</option>

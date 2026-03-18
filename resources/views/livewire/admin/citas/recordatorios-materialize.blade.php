@@ -465,7 +465,7 @@
         @if($recordatorios->hasPages())
             <div class="card-footer py-3 bg-white">
                 <div class="d-flex justify-content-center">
-                    {{ $recordatorios->links() }}
+                    {{ $recordatorios->links('livewire.pagination') }}
                 </div>
             </div>
         @endif

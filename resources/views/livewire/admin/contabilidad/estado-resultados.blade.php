@@ -26,14 +26,14 @@
                                             <tr>
                                                 <td>{{ $cuenta->codigo }}</td>
                                                 <td>{{ $cuenta->nombre }}</td>
-                                                <td class="text-end">Bs {{ number_format($cuenta->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($cuenta->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                     <tfoot>
                                         <tr class="fw-bold table-success">
                                             <td colspan="2">Total Ingresos</td>
-                                            <td class="text-end">Bs {{ number_format($totalIngresos, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($totalIngresos, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -47,14 +47,14 @@
                                                 <tr>
                                                     <td>{{ $cuenta->codigo }}</td>
                                                     <td>{{ $cuenta->nombre }}</td>
-                                                    <td class="text-end">Bs {{ number_format($cuenta->saldo, 2, ',', '.') }}</td>
+                                                    <td class="text-end">Bs {{ format_money($cuenta->saldo, 2, ',', '.') }}</td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
                                         <tfoot>
                                             <tr class="fw-bold table-warning">
                                                 <td colspan="2">Total Costos</td>
-                                                <td class="text-end">Bs {{ number_format($totalCostos, 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($totalCostos, 2, ',', '.') }}</td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -64,7 +64,7 @@
                                 <table class="table table-sm">
                                     <tr class="fw-bold table-light">
                                         <td colspan="2">UTILIDAD BRUTA</td>
-                                        <td class="text-end">Bs {{ number_format($utilidadBruta, 2, ',', '.') }}</td>
+                                        <td class="text-end">Bs {{ format_money($utilidadBruta, 2, ',', '.') }}</td>
                                     </tr>
                                 </table>
 
@@ -76,14 +76,14 @@
                                             <tr>
                                                 <td>{{ $cuenta->codigo }}</td>
                                                 <td>{{ $cuenta->nombre }}</td>
-                                                <td class="text-end">Bs {{ number_format($cuenta->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($cuenta->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                     <tfoot>
                                         <tr class="fw-bold table-danger">
                                             <td colspan="2">Total Gastos</td>
-                                            <td class="text-end">Bs {{ number_format($totalEgresos, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($totalEgresos, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -92,7 +92,7 @@
                                 <table class="table mt-3">
                                     <tr class="fw-bold fs-5 {{ $utilidadNeta >= 0 ? 'table-success' : 'table-danger' }}">
                                         <td>{{ $utilidadNeta >= 0 ? 'UTILIDAD' : 'PÉRDIDA' }} NETA DEL EJERCICIO</td>
-                                        <td class="text-end">Bs {{ number_format(abs($utilidadNeta), 2, ',', '.') }}</td>
+                                        <td class="text-end">Bs {{ format_money(abs($utilidadNeta), 2, ',', '.') }}</td>
                                     </tr>
                                 </table>
                             </div>

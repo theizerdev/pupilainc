@@ -259,7 +259,7 @@ class ComprobanteController extends Controller
         // Referencia en USD
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($labelW, 5, 'Ref. USD:', 0, 0, 'R');
-        $pdf->Cell($valueW, 5, '$' . number_format($pago->total_usd ?: $pago->total, 2), 0, 1, 'R');
+        $pdf->Cell($valueW, 5, '$' . format_money($pago->total_usd ?: $pago->total, 2), 0, 1, 'R');
 
         $pdf->SetFont('Arial', '', 7);
         $pdf->Cell($labelW + $valueW, 4, $this->u('Tasa BCV: $1,00 = Bs. ' . $this->bs($tasa)), 0, 1, 'R');
@@ -470,7 +470,7 @@ class ComprobanteController extends Controller
 
         $pdf->SetFont('Arial', '', 6);
         $pdf->Cell($labelW, 3, 'Ref. USD:', 0, 0, 'R');
-        $pdf->Cell($valueW, 3, '$' . number_format($pago->total_usd ?: $pago->total, 2), 0, 1, 'R');
+        $pdf->Cell($valueW, 3, '$' . format_money($pago->total_usd ?: $pago->total, 2), 0, 1, 'R');
 
         // Coletilla IGTF
         if ($pago->aplica_igtf && $pago->igtf_monto > 0) {
@@ -581,7 +581,7 @@ class ComprobanteController extends Controller
      */
     private function bs(float $amount): string
     {
-        return number_format($amount, 2, ',', '.');
+        return format_money($amount, 2, ',', '.');
     }
 
     /**

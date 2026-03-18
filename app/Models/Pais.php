@@ -68,7 +68,7 @@ class Pais extends Model
      */
     public function formatearMonto($monto)
     {
-        return number_format(
+        return format_money(
             $monto,
             $this->decimales_moneda,
             $this->separador_decimales,
@@ -85,7 +85,7 @@ class Pais extends Model
             'USD' => '$',
             'EUR' => '€',
             'GBP' => '£',
-            'VES' => 'Bs.',
+            'VES' => '$',
             'COP' => '$',
             'ARS' => '$',
             'BRL' => 'R$',

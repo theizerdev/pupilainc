@@ -194,7 +194,7 @@
                 </div>
 
                 <div class="mt-3">
-                    {{ $anulaciones->links() }}
+                    {{ $anulaciones->links('livewire.pagination') }}
                 </div>
 
                 <div class="mt-3 p-3 bg-light rounded">

@@ -88,7 +88,7 @@
                             </table>
                         </div>
                         <div class="d-flex justify-content-end">
-                            {{ $tiposCita->links() }}
+                            {{ $tiposCita->links('livewire.pagination') }}
                         </div>
                     </div>
 

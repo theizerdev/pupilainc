@@ -271,7 +271,7 @@
                 </div>
 
                 <div class="mt-3">
-                    {{ $notas->links() }}
+                    {{ $notas->links('livewire.pagination') }}
                 </div>
             </div>
         </div>

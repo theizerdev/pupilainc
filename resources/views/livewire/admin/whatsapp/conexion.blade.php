@@ -309,7 +309,7 @@
                                 <div class="avatar avatar-md bg-label-primary mb-2 mx-auto">
                                     <i class="ri ri-message-2-line ri-24px"></i>
                                 </div>
-                                <h4 class="mb-0">{{ number_format($mensajesHoy) }}</h4>
+                                <h4 class="mb-0">{{ format_money($mensajesHoy) }}</h4>
                                 <small class="text-muted">Mensajes hoy</small>
                             </div>
                         </div>

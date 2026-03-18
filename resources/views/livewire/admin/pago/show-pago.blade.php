@@ -172,7 +172,7 @@
                                         @endif
                                     </td>
                                     <td class="text-center">{{ $detalle->cantidad }}</td>
-                                    <td class="text-end text-muted"><small>${{ number_format($detalle->precio_unitario / ($pago->tasa_cambio_usd ?: 1), 2) }}</small></td>
+                                    <td class="text-end text-muted"><small>{{ format_money($detalle->precio_unitario / ($pago->tasa_cambio_usd ?: 1), 2) }}</small></td>
                                     <td class="text-end">Bs. {{ number_format($detalle->precio_unitario, 2, ',', '.') }}</td>
                                     <td class="text-end fw-bold">Bs. {{ number_format($detalle->subtotal, 2, ',', '.') }}</td>
                                     <td class="text-center">
@@ -246,7 +246,7 @@
                                         </tr>
                                         <tr>
                                             <td colspan="2" class="text-end">
-                                                <small class="text-muted">Equiv. USD: ${{ number_format($pago->total_usd, 2) }} | Tasa: Bs. {{ number_format($pago->tasa_cambio_usd, 2, ',', '.') }}</small>
+                                                <small class="text-muted">Equiv. USD: {{ format_money($pago->total_usd, 2) }} | Tasa: Bs. {{ number_format($pago->tasa_cambio_usd, 2, ',', '.') }}</small>
                                             </td>
                                         </tr>
                                     </table>

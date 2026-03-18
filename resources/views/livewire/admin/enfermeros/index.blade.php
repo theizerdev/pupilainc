@@ -319,7 +319,7 @@
                     Mostrando {{ $enfermeros->firstItem() }} - {{ $enfermeros->lastItem() }} de {{ $enfermeros->total() }} resultados
                 </div>
                 <div>
-                    {{ $enfermeros->links() }}
+                    {{ $enfermeros->links('livewire.pagination') }}
                 </div>
             </div>
         </div>

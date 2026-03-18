@@ -137,9 +137,9 @@ class Index extends Component
         foreach ($pago->detalles as $detalle) {
             $pdf->Cell(12, 5, $item++, 1, 0, 'C');
             $pdf->Cell(85, 5, substr(utf8_decode($detalle->descripcion), 0, 50), 1, 0, 'L');
-            $pdf->Cell(20, 5, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
-            $pdf->Cell(35, 5, number_format($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
-            $pdf->Cell(38, 5, number_format($detalle->subtotal, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(20, 5, format_money($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(35, 5, format_money($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(38, 5, format_money($detalle->subtotal, 2, ',', '.'), 1, 1, 'R');
         }
 
 
@@ -152,7 +152,7 @@ class Index extends Component
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'SUBTOTAL:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
 
         // Calcular monto en divisas para base imponible IGTF
         $montoEnDivisas = 0;
@@ -173,32 +173,32 @@ class Index extends Component
 
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'EXENTO:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
 
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'BASE IMP. (IGTF):', 1, 0, 'R');
         // BASE IMP. muestra SOLO el monto pagado en divisas (para cálculo de IGTF)
         // Si no hay pago en divisas, muestra la base_imponible normal
         $baseImponibleMostrar = $montoEnDivisas > 0 ? $montoEnDivisas : ($pago->base_imponible ?? 0);
-        $pdf->Cell(38, 5, 'Bs ' . number_format($baseImponibleMostrar, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money($baseImponibleMostrar, 2, ',', '.'), 1, 1, 'R');
 if (!$esExento) {
             $ivaPorcentaje =  16;
             $pdf->Cell(117, 5, '', 0, 0);
             $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
-            $pdf->Cell(38, 5, 'Bs ' . number_format($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(38, 5, 'Bs ' . format_money($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
         }
 
         // Mostrar IGTF si aplica
         if (($pago->igtf_monto ?? 0) > 0) {
             $pdf->Cell(117, 5, '', 0, 0);
             $pdf->Cell(35, 5, 'IGTF (3%):', 1, 0, 'R');
-            $pdf->Cell(38, 5, 'Bs ' . number_format($pago->igtf_monto, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(38, 5, 'Bs ' . format_money($pago->igtf_monto, 2, ',', '.'), 1, 1, 'R');
         }
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 7, 'TOTAL:', 1, 0, 'R');
-        $pdf->Cell(38, 7, 'Bs ' . number_format($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 7, 'Bs ' . format_money($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
         $pdf->Ln(2);
 
         // Coletilla IGTF solo si es a crédito
@@ -215,11 +215,11 @@ if (!$esExento) {
             $pdf->SetFont('Arial', '', 8);
             $pdf->Cell(117, 4, '', 0, 0);
             $pdf->Cell(35, 4, 'Equivalente USD:', 0, 0, 'R');
-            $pdf->Cell(38, 4, '$ ' . number_format($pago->total_usd, 2, '.', ','), 0, 1, 'R');
+            $pdf->Cell(38, 4, '$ ' . format_money($pago->total_usd, 2, '.', ','), 0, 1, 'R');
 
             $pdf->Cell(117, 4, '', 0, 0);
             $pdf->Cell(35, 4, 'Tasa BCV:', 0, 0, 'R');
-            $pdf->Cell(38, 4, 'Bs ' . number_format($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
+            $pdf->Cell(38, 4, 'Bs ' . format_money($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
 
             $pdf->Ln(2);
             $pdf->SetFont('Arial', 'B', 9);
@@ -315,18 +315,18 @@ if (!$esExento) {
         foreach ($pago->detalles as $detalle) {
             $pdf->Cell(10, 4, $item++, 1, 0, 'C');
             $pdf->Cell(90, 4, substr(utf8_decode($detalle->descripcion), 0, 55), 1, 0, 'L');
-            $pdf->Cell(18, 4, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
-            $pdf->Cell(30, 4, number_format($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
-            $pdf->Cell(37, 4, number_format($detalle->subtotal, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(18, 4, format_money($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(30, 4, format_money($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(37, 4, format_money($detalle->subtotal, 2, ',', '.'), 1, 1, 'R');
         }
 
         // TOTALES (Orden: Subtotal, Exento, Base Imp., IVA, Total)
         $pdf->SetFont('Arial', 'B', 7);
         $pdf->Cell(148, 4, 'SUBTOTAL:', 1, 0, 'R');
-        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . format_money($pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
 
         $pdf->Cell(148, 4, 'EXENTO:', 1, 0, 'R');
-        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . format_money($pago->monto_exento ?? 0, 2, ',', '.'), 1, 1, 'R');
 
         // Calcular monto en divisas para base imponible IGTF (media carta)
         $montoEnDivisasMedia = 0;
@@ -343,25 +343,25 @@ if (!$esExento) {
         $baseImponibleMostrarMedia = $montoEnDivisasMedia > 0 ? $montoEnDivisasMedia : ($pago->base_imponible ?? 0);
 
         $pdf->Cell(148, 4, 'BASE IMP. (IGTF):', 1, 0, 'R');
-        $pdf->Cell(37, 4, 'Bs ' . number_format($baseImponibleMostrarMedia, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . format_money($baseImponibleMostrarMedia, 2, ',', '.'), 1, 1, 'R');
 
         $ivaPorcentaje = $pago->iva_porcentaje ?? 16;
         $pdf->Cell(148, 4, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
-        $pdf->Cell(37, 4, 'Bs ' . number_format($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(37, 4, 'Bs ' . format_money($pago->iva_monto ?? 0, 2, ',', '.'), 1, 1, 'R');
 
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(148, 5, 'TOTAL:', 1, 0, 'R');
-        $pdf->Cell(37, 5, 'Bs ' . number_format($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(37, 5, 'Bs ' . format_money($pago->total_bs, 2, ',', '.'), 1, 1, 'R');
 
         // Solo mostrar USD si NO es factura fiscal
         if (!$pago->es_factura_fiscal) {
             $pdf->Ln(1);
             $pdf->SetFont('Arial', '', 6);
             $pdf->Cell(148, 3, 'USD:', 0, 0, 'R');
-            $pdf->Cell(37, 3, '$ ' . number_format($pago->total_usd, 2), 0, 1, 'R');
+            $pdf->Cell(37, 3, '$ ' . format_money($pago->total_usd, 2), 0, 1, 'R');
             $pdf->Cell(148, 3, 'Tasa:', 0, 0, 'R');
-            $pdf->Cell(37, 3, 'Bs ' . number_format($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
+            $pdf->Cell(37, 3, 'Bs ' . format_money($pago->tasa_cambio_usd, 2, ',', '.'), 0, 1, 'R');
 
             $pdf->Ln(1);
             $pdf->SetFont('Arial', 'B', 7);
@@ -448,7 +448,7 @@ if (!$esExento) {
         $pdf->Cell(0, 5, $nota->fecha->format('d/m/Y'), 'RT', 1, 'L');
 
         $pdf->Cell(50, 5, 'Monto Original:', 'L', 0, 'L');
-        $pdf->Cell(70, 5, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
+        $pdf->Cell(70, 5, 'Bs ' . format_money($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
         $pdf->Cell(30, 5, 'Fecha de la factura', 0, 0, 'L');
         $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'R', 1, 'L');
 
@@ -496,9 +496,9 @@ if (!$esExento) {
         foreach ($nota->detalles as $detalle) {
             $pdf->Cell(12, 5, $item++, 1, 0, 'C');
             $pdf->Cell(85, 5, substr(utf8_decode($detalle->descripcion), 0, 50), 1, 0, 'L');
-            $pdf->Cell(20, 5, number_format(abs($detalle->cantidad), 2, ',', '.'), 1, 0, 'C');
-            $pdf->Cell(35, 5, number_format($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
-            $pdf->Cell(38, 5, number_format(abs($detalle->subtotal), 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(20, 5, format_money(abs($detalle->cantidad), 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(35, 5, format_money($detalle->precio_unitario, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(38, 5, format_money(abs($detalle->subtotal), 2, ',', '.'), 1, 1, 'R');
         }
 
         $pdf->Ln(2);
@@ -507,11 +507,11 @@ if (!$esExento) {
         $pdf->SetFont('Arial', 'B', 9);
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'SUBTOTAL:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd)), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money(abs($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd)), 2, ',', '.'), 1, 1, 'R');
 
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'EXENTO:', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($facturaOriginal->monto_exento ?? 0), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money(abs($facturaOriginal->monto_exento ?? 0), 2, ',', '.'), 1, 1, 'R');
 
         // Calcular monto en divisas de la factura original para BASE IMP. (IGTF)
         $montoEnDivisasOriginal = 0;
@@ -529,18 +529,18 @@ if (!$esExento) {
 
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, 'BASE IMP. (IGTF):', 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($baseImponibleMostrarOriginal), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money(abs($baseImponibleMostrarOriginal), 2, ',', '.'), 1, 1, 'R');
 
         $ivaPorcentaje = $facturaOriginal->iva_porcentaje ?? 16;
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 5, "IVA ({$ivaPorcentaje}%):", 1, 0, 'R');
-        $pdf->Cell(38, 5, 'Bs ' . number_format(abs($facturaOriginal->iva_monto ?? 0), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 5, 'Bs ' . format_money(abs($facturaOriginal->iva_monto ?? 0), 2, ',', '.'), 1, 1, 'R');
 
         // Mostrar IGTF si aplica en la factura original
         if (($facturaOriginal->igtf_monto ?? 0) > 0) {
             $pdf->Cell(117, 5, '', 0, 0);
             $pdf->Cell(35, 5, 'IGTF (3%):', 1, 0, 'R');
-            $pdf->Cell(38, 5, 'Bs ' . number_format($facturaOriginal->igtf_monto, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(38, 5, 'Bs ' . format_money($facturaOriginal->igtf_monto, 2, ',', '.'), 1, 1, 'R');
         }
 
         // TOTAL A ACREDITAR (de la nota de crédito)
@@ -549,7 +549,7 @@ if (!$esExento) {
         $pdf->Cell(117, 5, '', 0, 0);
         $pdf->Cell(35, 7, 'TOTAL:', 1, 0, 'R');
         $totalAcreditar = abs($nota->total_bs ?? 0);
-        $pdf->Cell(38, 7, 'Bs ' . number_format($facturaOriginal->total_bs ?? ($facturaOriginal->total * $facturaOriginal->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(38, 7, 'Bs ' . format_money($facturaOriginal->total_bs ?? ($facturaOriginal->total * $facturaOriginal->tasa_cambio_usd), 2, ',', '.'), 1, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
 
         if (!$nota->es_factura_fiscal) {
@@ -613,17 +613,17 @@ if (!$esExento) {
         foreach ($nota->detalles as $detalle) {
             $pdf->Cell(10, 4, $item++, 1, 0, 'C');
             $pdf->Cell(90, 4, substr(utf8_decode($detalle->descripcion), 0, 55), 1, 0, 'L');
-            $pdf->Cell(18, 4, number_format(abs($detalle->cantidad), 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(18, 4, format_money(abs($detalle->cantidad), 2, ',', '.'), 1, 0, 'C');
             $precioUnitBs = $detalle->precio_unitario * $nota->tasa_cambio_usd;
-            $pdf->Cell(30, 4, number_format($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(30, 4, format_money($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
             $subtotalBs = abs($detalle->subtotal * $nota->tasa_cambio_usd);
-            $pdf->Cell(37, 4, number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(37, 4, format_money($subtotalBs, 2, ',', '.'), 1, 1, 'R');
         }
 
         $pdf->SetTextColor(200, 0, 0);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(148, 5, 'TOTAL:', 1, 0, 'R');
-        $pdf->Cell(37, 5, 'Bs ' . number_format(abs($nota->total_bs), 2, ',', '.'), 1, 1, 'R');
+        $pdf->Cell(37, 5, 'Bs ' . format_money(abs($nota->total_bs), 2, ',', '.'), 1, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
 
         if (!$nota->es_factura_fiscal) {
@@ -680,7 +680,7 @@ if (!$esExento) {
         $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'RT', 1, 'L');
 
         $pdf->Cell(50, 5, 'Monto Original:', 'L', 0, 'L');
-        $pdf->Cell(70, 5, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
+        $pdf->Cell(70, 5, 'Bs ' . format_money($facturaOriginal->total_bs, 2, ',', '.'), 0, 0, 'L');
         $pdf->Cell(30, 5, 'Control:', 0, 0, 'L');
         $pdf->Cell(0, 5, $facturaOriginal->numero_control_fiscal ?? 'N/A', 'R', 1, 'L');
 
@@ -720,11 +720,11 @@ if (!$esExento) {
         foreach ($nota->detalles as $detalle) {
             $pdf->Cell(12, 5, $item++, 1, 0, 'C');
             $pdf->Cell(85, 5, substr(utf8_decode($detalle->descripcion), 0, 50), 1, 0, 'L');
-            $pdf->Cell(20, 5, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(20, 5, format_money($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
             $precioUnitBs = $detalle->precio_unitario * $nota->tasa_cambio_usd;
-            $pdf->Cell(35, 5, number_format($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(35, 5, format_money($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
             $subtotalBs = $detalle->subtotal * $nota->tasa_cambio_usd;
-            $pdf->Cell(38, 5, number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(38, 5, format_money($subtotalBs, 2, ',', '.'), 1, 1, 'R');
         }
 
         $pdf->Ln(2);
@@ -735,12 +735,12 @@ if (!$esExento) {
         $pdf->SetFont('Arial', '', 9);
 
         $pdf->Cell($labelW, 5, 'SUBTOTAL:', 0, 0, 'R');
-        $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd), 2, ',', '.'), 0, 1, 'R');
+        $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->subtotal_bs ?? ($facturaOriginal->subtotal * $facturaOriginal->tasa_cambio_usd), 2, ',', '.'), 0, 1, 'R');
 
         if ($facturaOriginal->es_factura_fiscal) {
             if ($facturaOriginal->monto_exento > 0) {
                 $pdf->Cell($labelW, 5, 'MONTO EXENTO:', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->monto_exento, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->monto_exento, 2, ',', '.'), 0, 1, 'R');
             }
 
             // Calcular monto en divisas de la factura original para BASE IMP. (IGTF)
@@ -759,32 +759,32 @@ if (!$esExento) {
 
             if ($facturaOriginal->base_imponible_general > 0) {
                 $pdf->Cell($labelW, 5, utf8_decode('BASE IMPONIBLE (' . ($facturaOriginal->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->base_imponible_general, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->base_imponible_general, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', 'B', 9);
                 $pdf->Cell($labelW, 5, utf8_decode('IVA (' . ($facturaOriginal->iva_porcentaje ?? 16) . '%)'), 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->iva_monto_general, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->iva_monto_general, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', '', 9);
             }
 
             if ($facturaOriginal->base_imponible_reducida > 0) {
                 $pdf->Cell($labelW, 5, 'BASE IMPONIBLE (8%):', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->base_imponible_reducida, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->base_imponible_reducida, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', 'B', 9);
                 $pdf->Cell($labelW, 5, 'IVA (8%):', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->iva_monto_reducida, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->iva_monto_reducida, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', '', 9);
             }
 
             // Mostrar BASE IMP. (IGTF) de la factura original
             if ($baseImponibleMostrarOriginalND > 0) {
                 $pdf->Cell($labelW, 5, 'BASE IMP. (IGTF):', 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($baseImponibleMostrarOriginalND, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($baseImponibleMostrarOriginalND, 2, ',', '.'), 0, 1, 'R');
             }
 
             if ($facturaOriginal->aplica_igtf && $facturaOriginal->igtf_monto > 0) {
                 $pdf->SetFont('Arial', 'B', 9);
                 $pdf->Cell($labelW, 5, utf8_decode('IGTF (' . ($facturaOriginal->igtf_porcentaje ?? 3) . '%):'), 0, 0, 'R');
-                $pdf->Cell($valueW, 5, 'Bs ' . number_format($facturaOriginal->igtf_monto, 2, ',', '.'), 0, 1, 'R');
+                $pdf->Cell($valueW, 5, 'Bs ' . format_money($facturaOriginal->igtf_monto, 2, ',', '.'), 0, 1, 'R');
                 $pdf->SetFont('Arial', '', 9);
             }
         }
@@ -795,16 +795,16 @@ if (!$esExento) {
         $pdf->SetTextColor(0, 0, 200);
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->Cell($labelW, 7, 'TOTAL FACTURA:', 0, 0, 'R');
-        $pdf->Cell($valueW, 7, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 0, 1, 'R');
+        $pdf->Cell($valueW, 7, 'Bs ' . format_money($facturaOriginal->total_bs, 2, ',', '.'), 0, 1, 'R');
 
         $pdf->SetFont('Arial', 'B', 10);
         $pdf->Cell($labelW, 7, 'CARGO ADICIONAL:', 0, 0, 'R');
-        $pdf->Cell($valueW, 7, 'Bs ' . number_format($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
+        $pdf->Cell($valueW, 7, 'Bs ' . format_money($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
 
         $pdf->SetFont('Arial', '', 8);
         $pdf->Cell($labelW, 4, 'Ref. USD:', 0, 0, 'R');
-        $pdf->Cell($valueW, 4, '$' . number_format($nota->total_usd ?: $nota->total, 2), 0, 1, 'R');
+        $pdf->Cell($valueW, 4, '$' . format_money($nota->total_usd ?: $nota->total, 2), 0, 1, 'R');
 
         $pdf->Ln(6);
         $pdf->SetFont('Arial', '', 8);
@@ -880,23 +880,23 @@ if (!$esExento) {
         foreach ($nota->detalles as $detalle) {
             $pdf->Cell(10, 4, $item++, 1, 0, 'C');
             $pdf->Cell(90, 4, substr(utf8_decode($detalle->descripcion), 0, 55), 1, 0, 'L');
-            $pdf->Cell(18, 4, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
+            $pdf->Cell(18, 4, format_money($detalle->cantidad, 2, ',', '.'), 1, 0, 'C');
             $precioUnitBs = $detalle->precio_unitario * $nota->tasa_cambio_usd;
-            $pdf->Cell(30, 4, number_format($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
+            $pdf->Cell(30, 4, format_money($precioUnitBs, 2, ',', '.'), 1, 0, 'R');
             $subtotalBs = $detalle->subtotal * $nota->tasa_cambio_usd;
-            $pdf->Cell(37, 4, number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
+            $pdf->Cell(37, 4, format_money($subtotalBs, 2, ',', '.'), 1, 1, 'R');
         }
 
         // Totales fiscales
         $pdf->SetFont('Arial', '', 6);
         if ($nota->es_factura_fiscal && $nota->iva_monto > 0) {
             $pdf->Cell(148, 4, utf8_decode('IVA (' . ($nota->iva_porcentaje ?? 16) . '%):'), 0, 0, 'R');
-            $pdf->Cell(37, 4, 'Bs ' . number_format($nota->iva_monto, 2, ',', '.'), 0, 1, 'R');
+            $pdf->Cell(37, 4, 'Bs ' . format_money($nota->iva_monto, 2, ',', '.'), 0, 1, 'R');
         }
         if ($nota->aplica_igtf && $nota->igtf_monto > 0) {
             $pdf->SetFont('Arial', 'B', 6);
             $pdf->Cell(148, 4, utf8_decode('IGTF (' . ($nota->igtf_porcentaje ?? 3) . '%):'), 0, 0, 'R');
-            $pdf->Cell(37, 4, 'Bs ' . number_format($nota->igtf_monto, 2, ',', '.'), 0, 1, 'R');
+            $pdf->Cell(37, 4, 'Bs ' . format_money($nota->igtf_monto, 2, ',', '.'), 0, 1, 'R');
         }
 
         $pdf->Line(130, $pdf->GetY(), 185, $pdf->GetY());
@@ -905,7 +905,7 @@ if (!$esExento) {
         $pdf->SetTextColor(0, 0, 200);
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(148, 5, 'TOTAL Bs.:', 0, 0, 'R');
-        $pdf->Cell(37, 5, 'Bs ' . number_format($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
+        $pdf->Cell(37, 5, 'Bs ' . format_money($nota->total_bs, 2, ',', '.'), 0, 1, 'R');
         $pdf->SetTextColor(0, 0, 0);
 
         if (!$nota->es_factura_fiscal) {

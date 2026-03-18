@@ -25,14 +25,14 @@
                                             <tr>
                                                 <td>{{ $cuenta->codigo }}</td>
                                                 <td>{{ $cuenta->nombre }}</td>
-                                                <td class="text-end">Bs {{ number_format($cuenta->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($cuenta->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                     <tfoot>
                                         <tr class="fw-bold table-primary">
                                             <td colspan="2">TOTAL ACTIVOS</td>
-                                            <td class="text-end">Bs {{ number_format($totalActivos, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($totalActivos, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -47,14 +47,14 @@
                                             <tr>
                                                 <td>{{ $cuenta->codigo }}</td>
                                                 <td>{{ $cuenta->nombre }}</td>
-                                                <td class="text-end">Bs {{ number_format($cuenta->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($cuenta->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                     <tfoot>
                                         <tr class="fw-bold table-danger">
                                             <td colspan="2">TOTAL PASIVOS</td>
-                                            <td class="text-end">Bs {{ number_format($totalPasivos, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($totalPasivos, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -66,19 +66,19 @@
                                             <tr>
                                                 <td>{{ $cuenta->codigo }}</td>
                                                 <td>{{ $cuenta->nombre }}</td>
-                                                <td class="text-end">Bs {{ number_format($cuenta->saldo, 2, ',', '.') }}</td>
+                                                <td class="text-end">Bs {{ format_money($cuenta->saldo, 2, ',', '.') }}</td>
                                             </tr>
                                         @endforeach
                                         <tr class="fst-italic">
                                             <td></td>
                                             <td>Resultado del Ejercicio</td>
-                                            <td class="text-end">Bs {{ number_format($resultadoEjercicio, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($resultadoEjercicio, 2, ',', '.') }}</td>
                                         </tr>
                                     </tbody>
                                     <tfoot>
                                         <tr class="fw-bold table-info">
                                             <td colspan="2">TOTAL PATRIMONIO</td>
-                                            <td class="text-end">Bs {{ number_format($totalPatrimonio, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($totalPatrimonio, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -87,7 +87,7 @@
                                     <tfoot>
                                         <tr class="fw-bold table-dark">
                                             <td>PASIVO + PATRIMONIO</td>
-                                            <td class="text-end">Bs {{ number_format($totalPasivos + $totalPatrimonio, 2, ',', '.') }}</td>
+                                            <td class="text-end">Bs {{ format_money($totalPasivos + $totalPatrimonio, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -98,7 +98,7 @@
                             @if(round($totalActivos, 2) === round($totalPasivos + $totalPatrimonio, 2))
                                 <span class="badge bg-success fs-6"><i class="ri-check-line me-1"></i> Ecuación Patrimonial Verificada: A = P + Pt</span>
                             @else
-                                <span class="badge bg-danger fs-6"><i class="ri-error-warning-line me-1"></i> Descuadre: Bs {{ number_format(abs($totalActivos - $totalPasivos - $totalPatrimonio), 2, ',', '.') }}</span>
+                                <span class="badge bg-danger fs-6"><i class="ri-error-warning-line me-1"></i> Descuadre: Bs {{ format_money(abs($totalActivos - $totalPasivos - $totalPatrimonio), 2, ',', '.') }}</span>
                             @endif
                         </div>
                     </div>

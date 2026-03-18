@@ -20,7 +20,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Notas</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($stats['total']) }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ format_money($stats['total']) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-file-invoice fa-2x text-gray-300"></i>
@@ -36,7 +36,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Aprobadas</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($stats['aprobadas']) }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ format_money($stats['aprobadas']) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -52,7 +52,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Anuladas</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($stats['anuladas']) }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ format_money($stats['anuladas']) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-ban fa-2x text-gray-300"></i>
@@ -68,7 +68,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Bs.</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ number_format($stats['total_bs'], 2, ',', '.') }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ format_money($stats['total_bs'], 2, ',', '.') }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-coins fa-2x text-gray-300"></i>
@@ -190,7 +190,7 @@
                             </td>
                             <td class="text-end">
                                 <div class="fw-bold text-primary">Bs. {{ number_format($nota->total_bs ?: ($nota->total * ($nota->tasa_cambio_usd ?: 1)), 2, ',', '.') }}</div>
-                                <small class="text-muted">USD {{ number_format($nota->total_usd ?: ($nota->total_bs / ($nota->tasa_cambio_usd ?: 1)), 2) }}</small>
+                                <small class="text-muted">USD {{ format_money($nota->total_usd ?: ($nota->total_bs / ($nota->tasa_cambio_usd ?: 1)), 2) }}</small>
                             </td>
                             <td class="text-center">
                                 @if($nota->estado === 'aprobado')
@@ -231,7 +231,7 @@
             </div>
 
             <div class="mt-3">
-                {{ $notas->links() }}
+                {{ $notas->links('livewire.pagination') }}
             </div>
         </div>
     </div>

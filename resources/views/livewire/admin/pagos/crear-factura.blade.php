@@ -28,7 +28,7 @@
                             </small>
                             @endif
                         </div>
-                        <span class="badge bg-info">Tasa BCV: $1 =  {{ number_format($tasa_usd, 2) }}</span>
+                        <span class="badge bg-info">Tasa BCV: $1 =  {{ format_money($tasa_usd, 2) }}</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -346,7 +346,7 @@
                                                                     @endif
                                                                 </div>
                                                                 <div class="text-end">
-                                                                    <strong class="text-success">${{ number_format($baremo['costo_usd'], 2) }}</strong>
+                                                                    <strong class="text-success">{{ format_money($baremo['costo_usd'], 2) }}</strong>
                                                                     <br><small class="text-muted">Bs. {{ number_format($baremo['costo_usd'] * $tasa_usd, 2, ',', '.') }}</small>
                                                                 </div>
                                                             </div>
@@ -391,15 +391,15 @@
                                     <table class="table table-sm table-hover align-items-center mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th class="text-center" width="40">#</th>
+                                                <th class="text-center">#</th>
                                                 <th>Descripción</th>
-                                                <th class="text-center" width="80">Cant.</th>
-                                                <th class="text-end" width="100">P/U USD</th>
-                                                <th class="text-end" width="120">P/U Bs.</th>
-                                                <th class="text-end" width="130">Subtotal USD</th>
-                                                <th class="text-end" width="140">Subtotal Bs.</th>
-                                                <th class="text-center" width="80">IVA</th>
-                                                <th class="text-center" width="50"></th>
+                                                <th class="text-center">Cant.</th>
+                                                <th class="text-end">P/U USD</th>
+                                                <th class="text-end">P/U Bs.</th>
+                                                <th class="text-end">Subtotal USD</th>
+                                                <th class="text-end">Subtotal Bs.</th>
+                                                <th class="text-center">IVA</th>
+                                                <th class="text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -418,13 +418,13 @@
                                                     <span class="badge bg-info">{{ $detalle['cantidad'] }}</span>
                                                 </td>
                                                 <td class="text-end text-muted">
-                                                    <small>${{ number_format($detalle['precio_unitario'], 2) }}</small>
+                                                    <small>{{ format_money($detalle['precio_unitario'], 2) }}</small>
                                                 </td>
                                                 <td class="text-end">
                                                     <strong>Bs. {{ number_format($detalle['precio_unitario'] * $tasa_usd, 2, ',', '.') }}</strong>
                                                 </td>
                                                 <td class="text-end text-muted">
-                                                    <small>${{ number_format($detalle['subtotal'], 2) }}</small>
+                                                    <small>{{ format_money($detalle['subtotal'], 2) }}</small>
                                                 </td>
                                                 <td class="text-end">
                                                     <strong class="text-success">Bs. {{ number_format($detalle['subtotal'] * $tasa_usd, 2, ',', '.') }}</strong>
@@ -449,7 +449,7 @@
                                         <tfoot class="table-light">
                                             <tr>
                                                 <td colspan="5" class="text-end fw-bold">Subtotal Items:</td>
-                                                <td class="text-end fw-bold">${{ number_format(collect($detalles)->sum('subtotal'), 2) }}</td>
+                                                <td class="text-end fw-bold">{{ format_money(collect($detalles)->sum('subtotal'), 2) }}</td>
                                                 <td class="text-end fw-bold text-success">Bs. {{ number_format(collect($detalles)->sum('subtotal') * $tasa_usd, 2, ',', '.') }}</td>
                                                 <td colspan="2"></td>
                                             </tr>
@@ -500,7 +500,7 @@
                                             <tbody>
                                                 <tr>
                                                     <td>Subtotal:</td>
-                                                    <td class="text-end fw-bold">${{ number_format(collect($detalles)->sum('subtotal'), 2) }}</td>
+                                                    <td class="text-end fw-bold">{{ format_money(collect($detalles)->sum('subtotal'), 2) }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td>Descuento:</td>
@@ -541,7 +541,7 @@
                                                 </tr>
                                                 <tr class="table-primary">
                                                     <td class="fw-bold fs-6">Total USD:</td>
-                                                    <td class="text-end fw-bold fs-6">${{ number_format(collect($detalles)->sum('subtotal') - $descuento + ($es_factura_fiscal ? ($iva_monto + $igtf_monto) / $tasa_usd : 0), 2) }}</td>
+                                                    <td class="text-end fw-bold fs-6">{{ format_money(collect($detalles)->sum('subtotal') - $descuento + ($es_factura_fiscal ? ($iva_monto + $igtf_monto) / $tasa_usd : 0), 2) }}</td>
                                                 </tr>
                                                 <tr class="table-success">
                                                     <td class="fw-bold">Total Bs:</td>

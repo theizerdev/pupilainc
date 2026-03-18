@@ -28,7 +28,7 @@ $content .= "Este es un archivo de prueba para verificar el envío de documentos
 file_put_contents($testFile, $content);
 
 echo "📁 Archivo creado: $testFile\n";
-echo "📏 Tamaño: " . number_format(filesize($testFile) / 1024, 2) . " KB\n";
+echo "📏 Tamaño: " . format_money(filesize($testFile) / 1024, 2) . " KB\n";
 echo "📄 Contenido: " . substr($content, 0, 50) . "...\n\n";
 
 // Intentar enviar el documento

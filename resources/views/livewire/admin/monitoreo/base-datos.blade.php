@@ -80,7 +80,7 @@
                         </div>
                     </div>
                     <div>
-                        <h4 class="mb-1 text-success">{{ number_format($dbInfo['total_tables']) }}</h4>
+                        <h4 class="mb-1 text-success">{{ format_money($dbInfo['total_tables']) }}</h4>
                         <p class="text-muted mb-2">Total de Tablas</p>
                         <div class="progress" style="height: 4px;">
                             <div class="progress-bar bg-success" style="width: 100%"></div>
@@ -105,7 +105,7 @@
                         </span>
                     </div>
                     <div>
-                        <h4 class="mb-1 {{ $dbInfo['total_size'] > 1000 ? 'text-warning' : 'text-info' }}">{{ number_format($dbInfo['total_size'], 1) }} MB</h4>
+                        <h4 class="mb-1 {{ $dbInfo['total_size'] > 1000 ? 'text-warning' : 'text-info' }}">{{ format_money($dbInfo['total_size'], 1) }} MB</h4>
                         <p class="text-muted mb-2">Tamaño Total</p>
                         <div class="progress" style="height: 4px;">
                             <div class="progress-bar {{ $dbInfo['total_size'] > 1000 ? 'bg-warning' : 'bg-info' }}" style="width: {{ min(($dbInfo['total_size'] / 2000) * 100, 100) }}%"></div>
@@ -214,7 +214,7 @@
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <span class="fw-medium">{{ number_format($table['rows']) }}</span>
+                                            <span class="fw-medium">{{ format_money($table['rows']) }}</span>
                                             @if($table['rows'] > 10000)
                                                 <span class="badge bg-warning bg-opacity-10 text-warning ms-2">Alto</span>
                                             @elseif($table['rows'] > 1000)
@@ -226,7 +226,7 @@
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <span class="fw-medium">{{ number_format($table['size'], 2) }}</span>
+                                            <span class="fw-medium">{{ format_money($table['size'], 2) }}</span>
                                             <div class="progress ms-2" style="width: 60px; height: 4px;">
                                                 <div class="progress-bar {{ $table['size'] > 50 ? 'bg-danger' : ($table['size'] > 10 ? 'bg-warning' : 'bg-success') }}" 
                                                      style="width: {{ min(($table['size'] / 100) * 100, 100) }}%"></div>

@@ -101,10 +101,10 @@ class RegionalConfigurationService
     public static function formatMoney($amount, $includeSymbol = true): string
     {
         if (!self::$currentConfig) {
-            return number_format($amount, 2, '.', ',');
+            return format_money($amount, 2, '.', ',');
         }
 
-        $formatted = number_format(
+        $formatted = format_money(
             $amount,
             self::$currentConfig['decimals'],
             self::$currentConfig['decimal_separator'],

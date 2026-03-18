@@ -128,7 +128,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             // 💰 SECTOR ADMINISTRACIÓN
           
             'administracion' => [
-                /*'cajas' => [
+                'cajas' => [
                     'name' => 'Cajas',
                     'permissions' => [
                         'access cajas',
@@ -140,6 +140,17 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'close cajas',
                         'manage cajas',
                         'export cajas',
+                    ]
+                ],
+                 'tasas_cambio' => [
+                    'name' => 'Tasas de Cambio (BCV)',
+                    'permissions' => [
+                        'view exchange-rates',
+                        'fetch exchange-rates',
+                        'edit exchange-rates',
+                        'manage exchange-rates',
+                        'update exchange-rates',
+                        'export exchange-rates',
                     ]
                 ],
              
@@ -157,6 +168,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'generate pagos comprobantes',
                     ]
                 ],
+                  /*
                 'conceptos_pago' => [
                     'name' => 'Conceptos de Pago',
                     'permissions' => [
@@ -169,17 +181,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'deactivate conceptos pago',
                     ]
                 ],
-                'tasas_cambio' => [
-                    'name' => 'Tasas de Cambio (BCV)',
-                    'permissions' => [
-                        'view exchange-rates',
-                        'fetch exchange-rates',
-                        'edit exchange-rates',
-                        'manage exchange-rates',
-                        'update exchange-rates',
-                        'export exchange-rates',
-                    ]
-                ],
+               
                 'series' => [
                     'name' => 'Series de Documentos',
                     'permissions' => [

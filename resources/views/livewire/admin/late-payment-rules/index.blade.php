@@ -90,7 +90,7 @@
                                         </span>
                                     </td>
                                     <td class="fw-medium">
-                                        {{ $rule->tipo === 'porcentaje' ? $rule->valor . '%' : '$' . number_format($rule->valor, 2) }}
+                                        {{ $rule->tipo === 'porcentaje' ? $rule->valor . '%' : '$' . format_money($rule->valor, 2) }}
                                     </td>
                                     <td>{{ $rule->dias_gracia }} días</td>
                                     <td>

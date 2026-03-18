@@ -313,7 +313,7 @@ private function generateNotaCreditoA4(Fpdf $pdf, Pago $nota)
     $pdf->Cell(0, 5, $facturaOriginal->fecha->format('d/m/Y'), 'RT', 1, 'L');
     
     $pdf->Cell(50, 5, 'Monto Original:', 'LB', 0, 'L');
-    $pdf->Cell(70, 5, 'Bs ' . number_format($facturaOriginal->total_bs, 2, ',', '.'), 'B', 0, 'L');
+    $pdf->Cell(70, 5, 'Bs ' . format_money($facturaOriginal->total_bs, 2, ',', '.'), 'B', 0, 'L');
     $pdf->Cell(30, 5, 'Motivo:', 'B', 0, 'L');
     $pdf->Cell(0, 5, '', 'RB', 1, 'L');
     
@@ -340,7 +340,7 @@ private function generateNotaCreditoA4(Fpdf $pdf, Pago $nota)
     $pdf->SetFont('Arial', 'B', 10);
     $pdf->Cell(117, 5, '', 0, 0);
     $pdf->Cell(35, 7, 'TOTAL A ACREDITAR:', 1, 0, 'R');
-    $pdf->Cell(38, 7, 'Bs ' . number_format(abs($nota->total_bs), 2, ',', '.'), 1, 1, 'R');
+    $pdf->Cell(38, 7, 'Bs ' . format_money(abs($nota->total_bs), 2, ',', '.'), 1, 1, 'R');
     $pdf->SetTextColor(0, 0, 0);
     
     // LEYENDA ESPECIAL PARA NOTA DE CRÉDITO

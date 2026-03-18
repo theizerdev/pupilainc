@@ -99,7 +99,7 @@
                             </span>
                         </div>
                         <div class="text-end">
-                            <h4 class="mb-0">{{ number_format($stats['sent']) }}</h4>
+                            <h4 class="mb-0">{{ format_money($stats['sent']) }}</h4>
                             <small class="text-muted">Enviados</small>
                         </div>
                     </div>
@@ -123,7 +123,7 @@
                             </span>
                         </div>
                         <div class="text-end">
-                            <h4 class="mb-0">{{ number_format($stats['delivered']) }}</h4>
+                            <h4 class="mb-0">{{ format_money($stats['delivered']) }}</h4>
                             <small class="text-muted">Entregados</small>
                         </div>
                     </div>
@@ -147,7 +147,7 @@
                             </span>
                         </div>
                         <div class="text-end">
-                            <h4 class="mb-0">{{ number_format($stats['read']) }}</h4>
+                            <h4 class="mb-0">{{ format_money($stats['read']) }}</h4>
                             <small class="text-muted">Leídos</small>
                         </div>
                     </div>
@@ -171,7 +171,7 @@
                             </span>
                         </div>
                         <div class="text-end">
-                            <h4 class="mb-0">{{ number_format($stats['failed']) }}</h4>
+                            <h4 class="mb-0">{{ format_money($stats['failed']) }}</h4>
                             <small class="text-muted">Fallidos</small>
                         </div>
                     </div>

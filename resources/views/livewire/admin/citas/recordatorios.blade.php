@@ -160,7 +160,7 @@
 
                     <!-- Paginación -->
                     <div class="d-flex justify-content-center">
-                        {{ $recordatorios->links() }}
+                        {{ $recordatorios->links('livewire.pagination') }}
                     </div>
                 </div>
             </div>

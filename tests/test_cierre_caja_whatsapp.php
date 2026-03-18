@@ -66,7 +66,7 @@ try {
     $sheet->setCellValue('A6', 'Usuario:');
     $sheet->setCellValue('B6', $caja->usuario->name);
     $sheet->setCellValue('A7', 'Monto Final:');
-    $sheet->setCellValue('B7', '$' . number_format($caja->monto_final, 2));
+    $sheet->setCellValue('B7', '$' . format_money($caja->monto_final, 2));
     
     // Guardar archivo
     $filename = 'test_caja_' . $caja->id . '_' . time() . '.xlsx';
@@ -80,7 +80,7 @@ try {
     $writer->save($tempPath);
     
     echo "✅ Excel generado: $tempPath\n";
-    echo "📏 Tamaño: " . number_format(filesize($tempPath) / 1024, 2) . " KB\n\n";
+    echo "📏 Tamaño: " . format_money(filesize($tempPath) / 1024, 2) . " KB\n\n";
     
     // Configuración WhatsApp
     $apiUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
@@ -104,7 +104,7 @@ try {
     $caption .= "• Fecha: " . $caja->fecha->format('d/m/Y') . "\n";
     $caption .= "• Sucursal: " . $caja->sucursal->nombre . "\n";
     $caption .= "• Usuario: " . $caja->usuario->name . "\n";
-    $caption .= "• Monto Final: $" . number_format($caja->monto_final, 2) . "\n\n";
+    $caption .= "• Monto Final: $" . format_money($caja->monto_final, 2) . "\n\n";
     $caption .= "📎 Este es un archivo de prueba para verificar el envío de reportes por WhatsApp.";
     
     // Enviar documento

@@ -98,12 +98,12 @@
                                             -
                                         @endif
                                     </td>
-                                    <td class="text-end">{{ number_format($doc->base_imponible ?? 0, 2, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format($doc->monto_exento ?? 0, 2, ',', '.') }}</td>
-                                    <td class="text-center">{{ number_format($doc->iva_porcentaje ?? 16, 0) }}%</td>
-                                    <td class="text-end">{{ number_format($doc->iva_monto ?? 0, 2, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format($doc->igtf_monto ?? 0, 2, ',', '.') }}</td>
-                                    <td class="text-end fw-bold">{{ number_format($doc->total_con_impuestos ?? 0, 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($doc->base_imponible ?? 0, 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($doc->monto_exento ?? 0, 2, ',', '.') }}</td>
+                                    <td class="text-center">{{ format_money($doc->iva_porcentaje ?? 16, 0) }}%</td>
+                                    <td class="text-end">{{ format_money($doc->iva_monto ?? 0, 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($doc->igtf_monto ?? 0, 2, ',', '.') }}</td>
+                                    <td class="text-end fw-bold">{{ format_money($doc->total_con_impuestos ?? 0, 2, ',', '.') }}</td>
                                 </tr>
                                 @empty
                                 <tr>
@@ -117,12 +117,12 @@
                             <tfoot>
                                 <tr class="fw-bold table-light">
                                     <td colspan="8" class="text-end">TOTALES:</td>
-                                    <td class="text-end">{{ number_format($totales['base_imponible'], 2, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format($totales['monto_exento'], 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($totales['base_imponible'], 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($totales['monto_exento'], 2, ',', '.') }}</td>
                                     <td></td>
-                                    <td class="text-end">{{ number_format($totales['iva_monto'], 2, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format($totales['igtf_monto'], 2, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format($totales['total'], 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($totales['iva_monto'], 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($totales['igtf_monto'], 2, ',', '.') }}</td>
+                                    <td class="text-end">{{ format_money($totales['total'], 2, ',', '.') }}</td>
                                 </tr>
                             </tfoot>
                             @endif

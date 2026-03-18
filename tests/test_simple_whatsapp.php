@@ -22,7 +22,7 @@ $testFile = sys_get_temp_dir() . '/test_' . uniqid() . '.txt';
 file_put_contents($testFile, "Este es un archivo de prueba para WhatsApp\nFecha: " . date('Y-m-d H:i:s'));
 
 echo "📁 Archivo creado: $testFile\n";
-echo "📏 Tamaño: " . number_format(filesize($testFile) / 1024, 2) . " KB\n\n";
+echo "📏 Tamaño: " . format_money(filesize($testFile) / 1024, 2) . " KB\n\n";
 
 // Intentar enviar el documento
 try {

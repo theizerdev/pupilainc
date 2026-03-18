@@ -82,7 +82,7 @@
                                 <small class="text-muted d-block">Costo Promedio</small>
                                 <h3 class="mb-0 mt-1 text-info">
                                     @if($stats['promedio_costo'] > 0)
-                                        ${{ number_format($stats['promedio_costo'], 2) }}
+                                        {{ format_money($stats['promedio_costo'], 2) }}
                                     @else
                                         <span class="text-muted">-</span>
                                     @endif
@@ -258,7 +258,7 @@
                                     </td>
                                     <td>
                                         @if($subespecialidad->costo_consulta > 0)
-                                            <strong class="text-success">${{ number_format($subespecialidad->costo_consulta, 2) }}</strong>
+                                            <strong class="text-success">{{ format_money($subespecialidad->costo_consulta, 2) }}</strong>
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif

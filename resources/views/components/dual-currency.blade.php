@@ -14,12 +14,12 @@
 <span class="{{ $class }}">
     @if($isVenezuela && $showBoth && $rate)
         {{-- Para Venezuela: USD como principal + Bs como conversión --}}
-        <span class="text-success fw-bold">${{ number_format($amountValue, 2, '.', ',') }}</span>
+        <span class="text-success fw-bold">{{ format_money($amountValue, 2, '.', ',') }}</span>
         <small class="text-muted d-block">
             Bs. {{ number_format($amountValue * $rate, 2, ',', '.') }}
         </small>
     @else
         {{-- Para otros países: usar símbolo y formato regional --}}
-        {{ $currencySymbol }}{{ number_format($amountValue, $decimals, $decimalSep, $thousandSep) }}
+        {{ format_money($amountValue, $decimals, $decimalSep, $thousandSep) }}
     @endif
 </span>

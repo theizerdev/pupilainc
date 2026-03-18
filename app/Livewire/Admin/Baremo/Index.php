@@ -55,16 +55,24 @@ class Index extends Component
 
     public function toggleEstado($id)
     {
-        $this->authorize('admin.baremos.edit');
+        $this->authorize('edit baremos');
         
         try {
             $baremo = Baremo::findOrFail($id);
             $baremo->activo = !$baremo->activo;
             $baremo->save();
             
-            session()->flash('success', 'Estado actualizado exitosamente.');
+             $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Estado actualizado exitosamente.",
+                'duration' => 4000
+            ]);
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al actualizar el estado: ' . $e->getMessage());
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al actualizar el estado: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
         }
     }
 

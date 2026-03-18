@@ -39,7 +39,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Debe</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">Bs {{ number_format($stats['total_debe'], 2) }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">Bs {{ format_money($stats['total_debe'], 2) }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="ri-arrow-up-line ri-2x text-gray-300"></i>
@@ -54,7 +54,7 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Haber</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">Bs {{ number_format($stats['total_haber'], 2) }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">Bs {{ format_money($stats['total_haber'], 2) }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="ri-arrow-down-line ri-2x text-gray-300"></i>
@@ -143,12 +143,12 @@
                                                 <td class="text-muted">{{ $detalle->descripcion }}</td>
                                                 <td class="text-end">
                                                     @if($detalle->debe > 0)
-                                                        {{ number_format($detalle->debe, 2, ',', '.') }}
+                                                        {{ format_money($detalle->debe, 2, ',', '.') }}
                                                     @endif
                                                 </td>
                                                 <td class="text-end">
                                                     @if($detalle->haber > 0)
-                                                        {{ number_format($detalle->haber, 2, ',', '.') }}
+                                                        {{ format_money($detalle->haber, 2, ',', '.') }}
                                                     @endif
                                                 </td>
                                             </tr>
@@ -157,8 +157,8 @@
                                     <tfoot class="table-light">
                                         <tr class="fw-bold">
                                             <td colspan="3" class="text-end">Totales:</td>
-                                            <td class="text-end">{{ number_format($asiento->detalles->sum('debe'), 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ number_format($asiento->detalles->sum('haber'), 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($asiento->detalles->sum('debe'), 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($asiento->detalles->sum('haber'), 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 </table>

@@ -526,7 +526,7 @@ class PedidoService
             foreach ($pedido->pagos as $pago) {
                 $monto = format_money($pago->total_usd);
                 if ($pago->total_bs > 0) {
-                    $monto .= " / " . number_format($pago->total_bs, 2) . "Bs";
+                    $monto .= " / " . format_money($pago->total_bs, 2) . "Bs";
                 }
 
                 $detallePago = "{$pago->metodo_pago}: {$monto}";
@@ -584,7 +584,7 @@ class PedidoService
             foreach ($pedido->pagos as $pago) {
                 $monto = format_money($pago->total_usd);
                 if ($pago->total_bs > 0) {
-                    $monto .= " / " . number_format($pago->total_bs, 2) . "Bs";
+                    $monto .= " / " . format_money($pago->total_bs, 2) . "Bs";
                 }
 
                 $detallePago = "{$contador}. {$pago->metodo_pago}: {$monto}";

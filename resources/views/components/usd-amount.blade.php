@@ -4,4 +4,4 @@
     $amountValue = (float) $amount;
 @endphp
 
-<span class="{{ $class }}">${{ number_format($amountValue, 2, '.', ',') }}</span>
+<span class="{{ $class }}">{{ format_money($amountValue, 2, '.', ',') }}</span>

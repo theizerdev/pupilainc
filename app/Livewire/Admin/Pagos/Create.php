@@ -421,7 +421,7 @@ class Create extends Component
     private function generarMensajePago($pago, $estudiante, $esMayorDeEdad)
     {
         $nombreEstudiante = $estudiante->nombres . ' ' . $estudiante->apellidos;
-        $totalFormateado = '$' . number_format($pago->total, 2, ',', '.');
+        $totalFormateado = '$' . format_money($pago->total, 2, ',', '.');
         
         if ($esMayorDeEdad) {
             $mensaje = "💳 *Pago Recibido - U.E JOSE MARIA VARGAS*\n\n";
@@ -443,7 +443,7 @@ class Create extends Component
         
         $mensaje .= "\n📋 *Conceptos Pagados:*\n";
         foreach ($pago->detalles as $detalle) {
-            $montoDetalle = '$' . number_format($detalle->precio_unitario * $detalle->cantidad, 2, ',', '.');
+            $montoDetalle = '$' . format_money($detalle->precio_unitario * $detalle->cantidad, 2, ',', '.');
             $mensaje .= "• {$detalle->descripcion}: {$montoDetalle}\n";
         }
         

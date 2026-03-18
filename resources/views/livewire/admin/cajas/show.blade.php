@@ -379,11 +379,11 @@
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Monto Actual:</label>
-                            <div class="fw-bold">$ {{ number_format($caja->monto_final, 2, '.', ',') }}</div>
+                            <div class="fw-bold">$ {{ format_money($caja->monto_final, 2, '.', ',') }}</div>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Total Ingresos:</label>
-                            <div class="fw-bold">$ {{ number_format($caja->total_ingresos, 2, '.', ',') }}</div>
+                            <div class="fw-bold">$ {{ format_money($caja->total_ingresos, 2, '.', ',') }}</div>
                         </div>
                     </div>
                 </div>

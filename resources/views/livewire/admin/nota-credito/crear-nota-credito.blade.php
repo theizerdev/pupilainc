@@ -25,7 +25,9 @@
                             </h6>
                             <small class="text-muted">Todos los montos se expresan en Bolívares (Bs.) conforme a la normativa SENIAT</small>
                         </div>
+                        @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
                         <span class="badge bg-info fs-6">Tasa BCV: $1 = Bs. {{ number_format($tasa_usd, 2, ',', '.') }}</span>
+                         @endif
                     </div>
                 </div>
                 <div class="card-body">
@@ -91,8 +93,10 @@
                                 </div>
                                 <div class="col-md-3 text-end">
                                     <small class="text-muted d-block">Total Original</small>
+                                    @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
                                     <strong class="text-success fs-6">Bs. {{ number_format($pago_origen->total_bs ?? ($pago_origen->total_usd * $tasa_usd), 2, ',', '.') }}</strong>
-                                    <br><small class="text-muted">(USD {{ number_format($pago_origen->total_usd, 2) }})</small>
+                                    <br><small class="text-muted">(USD {{ number_format($pago_origen->total_usd, 2, ',', '.') }})</small>
+                                    @endif
                                 </div>
                             </div>
                             @if($pago_origen->numero_control_fiscal)
@@ -178,7 +182,7 @@
                                                     {{ $detalle['cantidad'] }}
                                                     @endif
                                                 </td>
-                                                <td class="text-end text-muted"><small>${{ number_format($detalle['precio_unitario_usd'], 2) }}</small></td>
+                                                <td class="text-end text-muted"><small>{{ format_money($detalle['precio_unitario_usd'], 2) }}</small></td>
                                                 <td class="text-end">Bs. {{ number_format($detalle['precio_unitario_bs'], 2, ',', '.') }}</td>
                                                 <td class="text-end fw-bold">Bs. {{ number_format($detalle['subtotal_bs'], 2, ',', '.') }}</td>
                                                 <td class="text-center">
@@ -327,7 +331,7 @@
                                                 <tr>
                                                     <td colspan="2" class="text-end">
                                                         <small class="text-muted">
-                                                            Equiv. USD: ${{ number_format($tasa_usd > 0 ? $total_bs / $tasa_usd : 0, 2) }}
+                                                            Equiv. USD: {{ format_money($tasa_usd > 0 ? $total_bs / $tasa_usd : 0, 2) }}
                                                             | Tasa BCV: Bs. {{ number_format($tasa_usd, 2, ',', '.') }}
                                                         </small>
                                                     </td>

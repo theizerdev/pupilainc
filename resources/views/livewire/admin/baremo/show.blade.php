@@ -56,7 +56,7 @@
                                 <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                     Costo (USD)
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">${{ number_format($baremo->costo_usd, 2) }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ format_money($baremo->costo_usd, 2) }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -166,13 +166,15 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="fw-bold text-muted"><i class="fas fa-dollar-sign me-1"></i>Costo en USD:</label>
-                                <p class="mb-0 fs-5 fw-bold text-success">${{ number_format($baremo->costo_usd, 2) }}</p>
+                                <p class="mb-0 fs-5 fw-bold text-success">{{ format_money($baremo->costo_usd, 2) }}</p>
                             </div>
                             
+                            @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
                             <div class="col-md-6 mb-3">
                                 <label class="fw-bold text-muted"><i class="fas fa-exchange-alt me-1"></i>Costo en Bs:</label>
                                 <p class="mb-0 fs-5 fw-bold text-primary">Bs. {{ number_format($baremo->costo_bs, 2) }}</p>
                             </div>
+                            @endif
                         </div>
                         
                         <hr>
@@ -261,7 +263,7 @@
                             
                             <div class="mb-3">
                                 <span class="badge bg-success" style="font-size: 1.2em;">
-                                    <i class="fas fa-dollar-sign me-1"></i>${{ number_format($baremo->costo_usd, 2) }}
+                                    <i class="fas fa-dollar-sign me-1"></i>{{ format_money($baremo->costo_usd, 2) }}
                                 </span>
                                 @if($baremo->aplica_iva && !$baremo->exento_iva)
                                     <br><small class="text-muted">+ IVA</small>

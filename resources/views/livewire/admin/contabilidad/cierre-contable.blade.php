@@ -91,8 +91,8 @@
                                                 </span>
                                             </td>
                                             <td>{{ Str::limit($cierre->descripcion, 40) }}</td>
-                                            <td class="text-end">{{ number_format($cierre->total_debe, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ number_format($cierre->total_haber, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($cierre->total_debe, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($cierre->total_haber, 2, ',', '.') }}</td>
                                             <td>
                                                 @if($cierre->esta_balanceado)
                                                     <span class="badge bg-success">✓</span>

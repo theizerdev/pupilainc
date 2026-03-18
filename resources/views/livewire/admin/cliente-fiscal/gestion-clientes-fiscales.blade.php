@@ -74,7 +74,7 @@
                     </div>
 
                     <div class="mt-3">
-                        {{ $clientes->links() }}
+                        {{ $clientes->links('livewire.pagination') }}
                     </div>
                 </div>
             </div>

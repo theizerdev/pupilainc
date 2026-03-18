@@ -256,7 +256,7 @@ class Show extends Component
             if ($tasaCambio) {
                 $row++;
                 $sheet->setCellValue('A' . $row, 'Tasa de Cambio:');
-                $sheet->setCellValue('B' . $row, number_format($tasaCambio->usd_rate, 4) . ' Bs/$');
+                $sheet->setCellValue('B' . $row, format_money($tasaCambio->usd_rate, 4) . ' Bs/$');
             }
             
             // Resumen financiero
@@ -267,11 +267,11 @@ class Show extends Component
             $row++;
             $datos = [
                 ['Concepto', 'Monto USD', 'Monto Bs'],
-                ['Monto Inicial', number_format($this->caja->monto_inicial, 2), $tasaCambio ? number_format($this->caja->monto_inicial * $tasaCambio->usd_rate, 2) : '-'],
-                ['Total Efectivo', number_format($this->caja->total_efectivo, 2), $tasaCambio ? number_format($this->caja->total_efectivo * $tasaCambio->usd_rate, 2) : '-'],
-                ['Total Transferencias', number_format($this->caja->total_transferencias, 2), $tasaCambio ? number_format($this->caja->total_transferencias * $tasaCambio->usd_rate, 2) : '-'],
-                ['Total Ingresos', number_format($this->caja->total_ingresos, 2), $tasaCambio ? number_format($this->caja->total_ingresos * $tasaCambio->usd_rate, 2) : '-'],
-                ['Monto Final', number_format($this->caja->monto_final, 2), $tasaCambio ? number_format($this->caja->monto_final * $tasaCambio->usd_rate, 2) : '-']
+                ['Monto Inicial', format_money($this->caja->monto_inicial, 2), $tasaCambio ? format_money($this->caja->monto_inicial * $tasaCambio->usd_rate, 2) : '-'],
+                ['Total Efectivo', format_money($this->caja->total_efectivo, 2), $tasaCambio ? format_money($this->caja->total_efectivo * $tasaCambio->usd_rate, 2) : '-'],
+                ['Total Transferencias', format_money($this->caja->total_transferencias, 2), $tasaCambio ? format_money($this->caja->total_transferencias * $tasaCambio->usd_rate, 2) : '-'],
+                ['Total Ingresos', format_money($this->caja->total_ingresos, 2), $tasaCambio ? format_money($this->caja->total_ingresos * $tasaCambio->usd_rate, 2) : '-'],
+                ['Monto Final', format_money($this->caja->monto_final, 2), $tasaCambio ? format_money($this->caja->monto_final * $tasaCambio->usd_rate, 2) : '-']
             ];
             
             foreach ($datos as $fila) {
@@ -305,13 +305,13 @@ class Show extends Component
                 if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {
                     foreach ($pago->detalles_pago_mixto as $detalle) {
                         $montoBolivares = isset($detalle['monto_bs']) 
-                            ? number_format($detalle['monto_bs'], 2) 
+                            ? format_money($detalle['monto_bs'], 2) 
                             : '-';
                         
                         $sheet->setCellValue('A' . $row, $pago->numero_completo . ($tieneNotaCredito ? ' (ANULADA)' : ''));
                         $sheet->setCellValue('B' . $row, $paciente);
                         $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $detalle['metodo'])));
-                        $sheet->setCellValue('D' . $row, number_format($detalle['monto_usd'] ?? $detalle['monto'] ?? 0, 2));
+                        $sheet->setCellValue('D' . $row, format_money($detalle['monto_usd'] ?? $detalle['monto'] ?? 0, 2));
                         $sheet->setCellValue('E' . $row, $montoBolivares);
                         $sheet->setCellValue('F' . $row, $detalle['referencia'] ?? '-');
                         $sheet->setCellValue('G' . $row, $pago->created_at->format('H:i'));
@@ -324,12 +324,12 @@ class Show extends Component
                         $row++;
                     }
                 } else {
-                    $montoBolivares = $pago->total_bs ? number_format($pago->total_bs, 2) : '-';
+                    $montoBolivares = $pago->total_bs ? format_money($pago->total_bs, 2) : '-';
                     
                     $sheet->setCellValue('A' . $row, $pago->numero_completo . ($tieneNotaCredito ? ' (ANULADA)' : ''));
                     $sheet->setCellValue('B' . $row, $paciente);
                     $sheet->setCellValue('C' . $row, ucfirst(str_replace('_', ' ', $pago->metodo_pago)));
-                    $sheet->setCellValue('D' . $row, number_format($pago->total_usd ?? $pago->total, 2));
+                    $sheet->setCellValue('D' . $row, format_money($pago->total_usd ?? $pago->total, 2));
                     $sheet->setCellValue('E' . $row, $montoBolivares);
                     $sheet->setCellValue('F' . $row, $pago->referencia ?? '-');
                     $sheet->setCellValue('G' . $row, $pago->created_at->format('H:i'));
@@ -397,9 +397,9 @@ class Show extends Component
             $caption .= "• Fecha: " . $this->caja->fecha->format('d/m/Y') . "\n";
             $caption .= "• Sucursal: " . $this->caja->sucursal->nombre . "\n";
             $caption .= "• Usuario: " . $this->caja->usuario->name . "\n";
-            $caption .= "• Monto Inicial: $" . number_format($this->caja->monto_inicial, 2) . "\n";
-            $caption .= "• Total Ingresos: $" . number_format($this->caja->total_ingresos, 2) . "\n";
-            $caption .= "• Monto Final: $" . number_format($this->caja->monto_final, 2) . "\n\n";
+            $caption .= "• Monto Inicial: $" . format_money($this->caja->monto_inicial, 2) . "\n";
+            $caption .= "• Total Ingresos: $" . format_money($this->caja->total_ingresos, 2) . "\n";
+            $caption .= "• Monto Final: $" . format_money($this->caja->monto_final, 2) . "\n\n";
             $caption .= "📎 Reporte detallado adjunto.";
             
             // Enviar solo el documento con el mensaje como caption

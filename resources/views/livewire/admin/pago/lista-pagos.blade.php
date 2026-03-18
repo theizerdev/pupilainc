@@ -93,8 +93,8 @@
                                             {{ str_replace('_', ' ', ucfirst($pago->metodo_pago)) }}
                                         </span>
                                     </td>
-                                    <td class="text-end">${{ number_format($pago->total_usd, 2) }}</td>
-                                    <td class="text-end">Bs {{ number_format($pago->total_bs, 2) }}</td>
+                                    <td class="text-end">{{ format_money($pago->total_usd, 2) }}</td>
+                                    <td class="text-end">Bs {{ format_money($pago->total_bs, 2) }}</td>
                                     <td>
                                         @if($pago->estado === 'aprobado')
                                         <span class="badge badge-sm bg-success">Aprobado</span>
@@ -121,7 +121,7 @@
 
                     <!-- Paginación -->
                     <div class="mt-3">
-                        {{ $pagos->links() }}
+                        {{ $pagos->links('livewire.pagination') }}
                     </div>
                 </div>
             </div>

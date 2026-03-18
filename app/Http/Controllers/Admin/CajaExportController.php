@@ -43,7 +43,7 @@ class CajaExportController extends Controller
         if ($tasaCambio) {
             $row++;
             $sheet->setCellValue('A' . $row, 'Tasa de Cambio:');
-            $sheet->setCellValue('B' . $row, number_format($tasaCambio->usd_rate, 4) . ' Bs/$');
+            $sheet->setCellValue('B' . $row, format_money($tasaCambio->usd_rate, 4) . ' Bs/$');
         }
         
         // Resumen financiero
@@ -54,11 +54,11 @@ class CajaExportController extends Controller
         $row++;
         $datos = [
             ['Concepto', 'Monto USD', 'Monto Bs'],
-            ['Monto Inicial', number_format($caja->monto_inicial, 2), $tasaCambio ? number_format($caja->monto_inicial * $tasaCambio->usd_rate, 2) : '-'],
-            ['Total Efectivo', number_format($caja->total_efectivo, 2), $tasaCambio ? number_format($caja->total_efectivo * $tasaCambio->usd_rate, 2) : '-'],
-            ['Total Transferencias', number_format($caja->total_transferencias, 2), $tasaCambio ? number_format($caja->total_transferencias * $tasaCambio->usd_rate, 2) : '-'],
-            ['Total Ingresos', number_format($caja->total_ingresos, 2), $tasaCambio ? number_format($caja->total_ingresos * $tasaCambio->usd_rate, 2) : '-'],
-            ['Monto Final', number_format($caja->monto_final, 2), $tasaCambio ? number_format($caja->monto_final * $tasaCambio->usd_rate, 2) : '-']
+            ['Monto Inicial', format_money($caja->monto_inicial, 2), $tasaCambio ? format_money($caja->monto_inicial * $tasaCambio->usd_rate, 2) : '-'],
+            ['Total Efectivo', format_money($caja->total_efectivo, 2), $tasaCambio ? format_money($caja->total_efectivo * $tasaCambio->usd_rate, 2) : '-'],
+            ['Total Transferencias', format_money($caja->total_transferencias, 2), $tasaCambio ? format_money($caja->total_transferencias * $tasaCambio->usd_rate, 2) : '-'],
+            ['Total Ingresos', format_money($caja->total_ingresos, 2), $tasaCambio ? format_money($caja->total_ingresos * $tasaCambio->usd_rate, 2) : '-'],
+            ['Monto Final', format_money($caja->monto_final, 2), $tasaCambio ? format_money($caja->monto_final * $tasaCambio->usd_rate, 2) : '-']
         ];
         
         foreach ($datos as $fila) {
@@ -89,27 +89,27 @@ class CajaExportController extends Controller
             if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {
                 foreach ($pago->detalles_pago_mixto as $detalle) {
                     $montoBolivares = isset($detalle['monto_bs']) 
-                        ? number_format($detalle['monto_bs'], 2) 
+                        ? format_money($detalle['monto_bs'], 2) 
                         : '-';
                     
                     $sheet->setCellValue('A' . $row, $pago->numero_completo);
                     $sheet->setCellValue('B' . $row, $pago->numero_control_fiscal ?? '-');
                     $sheet->setCellValue('C' . $row, $paciente);
                     $sheet->setCellValue('D' . $row, ucfirst(str_replace('_', ' ', $detalle['metodo'])));
-                    $sheet->setCellValue('E' . $row, number_format($detalle['monto_usd'] ?? $detalle['monto'] ?? 0, 2));
+                    $sheet->setCellValue('E' . $row, format_money($detalle['monto_usd'] ?? $detalle['monto'] ?? 0, 2));
                     $sheet->setCellValue('F' . $row, $montoBolivares);
                     $sheet->setCellValue('G' . $row, $detalle['referencia'] ?? '-');
                     $sheet->setCellValue('H' . $row, $pago->created_at->format('H:i'));
                     $row++;
                 }
             } else {
-                $montoBolivares = $pago->total_bs ? number_format($pago->total_bs, 2) : '-';
+                $montoBolivares = $pago->total_bs ? format_money($pago->total_bs, 2) : '-';
                 
                 $sheet->setCellValue('A' . $row, $pago->numero_completo);
                 $sheet->setCellValue('B' . $row, $pago->numero_control_fiscal ?? '-');
                 $sheet->setCellValue('C' . $row, $paciente);
                 $sheet->setCellValue('D' . $row, ucfirst(str_replace('_', ' ', $pago->metodo_pago)));
-                $sheet->setCellValue('E' . $row, number_format($pago->total_usd ?? $pago->total, 2));
+                $sheet->setCellValue('E' . $row, format_money($pago->total_usd ?? $pago->total, 2));
                 $sheet->setCellValue('F' . $row, $montoBolivares);
                 $sheet->setCellValue('G' . $row, $pago->referencia ?? '-');
                 $sheet->setCellValue('H' . $row, $pago->created_at->format('H:i'));

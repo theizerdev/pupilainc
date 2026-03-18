@@ -400,7 +400,7 @@
                                     <div class="progress-bar bg-{{ $pruebasPasadas === $totalPruebas ? 'success' : ($pruebasPasadas >= $totalPruebas/2 ? 'warning' : 'danger') }}" 
                                          role="progressbar" 
                                          style="width: {{ $porcentajeExito }}%">
-                                        {{ number_format($porcentajeExito, 1) }}%
+                                        {{ format_money($porcentajeExito, 1) }}%
                                     </div>
                                 </div>
                                 

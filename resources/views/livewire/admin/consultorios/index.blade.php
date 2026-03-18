@@ -186,7 +186,7 @@
             </div>
 
             <div class="mt-3">
-                {{ $consultorios->links() }}
+                {{ $consultorios->links('livewire.pagination') }}
             </div>
         </div>
     </div>

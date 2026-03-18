@@ -50,10 +50,10 @@
                     <td>{{ $moroso['matricula']->student->documento_identidad ?? 'N/A' }}</td>
                     <td>{{ $moroso['matricula']->programa->nombre ?? 'N/A' }}</td>
                     <td>{{ $moroso['matricula']->programa->nivelEducativo->nombre ?? 'N/A' }}</td>
-                    <td class="text-right">${{ number_format($moroso['matricula']->costo ?? 0, 2) }}</td>
-                    <td class="text-right">${{ number_format($moroso['total_pagado'], 2) }}</td>
-                    <td class="text-right">${{ number_format($moroso['saldo_pendiente'], 2) }}</td>
-                    <td class="text-right">{{ number_format($moroso['porcentaje_pagado'], 2) }}%</td>
+                    <td class="text-right">{{ format_money($moroso['matricula']->costo ?? 0, 2) }}</td>
+                    <td class="text-right">{{ format_money($moroso['total_pagado'], 2) }}</td>
+                    <td class="text-right">{{ format_money($moroso['saldo_pendiente'], 2) }}</td>
+                    <td class="text-right">{{ format_money($moroso['porcentaje_pagado'], 2) }}%</td>
                 </tr>
             @endforeach
         </tbody>
@@ -71,7 +71,7 @@
             </tr>
             <tr>
                 <td><strong>Porcentaje Morosidad:</strong></td>
-                <td class="text-right">{{ number_format($totales['porcentaje_morosidad'], 2) }}%</td>
+                <td class="text-right">{{ format_money($totales['porcentaje_morosidad'], 2) }}%</td>
             </tr>
         </table>
     </div>

@@ -25,10 +25,10 @@ class BladeServiceProvider extends ServiceProvider
             // Manejar expresiones complejas y parámetros
             if (strpos($expression, ',') !== false) {
                 // Tiene múltiples parámetros
-                return "<?php \n                    \$args = [$expression];\n                    \$amount = \$args[0];\n                    \$decimals = isset(\$args[1]) ? (int)\$args[1] : 2;\n                    echo is_venezuela_company() ? '$' . number_format((float)\$amount, \$decimals, '.', ',') : format_money(\$amount, true);\n                ?>";
+                return "<?php \n                    \$args = [$expression];\n                    \$amount = \$args[0];\n                    \$decimals = isset(\$args[1]) ? (int)\$args[1] : 2;\n                    echo is_venezuela_company() ? '$' . format_money((float)\$amount, \$decimals, '.', ',') : format_money(\$amount, true);\n                ?>";
             } else {
                 // Un solo parámetro
-                return "<?php echo is_venezuela_company() ? '$' . number_format((float)($expression), 2, '.', ',') : format_money($expression, true); ?>";
+                return "<?php echo is_venezuela_company() ? '$' . format_money((float)($expression), 2, '.', ',') : format_money($expression, true); ?>";
             }
         });
 
@@ -67,7 +67,7 @@ class BladeServiceProvider extends ServiceProvider
 
         // Directiva @usd para mostrar siempre en USD
         Blade::directive('usd', function ($expression) {
-            return "<?php echo '$' . number_format((float)$expression, 2, '.', ','); ?>";
+            return "<?php echo '$' . format_money((float)$expression, 2, '.', ','); ?>";
         });
 
         // Directiva @money_regional para mostrar con formato regional

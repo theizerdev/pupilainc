@@ -53,8 +53,8 @@
                                 <input wire:model="monto" type="number" step="0.01" class="form-control">
                                 @error('monto') <small class="text-danger">{{ $message }}</small> @enderror
                                 <small class="text-muted">
-                                    Monto original: ${{ number_format($pago->total_usd, 2) }} |
-                                    Saldo disponible: ${{ number_format($pago->saldo_disponible, 2) }}
+                                    Monto original: {{ format_money($pago->total_usd, 2) }} |
+                                    Saldo disponible: {{ format_money($pago->saldo_disponible, 2) }}
                                 </small>
                             </div>
 
@@ -92,7 +92,7 @@
                                                     <input type="checkbox" wire:model="items_seleccionados" value="{{ $detalle->id }}" class="form-check-input">
                                                 </td>
                                                 <td>{{ $detalle->descripcion }}</td>
-                                                <td class="text-end">${{ number_format($detalle->subtotal, 2) }}</td>
+                                                <td class="text-end">{{ format_money($detalle->subtotal, 2) }}</td>
                                             </tr>
                                             @endforeach
                                         </tbody>
@@ -113,7 +113,7 @@
                                     N° Control: <strong>{{ $pago->numero_control_fiscal }}</strong> |
                                     @endif
                                     Fecha: <strong>{{ $pago->fecha->format('d/m/Y') }}</strong> |
-                                    Monto: <strong>${{ number_format($pago->total_usd, 2) }}</strong>
+                                    Monto: <strong>{{ format_money($pago->total_usd, 2) }}</strong>
                                 </small>
                             </div>
                         </div>
@@ -121,7 +121,7 @@
                         <!-- Resumen -->
                         <div class="alert alert-{{ $tipo_nota === 'credito' ? 'danger' : 'success' }}">
                             <strong>Resumen:</strong><br>
-                            Se creará una <strong>Nota de {{ $tipo_nota === 'credito' ? 'Crédito' : 'Débito' }}</strong> por <strong>${{ number_format($monto, 2) }}</strong><br>
+                            Se creará una <strong>Nota de {{ $tipo_nota === 'credito' ? 'Crédito' : 'Débito' }}</strong> por <strong>{{ format_money($monto, 2) }}</strong><br>
                             @if($tipo_nota === 'credito')
                             Esto <strong>disminuirá</strong> el monto del documento original.
                             @else

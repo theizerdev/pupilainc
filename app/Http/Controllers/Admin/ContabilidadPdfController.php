@@ -43,7 +43,7 @@ class ContabilidadPdfController extends Controller
 
     private function numf($val): string
     {
-        return number_format((float) $val, 2, ',', '.');
+        return format_money((float) $val, 2, ',', '.');
     }
 
     // ================================================

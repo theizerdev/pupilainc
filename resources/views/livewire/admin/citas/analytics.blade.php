@@ -81,7 +81,7 @@
                             <div class="col-lg-3 col-6">
                                 <div class="small-box bg-danger">
                                     <div class="inner">
-                                        <h3>{{ number_format($analyticsData['asistencia']['tasa_asistencia'] ?? 0, 1) }}%</h3>
+                                        <h3>{{ format_money($analyticsData['asistencia']['tasa_asistencia'] ?? 0, 1) }}%</h3>
                                         <p>Tasa de Asistencia</p>
                                     </div>
                                     <div class="icon">

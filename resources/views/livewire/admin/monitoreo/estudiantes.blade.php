@@ -25,7 +25,7 @@
                             </div>
                             <div class="d-flex align-items-center mt-1">
                                 <span class="badge bg-white bg-opacity-20 text-white border border-white border-opacity-20">
-                                    <i class="ri ri-graduation-cap-line me-1"></i>{{ number_format($stats['total']) }} Estudiantes
+                                    <i class="ri ri-graduation-cap-line me-1"></i>{{ format_money($stats['total']) }} Estudiantes
                                 </span>
                             </div>
                         </div>
@@ -42,7 +42,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h2 class="mb-1 text-primary fw-bold">{{ number_format($stats['total']) }}</h2>
+                            <h2 class="mb-1 text-primary fw-bold">{{ format_money($stats['total']) }}</h2>
                             <p class="text-muted mb-2 fw-medium">Total Estudiantes</p>
                             <div class="d-flex align-items-center">
                                 <i class="ri ri-arrow-up-line text-success me-1"></i>
@@ -62,7 +62,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h2 class="mb-1 text-success fw-bold">{{ number_format($stats['activos']) }}</h2>
+                            <h2 class="mb-1 text-success fw-bold">{{ format_money($stats['activos']) }}</h2>
                             <p class="text-muted mb-2 fw-medium">Estudiantes Activos</p>
                             <div class="d-flex align-items-center">
                                 <i class="ri ri-arrow-up-line text-success me-1"></i>
@@ -82,7 +82,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h2 class="mb-1 text-info fw-bold">{{ number_format($stats['nuevos_mes']) }}</h2>
+                            <h2 class="mb-1 text-info fw-bold">{{ format_money($stats['nuevos_mes']) }}</h2>
                             <p class="text-muted mb-2 fw-medium">Nuevos este Mes</p>
                             <div class="d-flex align-items-center">
                                 <i class="ri ri-calendar-line text-info me-1"></i>
@@ -102,7 +102,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h2 class="mb-1 text-warning fw-bold">{{ number_format($stats['inactivos']) }}</h2>
+                            <h2 class="mb-1 text-warning fw-bold">{{ format_money($stats['inactivos']) }}</h2>
                             <p class="text-muted mb-2 fw-medium">Estudiantes Inactivos</p>
                             <div class="d-flex align-items-center">
                                 <i class="ri ri-arrow-down-line text-danger me-1"></i>

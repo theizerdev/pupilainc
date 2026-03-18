@@ -26,7 +26,7 @@
                                 </div>
                                 <div class="d-flex align-items-center mt-1">
                                     <span class="badge bg-white bg-opacity-20 text-white border border-white border-opacity-20">
-                                        <i class="ri ri-door-line me-1"></i>{{ number_format($stats['total'] ?? 0) }} Accesos
+                                        <i class="ri ri-door-line me-1"></i>{{ format_money($stats['total'] ?? 0) }} Accesos
                                     </span>
                                 </div>
                             </div>
@@ -116,7 +116,7 @@
                         </div>
                     </div>
                     <div>
-                        <h3 class="mb-1 text-primary">{{ number_format($stats['total'] ?? 0) }}</h3>
+                        <h3 class="mb-1 text-primary">{{ format_money($stats['total'] ?? 0) }}</h3>
                         <p class="text-muted mb-3">Total de Accesos</p>
                         <div class="d-flex align-items-center">
                             <div class="progress flex-grow-1 me-2" style="height: 6px;">
@@ -143,7 +143,7 @@
                         </span>
                     </div>
                     <div>
-                        <h3 class="mb-1 text-success">{{ number_format($stats['entradas'] ?? 0) }}</h3>
+                        <h3 class="mb-1 text-success">{{ format_money($stats['entradas'] ?? 0) }}</h3>
                         <p class="text-muted mb-3">Entradas Registradas</p>
                         <div class="d-flex align-items-center">
                             <div class="progress flex-grow-1 me-2" style="height: 6px;">
@@ -170,7 +170,7 @@
                         </span>
                     </div>
                     <div>
-                        <h3 class="mb-1 text-danger">{{ number_format($stats['salidas'] ?? 0) }}</h3>
+                        <h3 class="mb-1 text-danger">{{ format_money($stats['salidas'] ?? 0) }}</h3>
                         <p class="text-muted mb-3">Salidas Registradas</p>
                         <div class="d-flex align-items-center">
                             <div class="progress flex-grow-1 me-2" style="height: 6px;">

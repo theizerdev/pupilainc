@@ -623,7 +623,7 @@
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <h3 class="text-info mb-1">${{ number_format($stats['ingresos_mes'], 0) }}</h3>
+                            <h3 class="text-info mb-1">{{ format_money($stats['ingresos_mes'], 0) }}</h3>
                             <small class="text-muted">Ingresos Totales</small>
                         </div>
                     </div>

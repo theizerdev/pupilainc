@@ -11,7 +11,7 @@
                             </div>
                         </div>
                         <div class="text-end">
-                            <h3 class="mb-0">{{ number_format($stats['total']) }}</h3>
+                            <h3 class="mb-0">{{ format_money($stats['total']) }}</h3>
                             <small class="text-muted">Total Sesiones</small>
                         </div>
                     </div>
@@ -28,7 +28,7 @@
                             </div>
                         </div>
                         <div class="text-end">
-                            <h3 class="mb-0">{{ number_format($stats['active']) }}</h3>
+                            <h3 class="mb-0">{{ format_money($stats['active']) }}</h3>
                             <small class="text-muted">Sesiones Activas</small>
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                             </div>
                         </div>
                         <div class="text-end">
-                            <h3 class="mb-0">{{ number_format($stats['current']) }}</h3>
+                            <h3 class="mb-0">{{ format_money($stats['current']) }}</h3>
                             <small class="text-muted">Sesión Actual</small>
                         </div>
                     </div>
@@ -62,7 +62,7 @@
                             </div>
                         </div>
                         <div class="text-end">
-                            <h3 class="mb-0">{{ number_format($stats['mobile']) }}</h3>
+                            <h3 class="mb-0">{{ format_money($stats['mobile']) }}</h3>
                             <small class="text-muted">Dispositivos Móviles</small>
                         </div>
                     </div>

@@ -87,10 +87,10 @@ class WhatsAppRetryStatus extends Command
             ['Métrica', 'Valor'],
             [
                 ['Período de análisis', "{$days} días"],
-                ['Mensajes reenviables', number_format($retryable)],
-                ['Máx. reintentos excedidos', number_format($maxRetriesExceeded)],
-                ['Reenvíos exitosos', number_format($successfulRetries)],
-                ['Reenvíos fallidos', number_format($failedRetries)],
+                ['Mensajes reenviables', format_money($retryable)],
+                ['Máx. reintentos excedidos', format_money($maxRetriesExceeded)],
+                ['Reenvíos exitosos', format_money($successfulRetries)],
+                ['Reenvíos fallidos', format_money($failedRetries)],
                 ['Tasa de éxito de reenvíos', "{$successRate}%"],
             ]
         );
@@ -116,7 +116,7 @@ class WhatsAppRetryStatus extends Command
         if (!empty($statusDistribution)) {
             $statusData = [];
             foreach ($statusDistribution as $status => $count) {
-                $statusData[] = [ucfirst($status), number_format($count)];
+                $statusData[] = [ucfirst($status), format_money($count)];
             }
             $this->table(['Estado', 'Cantidad'], $statusData);
         } else {
@@ -140,7 +140,7 @@ class WhatsAppRetryStatus extends Command
         if (!empty($retryDistribution)) {
             $retryData = [];
             foreach ($retryDistribution as $retries => $count) {
-                $retryData[] = ["{$retries} reintentos", number_format($count)];
+                $retryData[] = ["{$retries} reintentos", format_money($count)];
             }
             $this->table(['Reintentos', 'Cantidad'], $retryData);
         } else {
@@ -167,8 +167,8 @@ class WhatsAppRetryStatus extends Command
                 $name = $contact->recipient_name ?: $contact->recipient_phone;
                 $contactData[] = [
                     substr($name, 0, 20) . (strlen($name) > 20 ? '...' : ''),
-                    number_format($contact->total_messages),
-                    number_format($contact->total_retries)
+                    format_money($contact->total_messages),
+                    format_money($contact->total_retries)
                 ];
             }
             $this->table(['Contacto', 'Mensajes', 'Reintentos'], $contactData);
