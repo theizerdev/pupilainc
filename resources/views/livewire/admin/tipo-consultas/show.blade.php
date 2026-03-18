@@ -1,6 +1,5 @@
 <div>
-    <div class="container-fluid">
-        <!-- Page Header -->
+<div class="py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-0 text-gray-800">Tipo de Atención: {{ $tipoConsulta->nombre }}</h1>

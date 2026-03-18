@@ -1,6 +1,5 @@
 <div>
-    <div class="container-fluid">
-        <!-- Page Header -->
+<div class="py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-plus-circle me-2"></i>Crear Tipo de Atención</h1>

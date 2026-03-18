@@ -13,6 +13,7 @@ class Baremo extends Model
         'empresa_id',
         'sucursal_id',
         'especialidad_id',
+        'categoria_id',
         'codigo',
         'nombre_servicio',
         'descripcion',
@@ -58,6 +59,11 @@ class Baremo extends Model
         return $this->belongsTo(Especialidad::class);
     }
 
+    public function categoria()
+    {
+        return $this->belongsTo(Categoria::class);
+    }
+
     public function scopeActivos($query)
     {
         return $query->where('activo', true);
@@ -66,6 +72,22 @@ class Baremo extends Model
     public function scopePorEspecialidad($query, $especialidadId)
     {
         return $query->where('especialidad_id', $especialidadId);
+    }
+
+    public function scopeForUser($query, $user = null)
+    {
+        $user = $user ?? auth()->user();
+        
+        if (!$user) {
+            return $query;
+        }
+
+        if ($user->hasRole('Super Administrador')) {
+            return $query;
+        }
+
+        return $query->where('empresa_id', $user->empresa_id)
+                    ->where('sucursal_id', $user->sucursal_id);
     }
 
     public function getCostoConIvaAttribute()

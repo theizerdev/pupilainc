@@ -1,0 +1,131 @@
+<?php
+
+namespace App\Livewire\Admin\Baremo;
+
+use App\Models\Baremo;
+use App\Models\Categoria;
+use App\Models\Especialidad;
+use App\Models\ExchangeRate;
+use Livewire\Component;
+use App\Traits\HasDynamicLayout;
+
+class Create extends Component
+{
+    use HasDynamicLayout;
+
+    public $categoria_id = '';
+    public $especialidad_id = '';
+    public $codigo = '';
+    public $nombre_servicio = '';
+    public $descripcion = '';
+    public $costo_usd = 0;
+    public $aplica_iva = true;
+    public $exento_iva = false;
+    public $duracion_minutos = 30;
+    public $activo = true;
+    
+    public $empresa_id = null;
+    public $sucursal_id = null;
+    public $empresas = [];
+    public $sucursales = [];
+    public $categorias = [];
+    public $especialidades = [];
+    public $tasa_usd = 1;
+
+    protected function rules()
+    {
+        return [
+            'categoria_id' => 'required|exists:categorias,id',
+            'especialidad_id' => 'required|exists:especialidades,id',
+            'codigo' => 'required|numeric|digits:6|unique:baremos,codigo',
+            'nombre_servicio' => 'required|min:3|max:150',
+            'descripcion' => 'nullable|max:500',
+            'costo_usd' => 'required|numeric|gt:0',
+            'aplica_iva' => 'boolean',
+            'exento_iva' => 'boolean',
+            'duracion_minutos' => 'nullable|integer|min:5',
+            'activo' => 'boolean',
+            'empresa_id' => 'required_if:auth.user.role,Super Administrador|exists:empresas,id',
+            'sucursal_id' => 'required_if:auth.user.role,Super Administrador|exists:sucursales,id',
+        ];
+    }
+
+    public function mount()
+    {
+        $this->categorias = Categoria::forUser()->activos()->orderBy('nombre')->get();
+        $this->especialidades = Especialidad::where('status', true)->orderBy('nombre')->get();
+        $this->tasa_usd = ExchangeRate::getLatestRate('USD') ?? 1;
+        
+        // Generar código automáticamente al cargar
+        $this->generarCodigo();
+
+        if (auth()->user()->hasRole('Super Administrador')) {
+            $this->empresas = \App\Models\Empresa::all();
+            if ($this->empresa_id) {
+                $this->sucursales = \App\Models\Sucursal::where('empresa_id', $this->empresa_id)->get();
+            }
+        } else {
+            $this->empresa_id = auth()->user()->empresa_id;
+            $this->sucursal_id = auth()->user()->sucursal_id;
+        }
+    }
+
+    public function generarCodigo()
+    {
+        // Generar código de 6 dígitos aleatorios
+        do {
+            $this->codigo = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        } while (Baremo::where('codigo', $this->codigo)->exists());
+    }
+
+    public function updatedEmpresaId()
+    {
+        if ($this->empresa_id) {
+            $this->sucursales = \App\Models\Sucursal::where('empresa_id', $this->empresa_id)->get();
+            $this->sucursal_id = null;
+        } else {
+            $this->sucursales = [];
+        }
+    }
+
+    public function save()
+    {
+        $this->validate();
+
+        try {
+            Baremo::create([
+                'categoria_id' => $this->categoria_id,
+                'especialidad_id' => $this->especialidad_id,
+                'codigo' => str_pad($this->codigo, 6, '0', STR_PAD_LEFT),
+                'nombre_servicio' => trim($this->nombre_servicio),
+                'descripcion' => trim($this->descripcion),
+                'costo_usd' => $this->costo_usd,
+                'aplica_iva' => $this->aplica_iva,
+                'exento_iva' => $this->exento_iva,
+                'duracion_minutos' => $this->duracion_minutos ?? 30,
+                'activo' => $this->activo,
+                'empresa_id' => $this->empresa_id,
+                'sucursal_id' => $this->sucursal_id,
+            ]);
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Servicio '{$this->nombre_servicio}' creado exitosamente.",
+                'duration' => 4000
+            ]);
+
+            return redirect()->route('admin.baremos.index');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear el servicio: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
+    }
+
+    public function render()
+    {
+        return view('livewire.admin.baremo.create')->layout($this->getLayout());
+    }
+}

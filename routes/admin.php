@@ -172,14 +172,12 @@ Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
     Route::get('/pagos/{pago}', \App\Livewire\Admin\Pagos\Show::class)->name('pagos.show');
 });
 
-// Baremos
+// Baremos (Servicios)
 Route::middleware(['checkAdminPermission:access baremos'])->group(function () {
-    Route::get('/baremos', \App\Livewire\Admin\Baremo\GestionBaremos::class)->name('baremos.index');
-});
-
-// Baremos
-Route::middleware(['checkAdminPermission:access baremos'])->group(function () {
-    Route::get('/baremos', \App\Livewire\Admin\Baremo\GestionBaremos::class)->name('baremos.index');
+    Route::get('/baremos', \App\Livewire\Admin\Baremo\Index::class)->name('baremos.index');
+    Route::get('/baremos/crear', \App\Livewire\Admin\Baremo\Create::class)->name('baremos.create');
+    Route::get('/baremos/{baremo}/editar', \App\Livewire\Admin\Baremo\Edit::class)->name('baremos.edit');
+    Route::get('/baremos/{baremo}/ver', \App\Livewire\Admin\Baremo\Show::class)->name('baremos.show');
 });
 
 // Notas de Crédito
