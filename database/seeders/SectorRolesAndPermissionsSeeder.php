@@ -126,9 +126,9 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 💰 SECTOR ADMINISTRACIÓN
-           /*
+          
             'administracion' => [
-                'cajas' => [
+                /*'cajas' => [
                     'name' => 'Cajas',
                     'permissions' => [
                         'access cajas',
@@ -142,6 +142,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export cajas',
                     ]
                 ],
+             
                 'pagos' => [
                     'name' => 'Pagos',
                     'permissions' => [
@@ -200,6 +201,18 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'apply reglas mora',
                     ]
                 ],
+                */
+                 'categorias' => [
+                    'name' => 'Categorías',
+                    'permissions' => [
+                        'access categorias',
+                        'create categorias',
+                        'edit categorias',
+                        'delete categorias',
+                        'view categorias',
+                        'manage categorias',
+                    ]
+                ],
                 'baremos' => [
                     'name' => 'Baremos',
                     'permissions' => [
@@ -211,6 +224,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage baremos',
                     ]
                 ],
+                /*
                 'clientes_fiscales' => [
                     'name' => 'Clientes Fiscales',
                     'permissions' => [
@@ -254,9 +268,9 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete anulacion-talonarios',
                         'view anulacion-talonarios',
                     ]
-                ],
+                ],*/
             ],
-            */
+        
 
             // ⚙️ SECTOR CONFIGURACIÓN
             'configuracion' => [
@@ -359,6 +373,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage template customization',
                     ]
                 ],
+               
             ],
 
             // 📊 SECTOR MONITOREO

@@ -330,3 +330,11 @@ Route::prefix('seniat')->as('seniat.')->middleware(['checkAdminPermission:access
     Route::get('/libro-ventas/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroVentas'])->name('libro-ventas.excel');
 });
 Route::get('/impuestos', \App\Livewire\Admin\Impuestos\Index::class)->name('impuestos.index');
+
+// Categorías
+Route::middleware(['checkAdminPermission:access categorias'])->group(function () {
+    Route::get('/categorias', \App\Livewire\Admin\Categorias\Index::class)->name('categorias.index');
+    Route::get('/categorias/crear', \App\Livewire\Admin\Categorias\Create::class)->name('categorias.create');
+    Route::get('/categorias/{categoria}/editar', \App\Livewire\Admin\Categorias\Edit::class)->name('categorias.edit');
+    Route::get('/categorias/{categoria}/ver', \App\Livewire\Admin\Categorias\Show::class)->name('categorias.show');
+});

@@ -256,9 +256,10 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'Pagos y Finanzas',
                         'icon' => 'ri-money-dollar-circle-line',
-                        'permissions' => ['access conceptos pago', 'access cajas', 'access pagos', 'access baremos'],
-                        'active' => 'admin.pagos.*|admin.conceptos-pago.*|admin.cajas.*|admin.baremos.*|admin.clientes-fiscales.*',
+                        'permissions' => ['access baremos', 'access categorias', 'access conceptos pago', 'access cajas', 'access pagos', 'access baremos'],
+                        'active' => 'admin.categorias.*|admin.pagos.*|admin.conceptos-pago.*|admin.cajas.*|admin.baremos.*|admin.clientes-fiscales.*',
                         'children' => [
+                            ['label' => 'Categorías', 'permission' => 'access categorias', 'route' => 'admin.categorias.index', 'active' => 'admin.categorias.*'],
                             ['label' => 'Pagos', 'permission' => 'access pagos', 'route' => 'admin.pagos.index', 'active' => 'admin.pagos.*'],
                             ['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
                             ['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
@@ -350,6 +351,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.template-customization',
                         'active' => 'admin.template-customization',
                     ],
+                   
                 ]
             ],
             'comunicaciones' => [

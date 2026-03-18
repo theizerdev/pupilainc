@@ -8,10 +8,11 @@ use Livewire\Attributes\On;
 use App\Models\Baremo;
 use App\Models\Especialidad;
 use App\Models\ExchangeRate;
+use App\Traits\HasDynamicLayout;
 
 class GestionBaremos extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicLayout;
 
     public $modal = false;
     public $baremo_id;
@@ -244,6 +245,7 @@ class GestionBaremos extends Component
             'con_iva' => Baremo::where('aplica_iva', true)->where('exento_iva', false)->count(),
         ];
 
-        return view('livewire.admin.baremo.gestion-baremos', compact('baremos', 'especialidades', 'tasa_usd', 'stats'));
+        return view('livewire.admin.baremo.gestion-baremos', compact('baremos', 'especialidades', 'tasa_usd', 'stats'))
+            ->layout($this->getLayout());
     }
 }

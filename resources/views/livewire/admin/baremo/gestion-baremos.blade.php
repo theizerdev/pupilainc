@@ -1,5 +1,5 @@
 <div>
-    <div class="container-fluid py-4">
+    <div class="py-4">
         <!-- Stats Cards -->
         <div class="row mb-4">
             <div class="col-xl-3 col-md-6 mb-4">

@@ -70,16 +70,29 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label for="telefono">Teléfono</label>
-                                    <input type="text" class="form-control @error('telefono') is-invalid @enderror" 
-                                           id="telefono" wire:model="telefono" placeholder="Número de contacto">
-                                    @error('telefono')
-                                        <span class="invalid-feedback">{{ $message }}</span>
-                                    @enderror
-                                </div>
+                             <div class="col-md-6">
+                              <div class="form-group mb-3">
+                                <label for="telefono" class="fw-bold">
+                                    <i class="fas fa-phone me-1"></i>Teléfono
+                                </label>
+                                <input type="tel" 
+                                    class="form-control form-control @error('telefono') is-invalid @enderror"
+                                    id="telefono" 
+                                    wire:model.blur="telefono"
+                                    wire:change="formatPhone"
+                                    placeholder="Ej: +58 412 1234567"
+                                    autocomplete="tel"
+                                    pattern="[\d\s\-\+\(\)]+"
+                                    title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                    onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
+                                @error('telefono')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                                <small class="text-muted mt-1 d-block">
+                                    <i class="fas fa-info-circle me-1"></i>Solo se permiten números y caracteres de teléfono
+                                </small>
                             </div>
+                           </div>
                         </div>
 
                         <div class="row">

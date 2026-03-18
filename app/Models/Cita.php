@@ -89,6 +89,9 @@ class Cita extends Model
         'sucursal_id',
         'created_by',
         'prioridad', // Agregado: campo de prioridad
+        'estado_preconsulta',
+        'token_preconsulta',
+        'fecha_envio_preconsulta',
     ];
 
     protected $casts = [
@@ -251,10 +254,8 @@ class Cita extends Model
         $this->save();
 
         if ($nuevoEstado === self::ESTADO_CONFIRMADA) {
-            // Crear consulta solo en la transición pendiente -> confirmada
-            if ($estadoAnterior === self::ESTADO_PENDIENTE) {
-                $this->crearConsultaSiNoExiste();
-            }
+            // Si la cita pasa a confirmada, crear consulta en sala de espera (forzar para prioridades altas/urgentes)
+            $this->crearConsultaSiNoExiste(true);
         } elseif ($nuevoEstado === self::ESTADO_PENDIENTE) {
             // Cuando vuelva a pendiente no crear ni eliminar consultas automáticamente
             // (mantener la consulta si existía por error, pero no crear nueva)
@@ -266,7 +267,7 @@ class Cita extends Model
 
 
 
-    protected function crearConsultaSiNoExiste(): void
+    protected function crearConsultaSiNoExiste(bool $force = false): void
     {
         if ($this->estado !== self::ESTADO_CONFIRMADA) {
             \Log::info('crearConsultaSiNoExiste llamada sin estado confirmada', ['cita_id' => $this->id, 'estado' => $this->estado]);
@@ -280,8 +281,8 @@ class Cita extends Model
                 return;
             }
 
-            // Solo crear consulta cuando exista confirmación activa confirmada
-            if (!\App\Models\CitaConfirmacion::where('cita_id', $this->id)
+            // Solo crear consulta cuando exista confirmación activa confirmada, excepto en force
+            if (!$force && !\App\Models\CitaConfirmacion::where('cita_id', $this->id)
                 ->where('estado', \App\Models\CitaConfirmacion::ESTADO_CONFIRMADO)
                 ->exists()) {
                 \Log::warning('No hay confirmacion confirmada, no se crea consulta', ['cita_id' => $this->id]);
@@ -295,14 +296,15 @@ class Cita extends Model
                 'especialidad_id' => $this->especialidad_id,
                 'fecha_consulta' => $this->fecha_inicio,
                 'motivo_consulta' => $this->motivo,
-                'estado' => Consulta::ESTADO_POR_LLEGAR,
+                'preconsulta' => true,
+                'estado' => Consulta::ESTADO_SALA_ESPERA,
                 'estado_changed_at' => now(),
                 'empresa_id' => $this->empresa_id,
                 'sucursal_id' => $this->sucursal_id,
                 'created_by' => auth()->id(),
             ]);
 
-            \Log::info("Consulta por_llegar creada para cita #{$this->id}");
+            \Log::info("Consulta sala_espera creada para cita #{$this->id}");
         } catch (\Throwable $e) {
             \Log::error("Error creando consulta para cita #{$this->id}: " . $e->getMessage());
         }

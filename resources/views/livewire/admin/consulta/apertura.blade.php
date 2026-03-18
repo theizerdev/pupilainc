@@ -1,5 +1,5 @@
 <div>
-    <div class="container-fluid py-4">
+    <div class="py-4">
         {{-- Encabezado --}}
         <div class="row mb-4">
             <div class="col-12">

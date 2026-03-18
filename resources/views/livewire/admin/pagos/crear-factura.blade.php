@@ -1,4 +1,4 @@
-<div class="container-fluid py-4">
+<div class="py-4">
     {{-- Mensajes flash --}}
     @if(session('error'))
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
