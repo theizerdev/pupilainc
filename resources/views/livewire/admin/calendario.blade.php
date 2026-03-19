@@ -98,65 +98,106 @@
         .cascade-arrow { text-align: center; color: #aaa; font-size: .75rem; margin: 2px 0; }
 
         .fc .fc-event {
-            border-radius: 4px !important;
-            border-left: 4px solid transparent;
-            transition: box-shadow 0.15s ease;
-            overflow: visible;
+            border-radius: 6px !important;
+            border-left: 5px solid #000 !important;
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
+            overflow: hidden;
         }
         .fc .fc-event:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
             z-index: 10;
+            transform: translateY(-1px);
         }
+        
+        /* Timegrid Event - Altura mínima 80px */
+        .fc .fc-timegrid-event {
+            min-height: 80px !important;
+            border-radius: 6px !important;
+        }
+        .fc .fc-timegrid-event .fc-event-main {
+            padding: 6px 8px !important;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            height: 100%;
+        }
+        .fc .fc-timegrid-event .fc-event-time {
+            font-size: 0.75rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .fc .fc-timegrid-event .fc-event-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.3;
+            overflow: visible;
+            white-space: normal;
+            word-break: break-word;
+        }
+        .fc .fc-timegrid-event .fc-event-subtitle {
+            font-size: 0.75rem;
+            opacity: 0.9;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: initial;
+            line-height: 1.4;
+        }
+        .fc .fc-timegrid-event .fc-event-type-badge {
+            font-size: 0.65rem !important;
+            padding: 2px 8px !important;
+            font-weight: 600;
+        }
+        
+        /* Badge de tiempo de espera */
+        .fc-event-tiempo-badge {
+            font-size: 0.65rem !important;
+            padding: 2px 6px !important;
+            font-weight: 600;
+            white-space: nowrap !important;
+        }
+        
+        /* Daygrid Event - Optimizado */
         .fc .fc-daygrid-event {
-            padding: 3px 6px !important;
-            margin-bottom: 2px !important;
+            padding: 6px 8px !important;
+            margin-bottom: 3px !important;
             line-height: 1.5;
+            min-height: 100px;
         }
         .fc .fc-daygrid-event .fc-event-time {
-            font-size: 0.8rem;
-            font-weight: 600;
+            font-size: 0.75rem;
+            font-weight: 700;
             flex-shrink: 0;
         }
         .fc .fc-daygrid-event .fc-event-title {
             font-size: 0.8rem;
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-weight: 600;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: initial !important;
+            line-height: 1.4;
+            word-break: break-word;
         }
         .fc .fc-daygrid-event .fc-event-type-badge {
-            font-size: 0.6rem !important;
-            padding: 1px 6px !important;
+            font-size: 0.65rem !important;
+            padding: 2px 6px !important;
             line-height: 1.5;
+            font-weight: 600;
         }
         .fc .fc-daygrid-event .badge {
-            font-size: 0.6rem !important;
-            padding: 1px 6px !important;
+            font-size: 0.65rem !important;
+            padding: 2px 6px !important;
+            overflow: visible !important;
+            white-space: nowrap !important;
         }
         .fc .fc-daygrid-event .fc-event-subtitle {
             font-size: 0.7rem;
-            opacity: 0.7;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            opacity: 0.85;
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: initial !important;
         }
-        .fc .fc-timegrid-event .fc-event-main {
-            padding: 2px 5px !important;
-        }
-        .fc .fc-timegrid-event .fc-event-time {
-            font-size: 0.70rem;
-            font-weight: 600;
-        }
-        .fc .fc-timegrid-event .fc-event-title {
-            font-size: 0.72rem;
-        }
-        .fc .fc-timegrid-event .fc-event-subtitle {
-            font-size: 0.65rem;
-            opacity: 0.75;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        
+        /* Lista de eventos */
         .fc .fc-list-event-title {
             font-size: 0.85rem;
         }
@@ -420,7 +461,11 @@
         /* Sidebar animation */
         .app-calendar-sidebar {
             transition: all 0.3s ease-in-out;
-            overflow: hidden;
+            width: 320px;
+            min-width: 320px;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
         }
         .app-calendar-sidebar.sidebar-hidden {
             max-width: 0 !important;
@@ -428,6 +473,51 @@
             padding: 0 !important;
             border: none !important;
             opacity: 0;
+        }
+        
+        /* Scrollable sidebar content */
+        .app-calendar-sidebar .sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #b2b2b2 #f0f0f0;
+        }
+        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #b2b2b2;
+            border-radius: 3px;
+        }
+        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+            background: #888;
+        }
+        
+        /* Responsive sidebar */
+        @media (max-width: 992px) {
+            .app-calendar-sidebar {
+                width: 280px !important;
+                min-width: 280px !important;
+                max-width: 280px !important;
+            }
+        }
+        @media (max-width: 768px) {
+            .app-calendar-sidebar {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+                position: fixed !important;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1050;
+                background: #fff;
+            }
         }
 
         /* Estilos para validación de pacientes */
@@ -517,6 +607,43 @@
             opacity: 1;
             pointer-events: all;
         }
+        
+        /* Acordeón de filtros mejorado */
+        .accordion-button.bg-transparent:not(.collapsed) {
+            background-color: rgba(13, 110, 253, 0.1) !important;
+            color: #0d6efd;
+        }
+        .accordion-button.bg-transparent:focus {
+            box-shadow: none;
+            border-color: rgba(13, 110, 253, 0.3);
+        }
+        .accordion-button::after {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230d6efd'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+        }
+        .accordion-button:not(.collapsed)::after {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230d6efd'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+        }
+        .accordion-item {
+            background-color: transparent;
+        }
+        
+        /* Botones de filtros rápidos */
+        .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+        .btn-outline-primary:active,
+        .btn-outline-primary.active {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+        
+        /* Badges de contadores */
+        .badge.rounded-pill {
+            font-size: 0.65rem;
+            padding: 0.25em 0.5em;
+        }
     </style>
     @endpush
 
@@ -524,35 +651,66 @@
         <div class="row g-0">
             <!-- Calendar Sidebar -->
             <div class="col app-calendar-sidebar border-end" id="app-calendar-sidebar">
-                <div class="px-4">
-                    <!-- Toggle Filtros Button -->
-                    <div class="d-flex justify-content-between align-items-center mb-3 mt-3">
-                        <h6 class="mb-0">Filtros</h6>
+                <!-- Toggle Filtros Button (Fixed at top) -->
+                <div class="px-4 py-3 border-bottom bg-white sticky-top" style="z-index: 10;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="ri ri-filter-3-line me-2"></i>Filtros</h6>
                         <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" id="toggleFiltros">
-                            <i class="ri ri-filter-3-line"></i>
+                            <i class="ri ri-filter-off-line"></i>
                         </button>
                     </div>
+                </div>
+                <!-- Scrollable Content -->
+                <div class="px-4 py-3 sidebar-scroll" id="filtrosScrollContainer">
 
                     <!-- Búsqueda Rápida -->
                     <div class="mb-3">
+                        <!-- Filtros Rápidos de Fecha -->
+                        <div class="d-flex gap-1 mb-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btnGoToday">
+                                <i class="ri ri-sun-line me-1"></i>Hoy
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btnGoWeek">
+                                <i class="ri ri-calendar-week-line me-1"></i>Semana
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btnGoMonth">
+                                <i class="ri ri-calendar-line me-1"></i>Mes
+                            </button>
+                        </div>
+                        
                         <!-- Inline Mini Calendar - Filtro de Fecha Principal -->
-                        <div class="mb-3">
-                            <label class="form-label fw-medium mb-2">
-                                <i class="ri ri-calendar-line me-1"></i>Seleccionar Fecha
-                            </label>
-                            <div class="inline-calendar"></div>
-                            <div id="fechaFiltroActivo" class="small mt-2" style="display: none;">
-                                <span class="badge bg-primary w-100">
-                                    <i class="ri ri-calendar-check-line me-1"></i>
-                                    <span id="fechaFiltroTexto"></span>
-                                </span>
+                        <div class="accordion" id="fechaAccordion">
+                            <div class="accordion-item border-0 bg-transparent">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fechaCollapse" aria-expanded="false">
+                                        <i class="ri ri-calendar-line me-2"></i>Seleccionar Fecha
+                                        
+                                    </button>
+                                </h2>
+                                <div id="fechaCollapse" class="accordion-collapse collapse" data-bs-parent="#fechaAccordion">
+                                    <div class="accordion-body p-0 pt-2">
+                                        <div class="inline-calendar"></div>
+                                        <div id="fechaFiltroActivo" class="small mt-2" style="display: none;">
+                                            <span class="badge bg-primary w-100">
+                                                <i class="ri ri-calendar-check-line me-1"></i>
+                                                <span id="fechaFiltroTexto"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        
                         <!-- Búsqueda por paciente -->
-                        <div class="input-group input-group-sm">
+                        <div class="input-group input-group-sm mt-2">
                             <span class="input-group-text"><i class="ri ri-search-line"></i></span>
                             <input type="text" class="form-control" id="searchPaciente" placeholder="Buscar paciente...">
                         </div>
+                        
+                        <!-- Botón limpiar filtros -->
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btnLimpiarFiltros">
+                            <i class="ri ri-close-line me-1"></i>Limpiar Filtros
+                        </button>
                     </div>
 
                     <!-- Stats -->
@@ -625,56 +783,112 @@
                     <!-- Filtros Container -->
                     <div id="filtrosContainer" style="overflow-y: auto;">
                     
-                    <!-- Filtro por Especialidad -->
-                    <div class="mb-3">
-                        <label class="form-label fw-medium mb-2">Especialidad</label>
-                        <select class="form-select form-select-sm" id="filterEspecialidad">
-                            <option value="">Todas las especialidades</option>
-                            @foreach($medicos->pluck('especialidades')->flatten()->unique('id') as $esp)
-                                <option value="{{ $esp->id }}">{{ $esp->nombre }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <hr class="mb-4 mx-n4" />
-
-                    <!-- Filtros de estados de Citas -->
-                    <div class="mb-3">
-                        <h6 class="mb-2">Estados de Citas</h6>
-                        <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-citas">
-                        @foreach($citaEstadoLabels as $value => $label)
-                            <div class="form-check mb-2 ms-2">
-                                <input class="form-check-input input-filter-cita" type="checkbox"
-                                       id="select-cita-{{ $value }}"
-                                       data-value="{{ $value }}"
-                                       checked />
-                                <label class="form-check-label d-flex align-items-center" for="select-cita-{{ $value }}">
-                                    <span class="legend-dot me-2" style="background-color: {{ ['pendiente'=>'#ffc107','confirmada'=>'#0d6efd','completada'=>'#28a745','cancelada'=>'#dc3545','no_asistio'=>'#6c757d'][$value] ?? '#78909C' }};"></span>
-                                    {{ $label }}
-                                </label>
+                    <!-- Filtro por Especialidad (Colapsable) -->
+                    <div class="accordion" id="filtrosAccordion">
+                        <!-- Filtro por Especialidad -->
+                        <div class="accordion-item border-0 bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#especialidadCollapse">
+                                    <i class="ri ri-medicine-bottle-line me-2"></i>Especialidad
+                                    <span class="badge bg-primary rounded-pill ms-2" id="especialidadCount">{{ \App\Models\Categoria::count() }}</span>
+                                    
+                                </button>
+                            </h2>
+                            <div id="especialidadCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
+                                <div class="accordion-body p-0 pt-2">
+                                    <select class="form-select form-select-sm" id="filterEspecialidad">
+                                        <option value="">Todas las especialidades</option>
+                                        @foreach($medicos->pluck('especialidades')->flatten()->unique('id') as $esp)
+                                            <option value="{{ $esp->id }}">{{ $esp->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                        @endforeach
                         </div>
-                    </div>
 
-                    <hr class="mb-4 mx-n4" />
+                        <hr class="mb-2 mx-n2" />
 
-                    <!-- Filtros de estados de Consultas -->
-                    <div class="mb-3">
-                        <h6 class="mb-2">Estados de atención en clínica</h6>
-                        <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-consultas">
-                        @foreach($consultaEstadoLabels as $value => $label)
-                            <div class="form-check mb-2 ms-2">
-                                <input class="form-check-input input-filter-consulta" type="checkbox"
-                                       id="select-consulta-{{ $value }}"
-                                       data-value="{{ $value }}"
-                                       checked />
-                                <label class="form-check-label d-flex align-items-center" for="select-consulta-{{ $value }}">
-                                    <span class="legend-dot me-2" style="background-color: {{ $consultaEstadoColores[$value] ?? '#78909C' }};"></span>
-                                    {{ $label }}
-                                </label>
+                        <!-- Filtro por Médico -->
+                        <div class="accordion-item border-0 bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#medicoCollapse">
+                                    <i class="ri ri-user-star-line me-2"></i>Médico
+                                    <span class="badge bg-secondary rounded-pill ms-2" id="medicoCount">0</span>
+                                    
+                                </button>
+                            </h2>
+                            <div id="medicoCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
+                                <div class="accordion-body p-0 pt-2">
+                                    <select class="form-select form-select-sm" id="filterMedico">
+                                        <option value="">Todos los médicos</option>
+                                        @foreach($medicos as $medico)
+                                            <option value="{{ $medico->id }}">{{ $medico->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                        @endforeach
+                        </div>
+
+                        <hr class="mb-2 mx-n2" />
+
+                        <!-- Filtros de estados de Citas -->
+                        <div class="accordion-item border-0 bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#citasCollapse">
+                                    <i class="ri ri-calendar-check-line me-2"></i>Estados de Citas
+                                    <span class="badge bg-primary rounded-pill ms-2" id="citasActivasCount">0</span>
+                                    
+                                </button>
+                            </h2>
+                            <div id="citasCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
+                                <div class="accordion-body p-0 pt-2">
+                                    <div class="app-calendar-events-filter ps-3" id="filtros-citas">
+                                    @foreach($citaEstadoLabels as $value => $label)
+                                        <div class="form-check mb-2 ms-2">
+                                            <input class="form-check-input input-filter-cita" type="checkbox"
+                                                   id="select-cita-{{ $value }}"
+                                                   data-value="{{ $value }}"
+                                                   checked />
+                                            <label class="form-check-label d-flex align-items-center" for="select-cita-{{ $value }}">
+                                                <span class="legend-dot me-2" style="background-color: {{ ['pendiente'=>'#ffc107','confirmada'=>'#0d6efd','completada'=>'#28a745','cancelada'=>'#dc3545','no_asistio'=>'#6c757d'][$value] ?? '#78909C' }};"></span>
+                                                {{ $label }}
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="mb-2 mx-n2" />
+
+                        <!-- Filtros de estados de Consultas -->
+                        <div class="accordion-item border-0 bg-transparent">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#consultasCollapse">
+                                    <i class="ri ri-stethoscope-line me-2"></i>Estados de Consultas
+                                    <span class="badge bg-primary rounded-pill ms-2" id="consultasActivasCount">0</span>
+                                    
+                                </button>
+                            </h2>
+                            <div id="consultasCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
+                                <div class="accordion-body p-0 pt-2">
+                                    <div class="app-calendar-events-filter ps-3" id="filtros-consultas">
+                                    @foreach($consultaEstadoLabels as $value => $label)
+                                        <div class="form-check mb-2 ms-2">
+                                            <input class="form-check-input input-filter-consulta" type="checkbox"
+                                                   id="select-consulta-{{ $value }}"
+                                                   data-value="{{ $value }}"
+                                                   checked />
+                                            <label class="form-check-label d-flex align-items-center" for="select-consulta-{{ $value }}">
+                                                <span class="legend-dot me-2" style="background-color: {{ $consultaEstadoColores[$value] ?? '#78909C' }};"></span>
+                                                {{ $label }}
+                                            </label>
+                                        </div>
+                                    @endforeach
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -701,19 +915,7 @@
                             <small class="text-muted">Sin médicos activos</small>
                         @endif
                     </div>
-                    
-                    <!-- Alertas de Conflictos -->
-                    <div id="conflictosAlert" class="mt-3 d-none">
-                        <div class="alert alert-warning py-2 px-3 mb-0">
-                            <div class="d-flex align-items-center">
-                                <i class="ri-alert-line me-2"></i>
-                                <div class="flex-grow-1">
-                                    <small class="fw-medium d-block">Conflictos detectados</small>
-                                    <small class="text-muted" id="conflictosCount">0 citas con conflicto de horario</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
                     </div>
                 </div>
             </div>

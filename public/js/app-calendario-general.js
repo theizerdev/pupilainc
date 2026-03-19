@@ -989,6 +989,71 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
     // ===================== SEARCH & FILTER =====================
 
+    // ===================== FILTROS RÁPIDOS DE FECHA =====================
+    var btnGoToday = document.getElementById('btnGoToday');
+    var btnGoWeek = document.getElementById('btnGoWeek');
+    var btnGoMonth = document.getElementById('btnGoMonth');
+    var btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+    var filterMedico = document.getElementById('filterMedico');
+
+    if (btnGoToday) {
+        btnGoToday.addEventListener('click', function() {
+            calendar.gotoDate(new Date());
+            calendar.changeView('timeGridDay');
+        });
+    }
+
+    if (btnGoWeek) {
+        btnGoWeek.addEventListener('click', function() {
+            calendar.gotoDate(new Date());
+            calendar.changeView('timeGridWeek');
+        });
+    }
+
+    if (btnGoMonth) {
+        btnGoMonth.addEventListener('click', function() {
+            calendar.gotoDate(new Date());
+            calendar.changeView('dayGridMonth');
+        });
+    }
+
+    // Botón limpiar filtros
+    if (btnLimpiarFiltros) {
+        btnLimpiarFiltros.addEventListener('click', function() {
+            // Limpiar búsqueda de paciente
+            if (searchPaciente) searchPaciente.value = '';
+            searchTerm = '';
+
+            // Limpiar filtros de especialidad
+            if (filterEspecialidad) filterEspecialidad.value = '';
+            selectedEspecialidadFilter = null;
+
+            // Limpiar filtro de médico
+            if (filterMedico) filterMedico.value = '';
+            selectedMedicoFilter = null;
+
+            // Deseleccionar médicos en la lista
+            if (medicosContainer) {
+                medicosContainer.querySelectorAll('.medico-item').forEach(function(el) {
+                    el.classList.remove('active');
+                });
+            }
+
+            // Restaurar todos los checkboxes de estados
+            if (filterInputsCita) {
+                filterInputsCita.forEach(function(cb) { cb.checked = true; });
+            }
+            if (filterInputsConsulta) {
+                filterInputsConsulta.forEach(function(cb) { cb.checked = true; });
+            }
+
+            // Limpiar prefetch cache y recargar
+            prefetchCache = {};
+            showLoading();
+            calendar.refetchEvents();
+        });
+    }
+
     // ===================== SEARCH PACIENTE =====================
     if (searchPaciente) {
         let searchTimeout;
@@ -1012,6 +1077,78 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         });
     }
 
+    // Filtro por médico
+    if (filterMedico) {
+        filterMedico.addEventListener('change', function() {
+            selectedMedicoFilter = filterMedico.value || null;
+            // También sincronizar con la lista de médicos
+            if (medicosContainer) {
+                medicosContainer.querySelectorAll('.medico-item').forEach(function(el) {
+                    if (selectedMedicoFilter && el.dataset.medicoId === selectedMedicoFilter) {
+                        el.classList.add('active');
+                    } else {
+                        el.classList.remove('active');
+                    }
+                });
+            }
+            prefetchCache = {};
+            showLoading();
+            calendar.refetchEvents();
+        });
+    }
+
+    // ===================== ACTUALIZAR CONTADORES DE ACORDEONES =====================
+    function updateAccordionCounts() {
+        // Contador de especialidad
+        var espCount = document.getElementById('especialidadCount');
+        if (espCount) {
+            espCount.textContent = selectedEspecialidadFilter ? '1' : '0';
+        }
+
+        // Contador de médico
+        var medCount = document.getElementById('medicoCount');
+        if (medCount) {
+            medCount.textContent = selectedMedicoFilter ? '1' : '0';
+        }
+
+        // Contador de citas activas
+        var citasCount = document.getElementById('citasActivasCount');
+        if (citasCount && filterInputsCita) {
+            var checkedCitas = filterInputsCita.filter(function(cb) { return cb.checked; }).length;
+            var totalCitas = filterInputsCita.length;
+            citasCount.textContent = checkedCitas + '/' + totalCitas;
+        }
+
+        // Contador de consultas activas
+        var consultasCount = document.getElementById('consultasActivasCount');
+        if (consultasCount && filterInputsConsulta) {
+            var checkedConsultas = filterInputsConsulta.filter(function(cb) { return cb.checked; }).length;
+            var totalConsultas = filterInputsConsulta.length;
+            consultasCount.textContent = checkedConsultas + '/' + totalConsultas;
+        }
+    }
+
+    // Actualizar contadores cuando cambien los filtros
+    if (filterInputsCita) {
+        filterInputsCita.forEach(function(cb) {
+            cb.addEventListener('change', updateAccordionCounts);
+        });
+    }
+    if (filterInputsConsulta) {
+        filterInputsConsulta.forEach(function(cb) {
+            cb.addEventListener('change', updateAccordionCounts);
+        });
+    }
+    if (filterEspecialidad) {
+        filterEspecialidad.addEventListener('change', updateAccordionCounts);
+    }
+    if (filterMedico) {
+        filterMedico.addEventListener('change', updateAccordionCounts);
+    }
+
+    // Inicializar contadores
+    updateAccordionCounts();
+
     // ===================== TIEMPO EN ESTADO =====================
     function formatTiempoEstado(isoDate) {
         if (!isoDate) return '';
@@ -1032,8 +1169,25 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // ===================== EVENT RENDERING =====================
     function getEventColor(event) {
         var ep = event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', estado = ep.calendar||ep.estado||'';
-        if(tipoEvento==='consulta') return consultaColores[estado]||'#78909C';
-        return citaCalendarColors[estado]||'#ffc107';
+        // Colores sólidos con buen contraste WCAG 2.1 (contraste mínimo 4.5:1 con blanco)
+        var estadoColores = {
+            pendiente: '#E65100',    // Naranja oscuro
+            confirmada: '#0D47A1',   // Azul oscuro
+            completada: '#1B5E20',  // Verde oscuro
+            cancelada: '#B71C1C',   // Rojo oscuro
+            no_asistio: '#37474F'    // Gris azulado oscuro
+        };
+        if(tipoEvento==='consulta') {
+            var consultaColoresMapeo = {
+                'en_sala': '#1B5E20',
+                'en_atencion': '#0D47A1',
+                'atendido': '#004D40',
+                'cancelada': '#B71C1C',
+                'no_asistio': '#37474F'
+            };
+            return consultaColoresMapeo[estado] || '#455A64';
+        }
+        return estadoColores[estado] || '#455A64';
     }
 
     // ===================== LIVEWIRE COMPONENT =====================
@@ -1132,14 +1286,20 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var typeBadge = '<span class="fc-event-type-badge" style="background:' + typeBadgeColor + ';color:#fff;">' + typeLabel + '</span>';
 
             // Edad
-            var edadHtml = ep.edad ? '<span style="font-size:0.6rem;opacity:0.7;"> · ' + ep.edad + '</span>' : '';
+            var edadHtml = ep.edad ? '<span style="font-size:0.7rem;opacity:0.9;"> · ' + ep.edad + '</span>' : '';
 
-            // Tiempo en estado (solo consultas)
+            // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
-            if (!isCita && ep.estado_changed_at) {
-                var tiempoEstado = formatTiempoEstado(ep.estado_changed_at);
-                if (tiempoEstado) {
-                    tiempoBadge = '<span style="background:rgba(0,0,0,0.08);color:#555;border-radius:4px;padding:1px 5px;font-size:65%;margin-left:4px;" title="Tiempo en estado actual"><i class="ri ri-time-line" style="font-size:0.6rem;vertical-align:middle;margin-right:2px;"></i>' + tiempoEstado + '</span>';
+            if (!isCita) {
+                // Estados activos: sala_espera, en_enfermeria, en_consultorio, en_gotas, en_optica, en_estudio
+                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'en_optica', 'en_estudio'];
+                var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
+                
+                if (esEstadoActivo && ep.estado_changed_at) {
+                    var te = formatTiempoEstado(ep.estado_changed_at);
+                    if (te) {
+                        tiempoBadge = '<span class="fc-event-tiempo-badge" style="background:#E64A19;color:#fff;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ri-time-line me-1"></i>' + te + '</span>';
+                    }
                 }
             }
 
@@ -1177,14 +1337,27 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         eventDidMount: function(info) {
             var ep = info.event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
             if(isCita) info.el.classList.add('event-cita'); else info.el.classList.add('event-consulta');
-            var bgHex = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#0d6efd' : '#6f42c1');
-            info.el.style.backgroundColor = hexToRgba(bgHex, 0.12);
-            info.el.style.borderTopColor = hexToRgba(bgHex, 0.25);
-            info.el.style.borderRightColor = hexToRgba(bgHex, 0.25);
-            info.el.style.borderBottomColor = hexToRgba(bgHex, 0.25);
-            var stateHex = getEventColor(info.event);
-            info.el.style.borderLeftColor = stateHex || bgHex;
-            info.el.style.borderLeftWidth = '4px';
+            
+            // Colores sólidos para mejor contraste WCAG 2.1
+            var tipoColor = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#1565C0' : '#7B1FA2');
+            var estadoColor = getEventColor(info.event);
+            
+            // Fondo sólido con opacidad reducida para no sobrecargar
+            info.el.style.backgroundColor = tipoColor;
+            info.el.style.opacity = '0.9';
+            
+            // Bordes sólidos
+            info.el.style.borderTopColor = tipoColor;
+            info.el.style.borderRightColor = tipoColor;
+            info.el.style.borderBottomColor = tipoColor;
+            
+            // Borde izquierdo con color de estado para distinguir
+            info.el.style.borderLeftColor = estadoColor || tipoColor;
+            info.el.style.borderLeftWidth = '5px';
+            
+            // Texto oscuro para contraste suficiente
+            info.el.style.color = '#fff';
+            
             info.el.addEventListener('mouseenter',function(){showTooltip(info);});
             info.el.addEventListener('mouseleave',removeTooltip);
         },
