@@ -157,16 +157,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .event-consulta-relacionada {
-            border-style: dashed !important;
-            opacity: 0.9 !important;
-            filter: brightness(0.95);
-        }
-        .event-cita-con-consulta {
-            border-left-color: #6f42c1 !important;
-            border-left-width: 4px !important;
-            border-left-style: solid !important;
-        }
         .fc .fc-list-event-title {
             font-size: 0.85rem;
         }
@@ -333,14 +323,64 @@
         .fc .fc-event.event-consulta {
             border-left-color: #6f42c1 !important;
         }
-        .fc .fc-event.event-prioridad-alta {
-            box-shadow: 0 0 0 1px #ffc107, 0 1px 8px rgba(255,193,7,0.4);
-            z-index: 999;
+
+        /* Day Events Modal Styles */
+        .day-events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-        .fc .fc-event.event-prioridad-urgente {
-            box-shadow: 0 0 0 1px #dc3545, 0 1px 10px rgba(220,53,69,0.55);
-            z-index: 1000;
-            border-left-width: 5px !important;
+        .day-event-item {
+            border-radius: 8px;
+            padding: 12px 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .day-event-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .day-event-time {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .day-event-patient {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 4px;
+        }
+        .day-event-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .day-event-meta i {
+            opacity: 0.6;
+        }
+        .day-event-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .day-events-stats {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .day-events-stats .col-6 {
+            position: relative;
+        }
+        .day-events-stats .col-6:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 70%;
+            width: 1px;
+            background: #dee2e6;
         }
 
         /* Floating toggles */
@@ -457,91 +497,7 @@
             pointer-events: all;
         }
 
-        /* Perfect Scrollbar para TODO el sidebar de filtros */
-        .app-calendar-sidebar {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .app-calendar-sidebar > .px-4 {
-            max-height: calc(100vh - 120px);
-            overflow-y: auto;
-            padding-right: 15px;
-            position: relative;
-        }
-        
-        .app-calendar-sidebar > .px-4.ps--active-y {
-            padding-right: 20px;
-        }
-        
-        .ps__rail-y {
-            right: 0 !important;
-            left: auto !important;
-            width: 6px !important;
-            background-color: transparent !important;
-        }
-        
-        .ps__thumb-y {
-            width: 6px !important;
-            background-color: rgba(var(--bs-primary-rgb), 0.3) !important;
-            border-radius: 3px !important;
-            right: 2px !important;
-        }
-        
-        .ps__thumb-y:hover {
-            background-color: rgba(var(--bs-primary-rgb), 0.5) !important;
-        }
-        
-        .ps__thumb-y:focus,
-        .ps__thumb-y:active {
-            background-color: rgba(var(--bs-primary-rgb), 0.7) !important;
-        }
-
-        /* Botón Ir a hora actual */
-        .fc-button-goToNow {
-            background-color: #e3f2fd !important;
-            border-color: #90caf9 !important;
-            color: #1976d2 !important;
-            font-weight: 600 !important;
-            transition: all 0.2s ease !important;
-        }
-        
-        .fc-button-goToNow:hover {
-            background-color: #bbdefb !important;
-            border-color: #64b5f6 !important;
-            color: #1565c0 !important;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3) !important;
-        }
-        
-        .fc-button-goToNow:active {
-            transform: translateY(0) !important;
-            box-shadow: 0 1px 4px rgba(25, 118, 210, 0.2) !important;
-        }
-
         /* Loading overlay */
-        /* Mejorar visibilidad del indicador de hora actual */
-        .fc .fc-timegrid-now-indicator-line {
-            border-color: #dc3545 !important;
-            border-width: 2px 0 0 !important;
-            z-index: 999 !important;
-        }
-        
-        .fc .fc-timegrid-now-indicator-arrow {
-            border-top-color: #dc3545 !important;
-            z-index: 999 !important;
-        }
-        
-        .fc .fc-timegrid-now-indicator-container {
-            z-index: 999 !important;
-        }
-        
-        /* Destacar eje de tiempo actual */
-        .fc .fc-timegrid-axis.fc-timegrid-now {
-            color: #dc3545 !important;
-            font-weight: 700 !important;
-        }
-
         .calendar-loading {
             position: absolute;
             top: 0;
@@ -579,6 +535,20 @@
 
                     <!-- Búsqueda Rápida -->
                     <div class="mb-3">
+                        <!-- Inline Mini Calendar - Filtro de Fecha Principal -->
+                        <div class="mb-3">
+                            <label class="form-label fw-medium mb-2">
+                                <i class="ri ri-calendar-line me-1"></i>Seleccionar Fecha
+                            </label>
+                            <div class="inline-calendar"></div>
+                            <div id="fechaFiltroActivo" class="small mt-2" style="display: none;">
+                                <span class="badge bg-primary w-100">
+                                    <i class="ri ri-calendar-check-line me-1"></i>
+                                    <span id="fechaFiltroTexto"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <!-- Búsqueda por paciente -->
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="ri ri-search-line"></i></span>
                             <input type="text" class="form-control" id="searchPaciente" placeholder="Buscar paciente...">
@@ -648,8 +618,7 @@
                         </div>
                     </div>
 
-                    <!-- Inline Mini Calendar -->
-                    <div class="inline-calendar mb-3"></div>
+                    
 
                     <hr class="mb-4 mx-n4 mt-3" />
 
@@ -665,36 +634,6 @@
                                 <option value="{{ $esp->id }}">{{ $esp->nombre }}</option>
                             @endforeach
                         </select>
-                    </div>
-
-                    <hr class="mb-4 mx-n4" />
-
-                    <!-- Filtros de prioridad -->
-                    <div class="mb-3">
-                        <h6 class="mb-2">Prioridad de Citas</h6>
-                        <div class="app-calendar-events-filter ps-3 mb-3" id="filtros-prioridad">
-                            <div class="form-check mb-2 ms-2">
-                                <input class="form-check-input input-filter-prioridad" type="checkbox" id="select-prioridad-normal" data-value="normal" checked />
-                                <label class="form-check-label d-flex align-items-center" for="select-prioridad-normal">
-                                    <span class="legend-dot me-2" style="background-color: #78909C;"></span>
-                                    Normal
-                                </label>
-                            </div>
-                            <div class="form-check mb-2 ms-2">
-                                <input class="form-check-input input-filter-prioridad" type="checkbox" id="select-prioridad-alta" data-value="alta" checked />
-                                <label class="form-check-label d-flex align-items-center" for="select-prioridad-alta">
-                                    <span class="legend-dot me-2" style="background-color: #ffc107;"></span>
-                                    Alta
-                                </label>
-                            </div>
-                            <div class="form-check mb-2 ms-2">
-                                <input class="form-check-input input-filter-prioridad" type="checkbox" id="select-prioridad-urgente" data-value="urgente" checked />
-                                <label class="form-check-label d-flex align-items-center" for="select-prioridad-urgente">
-                                    <span class="legend-dot me-2" style="background-color: #dc3545;"></span>
-                                    Urgente
-                                </label>
-                            </div>
-                        </div>
                     </div>
 
                     <hr class="mb-4 mx-n4" />
@@ -876,13 +815,6 @@
                                 <div id="slotsList" class="slots-container"></div>
                             </div>
 
-                            <!-- 6b. Hora manual para prioridad Alta/Urgente -->
-                            <div id="manualTimeContainer" class="mb-5" style="display:none;">
-                                <label class="form-label fw-medium mb-2">Hora (prioridad Alta/Urgente)</label>
-                                <input type="time" id="eventManualTime" class="form-control" />
-                                <small class="text-muted">Ingrese hora manual (minutos exactos) cuando el sistema no use slots automáticos.</small>
-                            </div>
-
                             <!-- Hidden: fecha_inicio / fecha_fin -->
                             <div class="form-control-validation d-none">
                                 <input type="hidden" id="eventStartDate" name="eventStartDate" />
@@ -906,16 +838,6 @@
                             <div class="form-floating form-floating-outline mb-5 form-control-validation">
                                 <input type="text" class="form-control" id="eventMotivo" name="eventMotivo" placeholder="Motivo de la cita" />
                                 <label for="eventMotivo">Motivo</label>
-                            </div>
-
-                            <!-- Prioridad -->
-                            <div class="form-floating form-floating-outline mb-5">
-                                <select class="select2 form-select" id="eventPrioridad" name="eventPrioridad">
-                                    <option value="normal" selected>Normal</option>
-                                    <option value="alta">Alta</option>
-                                    <option value="urgente">Urgente</option>
-                                </select>
-                                <label for="eventPrioridad">Prioridad</label>
                             </div>
 
                             <!-- Estado -->
@@ -1066,6 +988,9 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal: Ver más eventos del día -->
+       
     </div>
 
     @push('scripts')
@@ -1078,42 +1003,6 @@
     <script src="/materialize/assets/vendor/libs/select2/select2.js"></script>
     <script src="/materialize/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
     <script src="{{ asset('js/app-calendario-general.js') }}"></script>
-    @endpush
-
-    @push('scripts')
-    <script>
-        document.addEventListener('livewire:init', () => {
-            // Inicializar Perfect Scrollbar en el sidebar de filtros
-            setTimeout(function() {
-                const sidebarContainer = document.querySelector('.app-calendar-sidebar > .px-4');
-                if (sidebarContainer && typeof PerfectScrollbar !== 'undefined') {
-                    new PerfectScrollbar(sidebarContainer, {
-                        wheelPropagation: false,
-                        suppressScrollX: true
-                    });
-                }
-            }, 500);
-            
-            // Actualizar Perfect Scrollbar cuando cambie el contenido
-            const observer = new MutationObserver(function() {
-                const sidebarContainer = document.querySelector('.app-calendar-sidebar > .px-4');
-                if (sidebarContainer) {
-                    const psInstance = sidebarContainer.ps;
-                    if (psInstance) {
-                        psInstance.update();
-                    }
-                }
-            });
-            
-            const sidebarContent = document.querySelector('.app-calendar-sidebar > .px-4');
-            if (sidebarContent) {
-                observer.observe(sidebarContent, { 
-                    childList: true, 
-                    subtree: true 
-                });
-            }
-        });
-    </script>
     @endpush
 
     @push('scripts')

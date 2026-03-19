@@ -45,6 +45,16 @@ class Pais extends Model
         return $this->hasMany(Empresa::class, 'pais_id');
     }
 
+    public function exchangeRates()
+    {
+        return $this->hasMany(ExchangeRate::class, 'pais_id');
+    }
+
+    public function exchangeRateConfig()
+    {
+        return $this->hasOne(ExchangeRateConfig::class);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

@@ -167,20 +167,30 @@ if (!function_exists('money')) {
 
 if (!function_exists('is_venezuela_company')) {
     /**
-     * Verificar si la empresa actual es de Venezuela
-     *
-     * @return bool
+     * Verificar si la empresa actual requiere tasa de cambio (ej: Venezuela)
      */
     function is_venezuela_company()
     {
         $config = get_regional_config();
-        return isset($config['currency']) && $config['currency'] === 'VES';
+        
+        // Verificar si usa moneda VES (Venezuela)
+        if (isset($config['currency']) && $config['currency'] === 'VES') {
+            return true;
+        }
+        
+        // Verificar si hay configuración de tasas de cambio activa
+        $exchangeConfig = \App\Models\ExchangeRateConfig::getCurrentConfig();
+        if ($exchangeConfig && $exchangeConfig->requiere_tasa_cambio) {
+            return true;
+        }
+        
+        return false;
     }
 }
 
 if (!function_exists('format_dual_currency')) {
     /**
-     * Formatear monto en doble moneda para Venezuela (USD y Bs.)
+     * Formatear monto en doble moneda según configuración del país
      *
      * @param float $amount Monto en USD (moneda base del sistema)
      * @param bool $showBoth Mostrar ambas monedas
@@ -191,35 +201,55 @@ if (!function_exists('format_dual_currency')) {
         $amountValue = (float) $amount;
         $config = get_regional_config();
         
-        if (is_venezuela_company()) {
-            // Para Venezuela, siempre mostrar USD como principal
-            $usdFormatted = '$' . number_format($amountValue, 2, '.', ',');
+        // Obtener configuración de tasas de cambio
+        $exchangeConfig = \App\Models\ExchangeRateConfig::getCurrentConfig();
+        
+        // Verificar si requiere tasa de cambio
+        if ($exchangeConfig && $exchangeConfig->requiere_tasa_cambio && $exchangeConfig->activo) {
+            // País con tasa de cambio dinámica
             
-            if (!$showBoth) {
-                return $usdFormatted;
+            // Obtener tasa
+            $exchangeRate = null;
+            
+            // Si usa tasa fija
+            if ($exchangeConfig->getFixedRate()) {
+                $exchangeRate = $exchangeConfig->getFixedRate();
+            } else {
+                // Si no, obtener de la base de datos
+                $exchangeRate = \App\Models\ExchangeRate::getLatestRate('USD', $exchangeConfig->pais_id);
             }
+            
+            if ($exchangeRate) {
+                $bsAmount = $amountValue * $exchangeRate;
+                
+                // Obtener símbolo de moneda local
+                $pais = $exchangeConfig->pais;
+                $localSymbol = $pais?->simbolo_moneda ?? 'Bs.';
+                
+                // Formatear USD
+                $usdFormatted = '$' . format_money($amountValue, 2, '.', ',');
+                
+                if (!$showBoth) {
+                    return $usdFormatted;
+                }
+                
+                // Formatear moneda local
+                $localFormatted = $localSymbol . ' ' . format_money($bsAmount, 2, ',', '.');
+                
+                return $usdFormatted . ' / ' . $localFormatted;
+            }
+            
+            // Si no hay tasa, solo mostrar USD
+            return '$' . format_money($amountValue, 2, '.', ',');
         } else {
-            // Para otros países, usar su configuración regional
+            // País sin tasa de cambio - usar configuración regional normal
             $symbol = $config['currency_symbol'] ?? '$';
             $decimals = $config['decimals'] ?? 2;
             $decimalSep = $config['decimal_separator'] ?? '.';
             $thousandSep = $config['thousand_separator'] ?? ',';
             
-            return $symbol . number_format($amountValue, $decimals, $decimalSep, $thousandSep);
+            return $symbol . format_money($amountValue, $decimals, $decimalSep, $thousandSep);
         }
-
-        // Para Venezuela con doble moneda
-        
-        // Obtener tasa de cambio actual
-        $exchangeRate = \App\Models\ExchangeRate::getLatestRate('USD');
-        
-        if ($exchangeRate) {
-            $bsAmount = $amountValue * $exchangeRate;
-            $bsFormatted = '$. ' . number_format($bsAmount, 2, ',', '.');
-            return $usdFormatted . ' / ' . $bsFormatted;
-        }
-        
-        return $usdFormatted;
     }
 }
 

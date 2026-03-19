@@ -15,11 +15,19 @@ trait HasDualCurrency
     }
 
     /**
-     * Obtener la tasa de cambio actual
+     * Obtener la tasa de cambio actual para el país configurado
      */
     public function getCurrentExchangeRate(): ?float
     {
-        return ExchangeRate::getLatestRate('USD');
+        $config = ExchangeRateConfig::getCurrentConfig();
+        
+        // Si usa tasa fija, retornarla
+        if ($config && $config->getFixedRate()) {
+            return $config->getFixedRate();
+        }
+        
+        // Si no, obtener de la base de datos
+        return ExchangeRate::getLatestRate('USD', $config?->pais_id);
     }
 
     /**

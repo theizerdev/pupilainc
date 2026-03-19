@@ -14,6 +14,7 @@ class ExchangeRate extends Model
     use LogsActivity, HasSpanishActivityLog, FiscalAuditable;
 
     protected $fillable = [
+        'pais_id',
         'date',
         'usd_rate',
         'eur_rate',
@@ -30,18 +31,70 @@ class ExchangeRate extends Model
         'eur_rate' => 'decimal:4'
     ];
 
-    public static function getLatestRate($currency = 'USD')
+    public function pais()
     {
+        return $this->belongsTo(Pais::class);
+    }
+
+    public function config()
+    {
+        return $this->belongsTo(ExchangeRateConfig::class, 'pais_id');
+    }
+
+    /**
+     * Obtener la tasa más reciente para una moneda y país específicos
+     */
+    public static function getLatestRate($currency = 'USD', $paisId = null)
+    {
+        // Si no se proporciona país, usar el del usuario actual
+        if (!$paisId) {
+            $config = ExchangeRateConfig::getCurrentConfig();
+            $paisId = $config?->pais_id;
+        }
+
         $column = strtolower($currency) . '_rate';
-        return self::whereDate('date', today())
-            ->whereNotNull($column)
+        
+        $query = self::whereDate('date', today());
+        
+        if ($paisId) {
+            $query->where('pais_id', $paisId);
+        }
+        
+        return $query->whereNotNull($column)
             ->latest('fetch_time')
             ->value($column);
     }
 
-    public static function getTodayRate()
+    /**
+     * Obtener la tasa de hoy para un país específico
+     */
+    public static function getTodayRate($paisId = null)
     {
-        return self::whereDate('date', today())->first();
+        if (!$paisId) {
+            $config = ExchangeRateConfig::getCurrentConfig();
+            $paisId = $config?->pais_id;
+        }
+
+        $query = self::whereDate('date', today());
+        
+        if ($paisId) {
+            $query->where('pais_id', $paisId);
+        }
+        
+        return $query->first();
+    }
+
+    /**
+     * Scope para filtrar por país
+     */
+    public function scopeForPais($query, $paisId = null)
+    {
+        if (!$paisId) {
+            $config = ExchangeRateConfig::getCurrentConfig();
+            $paisId = $config?->pais_id;
+        }
+        
+        return $query->where('pais_id', $paisId);
     }
 
     public function getActivitylogOptions(): LogOptions

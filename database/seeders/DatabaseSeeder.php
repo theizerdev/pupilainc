@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             // Nuevo sistema de roles y permisos por sectores
             SectorRolesAndPermissionsSeeder::class,
             PaisSeeder::class, // Agregar países antes que empresas
+            ExchangeRateConfigSeeder::class, // Configuración de tasas de cambio por país
             EmpresaSeeder::class,
             SucursalSeeder::class,
             ConsultoriosSeeder::class,

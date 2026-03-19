@@ -18,7 +18,6 @@ use App\Traits\HasDynamicLayout;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 
 class Calendario extends Component
 {
@@ -40,7 +39,6 @@ class Calendario extends Component
     public $notas = '';
     public $estado = 'pendiente';
     public $tipo_consulta_id = '';
-    public $prioridad = Cita::PRIORIDAD_NORMAL;
 
     public $filtroEstados = [];
 
@@ -95,7 +93,6 @@ class Calendario extends Component
             'motivo' => 'required|string|max:255',
             'notas' => 'nullable|string|max:1000',
             'estado' => 'required|in:' . implode(',', Cita::ESTADOS),
-            'prioridad' => 'required|in:' . implode(',', Cita::PRIORIDADES),
             'tipo_consulta_id' => 'nullable|exists:tipo_consultas,id',
         ];
     }
@@ -199,7 +196,6 @@ class Calendario extends Component
                 'motivo' => $consulta->motivo_consulta,
                 'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
                 'estado_changed_at' => $consulta->estado_changed_at ? $consulta->estado_changed_at->format('Y-m-d H:i:s') : null,
-                'cita_id' => $consulta->cita_id,
             ],
         ];
     }
@@ -482,7 +478,6 @@ class Calendario extends Component
             $this->notas = $eventData['notas'] ?? $this->notas;
             $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
             $this->estado = $eventData['estado'] ?? $this->estado;
-            $this->prioridad = $eventData['prioridad'] ?? $this->prioridad;
             
         }
 
@@ -497,41 +492,6 @@ class Calendario extends Component
                 'type' => 'warning',
                 'title' => 'Fecha no permitida',
                 'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
-                'icon' => 'warning'
-            ]);
-            return;
-        }
-
-        // Prioridad alta/urgente solo para el día en curso
-        if (in_array($this->prioridad, [Cita::PRIORIDAD_ALTA, Cita::PRIORIDAD_URGENTE])) {
-            if (!$inicio->isSameDay(now())) {
-                $this->dispatch('show-alert', [
-                    'type' => 'warning',
-                    'title' => 'Prioridad no permitida',
-                    'message' => 'Citas de prioridad alta o urgente deben ser del día en curso.',
-                    'icon' => 'warning'
-                ]);
-                return;
-            }
-        }
-
-        // Restricción extra para prioridades alta/urgente: solo hoy
-        if (in_array($this->prioridad, [Cita::PRIORIDAD_ALTA, Cita::PRIORIDAD_URGENTE]) && $inicio->gt(Carbon::today()->endOfDay())) {
-            $this->dispatch('show-alert', [
-                'type' => 'warning',
-                'title' => 'Cita prioritaria solo hoy',
-                'message' => 'Las citas de prioridad Alta o Urgente solo se pueden agendar para el día de hoy.',
-                'icon' => 'warning'
-            ]);
-            return;
-        }
-
-        // Prioridad media/urgente solo puede agendarse en el mismo día actual
-        if (in_array($this->prioridad, [Cita::PRIORIDAD_ALTA, Cita::PRIORIDAD_URGENTE]) && $inicio->gt(now()->endOfDay())) {
-            $this->dispatch('show-alert', [
-                'type' => 'warning',
-                'title' => 'Prioridad no permitida',
-                'message' => 'Las citas de prioridad alta o urgente solo pueden ser programadas para el día en curso.',
                 'icon' => 'warning'
             ]);
             return;
@@ -557,11 +517,6 @@ class Calendario extends Component
             ]);
         }
 
-        // Prioridad define auto-confirmación en altas/urgentes según regla solicitada
-        if (in_array($this->prioridad, [Cita::PRIORIDAD_ALTA, Cita::PRIORIDAD_URGENTE])) {
-            $this->estado = Cita::ESTADO_CONFIRMADA;
-        }
-
         $data = [
             'paciente_id' => $this->paciente_id,
             'especialidad_id' => $this->especialidad_id ?: null,
@@ -573,7 +528,6 @@ class Calendario extends Component
             'notas' => $this->notas,
             'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
             'estado' => $this->estado ?: null,
-            'prioridad' => $this->prioridad ?: Cita::PRIORIDAD_NORMAL,
         ];
 
         if ($this->citaId) {
@@ -590,19 +544,9 @@ class Calendario extends Component
                 $this->notificarCambioEstado($cita, $estadoAnterior);
             }
 
-            // Si esta cita quedó confirmada después de editar, forzar creación de consulta y preconsulta token
-            if ($this->estado === Cita::ESTADO_CONFIRMADA) {
-                $cita->cambiarEstado(Cita::ESTADO_CONFIRMADA);
-
-                if (!$cita->token_preconsulta) {
-                    $token = Str::random(32);
-                    $cita->update([
-                        'token_preconsulta' => $token,
-                        'estado_preconsulta' => 'enviado',
-                        'fecha_envio_preconsulta' => now(),
-                    ]);
-                }
-            }
+             if ($estadoAnterior !== $this->estado) {
+                $cita->cambiarEstado($this->estado);
+             }
 
             if ($fechaAnterior !== $cita->fecha_inicio->toDateTimeString()) {
                 // Reprogramar recordatorios si cambió la fecha
@@ -622,20 +566,6 @@ class Calendario extends Component
             $cita->fill($data);
         
             $cita->save();
-
-            // Si tiene prioridad alta/urgente o el estado cambió a confirmada, forzar transicion y generar preconsulta token
-            if ($cita->estado === Cita::ESTADO_CONFIRMADA || in_array($cita->prioridad, [Cita::PRIORIDAD_ALTA, Cita::PRIORIDAD_URGENTE])) {
-                $cita->cambiarEstado(Cita::ESTADO_CONFIRMADA);
-
-                if (!$cita->token_preconsulta) {
-                    $token = Str::random(32);
-                    $cita->update([
-                        'token_preconsulta' => $token,
-                        'estado_preconsulta' => 'enviado',
-                        'fecha_envio_preconsulta' => now(),
-                    ]);
-                }
-            }
 
             // Log de auditoría para creación
             $this->logCitaAction('create', $cita);
@@ -739,12 +669,6 @@ class Calendario extends Component
             'fecha_fin' => $fin,
         ]);
         $this->logCitaAction('reschedule', $cita, $oldData);
-
-        // Sincronizar consulta asociada si existe
-        $consulta = Consulta::withoutGlobalScopes()->where('cita_id', $cita->id)->first();
-        if ($consulta) {
-            $consulta->update(['fecha_consulta' => $inicio]);
-        }
 
         $this->reprogramarRecordatorios($cita);
 
@@ -901,7 +825,7 @@ class Calendario extends Component
 
     public function cambiarEstado($citaId, $nuevoEstado)
     {
-     
+        dd($nuevoEstado);
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);

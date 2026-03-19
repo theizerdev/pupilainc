@@ -24,6 +24,8 @@ use App\Livewire\Admin\Users\Edit as UsersEdit;
 use App\Livewire\Admin\Users\Index as UsersIndex;
 use App\Livewire\Dashboard;
 use Illuminate\Support\Facades\Route;
+use App\Livewire\Admin\ExchangeRates;
+use App\Livewire\Admin\ExchangeRateConfig\Index as ExchangeRateConfigIndex;
 
 // Recepción
 Route::prefix('recepcion')->name('recepcion.')->group(function () {
@@ -161,8 +163,8 @@ Route::prefix('monitoreo')->as('monitoreo.')->group(function () {
 });
 
 // Tasas de Cambio
-Route::get('/tasas-cambio', \App\Livewire\Admin\ExchangeRates::class)->name('exchange-rates')->middleware('checkAdminPermission:view exchange-rates');
-
+Route::get('/tasas-cambio', ExchangeRates::class)->name('exchange-rates')->middleware('checkAdminPermission:view exchange-rates');
+Route::get('/tasas-cambio/configuracion', ExchangeRateConfigIndex::class)->name('exchange-rate-config.index')->middleware('checkAdminPermission:edit exchange-rates');
 
 // Pagos/Facturación
 Route::middleware(['checkAdminPermission:access pagos'])->group(function () {

@@ -10,6 +10,9 @@
                             <p class="mb-0 text-muted">Banco Central de Venezuela - Actualización automática</p>
                         </div>
                         <div class="d-flex gap-2 align-items-center">
+                            <a href="{{ route('admin.exchange-rate-config.index') }}" class="btn btn-outline-secondary">
+                                <i class="ri ri-settings-3-line me-1"></i>Configuración por País
+                            </a>
                             <div class="text-end me-3">
                                 <small class="text-muted d-block">Última actualización: {{ $lastUpdate }}</small>
                                 <small class="text-muted">Horarios: 10:00 AM y 2:00 PM</small>

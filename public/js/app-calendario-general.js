@@ -10,7 +10,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if (document.getElementById('fc-now-indicator-style')) return;
         var s = document.createElement('style');
         s.id = 'fc-now-indicator-style';
-        s.textContent = '.fc .fc-timegrid-now-indicator-line{border-color:#d00;border-width:2px 0 0;z-index:999 !important;}.fc .fc-timegrid-now-indicator-arrow{border-top-color:#d00;z-index:999 !important;}.fc .fc-timegrid-now-indicator-container{z-index:999 !important;}';
+        s.textContent = '.fc .fc-timegrid-now-indicator-line{border-color:#d00;border-width:2px 0 0}.fc .fc-timegrid-now-indicator-arrow{border-top-color:#d00}';
         document.head.appendChild(s);
     })();
 
@@ -24,10 +24,8 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     const toggleConsultas = document.getElementById('toggleConsultas');
     const filtrosCitas = document.getElementById('filtros-citas');
     const filtrosConsultas = document.getElementById('filtros-consultas');
-    const filtrosPrioridad = document.getElementById('filtros-prioridad');
     const filterInputsCita = Array.from(document.querySelectorAll('.input-filter-cita'));
     const filterInputsConsulta = Array.from(document.querySelectorAll('.input-filter-consulta'));
-    const filterInputsPrioridad = Array.from(document.querySelectorAll('.input-filter-prioridad'));
     const medicosContainer = document.getElementById('medicos-calendario');
     const detailSidebar = document.getElementById('calendarioDetailSidebar');
     const filtrosContainer = document.getElementById('filtrosContainer');
@@ -61,9 +59,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     const eventMedico = $('#eventMedico');
     const eventEstado = $('#eventEstado');
     const eventTipoConsulta = $('#eventTipoConsulta');
-    const eventPrioridad = $('#eventPrioridad');
-    const eventManualTime = document.getElementById('eventManualTime');
-    const manualTimeContainer = document.getElementById('manualTimeContainer');
     const eventFecha = document.getElementById('eventFecha');
     const subespecialidadContainer = document.getElementById('subespecialidadContainer');
     const slotsContainer = document.getElementById('slotsContainer');
@@ -91,7 +86,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     let fechaFlatpickr = null;
     let currentSlotDuration = 30;
     var prefetchCache = {};
-    
+    var currentCitaId = null;
 
     let searchTerm = '';
     let selectedEspecialidadFilter = null;
@@ -756,87 +751,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if (level <= 5) { if(slotsContainer) slotsContainer.style.display='none'; if(slotsList) slotsList.innerHTML=''; if(slotsMessage){slotsMessage.classList.add('d-none');slotsMessage.textContent='';} if(eventStartDate) eventStartDate.value=''; if(eventEndDate) eventEndDate.value=''; }
     }
 
-    function updatePriorityMode() {
-        var prioridad = eventPrioridad && eventPrioridad.val ? eventPrioridad.val() : 'normal';
-        var isPrioritaria = prioridad === 'alta' || prioridad === 'urgente';
-        var selectedFecha = eventFecha ? eventFecha.value : null;
-        var esHoy = false;
-        if (selectedFecha) {
-            var sel = new Date(selectedFecha);
-            var hoy = new Date();
-            esHoy = sel.toDateString() === hoy.toDateString();
-        }
-
-        if (isPrioritaria && !esHoy) {
-            if (slotsMessage) {
-                slotsMessage.textContent = 'Las citas de prioridad alta/urgente solo pueden crearse para el día actual.';
-                slotsMessage.classList.remove('d-none');
-                slotsMessage.classList.remove('alert-warning');
-                slotsMessage.classList.add('alert-danger');
-            }
-            if (manualTimeContainer) manualTimeContainer.style.display = 'none';
-            if (slotsList) Array.from(slotsList.querySelectorAll('.slot-btn')).forEach(function(button){ button.disabled = true; });
-            return;
-        }
-
-        if (manualTimeContainer) manualTimeContainer.style.display = isPrioritaria ? '' : 'none';
-        if (slotsContainer && slotsMessage) {
-            if (isPrioritaria) {
-                slotsMessage.textContent = 'Horario limitado: seleccione manualmente la hora para prioridad ' + prioridad + '. Los slots se mantienen visibles, pero inactivos.';
-                slotsMessage.classList.remove('d-none');
-                slotsMessage.classList.remove('alert-warning');
-                slotsMessage.classList.add('alert-info');
-            } else {
-                if (slotsMessage.classList.contains('alert-info')) {
-                    slotsMessage.classList.add('d-none');
-                    slotsMessage.classList.remove('alert-info');
-                    slotsMessage.classList.add('alert-warning');
-                }
-            }
-        }
-
-        // Deshabilitar los botones de slots si prioridad alta/urgente
-        if (slotsList) {
-            Array.from(slotsList.querySelectorAll('.slot-btn')).forEach(function(button) {
-                if (isPrioritaria) {
-                    button.disabled = true;
-                    button.classList.remove('btn-outline-primary');
-                    button.classList.remove('selected');
-                    button.classList.remove('btn-primary');
-                    button.classList.add('btn-outline-secondary');
-                } else {
-                    if (button.classList.contains('ocupado')) {
-                        button.disabled = true;
-                    } else {
-                        button.disabled = false;
-                        button.classList.add('btn-outline-primary');
-                        button.classList.remove('btn-outline-secondary');
-                    }
-                }
-            });
-        }
-    }
-
-    function setManualStartEndFromManualTime() {
-        if (!eventFecha || !eventManualTime || !eventStartDate || !eventEndDate) return;
-        var date = eventFecha.value;
-        var time = eventManualTime.value;
-        if (!date || !time) return;
-
-        var startDateTime = new Date(date + 'T' + time + ':00');
-        if (isNaN(startDateTime.getTime())) return;
-
-        var duration = currentSlotDuration || 30;
-        var endDateTime = new Date(startDateTime.getTime() + duration * 60000);
-
-        var pad = function(num){ return String(num).padStart(2,'0'); };
-        var startFormatted = date + ' ' + time + ':00';
-        var endFormatted = endDateTime.getFullYear() + '-' + pad(endDateTime.getMonth()+1) + '-' + pad(endDateTime.getDate()) + ' ' + pad(endDateTime.getHours()) + ':' + pad(endDateTime.getMinutes()) + ':00';
-
-        eventStartDate.value = startFormatted;
-        eventEndDate.value = endFormatted;
-    }
-
     function loadSlots(medicoId, dateStr, selectStartFull) {
         if (!medicoId || !dateStr) return;
         var comp = getLivewireComponent(); if(!comp) return;
@@ -864,10 +778,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 slotsList.appendChild(btn);
             });
-            if (!matched && !selectStartFull && result.primer_disponible && !(eventPrioridad && (eventPrioridad.val() === 'alta' || eventPrioridad.val() === 'urgente'))) {
-                var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)'); if(firstAvailable) firstAvailable.click();
-            }
-            updatePriorityMode();
+            if (!matched && !selectStartFull && result.primer_disponible) { var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)'); if(firstAvailable) firstAvailable.click(); }
         });
     }
 
@@ -914,32 +825,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     if (eventMedico.length) {
         eventMedico.on('change', function() { var medicoId=eventMedico.val(); resetCascadeFrom(5); var currentDate=eventFecha?eventFecha.value:null; if(currentDate&&medicoId) loadSlots(medicoId,currentDate); });
     }
-
-    // Prioridad -> actualiza modo manual/slots
-    if (eventPrioridad.length) {
-        eventPrioridad.on('change', function() {
-            updatePriorityMode();
-            setManualStartEndFromManualTime();
-            var medicoId = eventMedico.val();
-            var currentDate = eventFecha ? eventFecha.value : null;
-            if (currentDate && medicoId) loadSlots(medicoId, currentDate);
-        });
-    }
-
-    // Modo de hora manual para prioridad alta/urgente
-    if (eventManualTime) {
-        eventManualTime.addEventListener('change', function() {
-            setManualStartEndFromManualTime();
-        });
-    }
-
     // Fecha flatpickr
     if (eventFecha) {
         fechaFlatpickr = flatpickr(eventFecha, {
-            dateFormat: 'Y-m-d',
-            minDate: 'today',
-            locale: (typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.es) ? 'es' : 'default',
-            onChange: function(selectedDates, dateStr) { if(!dateStr){resetCascadeFrom(6);return;} var medicoId=eventMedico.val(); if(!medicoId) return; loadSlots(medicoId, dateStr); setManualStartEndFromManualTime(); }
+            dateFormat: 'Y-m-d', minDate: 'today', static: true,
+            locale: typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.es ? 'es' : 'default',
+            onChange: function(selectedDates, dateStr) { if(!dateStr){resetCascadeFrom(6);return;} var medicoId=eventMedico.val(); if(!medicoId) return; loadSlots(medicoId, dateStr); }
         });
     }
 
@@ -973,7 +864,28 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         updatePriorityMode();
         if(eventManualTime) eventManualTime.value='';
         if(eventTipoConsulta.length) eventTipoConsulta.val('').trigger('change.select2');
-        resetCascadeFrom(2); eventToUpdate = null;
+        resetCascadeFrom(2);
+        // No limpiar eventToUpdate aquí - se necesita para edición
+    }
+
+    function closeAndResetForm() {
+        resetValues();
+        eventToUpdate = null;
+        currentCitaId = null;
+        // Restaurar botón a modo "Agregar"
+        if (btnSubmit) { 
+            btnSubmit.innerHTML = '<i class="ri ri-add-line me-1"></i> Agregar'; 
+            btnSubmit.classList.remove('btn-update-event'); 
+            btnSubmit.classList.add('btn-add-event'); 
+        }
+        // Ocultar botones de acciones de cita
+        if(btnSendReminder) btnSendReminder.classList.add('d-none');
+        if(btnConfirmEvent) btnConfirmEvent.classList.add('d-none');
+        if(btnCancelCita) btnCancelCita.classList.add('d-none');
+        if(btnReagendar) btnReagendar.classList.add('d-none');
+        if(btnReagendarAuto) btnReagendarAuto.classList.add('d-none');
+        // Cambiar título a "Nueva Cita"
+        if(offcanvasTitle) offcanvasTitle.innerHTML = 'Nueva Cita';
     }
 
     function getCitaId(eventId) {
@@ -983,17 +895,17 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
     // ===================== CITA EVENT CLICK =====================
     function citaEventClick(info) {
-        eventToUpdate = info.event;
         info.jsEvent.preventDefault();
+        
+        // Guardar datos del evento ANTES de cualquier manipulación
+        eventToUpdate = info.event;
+        currentCitaId = getCitaId(info.event.id);
+        
         if (bsAddEventSidebar) bsAddEventSidebar.show();
         if (offcanvasTitle) offcanvasTitle.innerHTML = 'Editar Cita';
         if (btnSubmit) { btnSubmit.innerHTML = '<i class="ri ri-save-line me-1"></i> Actualizar'; btnSubmit.classList.add('btn-update-event'); btnSubmit.classList.remove('btn-add-event'); }
         
         if (btnSendReminder) btnSendReminder.classList.remove('d-none');
-
-        // Create extra buttons if needed
-       
-
         if(btnConfirmEvent) btnConfirmEvent.classList.remove('d-none');
         if(btnCancelCita) btnCancelCita.classList.remove('d-none');
         if(btnReagendar) btnReagendar.classList.remove('d-none');
@@ -1003,17 +915,9 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if(eventMotivo) eventMotivo.value = ep.motivo || ep.descripcion || '';
         if(eventNotas) eventNotas.value = ep.notas || '';
         if(eventEstado.length) eventEstado.val(ep.estado || 'pendiente').trigger('change');
-        if(eventPrioridad.length) eventPrioridad.val(ep.prioridad || 'normal').trigger('change');
-        updatePriorityMode();
         if(eventTipoConsulta.length) eventTipoConsulta.val(ep.tipo_consulta_id || '').trigger('change.select2');
         if(eventStartDate) eventStartDate.value = formatDateForLivewire(eventToUpdate.start);
         if(eventEndDate) eventEndDate.value = eventToUpdate.end ? formatDateForLivewire(eventToUpdate.end) : formatDateForLivewire(eventToUpdate.start);
-        if(eventManualTime && eventToUpdate.start) {
-            var d = eventToUpdate.start;
-            var hh = String(d.getHours()).padStart(2,'0');
-            var mm = String(d.getMinutes()).padStart(2,'0');
-            eventManualTime.value = hh + ':' + mm;
-        }
 
         var eventDate = eventToUpdate.start;
         var dateOnly = eventDate.getFullYear()+'-'+String(eventDate.getMonth()+1).padStart(2,'0')+'-'+String(eventDate.getDate()).padStart(2,'0');
@@ -1080,11 +984,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var consultasEnabled = toggleConsultas ? toggleConsultas.checked : true;
         var citaStates = citasEnabled ? filterInputsCita.filter(function(c){return c.checked;}).map(function(c){return c.dataset.value;}) : [];
         var consultaStates = consultasEnabled ? filterInputsConsulta.filter(function(c){return c.checked;}).map(function(c){return c.dataset.value;}) : [];
-        var prioridades = filterInputsPrioridad ? filterInputsPrioridad.filter(function(c){return c.checked;}).map(function(c){return c.dataset.value;}) : [];
-        return { citaStates: citaStates, consultaStates: consultaStates, prioridades: prioridades, citasEnabled: citasEnabled, consultasEnabled: consultasEnabled };
+        return { citaStates: citaStates, consultaStates: consultaStates, citasEnabled: citasEnabled, consultasEnabled: consultasEnabled };
     }
 
     // ===================== SEARCH & FILTER =====================
+
+    // ===================== SEARCH PACIENTE =====================
     if (searchPaciente) {
         let searchTimeout;
         searchPaciente.addEventListener('input', function() {
@@ -1128,7 +1033,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     function getEventColor(event) {
         var ep = event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', estado = ep.calendar||ep.estado||'';
         if(tipoEvento==='consulta') return consultaColores[estado]||'#78909C';
-        if(ep.prioridad_color) return ep.prioridad_color;
         return citaCalendarColors[estado]||'#ffc107';
     }
 
@@ -1170,12 +1074,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var ep=ev.extendedProps||{},tipoEvento=ep.tipo_evento||'cita',estado=ep.calendar||ep.estado||'',visible=false;
             if(tipoEvento==='cita'&&filters.citasEnabled) visible=filters.citaStates.indexOf(estado)!==-1;
             else if(tipoEvento==='consulta'&&filters.consultasEnabled) visible=filters.consultaStates.indexOf(estado)!==-1;
-            if(visible&&tipoEvento==='cita'&&filters.prioridades&&filters.prioridades.length){
-                var prioridad = ep.prioridad || 'normal';
-                if(filters.prioridades.indexOf(prioridad) === -1){
-                    visible = false;
-                }
-            }
             if(visible&&selectedMedicoFilter){var medicoId=ep.medico_id;if(medicoId&&String(medicoId)!==String(selectedMedicoFilter)) visible=false;}
             if(visible&&searchTerm){var paciente=(ep.paciente||'').toLowerCase();var nickname=(ep.nickname||'').toLowerCase();if(paciente.indexOf(searchTerm)===-1&&nickname.indexOf(searchTerm)===-1) visible=false;}
             if(visible&&selectedEspecialidadFilter){var especialidadId=ep.especialidad_id;if(especialidadId&&String(especialidadId)!==String(selectedEspecialidadFilter)) visible=false;}
@@ -1191,97 +1089,21 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         locale: 'es',
         firstDay: 1,
         nowIndicator: true,
-        eventOrder: 'tipo_evento,priority,-start',
-        dayMaxEvents: 4,
-        slotMinTime: '08:00:00',
-        slotMaxTime: '23:00:00',
+        dayMaxEvents: 1,
+        eventMaxStack: 1,
+        moreLinkClick: function(info) {
+            info.jsEvent.preventDefault();
+            showDayEventsModal(info.date, info.allSegs);
+        },
+        slotMinTime: '06:00:00',
+        slotMaxTime: '22:00:00',
         scrollTime: '07:00:00',
-        slotLabelFormat: {
-            hour: 'numeric',
-            minute: '2-digit',
-            meridiem: 'short',
-            hour12: true,
-            omitZeroMinute: true
-        },
-        datesSet: function(arg){
-            var today = new Date();
-            var viewDate = new Date(arg.start);
-            var currentHour = today.getHours();
-
-            if (arg.view.type === 'timeGridDay') {
-                // Mantener siempre el mismo rango horario completo (08:00 - 23:00)
-                calendar.setOption('slotMinTime', '08:00:00');
-                calendar.setOption('slotMaxTime', '24:00:00');
-                
-                // Solo hacer scroll a la hora actual si es el día de hoy
-                if (viewDate.toDateString() === today.toDateString()) {
-                    var scrollHour = currentHour < 8 ? 8 : currentHour;
-                    calendar.setOption('scrollTime', (scrollHour < 10 ? '0' + scrollHour : scrollHour) + ':00:00');
-                    calendar.setOption('nowIndicator', true);
-                } else {
-                    calendar.setOption('scrollTime', '09:00:00');
-                    calendar.setOption('nowIndicator', false);
-                }
-            } else if (arg.view.type === 'timeGridWeek') {
-                // Para vista semanal, también usar formato AM/PM y rango 08:00 - 23:00
-                calendar.setOption('slotMinTime', '08:00:00');
-                calendar.setOption('slotMaxTime', '24:00:00');
-                calendar.setOption('scrollTime', '09:00:00');
-                calendar.setOption('nowIndicator', true);
-            } else {
-                // Para otras vistas (mes, lista), mantener valores por defecto
-                calendar.setOption('slotMinTime', '08:00:00');
-                calendar.setOption('slotMaxTime', '23:00:00');
-                calendar.setOption('scrollTime', '09:00:00');
-                calendar.setOption('nowIndicator', false);
-            }
-        },
         contentHeight: 'auto',
         expandRows: false,
         editable: true,
         eventResizableFromStart: true,
-        customButtons: { 
-            sidebarToggle: { text: 'Menú' },
-            goToNow: { text: '⏰ Ahora', click: function() {
-                var today = new Date();
-                var view = calendar.getView();
-                
-                // Solo funcionar en vista diaria
-                if (view.type === 'timeGridDay') {
-                    var currentHour = today.getHours();
-                    var scrollHour = currentHour < 8 ? 8 : currentHour;
-                    var scrollTime = (scrollHour < 10 ? '0' + scrollHour : scrollHour) + ':00:00';
-                    
-                    // Actualizar scrollTime
-                    calendar.setOption('scrollTime', scrollTime);
-                    
-                    // Forzar re-render para aplicar el scroll
-                    calendar.changeView('timeGridDay', calendar.getDate());
-                    
-                    // Mostrar mensaje temporal
-                    if (window.Swal) {
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'info',
-                            title: 'Mostrando hora actual',
-                            showConfirmButton: false,
-                            timer: 2000
-                        });
-                    }
-                } else {
-                    // Cambiar a vista diaria primero
-                    calendar.changeView('timeGridDay', today);
-                    setTimeout(function() {
-                        var hour = today.getHours();
-                        var h = hour < 8 ? 8 : hour;
-                        calendar.setOption('scrollTime', (h < 10 ? '0' + h : h) + ':00:00');
-                        calendar.changeView('timeGridDay', today);
-                    }, 100);
-                }
-            }}
-        },
-        headerToolbar: { start: 'sidebarToggle, prev,next, title, goToNow', end: 'timeGridDay,timeGridWeek,dayGridMonth,listMonth' },
+        customButtons: { sidebarToggle: { text: 'Menú' } },
+        headerToolbar: { start: 'sidebarToggle, prev,next, title', end: 'timeGridDay,timeGridWeek,dayGridMonth,listMonth' },
         buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
         direction: document.documentElement.getAttribute('dir')==='rtl'?'rtl':'ltr',
         initialDate: new Date(),
@@ -1303,13 +1125,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var estadoLabel = ep.estado_label || ep.estadoLabel || ep.estado || '';
             var estadoColor = getEventColor(arg.event);
             var estadoBadge = '<span class="badge rounded-pill" style="background:' + estadoColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;white-space:nowrap;">' + estadoLabel + '</span>';
-
-            // Prioridad badge (solo para citas)
-            var prioridadBadge = '';
-            if (isCita && ep.prioridad_label) {
-                var prioridadColor = ep.prioridad_color || '#78909C';
-                prioridadBadge = '<span class="badge rounded-pill" style="background:' + prioridadColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;white-space:nowrap;">' + ep.prioridad_label + '</span>';
-            }
 
             // Type badge (CITA vs CONSULTA)
             var typeBadgeColor = isCita ? '#0d6efd' : '#6f42c1';
@@ -1335,14 +1150,14 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                         '<span class="fc-event-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + pacienteNombre + '</span>' +
                     '</div>' +
                     '<div class="fc-event-subtitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dr(a). ' + medicoNombre + edadHtml + '</div>' +
-                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + prioridadBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
                 html = '<div class="fc-event-main-frame" style="width:100%;">' +
                     '<div class="fc-event-title-container">' +
                         '<div class="fc-event-title">' + nombreCompleto + '</div>' +
                         '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + edadHtml + '</div>' +
-                        '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + prioridadBadge + estadoBadge + tiempoBadge + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + estadoBadge + tiempoBadge + '</div>' +
                     '</div>' +
                 '</div>';
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
@@ -1351,7 +1166,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                         '<div class="fc-event-title">' + nombreCompleto + '</div>' +
                         '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                     '</div>' +
-                    '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + typeBadge + prioridadBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + typeBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else {
                 return { html: '<div>' + arg.event.title + '</div>' };
@@ -1361,54 +1176,15 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         },
         eventDidMount: function(info) {
             var ep = info.event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
-            if(isCita) {
-                info.el.classList.add('event-cita');
-                info.el.style.zIndex = 2;
-            } else {
-                info.el.classList.add('event-consulta');
-            }
-
-            if (isCita && ep.prioridad === 'urgente') {
-                info.el.classList.add('event-prioridad-urgente');
-            } else if (isCita && ep.prioridad === 'alta') {
-                info.el.classList.add('event-prioridad-alta');
-            }
-
-            if (isCita) {
-                var citaId = getCitaId(info.event.id);
-                var consultaEvent = citaId ? calendar.getEventById('consulta_' + citaId) : null;
-                if (consultaEvent) {
-                    info.el.style.borderLeftColor = '#6f42c1';
-                    info.el.style.borderLeftWidth = '4px';
-                    info.el.style.borderLeftStyle = 'solid';
-                    info.el.classList.add('event-cita-con-consulta');
-                }
-            }
-
-            if (!isCita && ep.cita_id) {
-                var citaEvent = calendar.getEventById('cita_' + ep.cita_id);
-                if (citaEvent && citaEvent.start && info.event.start && citaEvent.start.getTime() === info.event.start.getTime()) {
-                    info.el.classList.add('event-consulta-relacionada');
-                    info.el.style.opacity = '0.85';
-                    info.el.style.borderStyle = 'dashed';
-                    info.el.style.borderColor = '#6f42c1';
-                    info.el.style.zIndex = 1;
-                }
-            }
-
-            var isConsulta = !isCita;
-            var bgHex = ep.tipo_consulta_color || (isConsulta ? '#6f42c1' : '#0d6efd');
-            info.el.style.backgroundColor = bgHex;
-            info.el.style.color = '#fff';
-            info.el.style.borderTopColor = bgHex;
-            info.el.style.borderRightColor = bgHex;
-            info.el.style.borderBottomColor = bgHex;
-            info.el.style.borderLeftColor = bgHex;
+            if(isCita) info.el.classList.add('event-cita'); else info.el.classList.add('event-consulta');
+            var bgHex = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#0d6efd' : '#6f42c1');
+            info.el.style.backgroundColor = hexToRgba(bgHex, 0.12);
+            info.el.style.borderTopColor = hexToRgba(bgHex, 0.25);
+            info.el.style.borderRightColor = hexToRgba(bgHex, 0.25);
+            info.el.style.borderBottomColor = hexToRgba(bgHex, 0.25);
+            var stateHex = getEventColor(info.event);
+            info.el.style.borderLeftColor = stateHex || bgHex;
             info.el.style.borderLeftWidth = '4px';
-            if (!isConsulta) {
-                var stateHex = getEventColor(info.event);
-                info.el.style.borderLeftColor = stateHex || bgHex;
-            }
             info.el.addEventListener('mouseenter',function(){showTooltip(info);});
             info.el.addEventListener('mouseleave',removeTooltip);
         },
@@ -1416,7 +1192,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var clickedDate = info.date || new Date(info.dateStr);
             if(isPastDateTime(clickedDate)){showPastAlert();return;}
             var dateOnly = info.dateStr.substring(0,10);
+            
+            // Limpiar estado de edición anterior
+            currentCitaId = null;
+            eventToUpdate = null;
             resetValues();
+            
             if(bsAddEventSidebar) bsAddEventSidebar.show();
             if(offcanvasTitle) offcanvasTitle.innerHTML='Nueva Cita';
             if(btnSubmit){btnSubmit.innerHTML='<i class="ri ri-add-line me-1"></i> Agregar';btnSubmit.classList.remove('btn-update-event');btnSubmit.classList.add('btn-add-event');}
@@ -1446,16 +1227,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 newEnd = new Date(newStart.getTime() + durMs);
             }
             if(!newEnd) newEnd = newStart;
-
-            // Mover consulta asociada en la UI (si está visible) para mejorar UX inmediata
-            var citaId = getCitaId(info.event.id);
-            var consultaEvent = calendar.getEventById('consulta_' + citaId);
-            if (consultaEvent) {
-                consultaEvent.setStart(newStart);
-                consultaEvent.setEnd(new Date(newStart.getTime() + 30 * 60000));
-            }
-
-            comp.call('updateCitaFechas', citaId, formatDateForLivewire(newStart), formatDateForLivewire(newEnd));
+            comp.call('updateCitaFechas', getCitaId(info.event.id), formatDateForLivewire(newStart), formatDateForLivewire(newEnd));
         },
         eventResize: function(info) {
             var ep = info.event.extendedProps||{};
@@ -1470,6 +1242,151 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     calendar.render();
     modifyToggler();
     createToggleButton();
+
+    // ===================== DAY EVENTS MODAL =====================
+    function showDayEventsModal(date, allSegs) {
+        var modalEl = document.getElementById('dayEventsModal');
+        var modalTitle = document.getElementById('dayEventsModalTitle');
+        var modalBody = document.getElementById('dayEventsModalBody');
+        
+        if (!modalEl || !modalTitle || !modalBody) {
+            console.warn('Day events modal elements not found');
+            return;
+        }
+        
+        // Si no hay allSegs, intentar obtener eventos del día desde calendar
+        if (!allSegs || allSegs.length === 0) {
+            console.warn('No events to show in modal');
+            modalBody.innerHTML = '<div class="text-center text-muted py-4"><i class="ri-calendar-line" style="font-size: 3rem;"></i><p class="mt-2">No hay eventos para mostrar</p></div>';
+            var bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+            return;
+        }
+        
+        // Formatear fecha para el título
+        var fechaFormateada = moment(date).format('dddd, D [de] MMMM [de] YYYY');
+        fechaFormateada = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
+        modalTitle.textContent = 'Eventos del ' + fechaFormateada;
+        
+        // Ordenar eventos por hora de inicio
+        var eventosOrdenados = allSegs.sort(function(a, b) {
+            var timeA = a.event && a.event.start ? a.event.start.getTime() : 0;
+            var timeB = b.event && b.event.start ? b.event.start.getTime() : 0;
+            return timeA - timeB;
+        });
+        
+        // Generar HTML de eventos
+        var html = '<div class="day-events-list">';
+        var citasCount = 0;
+        var consultasCount = 0;
+        
+        eventosOrdenados.forEach(function(seg) {
+            var event = seg.event;
+            var ep = event.extendedProps || {};
+            var tipoEvento = ep.tipo_evento || 'cita';
+            var isCita = tipoEvento === 'cita';
+            
+            if (isCita) citasCount++;
+            else consultasCount++;
+            
+            var estadoColor = isCita ? (citaCalendarColors[ep.estado] || '#78909C') : (consultaColores[ep.estado] || '#78909C');
+            var estadoLabel = ep.estado_label || ep.estadoLabel || ep.estado || '';
+            var typeBadgeColor = isCita ? '#0d6efd' : '#6f42c1';
+            var typeLabel = isCita ? 'CITA' : 'CONSULTA';
+            
+            var pacienteNombre = ep.paciente || event.title || '';
+            var nickname = ep.nickname || '';
+            var nombreCompleto = nickname ? '(' + nickname + ') ' + pacienteNombre : pacienteNombre;
+            
+            var horaInicio = event.start ? moment(event.start).format('HH:mm') : '--:--';
+            var horaFin = event.end ? moment(event.end).format('HH:mm') : '';
+            var horarioStr = horaFin ? horaInicio + ' - ' + horaFin : 'Desde ' + horaInicio;
+            
+            var bgStyle = '';
+            if (isCita && ep.tipo_consulta_color) {
+                bgStyle = 'background: linear-gradient(135deg, ' + hexToRgba(ep.tipo_consulta_color, 0.15) + ' 0%, ' + hexToRgba(estadoColor, 0.1) + ' 100%);';
+            } else {
+                bgStyle = 'background: linear-gradient(135deg, ' + hexToRgba(typeBadgeColor, 0.15) + ' 0%, ' + hexToRgba(estadoColor, 0.1) + ' 100%);';
+            }
+            
+            html += '<div class="day-event-item ' + (isCita ? 'event-cita' : 'event-consulta') + '" data-event-id="' + event.id + '" style="' + bgStyle + 'border-left: 4px solid ' + estadoColor + ';">';
+            html += '<div class="d-flex justify-content-between align-items-start mb-2">';
+            html += '<div class="d-flex align-items-center gap-2">';
+            html += '<span class="badge" style="background:' + typeBadgeColor + ';color:#fff;font-size:0.65rem;">' + typeLabel + '</span>';
+            html += '<span class="badge" style="background:' + estadoColor + ';color:#fff;font-size:0.65rem;">' + estadoLabel + '</span>';
+            if (!isCita && ep.tiempo_espera_formateado && ep.tiempo_espera_formateado !== 'No en sala de espera') {
+                html += '<span class="badge bg-secondary" style="font-size:0.6rem;"><i class="ri-time-line me-1"></i>' + ep.tiempo_espera_formateado + '</span>';
+            }
+            html += '</div>';
+            html += '<span class="day-event-time">' + horarioStr + '</span>';
+            html += '</div>';
+            html += '<h6 class="day-event-patient mb-1">' + nombreCompleto + '</h6>';
+            html += '<div class="day-event-meta text-muted small">';
+            html += '<div><i class="ri-stethoscope-line me-1"></i>Dr(a). ' + (ep.medico || 'Sin médico asignado') + '</div>';
+            if (ep.especialidad) html += '<div><i class="ri-medicine-bottle-line me-1"></i>' + ep.especialidad + '</div>';
+            if (ep.motivo || ep.descripcion) html += '<div class="text-truncate"><i class="ri-file-text-line me-1"></i>' + (ep.motivo || ep.descripcion) + '</div>';
+            html += '</div>';
+            html += '<div class="day-event-actions mt-2 pt-2 border-top">';
+            html += '<button type="button" class="btn btn-sm btn-primary ver-evento-btn" data-event-id="' + event.id + '"><i class="ri-eye-line me-1"></i>Ver Detalle</button>';
+            if (isCita) {
+                html += '<button type="button" class="btn btn-sm btn-outline-primary editar-evento-btn ms-1" data-event-id="' + event.id + '"><i class="ri-edit-line me-1"></i>Editar</button>';
+            }
+            html += '</div>';
+            html += '</div>';
+        });
+        
+        html += '</div>';
+        
+        // Agregar estadísticas
+        var statsHtml = '<div class="day-events-stats mb-3 p-2 rounded bg-light">';
+        statsHtml += '<div class="row text-center">';
+        statsHtml += '<div class="col-6"><div class="fw-medium">' + citasCount + '</div><div class="small text-muted">Citas</div></div>';
+        statsHtml += '<div class="col-6"><div class="fw-medium">' + consultasCount + '</div><div class="small text-muted">Consultas</div></div>';
+        statsHtml += '</div></div>';
+        
+        modalBody.innerHTML = statsHtml + html;
+        
+        // Agregar eventos a los botones
+        modalBody.querySelectorAll('.ver-evento-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var eventId = this.getAttribute('data-event-id');
+                var event = findEventById(eventId, eventosOrdenados);
+                if (event) {
+                    var bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
+                    setTimeout(function() { showEventDetail(event); }, 300);
+                }
+            });
+        });
+        
+        modalBody.querySelectorAll('.editar-evento-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var eventId = this.getAttribute('data-event-id');
+                var event = findEventById(eventId, eventosOrdenados);
+                if (event) {
+                    var bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
+                    setTimeout(function() { 
+                        var info = { event: event, jsEvent: { preventDefault: function() {} } };
+                        citaEventClick(info); 
+                    }, 300);
+                }
+            });
+        });
+        
+        // Mostrar modal
+        var bsModal = new bootstrap.Modal(modalEl);
+        bsModal.show();
+    }
+    
+    function findEventById(eventId, segs) {
+        for (var i = 0; i < segs.length; i++) {
+            if (segs[i].event && segs[i].event.id == eventId) {
+                return segs[i].event;
+            }
+        }
+        return null;
+    }
 
     // ===================== EVENT DETAIL OFFCANVAS (consultas) =====================
     function showEventDetail(event) {
@@ -1493,11 +1410,25 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
 
     // ===================== INLINE MINI CALENDAR =====================
+    var inlineFechaFiltroActivo = document.getElementById('fechaFiltroActivo');
+    var inlineFechaFiltroTexto = document.getElementById('fechaFiltroTexto');
+    
     if (inlineCalendar) {
-        inlineCalInstance = flatpickr(inlineCalendar, {
-            inline:true,
-            locale: (typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.es) ? 'es' : 'default',
-            onChange:function(selectedDates){if(selectedDates.length) calendar.gotoDate(selectedDates[0]);}
+        inlineCalInstance = flatpickr(inlineCalendar, { 
+            inline: true, 
+            locale: 'es',
+            defaultDate: 'today',
+            onChange: function(selectedDates, dateStr) {
+                if (selectedDates.length) {
+                    calendar.gotoDate(selectedDates[0]);
+                    // Mostrar badge de fecha seleccionada
+                    if (inlineFechaFiltroActivo) {
+                        inlineFechaFiltroActivo.style.display = 'block';
+                        var fechaFormateada = moment(selectedDates[0]).format('dddd, D [de] MMMM YYYY');
+                        inlineFechaFiltroTexto.textContent = fechaFormateada;
+                    }
+                }
+            }
         });
     }
 
@@ -1515,7 +1446,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     if(toggleConsultas){toggleConsultas.addEventListener('change',function(){filtrosConsultas.style.display=this.checked?'':'none';prefetchCache={};calendar.refetchEvents();});}
     filterInputsCita.forEach(function(input){input.addEventListener('change',function(){prefetchCache={};calendar.refetchEvents();});});
     filterInputsConsulta.forEach(function(input){input.addEventListener('change',function(){prefetchCache={};calendar.refetchEvents();});});
-    filterInputsPrioridad.forEach(function(input){input.addEventListener('change',function(){prefetchCache={};calendar.refetchEvents();});});
 
     // ===================== MEDICO FILTER =====================
     if(medicosContainer){
@@ -1555,10 +1485,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         btnSubmit.addEventListener('click', function() {
             if (!isFormValid) return;
             var isNewCita = btnSubmit.classList.contains('btn-add-event');
-            if (eventPrioridad && eventPrioridad.val && ['alta','urgente'].includes(eventPrioridad.val()) && eventManualTime && eventManualTime.value) {
-                setManualStartEndFromManualTime();
-            }
-
             var eventData = {
                 paciente_id: eventPaciente.val(),
                 especialidad_id: selectedEspecialidadId,
@@ -1569,24 +1495,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 motivo: eventMotivo ? eventMotivo.value : '',
                 notas: eventNotas ? eventNotas.value : '',
                 estado: isNewCita ? 'pendiente' : (eventEstado.val() || 'pendiente'),
-                prioridad: eventPrioridad.val() || 'normal',
                 tipo_consulta_id: eventTipoConsulta.val() || ''
             };
-
-            var prioridad = eventPrioridad.val() || 'normal';
-            if ((prioridad === 'alta' || prioridad === 'urgente') && eventFecha && eventManualTime && eventManualTime.value) {
-                var startManual = eventFecha.value + ' ' + eventManualTime.value + ':00';
-                var parsed = new Date(startManual.replace(' ', 'T'));
-                if (!isNaN(parsed.getTime())) {
-                    var startTime = formatDateForLivewire(parsed);
-                    var endTime = formatDateForLivewire(new Date(parsed.getTime() + 30 * 60000));
-                    eventData.start = startTime;
-                    eventData.end = endTime;
-                }
-            }
             var comp = getLivewireComponent(); if(!comp) return;
-            if (btnSubmit.classList.contains('btn-update-event') && eventToUpdate) {
-                comp.set('citaId', getCitaId(eventToUpdate.id));
+            if (btnSubmit.classList.contains('btn-update-event') && currentCitaId) {
+                comp.set('citaId', currentCitaId);
             }
             comp.call('saveCita', eventData);
             if(bsAddEventSidebar) bsAddEventSidebar.hide();
@@ -1618,7 +1531,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
 
     // ===================== OFFCANVAS HIDDEN =====================
-    if(addEventSidebar){addEventSidebar.addEventListener('hidden.bs.offcanvas',function(){resetValues();});}
+    if(addEventSidebar){addEventSidebar.addEventListener('hidden.bs.offcanvas',function(){closeAndResetForm();});}
 
     // ===================== LIVEWIRE LISTENERS =====================
     if(typeof Livewire!=='undefined'){Livewire.on('calendario-updated',function(){prefetchCache={};calendar.refetchEvents();});}
@@ -1631,23 +1544,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var data = event.detail; if(Array.isArray(data)&&data.length>0) data=data[0];
         if(data&&data.type&&data.message&&typeof window.showToast==='function') window.showToast(data.type, data.message, data.duration||5000);
     });
-
-    // ===================== INITIAL SCROLL ON LOAD =====================
-    // Aplicar scroll inicial después de que el calendario esté completamente renderizado
-    setTimeout(function() {
-        var today = new Date();
-        var view = calendar.getView();
-        
-        if (view.type === 'timeGridDay' || view.type === 'timeGridWeek') {
-            var currentHour = today.getHours();
-            var scrollHour = currentHour < 8 ? 8 : currentHour;
-            var scrollTime = (scrollHour < 10 ? '0' + scrollHour : scrollHour) + ':00:00';
-            
-            // Establecer scrollTime y forzar re-render para aplicar el scroll
-            calendar.setOption('scrollTime', scrollTime);
-            calendar.changeView(view.type, calendar.getDate());
-        }
-    }, 500);
 
     // ===================== SIDEBAR TOGGLE (responsive) =====================
     if(appOverlay){appOverlay.addEventListener('click',function(){if(appCalendarSidebar) appCalendarSidebar.classList.remove('show');appOverlay.classList.remove('show');});}

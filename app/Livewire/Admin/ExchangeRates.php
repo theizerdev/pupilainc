@@ -7,6 +7,7 @@ use Livewire\Component;
 use App\Models\ExchangeRate;
 use App\Models\ExchangeRateMonthlyHistory;
 use App\Models\ExchangeRateDailyHistory;
+use App\Models\ExchangeRateConfig;
 use App\Services\ExchangeRateService;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
@@ -17,6 +18,7 @@ class ExchangeRates extends Component
 {
     use HasDynamicLayout;
 
+    public $paisId;
     public $lastUpdate;
     public $showEditModal = false;
     public $editingRate;
@@ -40,6 +42,11 @@ class ExchangeRates extends Component
     public function mount()
     {
         abort_unless(auth()->user()->can('view exchange-rates'), 403);
+        
+        // Obtener configuración del país actual
+        $config = ExchangeRateConfig::getCurrentConfig();
+        $this->paisId = $config?->pais_id;
+        
         $this->lastUpdate = now()->format('H:i:s');
         $this->selectedMonth = now()->format('Y-m');
         $this->refreshMonthHistoryStatus();
@@ -55,11 +62,12 @@ class ExchangeRates extends Component
     {
         try {
             $service = new ExchangeRateService();
-            $success = $service->fetchAndStoreRates();
+            $success = $service->fetchAndStoreRates($this->paisId);
 
             if ($success) {
-                $todayRate = ExchangeRate::getTodayRate();
-                session()->flash('success', "Tasa actualizada: USD = {$todayRate->usd_rate} Bs. (Fuente: {$todayRate->source})");
+                $todayRate = ExchangeRate::getTodayRate($this->paisId);
+                $paisNombre = $todayRate?->pais?->nombre ?? 'N/A';
+                session()->flash('success', "Tasa actualizada: USD = {$todayRate->usd_rate} Bs. (País: {$paisNombre}, Fuente: {$todayRate->source})");
             } else {
                 session()->flash('error', 'No se pudo obtener la tasa. Verifique la conexión a internet.');
             }
@@ -164,15 +172,16 @@ class ExchangeRates extends Component
             $start = Carbon::createFromFormat('Y-m', $this->selectedMonth)->startOfMonth();
             $end = (clone $start)->endOfMonth();
 
-            // Primero intentar rellenar automáticamente desde BCV
+            // Primero intentar rellenar automáticamente desde BCV (solo para Venezuela)
             $service = new ExchangeRateService();
-            $filled = $service->backfillMonthBCV((int)$start->year, (int)$start->month);
+            $filled = $service->backfillMonthBCV((int)$start->year, (int)$start->month, $this->paisId);
             
             if ($filled > 0) {
                 session()->flash('info', "Se rellenaron automáticamente {$filled} días desde BCV.");
             }
 
             $rates = ExchangeRate::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->where('pais_id', $this->paisId)
                 ->orderBy('date')
                 ->get();
 
@@ -284,6 +293,7 @@ class ExchangeRates extends Component
             $end = (clone $start)->endOfMonth();
 
             $rates = ExchangeRate::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+                ->where('pais_id', $this->paisId)
                 ->orderBy('date')
                 ->get();
 
