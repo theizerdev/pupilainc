@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
@@ -50,27 +51,21 @@ class Cita extends Model
         'no_asistio' => 'No Asistió',
     ];
     
-    // Nuevos: Prioridades de citas
+    // Prioridades de citas
     const PRIORIDAD_NORMAL = 'normal';
     const PRIORIDAD_ALTA = 'alta';
-    const PRIORIDAD_URGENTE = 'urgente';
+    const PRIORIDAD_EMERGENCIA = 'emergencia';
     
     const PRIORIDADES = [
         self::PRIORIDAD_NORMAL,
         self::PRIORIDAD_ALTA,
-        self::PRIORIDAD_URGENTE,
-    ];
-    
-    const PRIORIDAD_COLORES = [
-        'normal' => '#78909C',
-        'alta' => '#ffc107',
-        'urgente' => '#dc3545',
+        self::PRIORIDAD_EMERGENCIA,
     ];
     
     const PRIORIDAD_LABELS = [
         'normal' => 'Normal',
         'alta' => 'Alta',
-        'urgente' => 'Urgente',
+        'emergencia' => 'Emergencia',
     ];
 
     protected $fillable = [
@@ -127,6 +122,16 @@ class Cita extends Model
     public function respuestasPreconsulta(): HasMany
     {
         return $this->hasMany(RespuestaPreconsulta::class);
+    }
+
+    public function consulta(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Consulta::class);
+    }
+
+    public function auditorias(): HasMany
+    {
+        return $this->hasMany(CitaAuditoria::class)->orderBy('created_at', 'desc');
     }
 
     public function empresa(): BelongsTo
@@ -386,12 +391,13 @@ class Cita extends Model
         $edad = $this->paciente->edad;
         $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
 
-        // Formato título: (nickname) Nombre Apellido (sin edad, la edad se muestra solo en vista semana/día vía JS)
         $nombrePaciente = $nombreCompleto;
         if (!empty($nickname)) {
             $nombrePaciente = "({$nickname}) {$nombreCompleto}";
         }
-        
+
+        $tieneConsulta = $this->consulta !== null;
+
         return [
             'id' => $this->id,
             'title' => $nombrePaciente,
@@ -399,6 +405,7 @@ class Cita extends Model
             'end' => $this->fecha_fin->format('Y-m-d\TH:i:s'),
             'allDay' => false,
             'extendedProps' => [
+                'tipo_evento' => 'cita',
                 'calendar' => $this->estado,
                 'medico' => $this->medico->nombre_completo,
                 'medico_full' => $this->medico->nombre_completo,
@@ -419,9 +426,10 @@ class Cita extends Model
                 'tipo_consulta_nombre' => $this->tipoConsulta?->nombre,
                 'tipo_consulta_color' => $this->tipoConsulta?->color,
                 'sucursal_id' => $this->sucursal_id,
-                'prioridad' => $this->prioridad ?? 'normal', // Agregado: prioridad
-                'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal', // Label de prioridad
-                'prioridad_color' => self::PRIORIDAD_COLORES[$this->prioridad ?? 'normal'] ?? '#78909C', // Color de prioridad
+                'prioridad' => $this->prioridad ?? 'normal',
+                'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal',
+                'tiene_consulta' => $tieneConsulta,
+                'consulta_id' => $this->consulta?->id,
             ],
         ];
     }

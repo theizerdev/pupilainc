@@ -751,6 +751,8 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if (level <= 5) { if(slotsContainer) slotsContainer.style.display='none'; if(slotsList) slotsList.innerHTML=''; if(slotsMessage){slotsMessage.classList.add('d-none');slotsMessage.textContent='';} if(eventStartDate) eventStartDate.value=''; if(eventEndDate) eventEndDate.value=''; }
     }
 
+    var horarioLaboralMedico = null;
+
     function loadSlots(medicoId, dateStr, selectStartFull) {
         if (!medicoId || !dateStr) return;
         var comp = getLivewireComponent(); if(!comp) return;
@@ -761,14 +763,29 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             if (!result||!result.disponible) { if(slotsMessage){slotsMessage.textContent=result?result.mensaje:'No hay horarios disponibles.';slotsMessage.classList.remove('d-none');} return; }
             if(slotsMessage) slotsMessage.classList.add('d-none');
             currentSlotDuration = result.duracion_cita || 30;
+
+            if (result.horario_laboral) {
+                horarioLaboralMedico = result.horario_laboral;
+            }
+
+            var esAltaEmergencia = (eventPrioridad && (eventPrioridad.value === 'alta' || eventPrioridad.value === 'emergencia'));
+
             var matched = false;
            result.slots.forEach(function(slot) {
                 var btn = document.createElement('button'); btn.type='button';
-                // Formato compacto: solo hora de inicio
                 var timeOnly = slot.label.split(' - ')[0];
-                btn.className = 'btn btn-sm rounded-pill slot-btn ' + (slot.disponible ? 'btn-outline-primary' : 'btn-outline-secondary ocupado');
-                btn.textContent = timeOnly; btn.disabled = !slot.disponible;
-                if (slot.disponible) {
+
+                if (esAltaEmergencia) {
+                    btn.className = 'btn btn-sm rounded-pill slot-btn btn-primary';
+                    btn.disabled = true;
+                } else {
+                    btn.className = 'btn btn-sm rounded-pill slot-btn ' + (slot.disponible ? 'btn-outline-primary' : 'btn-outline-secondary ocupado');
+                    btn.disabled = !slot.disponible;
+                }
+
+                btn.textContent = timeOnly;
+
+                if (!esAltaEmergencia && slot.disponible) {
                     if (selectStartFull && slot.inicio_full === selectStartFull) { btn.classList.add('selected','btn-primary'); btn.classList.remove('btn-outline-primary'); if(eventStartDate) eventStartDate.value=slot.inicio_full; if(eventEndDate) eventEndDate.value=slot.fin_full; matched=true; }
                     btn.addEventListener('click', function() {
                         slotsList.querySelectorAll('.slot-btn').forEach(function(b){b.classList.remove('selected','btn-primary');b.classList.add('btn-outline-primary');});
@@ -778,7 +795,15 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 slotsList.appendChild(btn);
             });
-            if (!matched && !selectStartFull && result.primer_disponible) { var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)'); if(firstAvailable) firstAvailable.click(); }
+            if (!matched && !selectStartFull && result.primer_disponible && !esAltaEmergencia) { var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)'); if(firstAvailable) firstAvailable.click(); }
+
+            if (esAltaEmergencia && slotsMessage) {
+                slotsMessage.textContent = 'Horário personalizado activo. Use los campos de hora de inicio y fin.';
+                slotsMessage.classList.remove('d-none', 'alert-warning');
+                slotsMessage.classList.add('alert-info');
+            }
+
+            validatePrioridadTime();
         });
     }
 
@@ -834,6 +859,90 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         });
     }
 
+    // Prioridad change
+    var eventPrioridad = document.getElementById('eventPrioridad');
+    if (eventPrioridad) {
+        eventPrioridad.addEventListener('change', function() {
+            updatePriorityMode();
+            var medicoId = eventMedico.val();
+            var currentDate = eventFecha ? eventFecha.value : null;
+            if (currentDate && medicoId) loadSlots(medicoId, currentDate);
+        });
+    }
+
+    // Hora inicio/fin change for prioridad
+    var eventHoraInicio = document.getElementById('eventHoraInicioPrioridad');
+    var eventHoraFin = document.getElementById('eventHoraFinPrioridad');
+    if (eventHoraInicio) {
+        eventHoraInicio.addEventListener('change', validatePrioridadTime);
+    }
+    if (eventHoraFin) {
+        eventHoraFin.addEventListener('change', validatePrioridadTime);
+    }
+
+    // ===================== PRIORITY MODE =====================
+    function updatePriorityMode() {
+        var prioridad = eventPrioridad ? eventPrioridad.value : 'normal';
+        var section = document.getElementById('prioridadAltaEmergenciaSection');
+        var isAltaEmergencia = prioridad === 'alta' || prioridad === 'emergencia';
+
+        if (section) {
+            section.style.display = isAltaEmergencia ? '' : 'none';
+        }
+
+        validatePrioridadTime();
+    }
+
+    function validatePrioridadTime() {
+        var prioridad = eventPrioridad ? eventPrioridad.value : 'normal';
+        var isAltaEmergencia = prioridad === 'alta' || prioridad === 'emergencia';
+        var errorEl = document.getElementById('horarioPrioridadError');
+        var btnSubmit = document.getElementById('addEventBtn');
+        var horaInicio = document.getElementById('eventHoraInicioPrioridad');
+        var horaFin = document.getElementById('eventHoraFinPrioridad');
+
+        if (!isAltaEmergencia) {
+            if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+            if (btnSubmit) { btnSubmit.disabled = false; }
+            return true;
+        }
+
+        if (!horaInicio || !horaFin || !horaInicio.value || !horaFin.value) {
+            if (btnSubmit) { btnSubmit.disabled = true; }
+            return false;
+        }
+
+        var inicioMin = parseInt(horaInicio.value.replace(':', ''), 10);
+        var finMin = parseInt(horaFin.value.replace(':', ''), 10);
+
+        if (finMin <= inicioMin) {
+            if (errorEl) {
+                errorEl.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
+                errorEl.style.display = '';
+            }
+            if (btnSubmit) { btnSubmit.disabled = true; }
+            return false;
+        }
+
+        if (horarioLaboralMedico) {
+            var laborInicio = parseInt(horarioLaboralMedico.hora_inicio.replace(':', ''), 10);
+            var laborFin = parseInt(horarioLaboralMedico.hora_fin.replace(':', ''), 10);
+
+            if (inicioMin < laborInicio || finMin > laborFin) {
+                if (errorEl) {
+                    errorEl.textContent = 'El horario debe estar dentro de la jornada del médico (' + horarioLaboralMedico.hora_inicio + ' - ' + horarioLaboralMedico.hora_fin + ').';
+                    errorEl.style.display = '';
+                }
+                if (btnSubmit) { btnSubmit.disabled = true; }
+                return false;
+            }
+        }
+
+        if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+        if (btnSubmit) { btnSubmit.disabled = false; }
+        return true;
+    }
+
     // ===================== DATE VALIDATION =====================
     function isPastDateTime(date) {
         if (!date) return false;
@@ -860,9 +969,10 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if(eventFecha) eventFecha.value=''; if(fechaFlatpickr) fechaFlatpickr.clear();
         if(eventPaciente.length) eventPaciente.val('').trigger('change.select2');
         if(eventEstado.length) eventEstado.val('pendiente').trigger('change');
-        if(eventPrioridad.length) eventPrioridad.val('normal').trigger('change');
+        if(eventPrioridad) eventPrioridad.value = 'normal';
         updatePriorityMode();
-        if(eventManualTime) eventManualTime.value='';
+        horarioLaboralMedico = null;
+        if(typeof eventManualTime !== 'undefined' && eventManualTime) eventManualTime.value='';
         if(eventTipoConsulta.length) eventTipoConsulta.val('').trigger('change.select2');
         resetCascadeFrom(2);
         // No limpiar eventToUpdate aquí - se necesita para edición
@@ -1252,8 +1362,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         slotMinTime: '06:00:00',
         slotMaxTime: '22:00:00',
         scrollTime: '07:00:00',
+      
         contentHeight: 'auto',
-        expandRows: false,
+        expandRows: true,
+        slotDuration: '00:30:00',
+        eventMinHeight: 50,
+        eventShortHeight: 50,
         editable: true,
         eventResizableFromStart: true,
         customButtons: { sidebarToggle: { text: 'Menú' } },
@@ -1285,13 +1399,25 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var typeLabel = isCita ? 'CITA' : 'CONSULTA';
             var typeBadge = '<span class="fc-event-type-badge" style="background:' + typeBadgeColor + ';color:#fff;">' + typeLabel + '</span>';
 
+            // Indicador de consulta vinculada para citas
+            var consultaBadge = '';
+            if (isCita && ep.tiene_consulta) {
+                consultaBadge = '<span hidden class="badge" style="background:#00897B;color:#fff;font-size:0.6rem;padding:1px 5px;" title="Tiene consulta vinculada"><i class="ri ri-links-line"></i></span>';
+            }
+
+            // Badge de prioridad (solo para citas, sin color)
+            var prioridadBadge = '';
+            if (isCita && ep.prioridad && ep.prioridad !== 'normal') {
+                var prioridadLabel = ep.prioridad_label || ep.prioridad.charAt(0).toUpperCase() + ep.prioridad.slice(1);
+                prioridadBadge = '<span class="badge" style="background:#6c757d;color:#fff;font-size:0.6rem;padding:1px 6px;font-weight:600;" title="Prioridad ' + prioridadLabel + '">' + prioridadLabel + '</span>';
+            }
+
             // Edad
             var edadHtml = ep.edad ? '<span style="font-size:0.7rem;opacity:0.9;"> · ' + ep.edad + '</span>' : '';
 
             // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
             if (!isCita) {
-                // Estados activos: sala_espera, en_enfermeria, en_consultorio, en_gotas, en_optica, en_estudio
                 var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'en_optica', 'en_estudio'];
                 var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
                 
@@ -1303,6 +1429,32 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
             }
 
+            // Calcular duracion
+            var duracionMinutos = 0;
+            if (arg.event.start && arg.event.end) {
+                duracionMinutos = Math.round((arg.event.end - arg.event.start) / 60000);
+            }
+            var duracionHoras = Math.floor(duracionMinutos / 60);
+            var duracionMins = duracionMinutos % 60;
+            var duracionTexto = duracionHoras > 0 ? duracionHoras + 'h ' + (duracionMins > 0 ? duracionMins + 'min' : '') : duracionMins + 'min';
+
+            // Controles de duracion para vistas de tiempo
+            var durationControls = '';
+            if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
+                var eventId = arg.event.id || '';
+                durationControls = '<div class="fc-event-duration-controls" data-event-id="' + eventId + '">' +
+                    '<button hidden type="button" class="fc-event-duration-btn" data-minutes="-15" title="Disminuir 15 min">−</button>' +
+                    '<span class="fc-event-duration-display">' + duracionTexto + '</span>' +
+                    '<button hidden type="button" class="fc-event-duration-btn" data-minutes="15" title="Aumentar 15 min">+</button>' +
+                    '</div>';
+            }
+
+            // Indicador de sincronizacion con consulta
+            var syncIndicator = '';
+            if (isCita && ep.tiene_consulta) {
+                syncIndicator = '<span hidden class="fc-event-sync-indicator" title="Sincronizado con consulta #'+ep.consulta_id+'"><i class="ri ri-links-line"></i> Sincronizado</span>';
+            }
+
             if (view.type === 'dayGridMonth') {
                 html = '<div class="fc-event-main-frame fc-month-event">' +
                     '<div style="display:flex;align-items:center;gap:4px;overflow:hidden;">' +
@@ -1310,15 +1462,15 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                         '<span class="fc-event-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + pacienteNombre + '</span>' +
                     '</div>' +
                     '<div class="fc-event-subtitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dr(a). ' + medicoNombre + edadHtml + '</div>' +
-                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
-                html = '<div class="fc-event-main-frame" style="width:100%;">' +
-                    '<div class="fc-event-title-container">' +
-                        '<div class="fc-event-title">' + nombreCompleto + '</div>' +
-                        '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + edadHtml + '</div>' +
-                        '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + estadoBadge + tiempoBadge + '</div>' +
-                    '</div>' +
+                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:4px 6px;box-sizing:border-box;overflow:hidden;">' +
+                    '<div style="font-weight:600;font-size:0.8rem;line-height:1.2;margin-bottom:2px;">' + nombreCompleto + '</div>' +
+                    '<div style="font-size:0.7rem;opacity:0.9;line-height:1.2;margin-bottom:3px;">Dr(a). ' + medicoNombre + '</div>' +
+                    '<div style="font-size:0.65rem;opacity:0.8;margin-bottom:3px;">' + edadHtml + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:auto;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + '</div>' +
+                    durationControls +
                 '</div>';
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
                 html = '<div class="fc-list-event-main-frame" style="display:flex;align-items:center;gap:8px;width:100%;">' +
@@ -1326,7 +1478,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                         '<div class="fc-event-title">' + nombreCompleto + '</div>' +
                         '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                     '</div>' +
-                    '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + typeBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else {
                 return { html: '<div>' + arg.event.title + '</div>' };
@@ -1416,6 +1568,104 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     modifyToggler();
     createToggleButton();
 
+    var calendarScrollContainer = document.getElementById('calendarScrollContainer');
+    var calendarPs = null;
+    function resizeCalendarScroll() {
+        if (!calendarScrollContainer) return;
+        var rect = calendarScrollContainer.getBoundingClientRect();
+        var avail = window.innerHeight - rect.top - 16;
+        if (avail > 300) calendarScrollContainer.style.height = avail + 'px';
+        if (calendarPs && typeof calendarPs.update === 'function') calendarPs.update();
+    }
+    function initCalendarPs() {
+        if (!calendarScrollContainer) return;
+        if (typeof PerfectScrollbar !== 'undefined') {
+            if (!calendarPs) calendarPs = new PerfectScrollbar(calendarScrollContainer, { wheelSpeed: 1, wheelPropagation: false, suppressScrollX: true, swipeEasing: true, minScrollbarLength: 40 });
+        } else {
+            calendarScrollContainer.style.overflowY = 'auto';
+        }
+        resizeCalendarScroll();
+    }
+    window.addEventListener('resize', resizeCalendarScroll);
+    initCalendarPs();
+
+    // ===================== ADJUST EVENT DURATION (Event Delegation) =====================
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.fc-event-duration-btn');
+        if (!btn) return;
+        
+        e.stopPropagation();
+        e.preventDefault();
+        
+        var controls = btn.closest('.fc-event-duration-controls');
+        if (!controls) return;
+        
+        var eventId = controls.dataset.eventId;
+        var minutes = parseInt(btn.dataset.minutes, 10);
+        
+        if (isNaN(minutes) || !eventId) return;
+        
+        adjustEventDurationById(eventId, minutes);
+    });
+
+    function adjustEventDurationById(eventId, minutes) {
+        var comp = getLivewireComponent();
+        if (!comp) {
+            showToast('No se pudo conectar con el servidor', 'error');
+            return;
+        }
+        
+        var event = calendar.getEventById(eventId);
+        if (!event) {
+            event = calendar.getEventById(parseInt(eventId));
+        }
+        
+        if (!event) {
+            showToast('Evento no encontrado', 'error');
+            return;
+        }
+
+        var currentStart = event.start;
+        var currentEnd = event.end;
+        
+        if (!currentStart || !currentEnd) {
+            showToast('No se pudo obtener la información del evento', 'error');
+            return;
+        }
+
+        var currentDurationMs = currentEnd.getTime() - currentStart.getTime();
+        var currentDuration = Math.round(currentDurationMs / 60000);
+        var newDuration = currentDuration + minutes;
+
+        if (newDuration < 15) {
+            showToast('La duración mínima es 15 minutos', 'warning');
+            return;
+        }
+        if (newDuration > 480) {
+            showToast('La duración máxima es 8 horas', 'warning');
+            return;
+        }
+
+        var newEnd = new Date(currentStart.getTime() + newDuration * 60000);
+        var ep = event.extendedProps || {};
+        var tipoEvento = ep.tipo_evento || 'cita';
+
+        var startStr = formatDateForLivewire(currentStart);
+        var endStr = formatDateForLivewire(newEnd);
+
+        showLoading();
+
+        comp.call('updateCitaFechas', parseInt(eventId), startStr, endStr);
+    }
+
+    function formatDuration(minutes) {
+        var h = Math.floor(minutes / 60);
+        var m = minutes % 60;
+        if (h > 0 && m > 0) return h + 'h ' + m + 'min';
+        if (h > 0) return h + 'h';
+        return m + 'min';
+    }
+
     // ===================== DAY EVENTS MODAL =====================
     function showDayEventsModal(date, allSegs) {
         var modalEl = document.getElementById('dayEventsModal');
@@ -1423,18 +1673,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var modalBody = document.getElementById('dayEventsModalBody');
         
         if (!modalEl || !modalTitle || !modalBody) {
-            console.warn('Day events modal elements not found');
             return;
         }
         
         // Si no hay allSegs, intentar obtener eventos del día desde calendar
-        if (!allSegs || allSegs.length === 0) {
-            console.warn('No events to show in modal');
-            modalBody.innerHTML = '<div class="text-center text-muted py-4"><i class="ri-calendar-line" style="font-size: 3rem;"></i><p class="mt-2">No hay eventos para mostrar</p></div>';
-            var bsModal = new bootstrap.Modal(modalEl);
-            bsModal.show();
-            return;
-        }
+       
         
         // Formatear fecha para el título
         var fechaFormateada = moment(date).format('dddd, D [de] MMMM [de] YYYY');
@@ -1562,12 +1805,17 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
 
     // ===================== EVENT DETAIL OFFCANVAS (consultas) =====================
+    var consultaEventIdActual = null;
+
     function showEventDetail(event) {
         var ep=event.extendedProps||{},tipoEvento=ep.tipo_evento||'cita',isCita=tipoEvento==='cita';
         var title=document.getElementById('calendarioDetailTitle'),body=document.getElementById('calendarioDetailBody');
         title.textContent=isCita?'Detalle de Cita':'Detalle de Consulta';
         var badgeColor=isCita?(citaCalendarColors[ep.estado]||'#78909C'):(consultaColores[ep.estado]||'#78909C');
         var estadoLabel=ep.estado_label||ep.estadoLabel||ep.estado||'',tipoLabel=isCita?'CITA':'CONSULTA';
+
+        consultaEventIdActual = isCita ? null : parseInt(event.id.replace('consulta_', ''), 10);
+
         var html='<div class="mb-3"><span class="badge me-1" style="background:'+(isCita?'#0d6efd':'#6f42c1')+'">'+tipoLabel+'</span><span class="badge" style="background:'+badgeColor+'">'+estadoLabel+'</span></div>';
         html+='<div class="mb-3"><h6 class="mb-1">Paciente</h6><p class="mb-0">'+(ep.paciente||event.title)+'</p></div>';
         if(ep.edad) html+='<div class="mb-3"><h6 class="mb-1">Edad</h6><p class="mb-0">'+ep.edad+'</p></div>';
@@ -1578,8 +1826,68 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if(ep.tiempo_espera_formateado&&ep.tiempo_espera_formateado!=='No en sala de espera') html+='<div class="mb-3"><h6 class="mb-1">Tiempo en Espera</h6><p class="mb-0">'+ep.tiempo_espera_formateado+'</p></div>';
         var start=event.start,end=event.end;
         if(start){var timeStr=moment(start).format('DD/MM/YYYY HH:mm');if(end) timeStr+=' - '+moment(end).format('HH:mm');html+='<div class="mb-3"><h6 class="mb-1">Horario</h6><p class="mb-0">'+timeStr+'</p></div>';}
-        html+='<div class="mt-4"><a href="/admin/gestion/consultas" class="btn btn-sm btn-outline-primary w-100"><i class="ri-stethoscope-line me-1"></i> Ir a Consultas</a></div>';
-        body.innerHTML=html; bsDetailSidebar.show();
+
+        if (!isCita) {
+            var estadosDisponibles = [
+                { value: 'por_llegar', label: 'Por llegar' },
+                { value: 'sala_espera', label: 'Sala de Espera' },
+                { value: 'en_enfermeria', label: 'En Enfermería' },
+                { value: 'en_consultorio', label: 'En Consultorio' },
+                { value: 'en_consultorio_optometrista', label: 'En Consultorio Optometrista' },
+                { value: 'en_gotas', label: 'En Gotas' },
+                { value: 'en_optica', label: 'En Óptica' },
+                { value: 'en_estudio', label: 'En Estudio' },
+                { value: 'finalizada', label: 'Finalizada' }
+            ];
+            var estadosSelect = '';
+            estadosDisponibles.forEach(function(est) {
+                estadosSelect += '<option value="' + est.value + '"' + (ep.estado === est.value ? ' selected' : '') + '>' + est.label + '</option>';
+            });
+            html += '<hr/><div class="mb-3"><h6 class="mb-2">Cambiar Estado</h6><select class="form-select mb-2" id="consultaNuevoEstado">' + estadosSelect + '</select>';
+            html += '<button class="btn btn-primary w-100" id="btnActualizarEstadoConsulta"><i class="ri-check-line me-1"></i>Actualizar Estado</button></div>';
+        }
+
+        html+='<div class="mt-3"><a href="/admin/gestion/consultas" class="btn btn-sm btn-outline-primary w-100"><i class="ri-stethoscope-line me-1"></i> Ir a Consultas</a></div>';
+        body.innerHTML=html;
+
+        if (!isCita) {
+            var btnActualizar = document.getElementById('btnActualizarEstadoConsulta');
+            if (btnActualizar) {
+                btnActualizar.addEventListener('click', function() {
+                    var nuevoEstado = document.getElementById('consultaNuevoEstado').value;
+                    if (!nuevoEstado) {
+                        showToast('Seleccione un estado', 'warning');
+                        return;
+                    }
+                    var comp = getLivewireComponent();
+                    console.log('Componente Livewire:', comp);
+                    console.log('Consulta ID:', consultaEventIdActual, 'Tipo:', typeof consultaEventIdActual);
+                    console.log('Nuevo Estado:', nuevoEstado);
+                    if (!comp) {
+                        showToast('Error: No se encontró el componente Livewire', 'error');
+                        return;
+                    }
+                    if (!consultaEventIdActual) {
+                        showToast('Error: ID de consulta no válido', 'error');
+                        return;
+                    }
+                    btnActualizar.disabled = true;
+                    btnActualizar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+                    comp.call('cambiarEstadoConsulta', consultaEventIdActual, nuevoEstado).then(function() {
+                        showToast('Estado actualizado', 'success');
+                        prefetchCache={}; calendar.refetchEvents();
+                        bsDetailSidebar.hide();
+                    }).catch(function(err) {
+                        console.error('Error al actualizar:', err);
+                        btnActualizar.disabled = false;
+                        btnActualizar.innerHTML = '<i class="ri-check-line me-1"></i>Actualizar Estado';
+                        showToast('Error al actualizar', 'error');
+                    });
+                });
+            }
+        }
+
+        bsDetailSidebar.show();
     }
 
     // ===================== INLINE MINI CALENDAR =====================
@@ -1657,25 +1965,49 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     if (btnSubmit) {
         btnSubmit.addEventListener('click', function() {
             if (!isFormValid) return;
+            if (btnSubmit.disabled) return;
+            
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Guardando...';
+            
             var isNewCita = btnSubmit.classList.contains('btn-add-event');
+            
+            var prioridad = 'normal';
+            var eventPrioridadEl = document.getElementById('eventPrioridad');
+            if (eventPrioridadEl) prioridad = eventPrioridadEl.value;
+            
+            var startDate = eventStartDate ? eventStartDate.value : '';
+            var endDate = eventEndDate ? eventEndDate.value : '';
+            
+            var esAltaEmergencia = prioridad === 'alta' || prioridad === 'emergencia';
+            if (esAltaEmergencia) {
+                var fecha = eventFecha ? eventFecha.value : '';
+                var horaInicio = document.getElementById('eventHoraInicioPrioridad');
+                var horaFin = document.getElementById('eventHoraFinPrioridad');
+                if (fecha && horaInicio && horaInicio.value && horaFin && horaFin.value) {
+                    startDate = fecha + ' ' + horaInicio.value + ':00';
+                    endDate = fecha + ' ' + horaFin.value + ':00';
+                }
+            }
+            
             var eventData = {
                 paciente_id: eventPaciente.val(),
                 especialidad_id: selectedEspecialidadId,
                 subespecialidad_id: selectedSubespecialidadId,
                 medico_id: eventMedico.val(),
-                start: eventStartDate ? eventStartDate.value : '',
-                end: eventEndDate ? eventEndDate.value : '',
+                start: startDate,
+                end: endDate,
                 motivo: eventMotivo ? eventMotivo.value : '',
                 notas: eventNotas ? eventNotas.value : '',
                 estado: isNewCita ? 'pendiente' : (eventEstado.val() || 'pendiente'),
-                tipo_consulta_id: eventTipoConsulta.val() || ''
+                tipo_consulta_id: eventTipoConsulta.val() || '',
+                prioridad: prioridad
             };
             var comp = getLivewireComponent(); if(!comp) return;
             if (btnSubmit.classList.contains('btn-update-event') && currentCitaId) {
                 comp.set('citaId', currentCitaId);
             }
             comp.call('saveCita', eventData);
-            if(bsAddEventSidebar) bsAddEventSidebar.hide();
         });
     }
 
@@ -1696,11 +2028,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if(btnReagendar){btnReagendar.onclick=function(){if(!eventToUpdate) return;var comp=getLivewireComponent();if(!comp) return;
             comp.call('sugerirReagendamiento',getCitaId(eventToUpdate.id)).then(function(horarios){
                 if(!Array.isArray(horarios)||!slotsList) return;slotsList.innerHTML='';
-                horarios.forEach(function(h){var b=document.createElement('button');b.type='button';b.className='btn btn-sm btn-outline-primary rounded-pill mb-1';b.textContent='Re-agendar '+h.fecha_formateada;b.addEventListener('click',function(){comp.call('reagendarManualmenteDesdeCalendario',getCitaId(eventToUpdate.id),h.fecha_hora);if(bsAddEventSidebar) bsAddEventSidebar.hide();});slotsList.appendChild(b);});
+                horarios.forEach(function(h){var b=document.createElement('button');b.type='button';b.className='btn btn-sm btn-outline-primary rounded-pill mb-1';b.textContent='Re-agendar '+h.fecha_formateada;b.addEventListener('click',function(){comp.call('reagendarManualmenteDesdeCalendario',getCitaId(eventToUpdate.id),h.fecha_hora);});slotsList.appendChild(b);});
                 if(horarios.length===0){var p=document.createElement('div');p.className='text-muted small';p.textContent='Sin horarios disponibles';slotsList.appendChild(p);}
             });
         };}
-        if(btnReagendarAuto){btnReagendarAuto.onclick=function(){if(!eventToUpdate) return;var comp=getLivewireComponent();if(comp){comp.call('reagendarAutomaticamenteDesdeCalendario',getCitaId(eventToUpdate.id));if(bsAddEventSidebar) bsAddEventSidebar.hide();}};}
+        if(btnReagendarAuto){btnReagendarAuto.onclick=function(){if(!eventToUpdate) return;var comp=getLivewireComponent();if(comp){comp.call('reagendarAutomaticamenteDesdeCalendario',getCitaId(eventToUpdate.id));}};}
     }
 
     // ===================== OFFCANVAS HIDDEN =====================
@@ -1708,6 +2040,8 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
     // ===================== LIVEWIRE LISTENERS =====================
     if(typeof Livewire!=='undefined'){Livewire.on('calendario-updated',function(){prefetchCache={};calendar.refetchEvents();});}
+    if(typeof Livewire!=='undefined'){Livewire.on('cita-saved',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}});}
+    if(typeof Livewire!=='undefined'){Livewire.on('show-toast',function(){window.setTimeout(function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}},500);});}
 
     // ===================== CITA-SAVED LISTENER =====================
     window.addEventListener('cita-saved', function() { prefetchCache={}; calendar.refetchEvents(); });

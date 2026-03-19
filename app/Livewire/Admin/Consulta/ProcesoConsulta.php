@@ -13,6 +13,7 @@ class ProcesoConsulta extends Component
 {
     public $consulta;
     public $pasoActual = 0; // Iniciar en paso 0 (Signos Vitales)
+    public $nuevoEstado = '';
     
     // Paso 0: Signos Vitales
     public $presion_sistolica;
@@ -189,8 +190,46 @@ class ProcesoConsulta extends Component
         if ($this->pasoActual === 0 && $paso > 0) {
             $this->guardarSignosVitales();
         }
-        
+
         $this->pasoActual = $paso;
+    }
+
+    public function cambiarEstadoConsulta()
+    {
+        if (empty($this->nuevoEstado)) {
+            return;
+        }
+
+        $estadosValidos = [
+            Consulta::ESTADO_POR_LLEGAR,
+            Consulta::ESTADO_SALA_ESPERA,
+            Consulta::ESTADO_EN_ENFERMERIA,
+            Consulta::ESTADO_EN_CONSULTORIO,
+            Consulta::ESTADO_EN_CONSULTORIO_OPTOMETRISTA,
+            Consulta::ESTADO_EN_GOTAS,
+            Consulta::ESTADO_EN_OPTICA,
+            Consulta::ESTADO_EN_ESTUDIO,
+            Consulta::ESTADO_FINALIZADA,
+        ];
+
+        if (!in_array($this->nuevoEstado, $estadosValidos)) {
+            $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Estado no válido']);
+            return;
+        }
+
+        $this->consulta->update([
+            'estado' => $this->nuevoEstado,
+            'estado_changed_at' => now(),
+        ]);
+
+        $this->consulta->refresh();
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Estado actualizado a ' . Consulta::ESTADO_LABELS[$this->nuevoEstado]
+        ]);
+
+        $this->nuevoEstado = '';
     }
 
     // Calcular IMC en tiempo real

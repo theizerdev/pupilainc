@@ -66,10 +66,35 @@
                     <strong>Paciente:</strong> {{ $consulta->paciente->nombre_completo }} |
                     <strong>Médico:</strong> Dr(a). {{ $consulta->medico->nombre_completo }}
                 </div>
+                <div class="mt-1">
+                    <span class="badge" style="background-color: {{ $consulta->estado_color ?? '#6c757d' }}; color: white;">
+                        {{ $consulta->estado_label ?? 'Sin estado' }}
+                    </span>
+                </div>
             </div>
-            <a href="{{ route('admin.gestion.consultas.index') }}" class="btn btn-outline-secondary">
-                <i class="ri ri-arrow-left-line me-1"></i>Volver
-            </a>
+            <div class="d-flex align-items-center gap-2">
+                <div class="form-floating form-floating-outline" style="min-width: 180px;">
+                    <select class="form-select" id="nuevoEstado" wire:model="nuevoEstado">
+                        <option value="">Cambiar estado...</option>
+                        <option value="por_llegar">Por llegar</option>
+                        <option value="sala_espera">Sala de Espera</option>
+                        <option value="en_enfermeria">En Enfermería</option>
+                        <option value="en_consultorio">En Consultorio</option>
+                        <option value="en_consultorio_optometrista">En Consultorio Optometrista</option>
+                        <option value="en_gotas">En Gotas</option>
+                        <option value="en_optica">En Óptica</option>
+                        <option value="en_estudio">En Estudio</option>
+                        <option value="finalizada">Finalizada</option>
+                    </select>
+                    <label for="nuevoEstado">Estado</label>
+                </div>
+                <button type="button" class="btn btn-primary" wire:click="cambiarEstadoConsulta" @if(empty($nuevoEstado)) disabled @endif>
+                    <i class="ri ri-check-line me-1"></i>Actualizar
+                </button>
+                <a href="{{ route('admin.gestion.consultas.index') }}" class="btn btn-outline-secondary">
+                    <i class="ri ri-arrow-left-line me-1"></i>Volver
+                </a>
+            </div>
         </div>
 
         <!-- Progress Bar -->

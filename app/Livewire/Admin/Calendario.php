@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Cita;
 use App\Models\Consulta;
+use App\Models\Preconsulta;
 use App\Models\Medico;
 use App\Models\Paciente;
 use App\Models\Especialidad;
@@ -13,6 +14,8 @@ use App\Models\TipoConsulta;
 use App\Services\CitaNotificationService;
 use App\Services\CitaConfirmationBotonesService;
 use App\Services\CitaReagendamientoService;
+use App\Services\CitaConsultaSyncService;
+use App\Services\CitaPrioridadService;
 use Livewire\Component;
 use App\Traits\HasDynamicLayout;
 use Carbon\Carbon;
@@ -430,6 +433,10 @@ class Calendario extends Component
             'slots' => $slots,
             'primer_disponible' => $primerDisponible,
             'duracion_cita' => $horarios->first()->duracion_cita ?? 30,
+            'horario_laboral' => [
+                'hora_inicio' => Carbon::parse($horarios->first()->hora_inicio)->format('H:i'),
+                'hora_fin' => Carbon::parse($horarios->first()->hora_fin)->format('H:i'),
+            ],
         ];
     }
 
@@ -485,9 +492,11 @@ class Calendario extends Component
 
         $inicio = Carbon::parse($this->fecha_inicio);
         $fin = Carbon::parse($this->fecha_fin);
+        $prioridad = $eventData['prioridad'] ?? 'normal';
+        $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
-        // Validación de fecha pasada
-        if ($inicio < now()) {
+        // Validación de fecha pasada - solo para prioridad normal
+        if ($inicio < now() && !$esPrioridadAltaOEmergencia) {
             $this->dispatch('show-alert', [
                 'type' => 'warning',
                 'title' => 'Fecha no permitida',
@@ -497,24 +506,29 @@ class Calendario extends Component
             return;
         }
 
-        $conflictos = Cita::sinConflicto($this->medico_id, $inicio, $fin, $this->citaId)->count();
-        if ($conflictos > 0) {
-            $this->dispatch('show-alert', [
-                'type' => 'error',
-                'title' => 'Conflicto de horario',
-                'message' => 'El médico ya tiene una cita programada en ese horario.',
-                'icon' => 'error'
-            ]);
-            return;
+        // Validación de conflicto - solo para prioridad normal
+        if (!$esPrioridadAltaOEmergencia) {
+            $conflictos = Cita::sinConflicto($this->medico_id, $inicio, $fin, $this->citaId)->count();
+            if ($conflictos > 0) {
+                $this->dispatch('show-alert', [
+                    'type' => 'error',
+                    'title' => 'Conflicto de horario',
+                    'message' => 'El médico ya tiene una cita programada en ese horario.',
+                    'icon' => 'error'
+                ]);
+                return;
+            }
         }
 
-        if (!$this->validarHorarioMedico($this->medico_id, $inicio, $fin)) {
+        // Validación de horario laboral - solo para prioridad normal
+        if (!$esPrioridadAltaOEmergencia && !$this->validarHorarioMedico($this->medico_id, $inicio, $fin)) {
             $this->dispatch('show-alert', [
                 'type' => 'warning',
                 'title' => 'Fuera de horario',
                 'message' => 'La cita está fuera del horario de atención del médico.',
                 'icon' => 'warning'
             ]);
+            return;
         }
 
         $data = [
@@ -562,42 +576,77 @@ class Calendario extends Component
         } else {
             $data['created_by'] = auth()->id();
             
-            $cita = new Cita();
-            $cita->fill($data);
-        
-            $cita->save();
-
-            // Log de auditoría para creación
-            $this->logCitaAction('create', $cita);
-
-            // Notificar y capturar errores
-            $notificacion = $this->notificarNuevaCita($cita);
-
-            // Programar recordatorios automáticamente
-            $cita->programarRecordatorios();
-
-            // Mostrar mensaje apropiado según el resultado de la notificación
-            if ($notificacion['success'] && empty($notificacion['errors'])) {
-                $this->dispatch('show-alert', [
-                    'type' => 'success',
-                    'title' => 'Cita creada',
-                    'message' => 'Cita creada exitosamente. Notificaciones enviadas.',
-                    'icon' => 'success'
-                ]);
-            } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
-                $this->dispatch('show-alert', [
-                    'type' => 'warning',
-                    'title' => 'Cita creada',
-                    'message' => 'Cita creada. ' . $notificacion['message'],
-                    'icon' => 'warning'
-                ]);
+            if ($esPrioridadAltaOEmergencia) {
+                $prioridadService = new CitaPrioridadService(true);
+                $data['prioridad'] = $prioridad;
+                
+                if (isset($this->fecha_inicio) && isset($this->fecha_fin)) {
+                    $data['fecha_inicio'] = $inicio;
+                    $data['fecha_fin'] = $fin;
+                }
+                
+                $resultado = $prioridadService->crearCitaConPrioridad($data);
+                
+                if ($resultado['success']) {
+                    $cita = $resultado['cita'];
+                    $mensaje = "Cita de prioridad {$prioridad} creada exitosamente.";
+                    if ($resultado['consulta']) {
+                        $mensaje .= " Consulta creada en sala de espera.";
+                    }
+                    if ($resultado['whatsapp_enviado']) {
+                        $mensaje .= " Cuestionario enviado por WhatsApp.";
+                    }
+                    if ($resultado['solapamiento']) {
+                        $mensaje .= " (Se registró solapamiento con cita existente)";
+                    }
+                    
+                    $this->dispatch('show-alert', [
+                        'type' => 'success',
+                        'title' => 'Cita creada',
+                        'message' => $mensaje,
+                        'icon' => 'success'
+                    ]);
+                } else {
+                    $this->dispatch('show-alert', [
+                        'type' => 'error',
+                        'title' => 'Error',
+                        'message' => 'No se pudo crear la cita: ' . implode(', ', $resultado['errores']),
+                        'icon' => 'error'
+                    ]);
+                    return;
+                }
             } else {
-                $this->dispatch('show-alert', [
-                    'type' => 'error',
-                    'title' => 'Error al notificar',
-                    'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors']),
-                    'icon' => 'error'
-                ]);
+                $data['prioridad'] = $prioridad;
+                $cita = new Cita();
+                $cita->fill($data);
+                $cita->save();
+
+                $this->logCitaAction('create', $cita);
+                $notificacion = $this->notificarNuevaCita($cita);
+                $cita->programarRecordatorios();
+
+                if ($notificacion['success'] && empty($notificacion['errors'])) {
+                    $this->dispatch('show-alert', [
+                        'type' => 'success',
+                        'title' => 'Cita creada',
+                        'message' => 'Cita creada exitosamente. Notificaciones enviadas.',
+                        'icon' => 'success'
+                    ]);
+                } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
+                    $this->dispatch('show-alert', [
+                        'type' => 'warning',
+                        'title' => 'Cita creada',
+                        'message' => 'Cita creada. ' . $notificacion['message'],
+                        'icon' => 'warning'
+                    ]);
+                } else {
+                    $this->dispatch('show-alert', [
+                        'type' => 'error',
+                        'title' => 'Error al notificar',
+                        'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors']),
+                        'icon' => 'error'
+                    ]);
+                }
             }
         }
 
@@ -619,12 +668,11 @@ class Calendario extends Component
             $this->dispatch('cita-saved');
             return;
         }
-        RateLimiter::hit($rateLimitKey, 60); // 10 intentos por minuto
+        RateLimiter::hit($rateLimitKey, 60);
 
-        $cita = Cita::findOrFail($id);
-        
-        // Validación de permisos para actualizar fechas
-       if (!$cita || \Gate::denies('edit citas')) {
+        $cita = Cita::with('consulta')->findOrFail($id);
+
+        if (!$cita || \Gate::denies('edit citas')) {
             $this->dispatch('show-alert', [
                 'type' => 'error',
                 'title' => 'Permiso denegado',
@@ -634,11 +682,10 @@ class Calendario extends Component
             $this->dispatch('cita-saved');
             return;
         }
-        
+
         $inicio = Carbon::parse($start);
         $fin = Carbon::parse($end);
 
-        // Validación de fecha pasada
         if ($inicio < now()) {
             $this->dispatch('show-alert', [
                 'type' => 'warning',
@@ -650,34 +697,34 @@ class Calendario extends Component
             return;
         }
 
-        $conflictos = Cita::sinConflicto($cita->medico_id, $inicio, $fin, $id)->count();
-        if ($conflictos > 0) {
-            $this->dispatch('show-alert', [
-                'type' => 'error',
-                'title' => 'Conflicto de horario',
-                'message' => 'No se puede mover: conflicto de horario.',
-                'icon' => 'error'
+        // Usar el servicio de sincronización
+        $syncService = new CitaConsultaSyncService(true);
+        $resultado = $syncService->reagendarSincronizado($cita, $inicio, $fin, 'Reagendada desde calendario');
+
+        if ($resultado['success']) {
+            $tieneConsulta = $resultado['consulta'] !== null;
+            $this->reprogramarRecordatorios($resultado['cita']);
+
+            $mensaje = $tieneConsulta
+                ? 'Cita y consulta sincronizadas reprogramadas exitosamente.'
+                : 'Cita reprogramada exitosamente.';
+
+            if ($resultado['solapamiento'] ?? false) {
+                $mensaje .= ' (Se registró solapamiento con cita existente)';
+            }
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => $mensaje
             ]);
-            $this->dispatch('cita-saved');
-            return;
+        } else {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'Error al reprogramar: ' . implode(', ', $resultado['errores'])
+            ]);
         }
 
-        // Log de auditoría para reprogramación
-        $oldData = $cita->toArray();
-        $cita->update([
-            'fecha_inicio' => $inicio,
-            'fecha_fin' => $fin,
-        ]);
-        $this->logCitaAction('reschedule', $cita, $oldData);
-
-        $this->reprogramarRecordatorios($cita);
-
-        $this->dispatch('show-alert', [
-            'type' => 'success',
-            'title' => 'Cita reprogramada',
-            'message' => 'La cita ha sido reprogramada exitosamente.',
-            'icon' => 'success'
-        ]);
+        $this->dispatch('calendario-updated');
         $this->dispatch('cita-saved');
     }
 
@@ -825,7 +872,6 @@ class Calendario extends Component
 
     public function cambiarEstado($citaId, $nuevoEstado)
     {
-        dd($nuevoEstado);
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);
@@ -850,6 +896,22 @@ class Calendario extends Component
         }
         
         $this->dispatch('cita-saved');
+    }
+
+    public function cambiarEstadoConsulta($consultaId, $nuevoEstado)
+    {
+        $consulta = Consulta::findOrFail($consultaId);
+        $consulta->update([
+            'estado' => $nuevoEstado,
+            'estado_changed_at' => now(),
+        ]);
+
+        $this->dispatch('show-toast', [
+            'type' => 'success',
+            'message' => 'Estado actualizado a: ' . Consulta::ESTADO_LABELS[$nuevoEstado]
+        ]);
+
+        $this->dispatch('consulta-saved');
     }
 
     public function enviarRecordatorio($citaId)

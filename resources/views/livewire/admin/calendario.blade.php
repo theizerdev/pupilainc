@@ -97,37 +97,38 @@
         .slots-container { max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
         .cascade-arrow { text-align: center; color: #aaa; font-size: .75rem; margin: 2px 0; }
 
+        /* Event Cards - Tamaño grande y compacto */
         .fc .fc-event {
-            border-radius: 6px !important;
-            border-left: 5px solid #000 !important;
-            transition: box-shadow 0.15s ease, transform 0.15s ease;
-            overflow: hidden;
+            border-radius: 8px !important;
+            border-left: 6px solid #000 !important;
+            transition: box-shadow 0.2s ease, transform 0.15s ease;
+            overflow: visible;
         }
         .fc .fc-event:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
             z-index: 10;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
         }
         
-        /* Timegrid Event - Altura mínima 80px */
+        /* Timegrid Event - Altura minima 120px para mas informacion */
         .fc .fc-timegrid-event {
-            min-height: 80px !important;
-            border-radius: 6px !important;
+            min-height: 120px !important;
+            border-radius: 8px !important;
         }
         .fc .fc-timegrid-event .fc-event-main {
-            padding: 6px 8px !important;
+            padding: 8px 10px !important;
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 5px;
             height: 100%;
         }
         .fc .fc-timegrid-event .fc-event-time {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 700;
             flex-shrink: 0;
         }
         .fc .fc-timegrid-event .fc-event-title {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             font-weight: 600;
             line-height: 1.3;
             overflow: visible;
@@ -135,7 +136,7 @@
             word-break: break-word;
         }
         .fc .fc-timegrid-event .fc-event-subtitle {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             opacity: 0.9;
             white-space: normal;
             overflow: visible;
@@ -143,33 +144,90 @@
             line-height: 1.4;
         }
         .fc .fc-timegrid-event .fc-event-type-badge {
-            font-size: 0.65rem !important;
-            padding: 2px 8px !important;
+            font-size: 0.7rem !important;
+            padding: 3px 10px !important;
             font-weight: 600;
+        }
+        
+        /* Controles de duracion */
+        .fc-event-duration-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+            position: relative;
+            z-index: 100;
+        }
+        .fc-event-duration-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.5);
+            background: rgba(0,0,0,0.4);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            pointer-events: all;
+            position: relative;
+            z-index: 101;
+        }
+        .fc-event-duration-btn:hover {
+            background: rgba(0,0,0,0.6);
+            transform: scale(1.1);
+        }
+        .fc-event-duration-btn:active {
+            transform: scale(0.95);
+        }
+        .fc-event-duration-display {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #fff;
+            background: rgba(0,0,0,0.2);
+            padding: 2px 8px;
+            border-radius: 4px;
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        /* Sincronizacion de consulta */
+        .fc-event-sync-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.65rem;
+            color: #fff;
+            background: rgba(0,0,0,0.25);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
         
         /* Badge de tiempo de espera */
         .fc-event-tiempo-badge {
-            font-size: 0.65rem !important;
-            padding: 2px 6px !important;
+            font-size: 0.7rem !important;
+            padding: 3px 8px !important;
             font-weight: 600;
             white-space: nowrap !important;
         }
         
-        /* Daygrid Event - Optimizado */
+        /* Daygrid Event - Optimizado para mas informacion */
         .fc .fc-daygrid-event {
-            padding: 6px 8px !important;
-            margin-bottom: 3px !important;
+            padding: 8px 10px !important;
+            margin-bottom: 4px !important;
             line-height: 1.5;
             min-height: 100px;
         }
         .fc .fc-daygrid-event .fc-event-time {
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             font-weight: 700;
             flex-shrink: 0;
         }
         .fc .fc-daygrid-event .fc-event-title {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: 600;
             white-space: normal !important;
             overflow: visible !important;
@@ -178,20 +236,20 @@
             word-break: break-word;
         }
         .fc .fc-daygrid-event .fc-event-type-badge {
-            font-size: 0.65rem !important;
-            padding: 2px 6px !important;
+            font-size: 0.7rem !important;
+            padding: 3px 8px !important;
             line-height: 1.5;
             font-weight: 600;
         }
         .fc .fc-daygrid-event .badge {
-            font-size: 0.65rem !important;
-            padding: 2px 6px !important;
+            font-size: 0.7rem !important;
+            padding: 3px 8px !important;
             overflow: visible !important;
             white-space: nowrap !important;
         }
         .fc .fc-daygrid-event .fc-event-subtitle {
-            font-size: 0.7rem;
-            opacity: 0.85;
+            font-size: 0.75rem;
+            opacity: 0.9;
             white-space: normal !important;
             overflow: visible !important;
             text-overflow: initial !important;
@@ -220,6 +278,24 @@
             font-weight: 600;
         }
 
+        /* Switch toggles - estilo moderno */
+        .form-switch .form-check-input {
+            width: 2.5rem !important;
+            height: 1.3rem !important;
+            cursor: pointer;
+        }
+        .form-switch .form-check-input:checked {
+            background-color: #198754;
+            border-color: #198754;
+        }
+        .form-switch .form-check-input:not(:checked) {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        .form-switch .form-check-label {
+            cursor: pointer;
+        }
+
         .fc .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
             min-height: 100px !important;
             padding: 3px 5px !important;
@@ -232,56 +308,10 @@
         }
         .fc td.fc-daygrid-day {
             min-height: 100px !important;
-        }
-        .fc .fc-scrollgrid-sync-table {
             width: 100% !important;
         }
         .fc .fc-col-header-cell {
             padding: 4px 0 !important;
-        }
-        .fc .fc-daygrid-body {
-            width: 100% !important;
-        }
-        .fc .fc-daygrid-body table {
-            width: 100% !important;
-        }
-        .fc-event-title-container {
-            min-width: 0;
-            flex: 1;
-        }
-
-        /* Animación punto-agua (tipo consulta ripple) */
-        .punto-agua {
-            position: relative;
-            width: 10px;
-            height: 10px;
-            flex-shrink: 0;
-            margin-left: 5px;
-        }
-        .punto-agua::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--color-punto);
-            border-radius: 50%;
-            z-index: 2;
-        }
-        .punto-agua::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--color-punto);
-            border-radius: 50%;
-            z-index: 1;
-            animation: ripple 2s infinite cubic-bezier(0, 0.2, 0.8, 1);
-        }
-        @keyframes ripple {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
         }
 
         /* Event type indicators */
@@ -644,6 +674,18 @@
             font-size: 0.65rem;
             padding: 0.25em 0.5em;
         }
+        
+        .calendar-scroll {
+            position: relative;
+            overflow: hidden;
+            height: calc(100vh - 180px);
+        }
+        @media (max-width: 992px) {
+            .calendar-scroll { height: calc(100vh - 220px); }
+        }
+        @media (max-width: 768px) {
+            .calendar-scroll { height: calc(100vh - 240px); }
+        }
     </style>
     @endpush
 
@@ -755,7 +797,29 @@
                                 </div>
                             </div>
                         </div>
-                        <div>
+
+                        <!-- Switches para mostrar/ocultar Citas y Consultas -->
+                        <div class="mb-3">
+                            <small class="text-muted fw-medium d-block mb-2">VISUALIZAR</small>
+                            <div class="d-flex gap-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="toggleCitas" checked
+                                           aria-label="Mostrar citas en el calendario">
+                                    <label class="form-check-label" for="toggleCitas">
+                                        <span class="badge" style="background: #0d6efd;">Citas</span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="toggleConsultas" checked
+                                           aria-label="Mostrar consultas en el calendario">
+                                    <label class="form-check-label" for="toggleConsultas">
+                                        <span class="badge" style="background: #6f42c1;">Consultas</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
                             <small class="text-muted fw-medium d-block mb-2">ESTADO</small>
                             <div class="row g-2">
                                 <div class="col-6">
@@ -930,7 +994,7 @@
                                 <span class="visually-hidden">Cargando...</span>
                             </div>
                         </div>
-                        <div id="calendar"></div>
+                        <div id="calendarScrollContainer" class="calendar-scroll"><div id="calendar"></div></div>
                     </div>
                 </div>
                 <div class="app-overlay"></div>
@@ -1010,6 +1074,41 @@
                                 <label for="eventFecha">Fecha de la Cita</label>
                             </div>
 
+                            <!-- Prioridad -->
+                            <div class="form-floating form-floating-outline mb-5">
+                                <select class="select2 form-select" id="eventPrioridad" name="eventPrioridad">
+                                    <option value="normal" selected>Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="emergencia">Emergencia</option>
+                                </select>
+                                <label for="eventPrioridad">Prioridad</label>
+                            </div>
+
+                            <!-- Sección especial para Alta/Emergencia -->
+                            <div id="prioridadAltaEmergenciaSection" class="mb-5" style="display: none;">
+                                <div class="alert alert-info py-2 px-3 mb-3">
+                                    <i class="ri ri-information-line me-1"></i>
+                                    <strong>Modo Prioridad Alta/Emergencia</strong>
+                                    <p class="mb-0 mt-1" style="font-size: 0.8rem;">Las franjas horarias ocupadas aparecerán deshabilitadas. Podrá definir un horario personalizado.</p>
+                                </div>
+                                
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="form-floating">
+                                            <input type="time" class="form-control" id="eventHoraInicioPrioridad" name="eventHoraInicioPrioridad" step="300">
+                                            <label for="eventHoraInicioPrioridad">Hora de inicio</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-floating">
+                                            <input type="time" class="form-control" id="eventHoraFinPrioridad" name="eventHoraFinPrioridad" step="300">
+                                            <label for="eventHoraFinPrioridad">Hora de fin</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="horarioPrioridadError" class="text-danger mb-2" style="display: none;"></div>
+                            </div>
+
                             <!-- 6. Horarios Disponibles -->
                             <div id="slotsContainer" class="mb-5" style="display:none;">
                                 <label class="form-label fw-medium mb-2">Horarios Disponibles</label>
@@ -1033,7 +1132,7 @@
                                         </option>
                                     @endforeach
                                 </select>
-                                <label for="eventTipoConsulta">Tipo de Cita</label>
+                                <label for="eventTipoConsulta">Tipo de Atención</label>
                             </div>
 
                             <!-- Motivo -->
@@ -1053,6 +1152,8 @@
                                 </select>
                                 <label for="eventEstado">Estado</label>
                             </div>
+
+                            
 
                             <!-- Notas -->
                             <div class="form-floating form-floating-outline mb-5">

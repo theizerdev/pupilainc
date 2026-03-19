@@ -219,17 +219,33 @@ function initConsultasCalendar(events, estadoColores) {
         var props = event.extendedProps;
         info.jsEvent.preventDefault();
 
-        if (!bsDetailSidebar) return;
+        console.log('Event clicked:', event.id, props);
+        console.log('bsDetailSidebar:', bsDetailSidebar);
+
+        if (!bsDetailSidebar) {
+            console.error('Offcanvas not initialized');
+            return;
+        }
 
         document.getElementById('consultaDetailTitle').textContent = 'Consulta #' + props.codigo;
 
         var estadoHex = calendarColors[props.estado] || '#78909C';
+
+        var estadosDisponibles = [
+            { value: 'por_llegar', label: 'Por llegar' },
+            { value: 'sala_espera', label: 'Sala de Espera' },
+            { value: 'en_enfermeria', label: 'En Enfermería' },
+            { value: 'en_consultorio', label: 'En Consultorio' },
+            { value: 'en_consultorio_optometrista', label: 'En Consultorio Optometrista' },
+            { value: 'en_gotas', label: 'En Gotas' },
+            { value: 'en_optica', label: 'En Óptica' },
+            { value: 'en_estudio', label: 'En Estudio' },
+            { value: 'finalizada', label: 'Finalizada' }
+        ];
+
         var estadosSelect = '';
-        var allEstados = document.querySelectorAll('.input-filter');
-        allEstados.forEach(function(input) {
-            var val = input.getAttribute('data-value');
-            var label = input.closest('.form-check').querySelector('.form-check-label').textContent.trim();
-            estadosSelect += '<option value="' + val + '"' + (props.estado === val ? ' selected' : '') + '>' + label + '</option>';
+        estadosDisponibles.forEach(function(est) {
+            estadosSelect += '<option value="' + est.value + '"' + (props.estado === est.value ? ' selected' : '') + '>' + est.label + '</option>';
         });
 
         var tiempoEnEstado = formatTiempoEstado(props.estado_changed_at);
@@ -279,7 +295,7 @@ function initConsultasCalendar(events, estadoColores) {
             }
             var comp = getLivewireComponent();
             if (comp) {
-                comp.call('cambiarEstado', parseInt(event.id), nuevoEstado).then(function() {
+                comp.call('cambiarEstado', event.id, nuevoEstado).then(function() {
                     bsDetailSidebar.hide();
                     prefetchCache = {};
                     calendar.refetchEvents();

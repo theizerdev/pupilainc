@@ -181,6 +181,16 @@ class Consulta extends Model
         return "{$horas}h {$minutosRestantes}min";
     }
 
+    public function getEstadoColorAttribute()
+    {
+        return self::ESTADO_COLORES[$this->estado] ?? '#6c757d';
+    }
+
+    public function getEstadoLabelAttribute()
+    {
+        return self::ESTADO_LABELS[$this->estado] ?? 'Sin estado';
+    }
+
     public function medico()
     {
         return $this->belongsTo(Medico::class);
