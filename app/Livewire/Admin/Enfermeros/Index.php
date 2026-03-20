@@ -217,13 +217,12 @@ class Index extends Component
     
     }
 
-    public function enviarMensajeBienvenida($id)
+    public function enviarMensajeBienvenida()
     {
         $this->authorize('edit enfermeros');
         
         try {
-            $enfermero = Enfermero::findOrFail($id);
-            $user = $enfermero->user;
+            $user = $this->enfermero->user;
             
             if (!$user) {
                 $this->dispatch('notify', [
@@ -234,7 +233,7 @@ class Index extends Component
                 return;
             }
             
-            if (empty($enfermero->telefono)) {
+            if (empty($this->enfermero->telefono)) {
                 $this->dispatch('notify', [
                     'type' => 'error',
                     'message' => 'El enfermero no tiene teléfono registrado.',
@@ -244,11 +243,20 @@ class Index extends Component
             }
             
             // Generar contraseña temporal (usando el documento de identidad)
-            $plainPassword = $enfermero->documento_identidad;
+            $plainPassword = $this->enfermero->documento_identidad;
             
             // Crear y enviar mensaje de bienvenida
-            $mensaje = $this->crearMensajeBienvenida($user, $enfermero, $plainPassword);
-            $telefono = $this->formatearTelefono($enfermero->telefono);
+            $mensaje = $this->crearMensajeBienvenida($user, $this->enfermero, $plainPassword);
+            $telefonoOriginal = $this->enfermero->telefono;
+            $telefono = $this->formatearTelefono($this->enfermero->telefono);
+            
+            // Log para depuración (se puede eliminar después)
+            \Log::info('Formateo de teléfono', [
+                'original' => $telefonoOriginal,
+                'formateado' => $telefono,
+                'pais' => auth()->user()?->empresa?->pais?->nombre ?? 'N/A',
+                'codigo_pais' => auth()->user()?->empresa?->pais?->codigo_telefonico ?? 'N/A'
+            ]);
             
             $whatsAppService = new WhatsAppService($user->empresa_id);
             
@@ -320,9 +328,32 @@ class Index extends Component
         // Eliminar espacios y caracteres no numéricos
         $telefono = preg_replace('/[^0-9]/', '', $telefono);
         
-        // Si es un número peruano (9 dígitos y empieza con 9), agregar +51
-        if (strlen($telefono) === 9 && $telefono[0] === '9') {
-            $telefono = '+51' . $telefono;
+        // Obtener el país de la empresa del usuario logueado
+        $pais = null;
+        if (auth()->user() && auth()->user()->empresa) {
+            $pais = auth()->user()->empresa->pais;
+        }
+        
+        // Si no hay teléfono limpio, retornar vacío
+        if (empty($telefono)) {
+            return '';
+        }
+        
+        // Agregar código del país si está disponible
+        if ($pais && $pais->codigo_telefonico) {
+            // Verificar si el teléfono ya incluye el código del país
+            if (!str_starts_with($telefono, $pais->codigo_telefonico)) {
+                $telefono = $pais->codigo_telefonico . $telefono;
+            } else {
+                $telefono = $telefono;
+            }
+        } else {
+            // Si no hay código de país, intentar detectar por longitud (fallback)
+            if (strlen($telefono) === 9 && $telefono[0] === '9') {
+                $telefono = '+51' . $telefono; // Perú por defecto
+            } elseif (strlen($telefono) === 10) {
+                $telefono = '+52' . $telefono; // México por defecto
+            }
         }
         
         return $telefono;
