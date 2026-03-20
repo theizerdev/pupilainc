@@ -23,4 +23,7 @@ class Show extends Component
     {
         return view('livewire.admin.subespecialidades.show')->layout($this->getLayout());
     }
+
+
+    
 }

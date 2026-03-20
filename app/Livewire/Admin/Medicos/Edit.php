@@ -257,7 +257,7 @@ class Edit extends Component
                     'tarifa_consulta' => $data['tarifa_consulta'] ?? null,
                     'status' => true,
                 ];
-            }
+            } 
             
             $medico->subespecialidades()->sync($subespecialidades_sync);
 
@@ -265,18 +265,24 @@ class Edit extends Component
             $medico->horarios()->delete(); // Eliminar horarios anteriores
             
             foreach ($this->horarios as $dia => $horario) {
-                if ($horario['activo']) {
-                    $medico->horarios()->create([
-                        'dia_semana' => $dia,
+                $medico->horarios()->updateOrCreate(
+                    ['dia_semana' => $dia],
+                    [
                         'hora_inicio' => $horario['hora_inicio'],
                         'hora_fin' => $horario['hora_fin'],
                         'duracion_cita' => $horario['duracion_cita'],
-                        'activo' => true,
-                    ]);
-                }
+                        'activo' => $horario['activo'],
+                        'empresa_id' => $medico->empresa_id,
+                        'sucursal_id' => $medico->sucursal_id,
+                    ]
+                );
             }
 
-            session()->flash('success', 'Médico actualizado exitosamente.');
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Horarios del médico actualizados exitosamente.',
+                'duration' => 5000
+            ]);
             
             return redirect()->route('admin.medicos.index');
 

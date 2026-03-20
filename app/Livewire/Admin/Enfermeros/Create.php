@@ -170,40 +170,6 @@ class Create extends Component
                 ]);
             }
 
-
-            // Guardar horarios del enfermero
-            \Log::info('Horarios recibidos para guardar', ['horarios' => $this->horarios]);
-            
-            $horariosGuardados = 0;
-            try {
-                foreach ($this->horarios as $dia => $horario) {
-                    if ($horario['activo']) {
-                        \Log::info('Guardando horario', [
-                            'dia' => $dia,
-                            'horario' => $horario
-                        ]);
-                        
-                        $enfermero->horarios()->create([
-                            'dia_semana' => $dia,
-                            'hora_inicio' => $horario['hora_inicio'],
-                            'hora_fin' => $horario['hora_fin'],
-                            'duracion_cita' => $horario['duracion_cita'],
-                            'activo' => true,
-                            'empresa_id' => $enfermero->empresa_id,
-                            'sucursal_id' => $enfermero->sucursal_id,
-                        ]);
-                        $horariosGuardados++;
-                    }
-                }
-                \Log::info('Total de horarios guardados', ['total' => $horariosGuardados]);
-            } catch (\Exception $e) {
-                \Log::error('Error al guardar horarios', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                throw $e;
-            }
-
             // Enviar mensaje de WhatsApp de bienvenida
             $enfermero->refresh(); // Recargar el modelo con las relaciones
             $this->enviarMensajeBienvenida($user, $enfermero, $plainPassword);
@@ -215,7 +181,7 @@ class Create extends Component
             ]);
               \DB::commit();
             
-            return redirect()->route('admin.enfermeros.index');
+            return redirect()->to('admin/enfermeros/'.$enfermero->id.'/horarios');
 
         } catch (\Exception $e) {
             \DB::rollback();

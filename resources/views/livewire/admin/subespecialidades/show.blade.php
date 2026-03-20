@@ -257,13 +257,7 @@
                 </a>
             @endcan
             
-            @can('delete subespecialidades')
-                <button type="button" 
-                        class="btn btn-outline-danger btn-lg px-4"
-                        onclick="confirmDelete('{{ $subespecialidad->id }}')">
-                    <i class="fas fa-trash-alt me-2"></i>Eliminar
-                </button>
-            @endcan
+           
         </div>
     </div>
 

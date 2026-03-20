@@ -217,12 +217,14 @@ class Index extends Component
     
     }
 
-    public function enviarMensajeBienvenida()
+    public function enviarMensajeBienvenida($id)
     {
+
         $this->authorize('edit enfermeros');
         
         try {
-            $user = $this->enfermero->user;
+            $enfermero = Enfermero::find($id);
+            $user = $enfermero->user;
             
             if (!$user) {
                 $this->dispatch('notify', [
@@ -233,7 +235,7 @@ class Index extends Component
                 return;
             }
             
-            if (empty($this->enfermero->telefono)) {
+            if (empty($enfermero->telefono)) {
                 $this->dispatch('notify', [
                     'type' => 'error',
                     'message' => 'El enfermero no tiene teléfono registrado.',
@@ -243,12 +245,12 @@ class Index extends Component
             }
             
             // Generar contraseña temporal (usando el documento de identidad)
-            $plainPassword = $this->enfermero->documento_identidad;
+            $plainPassword = $enfermero->documento_identidad;
             
             // Crear y enviar mensaje de bienvenida
-            $mensaje = $this->crearMensajeBienvenida($user, $this->enfermero, $plainPassword);
-            $telefonoOriginal = $this->enfermero->telefono;
-            $telefono = $this->formatearTelefono($this->enfermero->telefono);
+            $mensaje = $this->crearMensajeBienvenida($user, $enfermero, $plainPassword);
+            $telefonoOriginal = $enfermero->telefono;
+            $telefono = $this->formatearTelefono($enfermero->telefono);
             
             // Log para depuración (se puede eliminar después)
             \Log::info('Formateo de teléfono', [
