@@ -686,6 +686,19 @@
         @media (max-width: 768px) {
             .calendar-scroll { height: calc(100vh - 240px); }
         }
+        
+        /* Fijar los días de la semana (lunes, martes...) al hacer scroll */
+        #calendar .fc-scrollgrid-section-header th,
+        #calendar .fc-scrollgrid-section-header td {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 50 !important;
+            background-color: #fff !important;
+        }
+        /* Para dar sombra inferior o separador visual */
+        #calendar .fc-scrollgrid-section-header th {
+            border-bottom: 2px solid #e0e0e0 !important;
+        }
     </style>
     @endpush
 
@@ -994,6 +1007,7 @@
                                 <span class="visually-hidden">Cargando...</span>
                             </div>
                         </div>
+
                         <div id="calendarScrollContainer" class="calendar-scroll"><div id="calendar"></div></div>
                     </div>
                 </div>

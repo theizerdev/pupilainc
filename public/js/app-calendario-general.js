@@ -1376,6 +1376,23 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         direction: document.documentElement.getAttribute('dir')==='rtl'?'rtl':'ltr',
         initialDate: new Date(),
         navLinks: true,
+        datesSet: function () {
+            // Mover el header nativo fuera del "calendarScrollContainer"
+            // De esa manera mantiene la 'lógica del proyecto' pero se escapa de PerfectScrollbar
+            var header = document.querySelector('#calendar > .fc-header-toolbar');
+            var scrollContainer = document.getElementById('calendarScrollContainer');
+            if (header && scrollContainer) {
+                var wrapper = document.getElementById('external-fc-header');
+                if (!wrapper) {
+                    wrapper = document.createElement('div');
+                    wrapper.id = 'external-fc-header';
+                    wrapper.className = 'fc fc-media-screen fc-theme-standard';
+                    wrapper.style.marginBottom = '1rem';
+                    scrollContainer.parentNode.insertBefore(wrapper, scrollContainer);
+                }
+                wrapper.appendChild(header);
+            }
+        },
         eventContent: function(arg) {
             var view = arg.view, ep = arg.event.extendedProps||{}, timeText = arg.timeText||'';
             var tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
