@@ -35,25 +35,29 @@ class Create extends Component
     public $nivel_experiencia = 'Básico';
     public $email;
     public $password;
-    
+
     // Especialidades y subespecialidades
     public $especialidad_id;
     public $subespecialidades_seleccionadas = [];
     public $tarifa_consulta;
     public $horario_atencion = [];
-    
+
     // Datos de subespecialidades (experiencia, nivel, tarifa)
     public $subespecialidades_data = [];
-    
+
     // Empresa y sucursal (se asignarán automáticamente)
     public $empresa_id;
     public $sucursal_id;
-    
+
     // Datos del país para el formato del teléfono
     public $pais;
-    
+
     // Horarios del médico
     public $horarios = [];
+
+    protected $listeners = [
+        'subespecialidad-creada' => 'onSubespecialidadCreada',
+    ];
 
     protected function rules()
     {
@@ -93,13 +97,13 @@ class Create extends Component
         // Inicializar valores por defecto
         $this->password = '';
         $this->subespecialidades_data = [];
-        
+
         // Inicializar horarios por defecto (Lunes a Viernes activos)
         $diasSemana = [
             1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes',
             6 => 'Sábado', 7 => 'Domingo'
         ];
-        
+
         foreach ($diasSemana as $dia => $nombre) {
             $this->horarios[$dia] = [
                 'activo' => in_array($dia, [1, 2, 3, 4, 5]), // Lunes a Viernes activos
@@ -121,6 +125,24 @@ class Create extends Component
         $this->subespecialidades_data = [];
     }
 
+    public function onSubespecialidadCreada($data)
+    {
+        // Agregar la nueva subespecialidad a la lista de seleccionadas
+        if (!in_array($data['id'], $this->subespecialidades_seleccionadas)) {
+            $this->subespecialidades_seleccionadas[] = $data['id'];
+
+            // Inicializar datos para la nueva subespecialidad
+            $this->subespecialidades_data[$data['id']] = [
+                'experiencia_anios' => 0,
+                'nivel_experiencia' => 'Básico',
+                'tarifa_consulta' => null,
+            ];
+        }
+
+        // Forzar la actualización de la propiedad computada de subespecialidades
+        $this->dispatch('$refresh');
+    }
+
     public function updatedSubespecialidadesSeleccionadas($value)
     {
         // Inicializar datos para las subespecialidades seleccionadas
@@ -133,7 +155,7 @@ class Create extends Component
                 ];
             }
         }
-        
+
         // Limpiar datos de subespecialidades no seleccionadas
         foreach ($this->subespecialidades_data as $id => $data) {
             if (!in_array($id, $this->subespecialidades_seleccionadas)) {
@@ -142,14 +164,19 @@ class Create extends Component
         }
     }
 
+    public function isSubespecialidadSelected($subespecialidadId)
+    {
+        return in_array($subespecialidadId, $this->subespecialidades_seleccionadas);
+    }
+
     public function store()
     {
         $this->authorize('create medicos');
-        
+
         $validated = $this->validate();
 
         try {
-           
+
           \DB::beginTransaction();
 
            $plainPassword = $validated['password'] ?: $validated['documento_identidad'];
@@ -203,21 +230,21 @@ class Create extends Component
                     'data' => $this->subespecialidades_data,
                     'data_keys' => array_keys($this->subespecialidades_data)
                 ]);
-                
+
                 foreach ($validated['subespecialidades_seleccionadas'] as $subespecialidadId) {
                     // Verificar si existe el dato para esta subespecialidad
                     if (!isset($this->subespecialidades_data[$subespecialidadId])) {
                         \Log::warning('No se encontraron datos para subespecialidad: ' . $subespecialidadId);
                         continue;
                     }
-                    
+
                     $subData = $this->subespecialidades_data[$subespecialidadId];
-                    
+
                     \Log::info('Asignando subespecialidad:', [
                         'id' => $subespecialidadId,
                         'data' => $subData
                     ]);
-                    
+
                     $medico->asignarSubespecialidad(
                         $subespecialidadId,
                         $subData['tarifa_consulta'] ?? null,
@@ -249,7 +276,7 @@ class Create extends Component
                 'duration' => 5000
             ]);
               \DB::commit();
-            
+
             return redirect()->route('admin.medicos.index');
 
         } catch (\Exception $e) {
@@ -267,13 +294,13 @@ class Create extends Component
         // Procesar nombres
         $nombresArray = explode(' ', strtolower(trim($nombres)));
         $apellidosArray = explode(' ', strtolower(trim($apellidos)));
-        
+
         // Obtener la primera letra del primer nombre
         $inicialNombre = substr($nombresArray[0], 0, 1);
-        
+
         // Obtener el primer apellido
         $primerApellido = $apellidosArray[0] ?? '';
-        
+
         // Generar el username base: inicial + apellido
         $base = $inicialNombre . $primerApellido;
         $username = $base;
@@ -283,7 +310,7 @@ class Create extends Component
         if (User::where('username', $username)->exists() && count($nombresArray) > 1) {
             $inicialSegundoNombre = substr($nombresArray[1], 0, 1);
             $username = $inicialNombre . $inicialSegundoNombre . $primerApellido;
-            
+
             // Si aún existe, agregar números
             while (User::where('username', $username)->exists()) {
                 $username = $base . $counter;
@@ -314,16 +341,16 @@ class Create extends Component
 
             // Formatear el número de teléfono (agregar +51 si es peruano)
             $telefono = $this->formatearTelefono($medico->telefono);
-            
+
             // Crear el mensaje de bienvenida
             $mensaje = $this->crearMensajeBienvenida($user, $medico, $plainPassword);
-            
+
             // Enviar mensaje por WhatsApp
             $whatsAppService = new WhatsAppService($user->empresa_id);
-            
+
             if ($whatsAppService->isConfigured()) {
                 $resultado = $whatsAppService->sendMessage($telefono, $mensaje, true);
-                
+
                 if ($resultado) {
                     \Log::info('Mensaje de bienvenida enviado por WhatsApp', [
                         'medico_id' => $medico->id,
@@ -341,7 +368,7 @@ class Create extends Component
                     'empresa_id' => $user->empresa_id
                 ]);
             }
-            
+
         } catch (\Exception $e) {
             // Si falla el envío del mensaje, no debe afectar la creación del médico
             \Log::error('Error al enviar mensaje de WhatsApp al médico: ' . $e->getMessage(), [
@@ -351,7 +378,7 @@ class Create extends Component
         }
     }
 
-    
+
     protected function formatearTelefono(string $telefono): string
     {
         $limpio = preg_replace('/\D/', '', $telefono);
@@ -371,7 +398,7 @@ class Create extends Component
 
       protected function obtenerCodigoPais(): string
     {
-       
+
         $empId = auth()->user()->empresa_id;
         if (!$empId && auth()->check() && auth()->user()->empresa_id) {
             $empId = auth()->user()->empresa_id;
@@ -396,13 +423,13 @@ class Create extends Component
         $empresa = $user->empresa;
         $sucursal = $user->sucursal;
         $passwordToShow = $plainPassword ?: $medico->documento_identidad;
-        
+
         // Obtener especialidades del médico
         $especialidades = $medico->especialidades->pluck('nombre')->implode(', ');
         if (empty($especialidades)) {
             $especialidades = 'No asignada';
         }
-        
+
         // Mensaje de bienvenida personalizado
         $mensaje = "🩺 ¡Bienvenido/a Dr./Dra. {$medico->nombres} {$medico->apellidos}!\n\n";
         $mensaje .= "✅ Su cuenta ha sido creada exitosamente en nuestro sistema médico.\n\n";
@@ -417,7 +444,7 @@ class Create extends Component
         $mensaje .= "🔐 *Importante:* Por seguridad, le recomendamos cambiar su contraseña al iniciar sesión.\n\n";
         $mensaje .= "📱 ¿Preguntas? Contáctenos al {$empresa->telefono}\n\n";
         $mensaje .= "¡Gracias por formar parte de nuestro equipo médico! 🏥✨";
-        
+
         return $mensaje;
     }
 
@@ -451,7 +478,7 @@ class Create extends Component
         return collect();
     }
 
-    
+
     public function formatPhone()
     {
         if ($this->telefono) {

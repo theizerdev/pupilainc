@@ -1,6 +1,6 @@
 <div>
     @section('title', 'Crear Médico')
-    
+
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -10,7 +10,7 @@
             <i class="fas fa-arrow-left me-2"></i>Volver
         </a>
     </div>
- 
+
     <!-- Mensajes -->
     @if (session()->has('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -40,7 +40,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="nombres">Nombres *</label>
-                                    <input type="text" class="form-control @error('nombres') is-invalid @enderror" 
+                                    <input type="text" class="form-control @error('nombres') is-invalid @enderror"
                                            id="nombres" wire:model="nombres" placeholder="Ingrese los nombres">
                                     @error('nombres')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -50,7 +50,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="apellidos">Apellidos *</label>
-                                    <input type="text" class="form-control @error('apellidos') is-invalid @enderror" 
+                                    <input type="text" class="form-control @error('apellidos') is-invalid @enderror"
                                            id="apellidos" wire:model="apellidos" placeholder="Ingrese los apellidos">
                                     @error('apellidos')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -62,7 +62,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="documento_identidad">Documento de Identidad *</label>
-                                    <input type="text" class="form-control @error('documento_identidad') is-invalid @enderror" 
+                                    <input type="text" class="form-control @error('documento_identidad') is-invalid @enderror"
                                            id="documento_identidad" wire:model="documento_identidad" placeholder="Ingrese el documento">
                                     @error('documento_identidad')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -88,9 +88,9 @@
                                 <label for="telefono" class="fw-bold">
                                     <i class="fas fa-phone me-1"></i>Teléfono
                                 </label>
-                                <input type="tel" 
+                                <input type="tel"
                                     class="form-control form-control @error('telefono') is-invalid @enderror"
-                                    id="telefono" 
+                                    id="telefono"
                                     wire:model.blur="telefono"
                                     wire:change="formatPhone"
                                     placeholder="Ej: +58 412 1234567"
@@ -111,7 +111,7 @@
                             <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label for="direccion">Dirección</label>
-                                    <textarea class="form-control @error('direccion') is-invalid @enderror" 
+                                    <textarea class="form-control @error('direccion') is-invalid @enderror"
                                               id="direccion" wire:model="direccion" rows="2" placeholder="Ingrese la dirección"></textarea>
                                     @error('direccion')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -132,7 +132,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="email">Correo Electrónico *</label>
-                                    <input type="email" class="form-control @error('email') is-invalid @enderror" 
+                                    <input type="email" class="form-control @error('email') is-invalid @enderror"
                                            id="email" wire:model="email" placeholder="Ingrese el correo electrónico">
                                     @error('email')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -142,7 +142,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="password">Contraseña Temporal *</label>
-                                    <input type="text" class="form-control @error('password') is-invalid @enderror" 
+                                    <input type="text" class="form-control @error('password') is-invalid @enderror"
                                            id="password" wire:model="password" placeholder="Contraseña temporal">
                                     <small class="form-text text-muted">
                                         La contraseña por defecto es "password". El médico deberá cambiarla al iniciar sesión.
@@ -166,7 +166,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="licencia_medica">Cédula Médica *</label>
-                                    <input type="text" class="form-control @error('licencia_medica') is-invalid @enderror" 
+                                    <input type="text" class="form-control @error('licencia_medica') is-invalid @enderror"
                                            id="licencia_medica" wire:model="licencia_medica" placeholder="Ingrese la cédula médica">
                                     @error('licencia_medica')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -176,7 +176,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="anios_experiencia">Años de Experiencia *</label>
-                                    <input type="number" class="form-control @error('anios_experiencia') is-invalid @enderror" 
+                                    <input type="number" class="form-control @error('anios_experiencia') is-invalid @enderror"
                                            id="anios_experiencia" wire:model="anios_experiencia" min="0" max="50">
                                     @error('anios_experiencia')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -188,7 +188,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="nivel_experiencia">Nivel de Experiencia *</label>
-                                    <select class="form-control @error('nivel_experiencia') is-invalid @enderror" 
+                                    <select class="form-control @error('nivel_experiencia') is-invalid @enderror"
                                             id="nivel_experiencia" wire:model="nivel_experiencia">
                                         <option value="Básico">Básico</option>
                                         <option value="Intermedio">Intermedio</option>
@@ -202,7 +202,7 @@
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label for="tarifa_consulta">Tarifa de Consulta</label>
-                                    <input type="number" class="form-control @error('tarifa_consulta') is-invalid @enderror" 
+                                    <input type="number" class="form-control @error('tarifa_consulta') is-invalid @enderror"
                                            id="tarifa_consulta" wire:model="tarifa_consulta" step="0.01" min="0">
                                     @error('tarifa_consulta')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -223,7 +223,7 @@
                             <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label for="especialidad_id">Especialidad Principal *</label>
-                                    <select class="form-control @error('especialidad_id') is-invalid @enderror" 
+                                    <select class="form-control @error('especialidad_id') is-invalid @enderror"
                                             id="especialidad_id" wire:model.change="especialidad_id">
                                         <option value="">Seleccione una especialidad</option>
                                         @foreach($especialidades as $especialidad)
@@ -236,39 +236,44 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         @if($especialidad_id)
                             <div class="row">
                                 <div class="col-md-12">
-                                    <div class="form-group mb-3">
-                                        <label>Subespecialidades (Opcional)</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <label class="fw-bold">Subespecialidades (Opcional)</label>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" wire:click="$dispatch('open-subespecialidad-modal', { especialidadId: {{ $especialidad_id }} })">
+                                            <i class="fas fa-plus me-1"></i> Nueva Subespecialidad
+                                        </button>
+                                    </div>
                                         <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
                                             @forelse($subespecialidades as $subespecialidad)
                                                 <div class="form-check mb-2">
-                                                    <input class="form-check-input" type="checkbox" 
-                                                           id="subespecialidad_{{ $subespecialidad->id }}" 
-                                                           value="{{ $subespecialidad->id }}" 
-                                                           wire:model.live="subespecialidades_seleccionadas">
+                                                    <input class="form-check-input" type="checkbox"
+                                                           id="subespecialidad_{{ $subespecialidad->id }}"
+                                                           value="{{ $subespecialidad->id }}"
+                                                           wire:model.live="subespecialidades_seleccionadas"
+                                                           wire:change="updatedSubespecialidadesSeleccionadas">
                                                     <label class="form-check-label" for="subespecialidad_{{ $subespecialidad->id }}">
                                                         {{ $subespecialidad->nombre }}
                                                     </label>
                                                 </div>
-                                                
-                                                @if(in_array($subespecialidad->id, $subespecialidades_seleccionadas))
+
+                                                @if($this->isSubespecialidadSelected($subespecialidad->id))
                                                     <div class="ms-4 mb-3 p-2 bg-light rounded">
                                                         <div class="row">
                                                             <div class="col-md-4">
                                                                 <div class="form-group mb-2">
                                                                     <label class="small">Experiencia (años)</label>
-                                                                    <input type="number" class="form-control form-control-sm" 
-                                                                           wire:model="subespecialidades_data.{{ $subespecialidad->id }}.experiencia_anios" 
+                                                                    <input type="number" class="form-control form-control-sm"
+                                                                           wire:model="subespecialidades_data.{{ $subespecialidad->id }}.experiencia_anios"
                                                                            min="0" max="50">
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-4">
                                                                 <div class="form-group mb-2">
                                                                     <label class="small">Nivel</label>
-                                                                    <select class="form-control form-control-sm" 
+                                                                    <select class="form-control form-control-sm"
                                                                             wire:model="subespecialidades_data.{{ $subespecialidad->id }}.nivel_experiencia">
                                                                         <option value="Básico">Básico</option>
                                                                         <option value="Intermedio">Intermedio</option>
@@ -279,8 +284,8 @@
                                                             <div class="col-md-4">
                                                                 <div class="form-group mb-2">
                                                                     <label class="small">Tarifa (opcional)</label>
-                                                                    <input type="number" class="form-control form-control-sm" 
-                                                                           wire:model="subespecialidades_data.{{ $subespecialidad->id }}.tarifa_consulta" 
+                                                                    <input type="number" class="form-control form-control-sm"
+                                                                           wire:model="subespecialidades_data.{{ $subespecialidad->id }}.tarifa_consulta"
                                                                            step="0.01" min="0">
                                                                 </div>
                                                             </div>
@@ -297,6 +302,9 @@
                         @endif
                     </div>
                 </div>
+
+                <!-- Componente del modal para crear subespecialidades -->
+                <livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" :key="'subesp-modal-create-'.($especialidad_id ?: 'none')" />
 
                 <!-- Horarios de Atención -->
                 <div class="card mb-4">
@@ -321,14 +329,14 @@
                                             <td><strong>{{ $nombre }}</strong></td>
                                             <td>
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" 
-                                                           wire:model="horarios.{{ $dia }}.activo" 
+                                                    <input class="form-check-input" type="checkbox"
+                                                           wire:model="horarios.{{ $dia }}.activo"
                                                            id="dia_{{ $dia }}">
                                                 </div>
                                             </td>
                                             <td>
                                                 @if($horarios[$dia]['activo'])
-                                                    <input type="time" class="form-control form-control-sm" 
+                                                    <input type="time" class="form-control form-control-sm"
                                                            wire:model="horarios.{{ $dia }}.hora_inicio">
                                                 @else
                                                     <span class="text-muted">-</span>
@@ -336,7 +344,7 @@
                                             </td>
                                             <td>
                                                 @if($horarios[$dia]['activo'])
-                                                    <input type="time" class="form-control form-control-sm" 
+                                                    <input type="time" class="form-control form-control-sm"
                                                            wire:model="horarios.{{ $dia }}.hora_fin">
                                                 @else
                                                     <span class="text-muted">-</span>
@@ -344,7 +352,7 @@
                                             </td>
                                             <td>
                                                 @if($horarios[$dia]['activo'])
-                                                    <select class="form-select form-select-sm" 
+                                                    <select class="form-select form-select-sm"
                                                             wire:model="horarios.{{ $dia }}.duracion_cita">
                                                         <option value="15">15 min</option>
                                                         <option value="20">20 min</option>
@@ -378,7 +386,7 @@
                         <div class="card-body">
                             <div class="form-group mb-3">
                                 <label for="empresa_id">Empresa *</label>
-                                <select class="form-control @error('empresa_id') is-invalid @enderror" 
+                                <select class="form-control @error('empresa_id') is-invalid @enderror"
                                         id="empresa_id" wire:model="empresa_id">
                                     <option value="">Seleccione una empresa</option>
                                     @foreach($empresas as $empresa)
@@ -391,7 +399,7 @@
                             </div>
                             <div class="form-group mb-3">
                                 <label for="sucursal_id">Sucursal *</label>
-                                <select class="form-control @error('sucursal_id') is-invalid @enderror" 
+                                <select class="form-control @error('sucursal_id') is-invalid @enderror"
                                         id="sucursal_id" wire:model="sucursal_id" @if(!$empresa_id) disabled @endif>
                                     <option value="">Seleccione una sucursal</option>
                                     @foreach($sucursales as $sucursal)
@@ -455,4 +463,6 @@
             </div>
         </div>
     </form>
+
+<livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" />
 </div>

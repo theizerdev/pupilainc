@@ -37,23 +37,27 @@ class Edit extends Component
     public $nivel_experiencia = 'Básico';
     public $email;
     public $status = true;
-    
+
     // Especialidades y subespecialidades
     public $especialidad_id;
     public $subespecialidades_seleccionadas = [];
     public $subespecialidades_data = []; // Array para almacenar experiencia y nivel por subespecialidad
     public $tarifa_consulta;
     public $horario_atencion = [];
-    
+
     // Empresa y sucursal
     public $empresa_id;
     public $sucursal_id;
-    
+
     // Horarios del médico
     public $horarios = [];
-    
+
     // Datos del país para el formato del teléfono
     public $pais;
+
+    protected $listeners = [
+        'subespecialidad-creada' => 'onSubespecialidadCreada',
+    ];
 
     protected function rules()
     {
@@ -131,7 +135,7 @@ class Edit extends Component
 
         // Cargar subespecialidades seleccionadas y sus datos
         $this->subespecialidades_seleccionadas = $medico->subespecialidades->pluck('id')->toArray();
-        
+
         // Cargar datos de experiencia y nivel por subespecialidad
         foreach ($medico->subespecialidades as $subespecialidad) {
             $this->subespecialidades_data[$subespecialidad->id] = [
@@ -143,16 +147,16 @@ class Edit extends Component
 
         // Cargar horarios existentes del médico
         $horariosExistentes = $medico->horarios->pluck('activo', 'dia_semana')->toArray();
-        
+
         // Inicializar horarios por defecto
         $diasSemana = [
             1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes',
             6 => 'Sábado', 7 => 'Domingo'
         ];
-        
+
         foreach ($diasSemana as $dia => $nombre) {
             $horarioExistente = $medico->horarios->where('dia_semana', $dia)->first();
-            
+
             if ($horarioExistente) {
                 $this->horarios[$dia] = [
                     'activo' => $horarioExistente->activo,
@@ -177,31 +181,49 @@ class Edit extends Component
         }
     }
 
-    public function updatedEspecialidadId($value)
+     public function updatedEspecialidadId($value)
     {
         $this->reset('subespecialidades_seleccionadas');
-        $this->reset('subespecialidades_data');
+        $this->subespecialidades_data = [];
     }
 
     public function updatedSubespecialidadesSeleccionadas($value)
     {
-        // Inicializar datos para nuevas subespecialidades seleccionadas
-        foreach ($value as $subespecialidadId) {
-            if (!isset($this->subespecialidades_data[$subespecialidadId])) {
-                $this->subespecialidades_data[$subespecialidadId] = [
+        // Inicializar datos para las subespecialidades seleccionadas
+        foreach ($this->subespecialidades_seleccionadas as $subespecialidad_id) {
+            if (!array_key_exists($subespecialidad_id, $this->subespecialidades_data)) {
+                $this->subespecialidades_data[$subespecialidad_id] = [
                     'experiencia_anios' => 0,
                     'nivel_experiencia' => 'Básico',
                     'tarifa_consulta' => null,
                 ];
             }
         }
-        
-        // Limpiar datos de subespecialidades deseleccionadas
+
+        // Limpiar datos de subespecialidades no seleccionadas
         foreach ($this->subespecialidades_data as $id => $data) {
-            if (!in_array($id, $value)) {
+            if (!in_array($id, $this->subespecialidades_seleccionadas)) {
                 unset($this->subespecialidades_data[$id]);
             }
         }
+    }
+
+    public function onSubespecialidadCreada($data)
+    {
+        // Agregar la nueva subespecialidad a la lista de seleccionadas
+        if (!in_array($data['id'], $this->subespecialidades_seleccionadas)) {
+            $this->subespecialidades_seleccionadas[] = $data['id'];
+
+            // Inicializar datos para la nueva subespecialidad
+            $this->subespecialidades_data[$data['id']] = [
+                'experiencia_anios' => 0,
+                'nivel_experiencia' => 'Básico',
+                'tarifa_consulta' => null,
+            ];
+        }
+
+        // Forzar la actualización de la propiedad computada de subespecialidades
+        $this->dispatch('$refresh');
     }
 
     public function save()
@@ -250,20 +272,20 @@ class Edit extends Component
                     'nivel_experiencia' => 'Básico',
                     'tarifa_consulta' => null,
                 ];
-                
+
                 $subespecialidades_sync[$subespecialidadId] = [
                     'experiencia_anios' => $data['experiencia_anios'] ?? 0,
                     'nivel_experiencia' => $data['nivel_experiencia'] ?? 'Básico',
                     'tarifa_consulta' => $data['tarifa_consulta'] ?? null,
                     'status' => true,
                 ];
-            } 
-            
+            }
+
             $medico->subespecialidades()->sync($subespecialidades_sync);
 
             // Actualizar horarios del médico
             $medico->horarios()->delete(); // Eliminar horarios anteriores
-            
+
             foreach ($this->horarios as $dia => $horario) {
                 $medico->horarios()->updateOrCreate(
                     ['dia_semana' => $dia],
@@ -283,7 +305,7 @@ class Edit extends Component
                 'message' => 'Horarios del médico actualizados exitosamente.',
                 'duration' => 5000
             ]);
-            
+
             return redirect()->route('admin.medicos.index');
 
         } catch (\Exception $e) {

@@ -107,12 +107,19 @@ class CitaConsultaSyncService
     /**
      * Sincroniza la fecha/hora de la consulta con la cita
      */
-    protected function sincronizarConsulta(Consulta $consulta, Carbon $nuevaFechaHora): void
+    protected function sincronizarConsulta(Consulta $consulta, Carbon $nuevaFechaHora, Carbon $nuevaFechaFin): void
     {
-        $consulta->update([
+        $datosActualizacion = [
             'fecha_consulta' => $nuevaFechaHora,
             'estado_changed_at' => now(),
-        ]);
+        ];
+
+        // Si el modelo Consulta tiene campo de fecha_fin, también sincronizarlo
+        if ($consulta->isFillable('fecha_fin') || $consulta->hasAttribute('fecha_fin')) {
+            $datosActualizacion['fecha_fin'] = $nuevaFechaFin;
+        }
+
+        $consulta->update($datosActualizacion);
     }
 
     /**

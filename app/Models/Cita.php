@@ -282,7 +282,21 @@ class Cita extends Model
         try {
             $existe = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->exists();
             if ($existe) {
-                \Log::info('consulta ya existe para cita', ['cita_id' => $this->id]);
+                \Log::info('consulta ya existe para cita, actualizando tiempos', ['cita_id' => $this->id]);
+                
+                // Update the existing consultation to match the appointment timing exactly
+                $consulta = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->first();
+                
+                $consulta->update([
+                    'fecha_consulta' => $this->fecha_inicio,
+                    'updated_at' => now()
+                ]);
+                
+                \Log::info("Consulta #{$consulta->id} actualizada para coincidir con la cita #{$this->id}", [
+                    'fecha_consulta' => $this->fecha_inicio,
+                    'duracion_minutos' => $this->duracion_minutos
+                ]);
+                
                 return;
             }
 
@@ -299,7 +313,7 @@ class Cita extends Model
                 'paciente_id' => $this->paciente_id,
                 'medico_id' => $this->medico_id,
                 'especialidad_id' => $this->especialidad_id,
-                'fecha_consulta' => $this->fecha_inicio,
+                'fecha_consulta' => $this->fecha_inicio, // Align consultation start time with appointment
                 'motivo_consulta' => $this->motivo,
                 'preconsulta' => true,
                 'estado' => Consulta::ESTADO_SALA_ESPERA,
@@ -309,9 +323,16 @@ class Cita extends Model
                 'created_by' => auth()->id(),
             ]);
 
-            \Log::info("Consulta sala_espera creada para cita #{$this->id}");
+            \Log::info("Consulta sala_espera creada para cita #{$this->id} con la misma duración", [
+                'fecha_inicio' => $this->fecha_inicio,
+                'fecha_fin' => $this->fecha_fin,
+                'duracion_minutos' => $this->duracion_minutos
+            ]);
         } catch (\Throwable $e) {
-            \Log::error("Error creando consulta para cita #{$this->id}: " . $e->getMessage());
+            \Log::error("Error creando consulta para cita #{$this->id}: " . $e->getMessage(), [
+                'exception' => get_class($e),
+                'line' => $e->getLine()
+            ]);
         }
     }
 
@@ -397,6 +418,12 @@ class Cita extends Model
         }
 
         $tieneConsulta = $this->consulta !== null;
+        
+        // Información de la consulta asociada si existe
+        $consultaEstadoLabel = null;
+        if ($this->consulta) {
+            $consultaEstadoLabel = Consulta::ESTADO_LABELS[$this->consulta->estado] ?? ucfirst($this->consulta->estado);
+        }
 
         return [
             'id' => $this->id,
@@ -430,6 +457,7 @@ class Cita extends Model
                 'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal',
                 'tiene_consulta' => $tieneConsulta,
                 'consulta_id' => $this->consulta?->id,
+                'consulta_estado_label' => $consultaEstadoLabel, // Etiqueta del estado de la consulta asociada
             ],
         ];
     }

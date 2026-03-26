@@ -5,23 +5,23 @@
             // Listener para alertas con SweetAlert2
             Livewire.on('show-alert', (event) => {
                 const data = event[0];
-                
+
                 if (window.Swal) {
                     Swal.fire({
                         icon: data.icon || 'info',
-                       
+
                         text: data.message || '',
                         confirmButtonText: 'Entendido',
-                        confirmButtonColor: data.type === 'success' ? '#28a745' : 
-                                          data.type === 'error' ? '#dc3545' : 
+                        confirmButtonColor: data.type === 'success' ? '#28a745' :
+                                          data.type === 'error' ? '#dc3545' :
                                           data.type === 'warning' ? '#ffc107' : '#0d6efd',
                     });
                 } else {
                     // Fallback a toast nativo si no hay SweetAlert
                     const toastContainer = document.querySelector('.toast-container');
                     if (toastContainer) {
-                        const bgClass = data.type === 'success' ? 'bg-success' : 
-                                       data.type === 'error' ? 'bg-danger' : 
+                        const bgClass = data.type === 'success' ? 'bg-success' :
+                                       data.type === 'error' ? 'bg-danger' :
                                        data.type === 'warning' ? 'bg-warning' : 'bg-info';
                         const toastHtml = `
                             <div class="bs-toast toast ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
@@ -44,12 +44,12 @@
 
             Livewire.on('paciente-creado', (event) => {
                 const data = event[0];
-                
+
                 // Solo cerrar el modal si fue exitoso y no hay errores de validación
                 if (data.success && !data.errors) {
                     $('#modalPacienteRapido').modal('hide');
                 }
-                
+
                 // Usar el sistema de toasts de la plantilla
                 const toastContainer = document.querySelector('.toast-container');
                 if (toastContainer) {
@@ -97,58 +97,45 @@
         .slots-container { max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
         .cascade-arrow { text-align: center; color: #aaa; font-size: .75rem; margin: 2px 0; }
 
-        /* Event Cards - Tamaño grande y compacto */
+        /* Event Cards */
         .fc .fc-event {
-            border-radius: 8px !important;
-            border-left: 6px solid #000 !important;
-            transition: box-shadow 0.2s ease, transform 0.15s ease;
-            overflow: visible;
+            border-radius: 4px !important;
+            border-left: 4px solid #000 !important;
+            transition: box-shadow 0.2s ease;
+            overflow: hidden;
         }
         .fc .fc-event:hover {
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             z-index: 10;
-            transform: translateY(-2px);
         }
-        
-        /* Timegrid Event - Altura minima 120px para mas informacion */
+
+        /* Timegrid Event - compacto, estilo Google Calendar */
         .fc .fc-timegrid-event {
-            min-height: 120px !important;
-            border-radius: 8px !important;
+            min-height: 0 !important;
+            border-radius: 4px !important;
+            overflow: hidden;
+            margin: 0 1px !important;
         }
         .fc .fc-timegrid-event .fc-event-main {
-            padding: 8px 10px !important;
+            padding: 2px 4px !important;
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            justify-content: center;
             height: 100%;
+            overflow: hidden;
         }
         .fc .fc-timegrid-event .fc-event-time {
-            font-size: 0.8rem;
-            font-weight: 700;
-            flex-shrink: 0;
+            display: none;
         }
         .fc .fc-timegrid-event .fc-event-title {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            line-height: 1.3;
-            overflow: visible;
-            white-space: normal;
-            word-break: break-word;
+            line-height: 1.2;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
-        .fc .fc-timegrid-event .fc-event-subtitle {
-            font-size: 0.8rem;
-            opacity: 0.9;
-            white-space: normal;
-            overflow: visible;
-            text-overflow: initial;
-            line-height: 1.4;
-        }
-        .fc .fc-timegrid-event .fc-event-type-badge {
-            font-size: 0.7rem !important;
-            padding: 3px 10px !important;
-            font-weight: 600;
-        }
-        
+
         /* Controles de duracion */
         .fc-event-duration-controls {
             display: inline-flex;
@@ -193,7 +180,7 @@
             min-width: 50px;
             text-align: center;
         }
-        
+
         /* Sincronizacion de consulta */
         .fc-event-sync-indicator {
             display: inline-flex;
@@ -205,7 +192,7 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
-        
+
         /* Badge de tiempo de espera */
         .fc-event-tiempo-badge {
             font-size: 0.7rem !important;
@@ -213,13 +200,13 @@
             font-weight: 600;
             white-space: nowrap !important;
         }
-        
+
         /* Daygrid Event - Optimizado para mas informacion */
         .fc .fc-daygrid-event {
-            padding: 8px 10px !important;
-            margin-bottom: 4px !important;
-            line-height: 1.5;
-            min-height: 100px;
+            padding: 4px 6px !important;
+            margin-bottom: 2px !important;
+            line-height: 1.3;
+            min-height: 0;
         }
         .fc .fc-daygrid-event .fc-event-time {
             font-size: 0.8rem;
@@ -254,10 +241,51 @@
             overflow: visible !important;
             text-overflow: initial !important;
         }
-        
-        /* Lista de eventos */
+
+        /* ===== Lista de eventos (listMonth / listWeek) ===== */
+        .fc .fc-list-table {
+            width: 100% !important;
+            table-layout: auto !important;
+        }
+        .fc .fc-list-table td,
+        .fc .fc-list-table th {
+            vertical-align: middle;
+            padding: 10px 14px !important;
+            border-bottom: 1px solid var(--bs-border-color, #e9ecef) !important;
+        }
+        /* Columna del dot */
+        .fc .fc-list-event-graphic {
+            width: 12px !important;
+            padding-left: 12px !important;
+            padding-right: 0 !important;
+        }
+        /* Columna de hora */
+        .fc .fc-list-event-time {
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--bs-heading-color, #333);
+            width: 1% !important;
+            padding-right: 16px !important;
+        }
+        /* Columna de título - ocupa todo el espacio restante */
         .fc .fc-list-event-title {
             font-size: 0.85rem;
+            width: 99% !important;
+        }
+        /* Fila de evento */
+        .fc .fc-list-event {
+            cursor: pointer;
+        }
+        .fc .fc-list-event:hover td {
+            background-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.04) !important;
+        }
+        /* Cabecera del día */
+        .fc .fc-list-day-cushion {
+            padding: 10px 14px !important;
+            font-weight: 700;
+            font-size: 0.85rem;
+            background-color: var(--bs-body-bg, #f5f5f9) !important;
         }
         .calendar-legend { font-size: 0.8rem; }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
@@ -297,7 +325,7 @@
         }
 
         .fc .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
-            min-height: 100px !important;
+            min-height: 60px !important;
             padding: 3px 5px !important;
         }
         .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
@@ -307,7 +335,7 @@
             padding: 3px 5px !important;
         }
         .fc td.fc-daygrid-day {
-            min-height: 100px !important;
+            min-height: 60px !important;
             width: 100% !important;
         }
         .fc .fc-col-header-cell {
@@ -504,7 +532,7 @@
             border: none !important;
             opacity: 0;
         }
-        
+
         /* Scrollable sidebar content */
         .app-calendar-sidebar .sidebar-scroll {
             flex: 1;
@@ -527,7 +555,7 @@
         .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-thumb:hover {
             background: #888;
         }
-        
+
         /* Responsive sidebar */
         @media (max-width: 992px) {
             .app-calendar-sidebar {
@@ -637,7 +665,7 @@
             opacity: 1;
             pointer-events: all;
         }
-        
+
         /* Acordeón de filtros mejorado */
         .accordion-button.bg-transparent:not(.collapsed) {
             background-color: rgba(13, 110, 253, 0.1) !important;
@@ -656,7 +684,7 @@
         .accordion-item {
             background-color: transparent;
         }
-        
+
         /* Botones de filtros rápidos */
         .btn-outline-primary:hover {
             background-color: #0d6efd;
@@ -668,13 +696,13 @@
             background-color: #0d6efd;
             color: #fff;
         }
-        
+
         /* Badges de contadores */
         .badge.rounded-pill {
             font-size: 0.65rem;
             padding: 0.25em 0.5em;
         }
-        
+
         .calendar-scroll {
             position: relative;
             overflow: hidden;
@@ -686,6 +714,23 @@
         @media (max-width: 768px) {
             .calendar-scroll { height: calc(100vh - 240px); }
         }
+
+        
+
+        /* Fijar los días de la semana (lunes, martes...) al hacer scroll */
+        #calendar .fc-scrollgrid-section-header th,
+        #calendar .fc-scrollgrid-section-header td {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 50 !important;
+            background-color: #fff !important;
+        }
+        /* Para dar sombra inferior o separador visual */
+        #calendar .fc-scrollgrid-section-header th {
+            border-bottom: 2px solid #e0e0e0 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
     </style>
     @endpush
 
@@ -719,14 +764,14 @@
                                 <i class="ri ri-calendar-line me-1"></i>Mes
                             </button>
                         </div>
-                        
+
                         <!-- Inline Mini Calendar - Filtro de Fecha Principal -->
                         <div class="accordion" id="fechaAccordion">
                             <div class="accordion-item border-0 bg-transparent">
                                 <h2 class="accordion-header">
                                     <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fechaCollapse" aria-expanded="false">
                                         <i class="ri ri-calendar-line me-2"></i>Seleccionar Fecha
-                                        
+
                                     </button>
                                 </h2>
                                 <div id="fechaCollapse" class="accordion-collapse collapse" data-bs-parent="#fechaAccordion">
@@ -742,13 +787,13 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Búsqueda por paciente -->
                         <div class="input-group input-group-sm mt-2">
                             <span class="input-group-text"><i class="ri ri-search-line"></i></span>
                             <input type="text" class="form-control" id="searchPaciente" placeholder="Buscar paciente...">
                         </div>
-                        
+
                         <!-- Botón limpiar filtros -->
                         <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btnLimpiarFiltros">
                             <i class="ri ri-close-line me-1"></i>Limpiar Filtros
@@ -840,13 +885,13 @@
                         </div>
                     </div>
 
-                    
+
 
                     <hr class="mb-4 mx-n4 mt-3" />
 
                     <!-- Filtros Container -->
                     <div id="filtrosContainer" style="overflow-y: auto;">
-                    
+
                     <!-- Filtro por Especialidad (Colapsable) -->
                     <div class="accordion" id="filtrosAccordion">
                         <!-- Filtro por Especialidad -->
@@ -855,7 +900,7 @@
                                 <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#especialidadCollapse">
                                     <i class="ri ri-medicine-bottle-line me-2"></i>Especialidad
                                     <span class="badge bg-primary rounded-pill ms-2" id="especialidadCount">{{ \App\Models\Categoria::count() }}</span>
-                                    
+
                                 </button>
                             </h2>
                             <div id="especialidadCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
@@ -878,7 +923,7 @@
                                 <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#medicoCollapse">
                                     <i class="ri ri-user-star-line me-2"></i>Médico
                                     <span class="badge bg-secondary rounded-pill ms-2" id="medicoCount">0</span>
-                                    
+
                                 </button>
                             </h2>
                             <div id="medicoCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
@@ -901,7 +946,7 @@
                                 <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#citasCollapse">
                                     <i class="ri ri-calendar-check-line me-2"></i>Estados de Citas
                                     <span class="badge bg-primary rounded-pill ms-2" id="citasActivasCount">0</span>
-                                    
+
                                 </button>
                             </h2>
                             <div id="citasCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
@@ -932,7 +977,7 @@
                                 <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#consultasCollapse">
                                     <i class="ri ri-stethoscope-line me-2"></i>Estados de Consultas
                                     <span class="badge bg-primary rounded-pill ms-2" id="consultasActivasCount">0</span>
-                                    
+
                                 </button>
                             </h2>
                             <div id="consultasCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
@@ -994,6 +1039,7 @@
                                 <span class="visually-hidden">Cargando...</span>
                             </div>
                         </div>
+
                         <div id="calendarScrollContainer" class="calendar-scroll"><div id="calendar"></div></div>
                     </div>
                 </div>
@@ -1035,8 +1081,8 @@
                                 </select>
                                 <label for="eventPaciente">Paciente</label>
                             </div>
-                            
-                            
+
+
 
                             <div class="cascade-arrow"><i class="ri ri-arrow-down-s-line"></i></div>
 
@@ -1091,7 +1137,7 @@
                                     <strong>Modo Prioridad Alta/Emergencia</strong>
                                     <p class="mb-0 mt-1" style="font-size: 0.8rem;">Las franjas horarias ocupadas aparecerán deshabilitadas. Podrá definir un horario personalizado.</p>
                                 </div>
-                                
+
                                 <div class="row g-2 mb-3">
                                     <div class="col-6">
                                         <div class="form-floating">
@@ -1153,7 +1199,7 @@
                                 <label for="eventEstado">Estado</label>
                             </div>
 
-                            
+
 
                             <!-- Notas -->
                             <div class="form-floating form-floating-outline mb-5">
@@ -1181,7 +1227,7 @@
                         </form>
                     </div>
                 </div>
-                
+
                 <!-- Modal: Nuevo Paciente Rápido -->
                 <div class="modal fade" id="modalPacienteRapido" tabindex="-1" aria-hidden="true" wire:ignore.self>
                     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -1212,10 +1258,10 @@
                                     </div>
                                     <div class="col-md-12">
                                         <div class="form-floating form-floating-outline">
-                                            <input type="tel" 
-                                                   class="form-control" 
-                                                   id="mpTelefono" 
-                                                   placeholder="+58 412 1234567" 
+                                            <input type="tel"
+                                                   class="form-control"
+                                                   id="mpTelefono"
+                                                   placeholder="+58 412 1234567"
                                                    required
                                                    pattern="[\d\s\-\+\(\)]+"
                                                    title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
@@ -1264,9 +1310,9 @@
                                         </div>
                                         <div class="col-md-12">
                                             <div class="form-floating form-floating-outline">
-                                                <input type="tel" 
-                                                       class="form-control" 
-                                                       id="mpTutorTelefono" 
+                                                <input type="tel"
+                                                       class="form-control"
+                                                       id="mpTutorTelefono"
                                                        placeholder="Teléfono del tutor"
                                                        pattern="[\d\s\-\+\(\)]+"
                                                        title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
@@ -1293,7 +1339,7 @@
         </div>
 
         <!-- Modal: Ver más eventos del día -->
-       
+
     </div>
 
     @push('scripts')

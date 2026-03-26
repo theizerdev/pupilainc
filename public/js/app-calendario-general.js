@@ -94,34 +94,34 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // ===================== DASHBOARD METRICS =====================
     function updateDashboardMetrics() {
         if (!currentEvents || currentEvents.length === 0) return;
-        
+
         const now = new Date();
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay() + 1);
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
-        
+
         let citasSemana = 0, consultasSemana = 0;
         const medicoStats = {};
         const conflictos = [];
-        
+
         currentEvents.forEach(function(ev) {
             const ep = ev.extendedProps || {};
             const tipoEvento = ep.tipo_evento || 'cita';
             const evStart = new Date(ev.start);
-            
+
             if (evStart >= startOfWeek && evStart <= endOfWeek) {
                 if (tipoEvento === 'cita') citasSemana++;
                 else consultasSemana++;
             }
-            
+
             const medicoId = ep.medico_id;
             if (medicoId) {
                 if (!medicoStats[medicoId]) medicoStats[medicoId] = 0;
                 medicoStats[medicoId]++;
             }
         });
-        
+
         // Detectar conflictos
         for (let i = 0; i < currentEvents.length; i++) {
             for (let j = i + 1; j < currentEvents.length; j++) {
@@ -136,12 +136,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
             }
         }
-        
+
         const citasSemanaEl = document.getElementById('citasSemana');
         const consultasSemanaEl = document.getElementById('consultasSemana');
         if (citasSemanaEl) citasSemanaEl.textContent = citasSemana;
         if (consultasSemanaEl) consultasSemanaEl.textContent = consultasSemana;
-        
+
         Object.keys(medicoStats).forEach(function(medicoId) {
             const count = medicoStats[medicoId];
             const countEl = document.querySelector('.medico-citas-count[data-medico-id="' + medicoId + '"]');
@@ -156,7 +156,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 else progressEl.classList.add('bg-danger');
             }
         });
-        
+
         const conflictosAlert = document.getElementById('conflictosAlert');
         const conflictosCount = document.getElementById('conflictosCount');
         if (conflictos.length > 0) {
@@ -180,7 +180,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // ===================== TOGGLE FILTROS =====================
     const sidebar = document.getElementById('app-calendar-sidebar');
     let toggleSidebarBtn = null;
-    
+
     function createToggleButton() {
         if (toggleSidebarBtn) return;
         const fcToolbar = document.querySelector('.fc-header-toolbar');
@@ -195,14 +195,14 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             fcToolbarStart.insertBefore(toggleSidebarBtn, fcToolbarStart.firstChild);
         }
     }
-    
+
     function toggleSidebar() {
         if (sidebar.classList.contains('sidebar-hidden')) {
             sidebar.classList.remove('sidebar-hidden');
             if (toggleSidebarBtn) {
                 toggleSidebarBtn.classList.remove('show');
             }
-            
+
 
         } else {
             sidebar.classList.add('sidebar-hidden');
@@ -213,7 +213,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             }
         }
     }
-    
+
     if (toggleFiltrosBtn) {
         toggleFiltrosBtn.addEventListener('click', toggleSidebar);
     }
@@ -224,11 +224,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         const fcScroller = document.querySelector('.fc-scroller');
         const calBody = document.querySelector('.card-body');
         const scrollElement = fcScroller || calBody || calendarContent;
-        
+
         if (!scrollElement || !floatingToggles) return;
-        
+
         const scrollTop = scrollElement.scrollTop || window.pageYOffset || document.documentElement.scrollTop;
-        
+
         if (scrollTop > 100) {
             floatingToggles.classList.add('show');
         } else {
@@ -242,7 +242,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         checkScroll();
         scrollTimeout = setTimeout(checkScroll, 100);
     });
-    
+
     if (calendarContent) {
         calendarContent.addEventListener('scroll', function() {
             clearTimeout(scrollTimeout);
@@ -250,7 +250,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             scrollTimeout = setTimeout(checkScroll, 100);
         });
     }
-    
+
     // Check on calendar render
     setTimeout(function() {
         const fcScrollers = document.querySelectorAll('.fc-scroller');
@@ -352,7 +352,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         });
     }
     if (mpEsMenor && mpTutorFields) { mpEsMenor.addEventListener('change', function() { mpTutorFields.style.display = mpEsMenor.checked ? '' : 'none'; }); }
-    
+
     // Eventos para validación en tiempo real de todos los campos requeridos
     function agregarEventosValidacionRealTime() {
         // Nombres
@@ -368,13 +368,13 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 actualizarEstadoBotonSubmit();
             });
-            
+
             nombresInput.addEventListener('input', function() {
                 clearFieldError('mpNombres');
                 actualizarEstadoBotonSubmit();
             });
         }
-        
+
         // Apellidos
         var apellidosInput = document.getElementById('mpApellidos');
         if (apellidosInput) {
@@ -388,13 +388,13 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 actualizarEstadoBotonSubmit();
             });
-            
+
             apellidosInput.addEventListener('input', function() {
                 clearFieldError('mpApellidos');
                 actualizarEstadoBotonSubmit();
             });
         }
-        
+
         // Documento
         var documentoInput = document.getElementById('mpDocumento');
         if (documentoInput) {
@@ -411,13 +411,13 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 actualizarEstadoBotonSubmit();
             });
-            
+
             documentoInput.addEventListener('input', function() {
                 clearFieldError('mpDocumento');
                 actualizarEstadoBotonSubmit();
             });
         }
-        
+
         // Teléfono
         var telefonoInput = document.getElementById('mpTelefono');
         if (telefonoInput) {
@@ -434,20 +434,20 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 actualizarEstadoBotonSubmit();
             });
-            
+
             telefonoInput.addEventListener('input', function() {
                 clearFieldError('mpTelefono');
                 actualizarEstadoBotonSubmit();
             });
         }
-        
+
         // Fecha de nacimiento
         var fechaNacimientoInput = document.getElementById('mpFechaNacimiento');
         if (fechaNacimientoInput) {
             fechaNacimientoInput.addEventListener('blur', function() {
                 var fechaValue = this.value;
                 clearFieldError('mpFechaNacimiento');
-                
+
                 if (!fechaValue || fechaValue.trim() === '') {
                     showFieldError('fecha_nacimiento', 'Este campo es requerido');
                 } else {
@@ -455,7 +455,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                     var hoy = new Date();
                     var fechaMinima = new Date();
                     fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
-                    
+
                     if (isNaN(fecha.getTime())) {
                         showFieldError('fecha_nacimiento', 'La fecha no es válida');
                     } else if (fecha > hoy) {
@@ -466,27 +466,27 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
                 actualizarEstadoBotonSubmit();
             });
-            
+
             fechaNacimientoInput.addEventListener('input', function() {
                 clearFieldError('mpFechaNacimiento');
                 actualizarEstadoBotonSubmit();
             });
         }
     }
-    
+
     // Llamar a la función cuando el modal se muestre
     if (modalPacienteRapidoEl) {
         modalPacienteRapidoEl.addEventListener('shown.bs.modal', function() {
             agregarEventosValidacionRealTime();
         });
     }
-    
+
     if (modalPacienteRapidoEl) {
         modalPacienteRapidoEl.addEventListener('hidden.bs.modal', function() {
             // Limpiar campos
             ['mpNombres','mpApellidos','mpDocumento','mpTelefono','mpNickname','mpFechaNacimiento','mpTutorNombres','mpTutorApellidos','mpTutorTelefono'].forEach(function(id){ var el = document.getElementById(id); if(el) el.value=''; });
             if(mpEsMenor) mpEsMenor.checked=false; if(mpTutorFields) mpTutorFields.style.display='none';
-            
+
             // Limpiar errores de validación
             clearPacienteValidationErrors();
         });
@@ -494,12 +494,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // Función para validar todos los campos requeridos del modal
     function validarCamposPacienteRequeridos() {
         var errores = [];
-        
+
         // Validar nombres
         var nombresInput = document.getElementById('mpNombres');
         var nombresValue = nombresInput.value.trim();
         clearFieldError('mpNombres');
-        
+
         if (!nombresValue) {
             showFieldError('nombres', 'Este campo es requerido');
             errores.push('nombres');
@@ -507,12 +507,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             showFieldError('nombres', 'Los nombres deben tener al menos 2 caracteres');
             errores.push('nombres');
         }
-        
+
         // Validar apellidos
         var apellidosInput = document.getElementById('mpApellidos');
         var apellidosValue = apellidosInput.value.trim();
         clearFieldError('mpApellidos');
-        
+
         if (!apellidosValue) {
             showFieldError('apellidos', 'Este campo es requerido');
             errores.push('apellidos');
@@ -520,12 +520,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             showFieldError('apellidos', 'Los apellidos deben tener al menos 2 caracteres');
             errores.push('apellidos');
         }
-        
+
         // Validar documento de identidad
         var documentoInput = document.getElementById('mpDocumento');
         var documentoValue = documentoInput.value.trim();
         clearFieldError('mpDocumento');
-        
+
         if (!documentoValue) {
             showFieldError('documento_identidad', 'Este campo es requerido');
             errores.push('documento_identidad');
@@ -536,12 +536,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 errores.push('documento_identidad');
             }
         }
-        
+
         // Validar teléfono
         var telefonoInput = document.getElementById('mpTelefono');
         var telefonoValue = telefonoInput.value.trim();
         clearFieldError('mpTelefono');
-        
+
         if (!telefonoValue) {
             showFieldError('telefono', 'Este campo es requerido');
             errores.push('telefono');
@@ -552,12 +552,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 errores.push('telefono');
             }
         }
-        
+
         // Validar fecha de nacimiento
         var fechaInput = document.getElementById('mpFechaNacimiento');
         var fechaValue = fechaInput.value;
         clearFieldError('mpFechaNacimiento');
-        
+
         if (!fechaValue || fechaValue.trim() === '') {
             showFieldError('fecha_nacimiento', 'Este campo es requerido');
             errores.push('fecha_nacimiento');
@@ -566,7 +566,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var hoy = new Date();
             var fechaMinima = new Date();
             fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
-            
+
             if (isNaN(fecha.getTime())) {
                 showFieldError('fecha_nacimiento', 'La fecha no es válida');
                 errores.push('fecha_nacimiento');
@@ -578,7 +578,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 errores.push('fecha_nacimiento');
             }
         }
-        
+
         return errores.length === 0;
     }
 
@@ -586,10 +586,10 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     function actualizarEstadoBotonSubmit() {
         var submitBtn = document.getElementById('modalPacienteCreateBtn');
         if (!submitBtn) return;
-        
+
         // Verificar si hay errores de validación
         var tieneErrores = document.querySelectorAll('#modalPacienteRapido .is-invalid').length > 0;
-        
+
         if (tieneErrores) {
             submitBtn.disabled = true;
             submitBtn.classList.add('disabled');
@@ -603,29 +603,29 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         modalPacienteCreateBtn.addEventListener('click', function() {
             // Limpiar errores previos
             clearPacienteValidationErrors();
-            
+
             // Validar todos los campos requeridos antes de enviar
             if (!validarCamposPacienteRequeridos()) {
                 actualizarEstadoBotonSubmit();
                 return; // Prevenir envío si hay error
             }
-            
-            var data = { 
-                nombres: (document.getElementById('mpNombres')||{}).value||'', 
-                apellidos: (document.getElementById('mpApellidos')||{}).value||'', 
-                documento_identidad: (document.getElementById('mpDocumento')||{}).value||'', 
-                telefono: (document.getElementById('mpTelefono')||{}).value||'', 
-                nickname: (document.getElementById('mpNickname')||{}).value||'', 
-                fecha_nacimiento: (document.getElementById('mpFechaNacimiento')||{}).value||'', 
-                es_menor: mpEsMenor ? mpEsMenor.checked : false, 
-                tutor: { 
-                    nombres: (document.getElementById('mpTutorNombres')||{}).value||'', 
-                    apellidos: (document.getElementById('mpTutorApellidos')||{}).value||'', 
-                    telefono: (document.getElementById('mpTutorTelefono')||{}).value||'' 
-                } 
+
+            var data = {
+                nombres: (document.getElementById('mpNombres')||{}).value||'',
+                apellidos: (document.getElementById('mpApellidos')||{}).value||'',
+                documento_identidad: (document.getElementById('mpDocumento')||{}).value||'',
+                telefono: (document.getElementById('mpTelefono')||{}).value||'',
+                nickname: (document.getElementById('mpNickname')||{}).value||'',
+                fecha_nacimiento: (document.getElementById('mpFechaNacimiento')||{}).value||'',
+                es_menor: mpEsMenor ? mpEsMenor.checked : false,
+                tutor: {
+                    nombres: (document.getElementById('mpTutorNombres')||{}).value||'',
+                    apellidos: (document.getElementById('mpTutorApellidos')||{}).value||'',
+                    telefono: (document.getElementById('mpTutorTelefono')||{}).value||''
+                }
             };
-            
-            var comp = getLivewireComponent(); 
+
+            var comp = getLivewireComponent();
             if(comp) {
                 comp.call('crearPacienteRapido', data).then(function(response) {
                     if (response && response.errors) {
@@ -643,7 +643,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if (errors.general) {
             showErrorAlert(errors.general);
         }
-        
+
         // Mostrar errores por campo
         for (var field in errors) {
             if (field !== 'general') {
@@ -656,11 +656,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     function showFieldError(fieldName, errorMessage) {
         var fieldId = getFieldIdByName(fieldName);
         var field = document.getElementById(fieldId);
-        
+
         if (field) {
             // Agregar clase de error
             field.classList.add('is-invalid');
-            
+
             // Crear o actualizar mensaje de error
             var errorElement = document.getElementById(fieldId + '_error');
             if (!errorElement) {
@@ -670,7 +670,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 field.parentNode.appendChild(errorElement);
             }
             errorElement.textContent = errorMessage;
-            
+
             // Agregar evento para limpiar error al escribir
             field.addEventListener('input', function() {
                 clearFieldError(fieldId);
@@ -713,7 +713,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         fields.forEach(function(fieldId) {
             clearFieldError(fieldId);
         });
-        
+
         // Limpiar alerta de error general
         clearErrorAlert();
     }
@@ -726,7 +726,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             alertContainer.id = 'pacienteValidationAlert';
             alertContainer.className = 'alert alert-danger alert-dismissible fade show mb-3';
             alertContainer.innerHTML = '<button type="button" class="btn-close" data-bs-dismiss="alert"></button><span id="pacienteValidationAlertText"></span>';
-            
+
             var modalBody = document.querySelector('#modalPacienteRapido .modal-body');
             if (modalBody) {
                 modalBody.insertBefore(alertContainer, modalBody.firstChild);
@@ -983,10 +983,10 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         eventToUpdate = null;
         currentCitaId = null;
         // Restaurar botón a modo "Agregar"
-        if (btnSubmit) { 
-            btnSubmit.innerHTML = '<i class="ri ri-add-line me-1"></i> Agregar'; 
-            btnSubmit.classList.remove('btn-update-event'); 
-            btnSubmit.classList.add('btn-add-event'); 
+        if (btnSubmit) {
+            btnSubmit.innerHTML = '<i class="ri ri-add-line me-1"></i> Agregar';
+            btnSubmit.classList.remove('btn-update-event');
+            btnSubmit.classList.add('btn-add-event');
         }
         // Ocultar botones de acciones de cita
         if(btnSendReminder) btnSendReminder.classList.add('d-none');
@@ -1006,15 +1006,15 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // ===================== CITA EVENT CLICK =====================
     function citaEventClick(info) {
         info.jsEvent.preventDefault();
-        
+
         // Guardar datos del evento ANTES de cualquier manipulación
         eventToUpdate = info.event;
         currentCitaId = getCitaId(info.event.id);
-        
+
         if (bsAddEventSidebar) bsAddEventSidebar.show();
         if (offcanvasTitle) offcanvasTitle.innerHTML = 'Editar Cita';
         if (btnSubmit) { btnSubmit.innerHTML = '<i class="ri ri-save-line me-1"></i> Actualizar'; btnSubmit.classList.add('btn-update-event'); btnSubmit.classList.remove('btn-add-event'); }
-        
+
         if (btnSendReminder) btnSendReminder.classList.remove('d-none');
         if(btnConfirmEvent) btnConfirmEvent.classList.remove('d-none');
         if(btnCancelCita) btnCancelCita.classList.remove('d-none');
@@ -1345,6 +1345,10 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         });
     }
 
+    // ===================== SCROLL CONTAINER (declared early for viewDidMount access) =====================
+    var calendarScrollContainer = document.getElementById('calendarScrollContainer');
+    var calendarPs = null;
+
     // ===================== FULLCALENDAR =====================
     var calendar = new Calendar(calendarEl, {
         initialView: 'timeGridDay',
@@ -1353,21 +1357,16 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         locale: 'es',
         firstDay: 1,
         nowIndicator: true,
-        dayMaxEvents: 1,
-        eventMaxStack: 1,
-        moreLinkClick: function(info) {
-            info.jsEvent.preventDefault();
-            showDayEventsModal(info.date, info.allSegs);
-        },
+        slotEventOverlap: false,
         slotMinTime: '06:00:00',
         slotMaxTime: '22:00:00',
         scrollTime: '07:00:00',
-      
+
         contentHeight: 'auto',
         expandRows: true,
         slotDuration: '00:30:00',
-        eventMinHeight: 50,
-        eventShortHeight: 50,
+        eventMinHeight: 25,
+        eventShortHeight: 25,
         editable: true,
         eventResizableFromStart: true,
         customButtons: { sidebarToggle: { text: 'Menú' } },
@@ -1376,6 +1375,23 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         direction: document.documentElement.getAttribute('dir')==='rtl'?'rtl':'ltr',
         initialDate: new Date(),
         navLinks: true,
+        datesSet: function () {
+            // Mover el header nativo fuera del "calendarScrollContainer"
+            // De esa manera mantiene la 'lógica del proyecto' pero se escapa de PerfectScrollbar
+            var header = document.querySelector('#calendar > .fc-header-toolbar');
+            var scrollContainer = document.getElementById('calendarScrollContainer');
+            if (header && scrollContainer) {
+                var wrapper = document.getElementById('external-fc-header');
+                if (!wrapper) {
+                    wrapper = document.createElement('div');
+                    wrapper.id = 'external-fc-header';
+                    wrapper.className = 'fc fc-media-screen fc-theme-standard';
+                    wrapper.style.marginBottom = '1rem';
+                    scrollContainer.parentNode.insertBefore(wrapper, scrollContainer);
+                }
+                wrapper.appendChild(header);
+            }
+        },
         eventContent: function(arg) {
             var view = arg.view, ep = arg.event.extendedProps||{}, timeText = arg.timeText||'';
             var tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
@@ -1420,7 +1436,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             if (!isCita) {
                 var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'en_optica', 'en_estudio'];
                 var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
-                
+
                 if (esEstadoActivo && ep.estado_changed_at) {
                     var te = formatTiempoEstado(ep.estado_changed_at);
                     if (te) {
@@ -1464,21 +1480,34 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                     '<div class="fc-event-subtitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dr(a). ' + medicoNombre + edadHtml + '</div>' +
                     '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
-            } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
-                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:4px 6px;box-sizing:border-box;overflow:hidden;">' +
-                    '<div style="font-weight:600;font-size:0.8rem;line-height:1.2;margin-bottom:2px;">' + nombreCompleto + '</div>' +
-                    '<div style="font-size:0.7rem;opacity:0.9;line-height:1.2;margin-bottom:3px;">Dr(a). ' + medicoNombre + '</div>' +
-                    '<div style="font-size:0.65rem;opacity:0.8;margin-bottom:3px;">' + edadHtml + '</div>' +
-                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:auto;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + '</div>' +
-                    durationControls +
+            } else if (view.type === 'timeGridDay') {
+                var dayTimeStart = arg.event.start ? moment(arg.event.start).format('hh:mm A') : '';
+                var dayTimeEnd = arg.event.end ? moment(arg.event.end).format('hh:mm A') : '';
+                var dayTimeRange = dayTimeStart + (dayTimeEnd ? ' - ' + dayTimeEnd : '');
+                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:2px 4px;box-sizing:border-box;overflow:hidden;">' +
+                    '<div style="font-weight:600;font-size:0.75rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nombreCompleto + '</div>' +
+                    '<div style="font-size:0.65rem;opacity:0.85;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + '</div>' +
+                    (ep.edad ? '<div style="font-size:0.6rem;opacity:0.8;line-height:1.2;">' + ep.edad + '</div>' : '') +
+                    '<div style="font-size:0.6rem;opacity:0.8;line-height:1.2;">' + dayTimeRange + '</div>' +
+                '</div>';
+            } else if (view.type === 'timeGridWeek') {
+                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:2px 4px;box-sizing:border-box;overflow:hidden;">' +
+                    '<div style="font-weight:600;font-size:0.75rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nombreCompleto + '</div>' +
+                    '<div style="font-size:0.65rem;opacity:0.85;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + '</div>' +
                 '</div>';
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
-                html = '<div class="fc-list-event-main-frame" style="display:flex;align-items:center;gap:8px;width:100%;">' +
-                    '<div class="fc-event-title-container" style="flex:1;min-width:0;">' +
-                        '<div class="fc-event-title">' + nombreCompleto + '</div>' +
-                        '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
+                // Horario desde - hasta
+                var listTimeStart = arg.event.start ? moment(arg.event.start).format('hh:mm A') : '';
+                var listTimeEnd = arg.event.end ? moment(arg.event.end).format('hh:mm A') : '';
+                var listTimeRange = listTimeStart + (listTimeEnd ? ' - ' + listTimeEnd : '');
+
+                html = '<div style="display:flex;align-items:flex-start;gap:12px;width:100%;">' +
+                    '<div style="flex:1;min-width:0;">' +
+                        '<div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">' + nombreCompleto + '</div>' +
+                        '<div style="font-size:0.8rem;color:#6c757d;">Dr(a). ' + medicoNombre + '</div>' +
+                        '<div style="font-size:0.75rem;color:#888;margin-top:2px;"><i class="ri-time-line" style="font-size:0.7rem;"></i> ' + listTimeRange + '</div>' +
                     '</div>' +
-                    '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else {
                 return { html: '<div>' + arg.event.title + '</div>' };
@@ -1489,27 +1518,17 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         eventDidMount: function(info) {
             var ep = info.event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
             if(isCita) info.el.classList.add('event-cita'); else info.el.classList.add('event-consulta');
-            
-            // Colores sólidos para mejor contraste WCAG 2.1
+
             var tipoColor = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#1565C0' : '#7B1FA2');
             var estadoColor = getEventColor(info.event);
-            
-            // Fondo sólido con opacidad reducida para no sobrecargar
+
+            // Estilo Google Calendar: fondo sólido, borde izquierdo de estado
             info.el.style.backgroundColor = tipoColor;
-            info.el.style.opacity = '0.9';
-            
-            // Bordes sólidos
-            info.el.style.borderTopColor = tipoColor;
-            info.el.style.borderRightColor = tipoColor;
-            info.el.style.borderBottomColor = tipoColor;
-            
-            // Borde izquierdo con color de estado para distinguir
+            info.el.style.borderColor = tipoColor;
             info.el.style.borderLeftColor = estadoColor || tipoColor;
-            info.el.style.borderLeftWidth = '5px';
-            
-            // Texto oscuro para contraste suficiente
+            info.el.style.borderLeftWidth = '4px';
             info.el.style.color = '#fff';
-            
+
             info.el.addEventListener('mouseenter',function(){showTooltip(info);});
             info.el.addEventListener('mouseleave',removeTooltip);
         },
@@ -1517,17 +1536,17 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var clickedDate = info.date || new Date(info.dateStr);
             if(isPastDateTime(clickedDate)){showPastAlert();return;}
             var dateOnly = info.dateStr.substring(0,10);
-            
+
             // Limpiar estado de edición anterior
             currentCitaId = null;
             eventToUpdate = null;
             resetValues();
-            
+
             if(bsAddEventSidebar) bsAddEventSidebar.show();
             if(offcanvasTitle) offcanvasTitle.innerHTML='Nueva Cita';
             if(btnSubmit){btnSubmit.innerHTML='<i class="ri ri-add-line me-1"></i> Agregar';btnSubmit.classList.remove('btn-update-event');btnSubmit.classList.add('btn-add-event');}
-           
-            
+
+
             if(btnConfirmEvent) btnConfirmEvent.classList.add('d-none');
             if(btnCancelCita) btnCancelCita.classList.add('d-none');
             if(btnReagendar) btnReagendar.classList.add('d-none');
@@ -1568,8 +1587,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     modifyToggler();
     createToggleButton();
 
-    var calendarScrollContainer = document.getElementById('calendarScrollContainer');
-    var calendarPs = null;
     function resizeCalendarScroll() {
         if (!calendarScrollContainer) return;
         var rect = calendarScrollContainer.getBoundingClientRect();
@@ -1593,18 +1610,18 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('.fc-event-duration-btn');
         if (!btn) return;
-        
+
         e.stopPropagation();
         e.preventDefault();
-        
+
         var controls = btn.closest('.fc-event-duration-controls');
         if (!controls) return;
-        
+
         var eventId = controls.dataset.eventId;
         var minutes = parseInt(btn.dataset.minutes, 10);
-        
+
         if (isNaN(minutes) || !eventId) return;
-        
+
         adjustEventDurationById(eventId, minutes);
     });
 
@@ -1614,12 +1631,12 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             showToast('No se pudo conectar con el servidor', 'error');
             return;
         }
-        
+
         var event = calendar.getEventById(eventId);
         if (!event) {
             event = calendar.getEventById(parseInt(eventId));
         }
-        
+
         if (!event) {
             showToast('Evento no encontrado', 'error');
             return;
@@ -1627,7 +1644,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
         var currentStart = event.start;
         var currentEnd = event.end;
-        
+
         if (!currentStart || !currentEnd) {
             showToast('No se pudo obtener la información del evento', 'error');
             return;
@@ -1671,60 +1688,60 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var modalEl = document.getElementById('dayEventsModal');
         var modalTitle = document.getElementById('dayEventsModalTitle');
         var modalBody = document.getElementById('dayEventsModalBody');
-        
+
         if (!modalEl || !modalTitle || !modalBody) {
             return;
         }
-        
+
         // Si no hay allSegs, intentar obtener eventos del día desde calendar
-       
-        
+
+
         // Formatear fecha para el título
         var fechaFormateada = moment(date).format('dddd, D [de] MMMM [de] YYYY');
         fechaFormateada = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
         modalTitle.textContent = 'Eventos del ' + fechaFormateada;
-        
+
         // Ordenar eventos por hora de inicio
         var eventosOrdenados = allSegs.sort(function(a, b) {
             var timeA = a.event && a.event.start ? a.event.start.getTime() : 0;
             var timeB = b.event && b.event.start ? b.event.start.getTime() : 0;
             return timeA - timeB;
         });
-        
+
         // Generar HTML de eventos
         var html = '<div class="day-events-list">';
         var citasCount = 0;
         var consultasCount = 0;
-        
+
         eventosOrdenados.forEach(function(seg) {
             var event = seg.event;
             var ep = event.extendedProps || {};
             var tipoEvento = ep.tipo_evento || 'cita';
             var isCita = tipoEvento === 'cita';
-            
+
             if (isCita) citasCount++;
             else consultasCount++;
-            
+
             var estadoColor = isCita ? (citaCalendarColors[ep.estado] || '#78909C') : (consultaColores[ep.estado] || '#78909C');
             var estadoLabel = ep.estado_label || ep.estadoLabel || ep.estado || '';
             var typeBadgeColor = isCita ? '#0d6efd' : '#6f42c1';
             var typeLabel = isCita ? 'CITA' : 'CONSULTA';
-            
+
             var pacienteNombre = ep.paciente || event.title || '';
             var nickname = ep.nickname || '';
             var nombreCompleto = nickname ? '(' + nickname + ') ' + pacienteNombre : pacienteNombre;
-            
+
             var horaInicio = event.start ? moment(event.start).format('HH:mm') : '--:--';
             var horaFin = event.end ? moment(event.end).format('HH:mm') : '';
             var horarioStr = horaFin ? horaInicio + ' - ' + horaFin : 'Desde ' + horaInicio;
-            
+
             var bgStyle = '';
             if (isCita && ep.tipo_consulta_color) {
                 bgStyle = 'background: linear-gradient(135deg, ' + hexToRgba(ep.tipo_consulta_color, 0.15) + ' 0%, ' + hexToRgba(estadoColor, 0.1) + ' 100%);';
             } else {
                 bgStyle = 'background: linear-gradient(135deg, ' + hexToRgba(typeBadgeColor, 0.15) + ' 0%, ' + hexToRgba(estadoColor, 0.1) + ' 100%);';
             }
-            
+
             html += '<div class="day-event-item ' + (isCita ? 'event-cita' : 'event-consulta') + '" data-event-id="' + event.id + '" style="' + bgStyle + 'border-left: 4px solid ' + estadoColor + ';">';
             html += '<div class="d-flex justify-content-between align-items-start mb-2">';
             html += '<div class="d-flex align-items-center gap-2">';
@@ -1750,18 +1767,18 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             html += '</div>';
             html += '</div>';
         });
-        
+
         html += '</div>';
-        
+
         // Agregar estadísticas
         var statsHtml = '<div class="day-events-stats mb-3 p-2 rounded bg-light">';
         statsHtml += '<div class="row text-center">';
         statsHtml += '<div class="col-6"><div class="fw-medium">' + citasCount + '</div><div class="small text-muted">Citas</div></div>';
         statsHtml += '<div class="col-6"><div class="fw-medium">' + consultasCount + '</div><div class="small text-muted">Consultas</div></div>';
         statsHtml += '</div></div>';
-        
+
         modalBody.innerHTML = statsHtml + html;
-        
+
         // Agregar eventos a los botones
         modalBody.querySelectorAll('.ver-evento-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
@@ -1774,7 +1791,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 }
             });
         });
-        
+
         modalBody.querySelectorAll('.editar-evento-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var eventId = this.getAttribute('data-event-id');
@@ -1782,19 +1799,19 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 if (event) {
                     var bsModal = bootstrap.Modal.getInstance(modalEl);
                     if (bsModal) bsModal.hide();
-                    setTimeout(function() { 
+                    setTimeout(function() {
                         var info = { event: event, jsEvent: { preventDefault: function() {} } };
-                        citaEventClick(info); 
+                        citaEventClick(info);
                     }, 300);
                 }
             });
         });
-        
+
         // Mostrar modal
         var bsModal = new bootstrap.Modal(modalEl);
         bsModal.show();
     }
-    
+
     function findEventById(eventId, segs) {
         for (var i = 0; i < segs.length; i++) {
             if (segs[i].event && segs[i].event.id == eventId) {
@@ -1893,10 +1910,10 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // ===================== INLINE MINI CALENDAR =====================
     var inlineFechaFiltroActivo = document.getElementById('fechaFiltroActivo');
     var inlineFechaFiltroTexto = document.getElementById('fechaFiltroTexto');
-    
+
     if (inlineCalendar) {
-        inlineCalInstance = flatpickr(inlineCalendar, { 
-            inline: true, 
+        inlineCalInstance = flatpickr(inlineCalendar, {
+            inline: true,
             locale: 'es',
             defaultDate: 'today',
             onChange: function(selectedDates, dateStr) {
@@ -1966,19 +1983,19 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         btnSubmit.addEventListener('click', function() {
             if (!isFormValid) return;
             if (btnSubmit.disabled) return;
-            
+
             btnSubmit.disabled = true;
             btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Guardando...';
-            
+
             var isNewCita = btnSubmit.classList.contains('btn-add-event');
-            
+
             var prioridad = 'normal';
             var eventPrioridadEl = document.getElementById('eventPrioridad');
             if (eventPrioridadEl) prioridad = eventPrioridadEl.value;
-            
+
             var startDate = eventStartDate ? eventStartDate.value : '';
             var endDate = eventEndDate ? eventEndDate.value : '';
-            
+
             var esAltaEmergencia = prioridad === 'alta' || prioridad === 'emergencia';
             if (esAltaEmergencia) {
                 var fecha = eventFecha ? eventFecha.value : '';
@@ -1989,7 +2006,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                     endDate = fecha + ' ' + horaFin.value + ':00';
                 }
             }
-            
+
             var eventData = {
                 paciente_id: eventPaciente.val(),
                 especialidad_id: selectedEspecialidadId,
@@ -2012,7 +2029,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
 
     // ===================== DELETE =====================
-   
+
 
     // ===================== REMINDER =====================
     if (btnSendReminder) {
@@ -2040,8 +2057,9 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
     // ===================== LIVEWIRE LISTENERS =====================
     if(typeof Livewire!=='undefined'){Livewire.on('calendario-updated',function(){prefetchCache={};calendar.refetchEvents();});}
-    if(typeof Livewire!=='undefined'){Livewire.on('cita-saved',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}});}
+    if(typeof Livewire!=='undefined'){Livewire.on('cita-saved',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}prefetchCache={};calendar.refetchEvents();if(bsAddEventSidebar){try{bsAddEventSidebar.hide();}catch(e){}}});}
     if(typeof Livewire!=='undefined'){Livewire.on('show-toast',function(){window.setTimeout(function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}},500);});}
+    if(typeof Livewire!=='undefined'){Livewire.on('show-alert',function(){window.setTimeout(function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}},500);});}
 
     // ===================== CITA-SAVED LISTENER =====================
     window.addEventListener('cita-saved', function() { prefetchCache={}; calendar.refetchEvents(); });

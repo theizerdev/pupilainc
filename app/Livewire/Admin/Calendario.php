@@ -176,11 +176,27 @@ class Calendario extends Component
             $title .= ' [' . $consulta->tiempo_espera_formateado . ']';
         }
 
+        // Determine the end time based on the associated appointment duration if available
+        $startTime = $consulta->fecha_consulta;
+        $endTime = $startTime->copy()->addMinutes(30); // Default to 30 minutes
+        
+        // If the consultation is linked to an appointment, use the appointment's duration
+        if ($consulta->cita) {
+            $appointmentDuration = $consulta->cita->fecha_inicio->diffInMinutes($consulta->cita->fecha_fin);
+            $endTime = $startTime->copy()->addMinutes($appointmentDuration);
+        }
+
+        // Get the state label of the associated appointment if it exists
+        $citaEstadoLabel = null;
+        if ($consulta->cita) {
+            $citaEstadoLabel = Cita::ESTADO_LABELS[$consulta->cita->estado] ?? ucfirst($consulta->cita->estado);
+        }
+
         return [
             'id' => 'consulta_' . $consulta->id,
             'title' => $title,
-            'start' => $consulta->fecha_consulta->format('Y-m-d\TH:i:s'),
-            'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->format('Y-m-d\TH:i:s'),
+            'start' => $startTime->format('Y-m-d\TH:i:s'),
+            'end' => $endTime->format('Y-m-d\TH:i:s'),
             'backgroundColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
             'borderColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
             'extendedProps' => [
@@ -199,6 +215,10 @@ class Calendario extends Component
                 'motivo' => $consulta->motivo_consulta,
                 'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
                 'estado_changed_at' => $consulta->estado_changed_at ? $consulta->estado_changed_at->format('Y-m-d H:i:s') : null,
+                'cita_id' => $consulta->cita_id, // Add reference to the associated appointment
+                'cita_prioridad' => $consulta->cita ? $consulta->cita->prioridad : null, // Include priority from associated appointment
+                'cita_prioridad_label' => $consulta->cita ? (Cita::PRIORIDAD_LABELS[$consulta->cita->prioridad ?? 'normal'] ?? 'Normal') : null, // Include priority label
+                'cita_estado_label' => $citaEstadoLabel, // Include state label from associated appointment
             ],
         ];
     }
