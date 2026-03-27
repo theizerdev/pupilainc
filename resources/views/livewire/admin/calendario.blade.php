@@ -481,10 +481,10 @@
                             <div class="form-floating form-floating-outline mb-5">
                                 <select class="select2 form-select" id="eventPrioridad" name="eventPrioridad">
                                     <option value="normal" selected>Normal</option>
-                                    <option value="alta">Alta</option>
                                     <option value="emergencia">Emergencia</option>
+                                    <option value="alta">Otros</option>
                                 </select>
-                                <label for="eventPrioridad">Prioridad</label>
+                                <label for="eventPrioridad">Registro manual de cita</label>
                             </div>
 
 
