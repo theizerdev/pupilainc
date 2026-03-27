@@ -45,6 +45,9 @@ class Create extends Component
     // Datos de subespecialidades (experiencia, nivel, tarifa)
     public $subespecialidades_data = [];
 
+    // Caché de subespecialidades para actualización manual
+    public $subespecialidades_cache = [];
+
     // Empresa y sucursal (se asignarán automáticamente)
     public $empresa_id;
     public $sucursal_id;
@@ -121,12 +124,30 @@ class Create extends Component
 
     public function updatedEspecialidadId($value)
     {
-        $this->reset('subespecialidades_seleccionadas');
+        // Solo resetear las subespecialidades, no usar reset() para evitar afectar el formulario
+        $this->subespecialidades_seleccionadas = [];
         $this->subespecialidades_data = [];
+
+        // Actualizar el caché de subespecialidades
+        if ($value) {
+            $this->subespecialidades_cache = Subespecialidad::forUser()
+                ->where('especialidad_id', $value)
+                ->where('status', true)
+                ->orderBy('nombre')
+                ->get()
+                ->toArray();
+        } else {
+            $this->subespecialidades_cache = [];
+        }
     }
 
     public function onSubespecialidadCreada($data)
     {
+        // Verificar que la subespecialidad pertenezca a la especialidad actual
+        if ($data['especialidad_id'] != $this->especialidad_id) {
+            return;
+        }
+
         // Agregar la nueva subespecialidad a la lista de seleccionadas
         if (!in_array($data['id'], $this->subespecialidades_seleccionadas)) {
             $this->subespecialidades_seleccionadas[] = $data['id'];
@@ -139,8 +160,8 @@ class Create extends Component
             ];
         }
 
-        // Forzar la actualización de la propiedad computada de subespecialidades
-        $this->dispatch('$refresh');
+        // Limpiar el caché para forzar la recarga desde la base de datos
+        $this->subespecialidades_cache = [];
     }
 
     public function updatedSubespecialidadesSeleccionadas($value)
@@ -455,6 +476,14 @@ class Create extends Component
 
     public function getSubespecialidadesProperty()
     {
+        // Si hay caché disponible, usarlo y convertir a objetos
+        if (!empty($this->subespecialidades_cache)) {
+            return collect(array_map(function($item) {
+                return (object)$item;
+            }, $this->subespecialidades_cache));
+        }
+
+        // De lo contrario, consultar de la base de datos
         if ($this->especialidad_id) {
             return Subespecialidad::forUser()
                 ->where('especialidad_id', $this->especialidad_id)
@@ -484,6 +513,12 @@ class Create extends Component
         if ($this->telefono) {
             $this->telefono = preg_replace('/[^0-9+]/', '', $this->telefono);
         }
+    }
+
+    function refreshSubespecialidades($especialidadId)
+    {
+        dd($especialidadId);
+
     }
 
     public function render()

@@ -188,7 +188,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         if (fcToolbarStart) {
             toggleSidebarBtn = document.createElement('button');
             toggleSidebarBtn.type = 'button';
-            toggleSidebarBtn.className = 'btn btn-sm btn-icon btn-outline-secondary me-2';
+            toggleSidebarBtn.className = 'btn btn-sm btn-icon btn-outline-secondary me-2 show';
             toggleSidebarBtn.id = 'toggleSidebarBtn';
             toggleSidebarBtn.innerHTML = '<i class="ri ri-filter-3-line"></i>';
             toggleSidebarBtn.addEventListener('click', toggleSidebar);
@@ -786,16 +786,71 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 btn.textContent = timeOnly;
 
                 if (!esAltaEmergencia && slot.disponible) {
-                    if (selectStartFull && slot.inicio_full === selectStartFull) { btn.classList.add('selected','btn-primary'); btn.classList.remove('btn-outline-primary'); if(eventStartDate) eventStartDate.value=slot.inicio_full; if(eventEndDate) eventEndDate.value=slot.fin_full; matched=true; }
+                    if (selectStartFull && slot.inicio_full === selectStartFull) { 
+                        btn.classList.add('selected','btn-primary'); 
+                        btn.classList.remove('btn-outline-primary'); 
+                        if(eventStartDate) eventStartDate.value=slot.inicio_full; 
+                        if(eventEndDate) eventEndDate.value=slot.fin_full; 
+
+                        // Sincronizar los campos de hora visibles
+                        if(eventHoraInicio && slot.inicio_full) {
+                            var inicioParts = slot.inicio_full.split(' ');
+                            if(inicioParts.length >= 2) {
+                                eventHoraInicio.value = inicioParts[1].substring(0, 5);
+                            }
+                        }
+                        if(eventHoraFin && slot.fin_full) {
+                            var finParts = slot.fin_full.split(' ');
+                            if(finParts.length >= 2) {
+                                eventHoraFin.value = finParts[1].substring(0, 5);
+                            }
+                        }
+                        matched=true; 
+                    }
                     btn.addEventListener('click', function() {
                         slotsList.querySelectorAll('.slot-btn').forEach(function(b){b.classList.remove('selected','btn-primary');b.classList.add('btn-outline-primary');});
                         btn.classList.add('selected','btn-primary'); btn.classList.remove('btn-outline-primary');
                         if(eventStartDate) eventStartDate.value=slot.inicio_full; if(eventEndDate) eventEndDate.value=slot.fin_full;
+
+                        // Sincronizar los campos de hora visibles
+                        if(eventHoraInicio && slot.inicio_full) {
+                            var inicioParts = slot.inicio_full.split(' ');
+                            if(inicioParts.length >= 2) {
+                                eventHoraInicio.value = inicioParts[1].substring(0, 5);
+                            }
+                        }
+                        if(eventHoraFin && slot.fin_full) {
+                            var finParts = slot.fin_full.split(' ');
+                            if(finParts.length >= 2) {
+                                eventHoraFin.value = finParts[1].substring(0, 5);
+                            }
+                        }
                     });
                 }
                 slotsList.appendChild(btn);
             });
-            if (!matched && !selectStartFull && result.primer_disponible && !esAltaEmergencia) { var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)'); if(firstAvailable) firstAvailable.click(); }
+            if (!matched && !selectStartFull && result.primer_disponible && !esAltaEmergencia) { 
+                var firstAvailable = slotsList.querySelector('.slot-btn:not(.ocupado)'); 
+                if(firstAvailable) {
+                    firstAvailable.click();
+                    // Sincronizar los campos de hora visibles
+                    var slot = result.slots.find(function(s) { return s.disponible; });
+                    if(slot) {
+                        if(eventHoraInicio && slot.inicio_full) {
+                            var inicioParts = slot.inicio_full.split(' ');
+                            if(inicioParts.length >= 2) {
+                                eventHoraInicio.value = inicioParts[1].substring(0, 5);
+                            }
+                        }
+                        if(eventHoraFin && slot.fin_full) {
+                            var finParts = slot.fin_full.split(' ');
+                            if(finParts.length >= 2) {
+                                eventHoraFin.value = finParts[1].substring(0, 5);
+                            }
+                        }
+                    }
+                }
+            }
 
             if (esAltaEmergencia && slotsMessage) {
                 slotsMessage.textContent = 'Horário personalizado activo. Use los campos de hora de inicio y fin.';
@@ -855,8 +910,86 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         fechaFlatpickr = flatpickr(eventFecha, {
             dateFormat: 'Y-m-d', minDate: 'today', static: true,
             locale: typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.es ? 'es' : 'default',
-            onChange: function(selectedDates, dateStr) { if(!dateStr){resetCascadeFrom(6);return;} var medicoId=eventMedico.val(); if(!medicoId) return; loadSlots(medicoId, dateStr); }
+            onChange: function(selectedDates, dateStr) {
+                if(!dateStr){resetCascadeFrom(6);return;}
+                var medicoId=eventMedico.val();
+                if(!medicoId) return;
+                loadSlots(medicoId, dateStr);
+                validateManualTime();
+            }
         });
+    }
+
+    // Validación de horarios manuales
+    var eventHoraInicio = document.getElementById('eventHoraInicio');
+    var eventHoraFin = document.getElementById('eventHoraFin');
+    var horarioError = document.getElementById('horarioError');
+
+    if (eventHoraInicio) {
+        eventHoraInicio.addEventListener('change', function() {
+            validateManualTime();
+        });
+    }
+    if (eventHoraFin) {
+        eventHoraFin.addEventListener('change', function() {
+            validateManualTime();
+        });
+    }
+
+    function validateManualTime() {
+        var fecha = eventFecha ? eventFecha.value : null;
+        var horaInicio = eventHoraInicio ? eventHoraInicio.value : null;
+        var horaFin = eventHoraFin ? eventHoraFin.value : null;
+        var btnSubmit = document.getElementById('addEventBtn');
+
+        if (!fecha || !horaInicio || !horaFin) {
+            if (horarioError) {
+                horarioError.style.display = 'none';
+                horarioError.textContent = '';
+            }
+            if (btnSubmit) btnSubmit.disabled = false;
+            return true;
+        }
+
+        var inicioMin = parseInt(horaInicio.replace(':', ''), 10);
+        var finMin = parseInt(horaFin.replace(':', ''), 10);
+
+        if (finMin <= inicioMin) {
+            if (horarioError) {
+                horarioError.textContent = 'La hora de fin debe ser posterior a la hora de inicio.';
+                horarioError.style.display = '';
+            }
+            if (btnSubmit) btnSubmit.disabled = true;
+            return false;
+        }
+
+        // Validar que esté dentro del horario laboral del médico
+        if (horarioLaboralMedico) {
+            var laborInicio = parseInt(horarioLaboralMedico.hora_inicio.replace(':', ''), 10);
+            var laborFin = parseInt(horarioLaboralMedico.hora_fin.replace(':', ''), 10);
+
+            if (inicioMin < laborInicio || finMin > laborFin) {
+                if (horarioError) {
+                    horarioError.textContent = 'El horario debe estar dentro de la jornada del médico (' + horarioLaboralMedico.hora_inicio + ' - ' + horarioLaboralMedico.hora_fin + ').';
+                    horarioError.style.display = '';
+                }
+                if (btnSubmit) btnSubmit.disabled = true;
+                return false;
+            }
+        }
+
+        // Si la validación es exitosa, actualizar campos ocultos
+        if (eventStartDate && eventEndDate && fecha && horaInicio && horaFin) {
+            eventStartDate.value = fecha + ' ' + horaInicio + ':00';
+            eventEndDate.value = fecha + ' ' + horaFin + ':00';
+        }
+
+        if (horarioError) {
+            horarioError.style.display = 'none';
+            horarioError.textContent = '';
+        }
+        if (btnSubmit) btnSubmit.disabled = false;
+        return true;
     }
 
     // Prioridad change
@@ -870,16 +1003,6 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         });
     }
 
-    // Hora inicio/fin change for prioridad
-    var eventHoraInicio = document.getElementById('eventHoraInicioPrioridad');
-    var eventHoraFin = document.getElementById('eventHoraFinPrioridad');
-    if (eventHoraInicio) {
-        eventHoraInicio.addEventListener('change', validatePrioridadTime);
-    }
-    if (eventHoraFin) {
-        eventHoraFin.addEventListener('change', validatePrioridadTime);
-    }
-
     // ===================== PRIORITY MODE =====================
     function updatePriorityMode() {
         var prioridad = eventPrioridad ? eventPrioridad.value : 'normal';
@@ -890,7 +1013,40 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             section.style.display = isAltaEmergencia ? '' : 'none';
         }
 
+        // Actualizar visualización de slots según modo
+        updateSlotsDisplay(isAltaEmergencia);
+
         validatePrioridadTime();
+    }
+
+    function updateSlotsDisplay(isAltaEmergencia) {
+        var slotsList = document.getElementById('slotsList');
+        if (!slotsList) return;
+
+        var slotButtons = slotsList.querySelectorAll('.slot-btn');
+        if (!slotButtons || slotButtons.length === 0) return;
+
+        slotButtons.forEach(function(btn) {
+            if (!btn) return;
+
+            if (isAltaEmergencia) {
+                // En modo alta/emergencia, mostrar slots ocupados deshabilitados
+                if (btn.classList && btn.classList.contains('ocupado')) {
+                    btn.style.opacity = '0.4';
+                    btn.style.pointerEvents = 'none';
+                    btn.style.textDecoration = 'line-through';
+                } else {
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'none';
+                    btn.style.textDecoration = 'none';
+                }
+            } else {
+                // En modo normal, mantener slots no seleccionables
+                btn.style.opacity = '0.7';
+                btn.style.pointerEvents = 'none';
+                btn.style.textDecoration = 'none';
+            }
+        });
     }
 
     function validatePrioridadTime() {
@@ -898,16 +1054,22 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var isAltaEmergencia = prioridad === 'alta' || prioridad === 'emergencia';
         var errorEl = document.getElementById('horarioPrioridadError');
         var btnSubmit = document.getElementById('addEventBtn');
-        var horaInicio = document.getElementById('eventHoraInicioPrioridad');
-        var horaFin = document.getElementById('eventHoraFinPrioridad');
+
+        // Usar los mismos campos de hora para todos los modos
+        var horaInicio = eventHoraInicio;
+        var horaFin = eventHoraFin;
 
         if (!isAltaEmergencia) {
             if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
-            if (btnSubmit) { btnSubmit.disabled = false; }
+            // La validación normal se hace en validateManualTime
             return true;
         }
 
         if (!horaInicio || !horaFin || !horaInicio.value || !horaFin.value) {
+            if (errorEl) {
+                errorEl.textContent = 'Debe seleccionar hora de inicio y fin.';
+                errorEl.style.display = '';
+            }
             if (btnSubmit) { btnSubmit.disabled = true; }
             return false;
         }
@@ -974,6 +1136,9 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         horarioLaboralMedico = null;
         if(typeof eventManualTime !== 'undefined' && eventManualTime) eventManualTime.value='';
         if(eventTipoConsulta.length) eventTipoConsulta.val('').trigger('change.select2');
+        if(eventHoraInicio) eventHoraInicio.value = '';
+        if(eventHoraFin) eventHoraFin.value = '';
+        if(horarioError) { horarioError.style.display = 'none'; horarioError.textContent = ''; }
         resetCascadeFrom(2);
         // No limpiar eventToUpdate aquí - se necesita para edición
     }
@@ -984,6 +1149,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         currentCitaId = null;
         // Restaurar botón a modo "Agregar"
         if (btnSubmit) {
+            btnSubmit.disabled = false;
             btnSubmit.innerHTML = '<i class="ri ri-add-line me-1"></i> Agregar';
             btnSubmit.classList.remove('btn-update-event');
             btnSubmit.classList.add('btn-add-event');
@@ -1032,6 +1198,18 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var eventDate = eventToUpdate.start;
         var dateOnly = eventDate.getFullYear()+'-'+String(eventDate.getMonth()+1).padStart(2,'0')+'-'+String(eventDate.getDate()).padStart(2,'0');
         if(fechaFlatpickr) fechaFlatpickr.setDate(dateOnly, false);
+
+        // Cargar horas manuales al editar
+        var eventTimeStart = eventToUpdate.start;
+        var eventTimeEnd = eventToUpdate.end;
+        if(eventTimeStart && eventHoraInicio) {
+            var horaInicioStr = String(eventTimeStart.getHours()).padStart(2,'0')+':'+String(eventTimeStart.getMinutes()).padStart(2,'0');
+            eventHoraInicio.value = horaInicioStr;
+        }
+        if(eventTimeEnd && eventHoraFin) {
+            var horaFinStr = String(eventTimeEnd.getHours()).padStart(2,'0')+':'+String(eventTimeEnd.getMinutes()).padStart(2,'0');
+            eventHoraFin.value = horaFinStr;
+        }
 
         var comp = getLivewireComponent();
         if (comp && eventPaciente.length) {
@@ -1099,31 +1277,19 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
     // ===================== SEARCH & FILTER =====================
 
-    // ===================== FILTROS RÁPIDOS DE FECHA =====================
-    var btnGoToday = document.getElementById('btnGoToday');
-    var btnGoWeek = document.getElementById('btnGoWeek');
-    var btnGoMonth = document.getElementById('btnGoMonth');
+    // ===================== BOTÓN NUEVA CITA =====================
+    var btnNuevaCita = document.getElementById('btnNuevaCita');
     var btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
     var filterMedico = document.getElementById('filterMedico');
 
-    if (btnGoToday) {
-        btnGoToday.addEventListener('click', function() {
-            calendar.gotoDate(new Date());
-            calendar.changeView('timeGridDay');
-        });
-    }
-
-    if (btnGoWeek) {
-        btnGoWeek.addEventListener('click', function() {
-            calendar.gotoDate(new Date());
-            calendar.changeView('timeGridWeek');
-        });
-    }
-
-    if (btnGoMonth) {
-        btnGoMonth.addEventListener('click', function() {
-            calendar.gotoDate(new Date());
-            calendar.changeView('dayGridMonth');
+    if (btnNuevaCita) {
+        btnNuevaCita.addEventListener('click', function() {
+            // Abrir offcanvas de nueva cita
+            var offcanvasElement = document.getElementById('addEventSidebar');
+            if (offcanvasElement) {
+                var bsOffcanvas = new bootstrap.Offcanvas(offcanvasElement);
+                bsOffcanvas.show();
+            }
         });
     }
 
@@ -1357,7 +1523,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         locale: 'es',
         firstDay: 1,
         nowIndicator: true,
-        slotEventOverlap: false,
+        slotEventOverlap: true,
         slotMinTime: '06:00:00',
         slotMaxTime: '22:00:00',
         scrollTime: '07:00:00',
@@ -1365,8 +1531,11 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         contentHeight: 'auto',
         expandRows: true,
         slotDuration: '00:30:00',
-        eventMinHeight: 25,
+        eventMinHeight: 30,
         eventShortHeight: 25,
+        slotEventOverlap: false,
+        dayMaxEventRows: true,
+        dayMaxEvents: 5,
         editable: true,
         eventResizableFromStart: true,
         customButtons: { sidebarToggle: { text: 'Menú' } },
@@ -1472,42 +1641,131 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             }
 
             if (view.type === 'dayGridMonth') {
-                html = '<div class="fc-event-main-frame fc-month-event">' +
-                    '<div style="display:flex;align-items:center;gap:4px;overflow:hidden;">' +
-                        (timeText ? '<span class="fc-event-time">' + timeText + '</span>' : '') +
-                        '<span class="fc-event-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + pacienteNombre + '</span>' +
-                    '</div>' +
-                    '<div class="fc-event-subtitle" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dr(a). ' + medicoNombre + edadHtml + '</div>' +
-                    '<div style="display:flex;align-items:center;gap:3px;flex-wrap:wrap;margin-top:2px;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
-                '</div>';
+                // Diseño híbrido para vista de mes según duración de la cita
+                // Icono de prioridad
+                var prioridadIcon = '';
+                if (isCita && ep.prioridad && ep.prioridad !== 'normal') {
+                    var prioridadIconChar = ep.prioridad === 'alta' ? '!' : '‼';
+                    prioridadIcon = '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#dc3545;color:#fff;border-radius:50%;font-size:0.65rem;font-weight:700;margin-right:2px;">' + prioridadIconChar + '</span>';
+                }
+
+                // Icono de consulta vinculada
+                var consultaIcon = '';
+                if (isCita && ep.tiene_consulta) {
+                    consultaIcon = '<i class="ri-links-line" style="font-size:0.7rem;opacity:0.8;margin-right:2px;"></i>';
+                }
+
+                // Diseño híbrido según duración de la cita
+                if (duracionMinutos < 20) {
+                    // Diseño compacto para citas cortas (< 20 min)
+                    html = '<div class="fc-event-main-frame fc-month-event" style="display:flex;align-items:center;gap:3px;overflow:hidden;padding:2px 4px;">' +
+                        prioridadIcon +
+                        consultaIcon +
+                        '<span class="fc-event-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.65rem;font-weight:600;">' + pacienteNombre + '</span>' +
+                        '<span class="fc-event-time" style="font-size:0.6rem;opacity:0.9;flex-shrink:0;">' + timeText + '</span>' +
+                    '</div>';
+                } else {
+                    // Diseño normal para citas largas (≥ 20 min)
+                    html = '<div class="fc-event-main-frame fc-month-event" style="display:flex;align-items:center;gap:4px;overflow:hidden;padding:3px 6px;">' +
+                        prioridadIcon +
+                        consultaIcon +
+                        '<span class="fc-event-title" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.7rem;font-weight:500;">' + pacienteNombre + '</span>' +
+                        '<span class="fc-event-time" style="font-size:0.65rem;opacity:0.9;flex-shrink:0;">' + timeText + '</span>' +
+                    '</div>';
+                }
             } else if (view.type === 'timeGridDay') {
                 var dayTimeStart = arg.event.start ? moment(arg.event.start).format('hh:mm A') : '';
                 var dayTimeEnd = arg.event.end ? moment(arg.event.end).format('hh:mm A') : '';
                 var dayTimeRange = dayTimeStart + (dayTimeEnd ? ' - ' + dayTimeEnd : '');
-                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:2px 4px;box-sizing:border-box;overflow:hidden;">' +
-                    '<div style="font-weight:600;font-size:0.75rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nombreCompleto + '</div>' +
-                    '<div style="font-size:0.65rem;opacity:0.85;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + '</div>' +
-                    (ep.edad ? '<div style="font-size:0.6rem;opacity:0.8;line-height:1.2;">' + ep.edad + '</div>' : '') +
-                    '<div style="font-size:0.6rem;opacity:0.8;line-height:1.2;">' + dayTimeRange + '</div>' +
-                '</div>';
+
+                // Icono de prioridad (solo para alta prioridad)
+                var prioridadIcon = '';
+                if (isCita && ep.prioridad && ep.prioridad === 'alta') {
+                    prioridadIcon = '<span style="display:inline-flex;align-items:center;justify-content:center;width:8px;height:8px;background:#dc3545;border-radius:50%;margin-right:4px;"></span>';
+                }
+
+                // Icono de consulta vinculada
+                var consultaIcon = '';
+                if (isCita && ep.tiene_consulta) {
+                    consultaIcon = '<i class="ri-links-line" style="font-size:0.65rem;opacity:0.7;margin-right:3px;"></i>';
+                }
+
+                // Diseño híbrido según duración de la cita
+                if (duracionMinutos < 20) {
+                    // Diseño compacto para citas cortas (< 20 min)
+                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;padding:2px 4px;box-sizing:border-box;overflow:hidden;gap:3px;">' +
+                        prioridadIcon +
+                        consultaIcon +
+                        '<span style="font-weight:600;font-size:0.75rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">' + pacienteNombre + '</span>' +
+                        '<span style="font-size:0.7rem;opacity:0.9;line-height:1.2;white-space:nowrap;flex-shrink:0;">' + dayTimeStart + '</span>' +
+                    '</div>';
+                } else {
+                    // Diseño normal para citas largas (≥ 20 min)
+                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;padding:4px 6px;box-sizing:border-box;overflow:hidden;gap:4px;">' +
+                        '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;">' +
+                            '<div style="font-weight:600;font-size:0.85rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nombreCompleto + '</div>' +
+                            '<div style="font-size:0.75rem;opacity:0.85;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</div>' +
+                        '</div>' +
+                        '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px;">' +
+                            typeBadge +
+                            '<div style="font-size:0.7rem;opacity:0.9;line-height:1.2;white-space:nowrap;">' + dayTimeRange + '</div>' +
+                        '</div>' +
+                    '</div>';
+                }
             } else if (view.type === 'timeGridWeek') {
-                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:2px 4px;box-sizing:border-box;overflow:hidden;">' +
-                    '<div style="font-weight:600;font-size:0.75rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nombreCompleto + '</div>' +
-                    '<div style="font-size:0.65rem;opacity:0.85;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + '</div>' +
-                '</div>';
+                // Estilo Google Calendar: diseño horizontal con hora y título
+                var weekTimeStart = arg.event.start ? moment(arg.event.start).format('HH:mm') : '';
+                var weekTimeEnd = arg.event.end ? moment(arg.event.end).format('HH:mm') : '';
+                var weekTimeRange = weekTimeStart + (weekTimeEnd ? ' - ' + weekTimeEnd : '');
+
+                // Icono de prioridad (solo para alta prioridad)
+                var prioridadIcon = '';
+                if (isCita && ep.prioridad && ep.prioridad === 'alta') {
+                    prioridadIcon = '<span style="display:inline-flex;align-items:center;justify-content:center;width:8px;height:8px;background:#dc3545;border-radius:50%;margin-right:3px;"></span>';
+                }
+
+                // Icono de consulta vinculada
+                var consultaIcon = '';
+                if (isCita && ep.tiene_consulta) {
+                    consultaIcon = '<i class="ri-links-line" style="font-size:0.65rem;opacity:0.7;margin-right:3px;"></i>';
+                }
+
+                // Diseño híbrido según duración de la cita
+                if (duracionMinutos < 20) {
+                    // Diseño compacto para citas cortas (< 20 min)
+                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;padding:2px 4px;box-sizing:border-box;overflow:hidden;gap:3px;">' +
+                        prioridadIcon +
+                        consultaIcon +
+                        '<span style="font-weight:600;font-size:0.7rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">' + pacienteNombre + '</span>' +
+                        '<span style="font-size:0.65rem;opacity:0.9;line-height:1.2;white-space:nowrap;flex-shrink:0;">' + weekTimeStart + '</span>' +
+                    '</div>';
+                } else {
+                    // Diseño normal para citas largas (≥ 20 min)
+                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:column;padding:3px 4px;box-sizing:border-box;overflow:hidden;">' +
+                        '<div style="display:flex;align-items:center;gap:3px;overflow:hidden;">' +
+                            prioridadIcon +
+                            consultaIcon +
+                            '<span style="font-weight:500;font-size:0.75rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">' + pacienteNombre + '</span>' +
+                        '</div>' +
+                        '<div style="display:flex;align-items:center;gap:3px;overflow:hidden;">' +
+                            '<span style="font-size:0.7rem;opacity:0.9;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">' + medicoNombre + '</span>' +
+                            '<span style="font-size:0.65rem;opacity:0.8;line-height:1.3;white-space:nowrap;">' + weekTimeRange + '</span>' +
+                        '</div>' +
+                    '</div>';
+                }
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
                 // Horario desde - hasta
-                var listTimeStart = arg.event.start ? moment(arg.event.start).format('hh:mm A') : '';
-                var listTimeEnd = arg.event.end ? moment(arg.event.end).format('hh:mm A') : '';
+                var listTimeStart = arg.event.start ? moment(arg.event.start).format('HH:mm') : '';
+                var listTimeEnd = arg.event.end ? moment(arg.event.end).format('HH:mm') : '';
                 var listTimeRange = listTimeStart + (listTimeEnd ? ' - ' + listTimeEnd : '');
 
-                html = '<div style="display:flex;align-items:flex-start;gap:12px;width:100%;">' +
-                    '<div style="flex:1;min-width:0;">' +
-                        '<div style="font-weight:600;font-size:0.9rem;margin-bottom:2px;">' + nombreCompleto + '</div>' +
-                        '<div style="font-size:0.8rem;color:#6c757d;">Dr(a). ' + medicoNombre + '</div>' +
-                        '<div style="font-size:0.75rem;color:#888;margin-top:2px;"><i class="ri-time-line" style="font-size:0.7rem;"></i> ' + listTimeRange + '</div>' +
+                html = '<div style="display:flex;align-items:center;gap:8px;width:100%;padding:4px 8px 4px 20px;box-sizing:border-box;">' +
+                    '<div style="flex:1;min-width:0;overflow:hidden;">' +
+                        '<div style="font-weight:600;font-size:0.85rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nombreCompleto + '</div>' +
+                        '<div style="font-size:0.75rem;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</div>' +
+                        '<div style="font-size:0.7rem;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="ri-time-line" style="font-size:0.65rem;"></i> ' + listTimeRange + '</div>' +
                     '</div>' +
-                    '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;flex-wrap:nowrap;justify-content:flex-end;">' + typeBadge + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else {
                 return { html: '<div>' + arg.event.title + '</div>' };
@@ -1960,22 +2218,58 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     if (eventForm && typeof FormValidation !== 'undefined') {
         var fv = FormValidation.formValidation(eventForm, {
             fields: {
-                eventPaciente: { validators: { notEmpty: { message: 'Seleccione un paciente' } } },
-                eventEspecialidad: { validators: { notEmpty: { message: 'Seleccione una especialidad' } } },
-                eventMedico: { validators: { notEmpty: { message: 'Seleccione un médico' } } },
-                eventStartDate: { validators: { notEmpty: { message: 'Seleccione un horario' } } },
-                eventMotivo: { validators: { notEmpty: { message: 'Ingrese el motivo de la cita' } } }
+                eventPaciente: {
+                    validators: { notEmpty: { message: 'Seleccione un paciente' } }
+                },
+                eventEspecialidad: {
+                    validators: { notEmpty: { message: 'Seleccione una especialidad' } }
+                },
+                eventMedico: {
+                    validators: { notEmpty: { message: 'Seleccione un médico' } }
+                },
+                eventFecha: {
+                    validators: { notEmpty: { message: 'Seleccione una fecha' } }
+                },
+                eventHoraInicio: {
+                    validators: { notEmpty: { message: 'Seleccione la hora de inicio' } }
+                },
+                eventHoraFin: {
+                    validators: { notEmpty: { message: 'Seleccione la hora de fin' } }
+                },
+                eventMotivo: {
+                    validators: { notEmpty: { message: 'Ingrese el motivo de la cita' } }
+                }
             },
             plugins: {
                 trigger: new FormValidation.plugins.Trigger(),
-                bootstrap5: new FormValidation.plugins.Bootstrap5({ eleValidClass:'', rowSelector:function(field,ele){return '.form-control-validation';} }),
+                bootstrap5: new FormValidation.plugins.Bootstrap5({
+                    eleValidClass:'',
+                    rowSelector:'.form-control-validation'
+                }),
                 submitButton: new FormValidation.plugins.SubmitButton(),
                 autoFocus: new FormValidation.plugins.AutoFocus()
             }
         }).on('core.form.valid',function(){isFormValid=true;}).on('core.form.invalid',function(){isFormValid=false;});
-        if(eventPaciente.length) eventPaciente.on('change',function(){fv.revalidateField('eventPaciente');});
-        if(eventEspecialidad.length) eventEspecialidad.on('change',function(){fv.revalidateField('eventEspecialidad');});
-        if(eventMedico.length) eventMedico.on('change',function(){fv.revalidateField('eventMedico');});
+
+        // Solo agregar listeners si los elementos existen
+        if(eventPaciente && eventPaciente.length) {
+            eventPaciente.on('change',function(){fv.revalidateField('eventPaciente');});
+        }
+        if(eventEspecialidad && eventEspecialidad.length) {
+            eventEspecialidad.on('change',function(){fv.revalidateField('eventEspecialidad');});
+        }
+        if(eventMedico && eventMedico.length) {
+            eventMedico.on('change',function(){fv.revalidateField('eventMedico');});
+        }
+        if(eventFecha) {
+            eventFecha.addEventListener('change',function(){fv.revalidateField('eventFecha');});
+        }
+        if(eventHoraInicio) {
+            eventHoraInicio.addEventListener('change',function(){fv.revalidateField('eventHoraInicio');});
+        }
+        if(eventHoraFin) {
+            eventHoraFin.addEventListener('change',function(){fv.revalidateField('eventHoraFin');});
+        }
     }
 
     // ===================== FORM SUBMIT =====================
@@ -1993,18 +2287,17 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var eventPrioridadEl = document.getElementById('eventPrioridad');
             if (eventPrioridadEl) prioridad = eventPrioridadEl.value;
 
-            var startDate = eventStartDate ? eventStartDate.value : '';
-            var endDate = eventEndDate ? eventEndDate.value : '';
+            var fecha = eventFecha ? eventFecha.value : '';
+            var horaInicio = eventHoraInicio ? eventHoraInicio.value : '';
+            var horaFin = eventHoraFin ? eventHoraFin.value : '';
 
-            var esAltaEmergencia = prioridad === 'alta' || prioridad === 'emergencia';
-            if (esAltaEmergencia) {
-                var fecha = eventFecha ? eventFecha.value : '';
-                var horaInicio = document.getElementById('eventHoraInicioPrioridad');
-                var horaFin = document.getElementById('eventHoraFinPrioridad');
-                if (fecha && horaInicio && horaInicio.value && horaFin && horaFin.value) {
-                    startDate = fecha + ' ' + horaInicio.value + ':00';
-                    endDate = fecha + ' ' + horaFin.value + ':00';
-                }
+            var startDate = '';
+            var endDate = '';
+
+            // Usar siempre los mismos campos de hora
+            if (fecha && horaInicio && horaFin) {
+                startDate = fecha + ' ' + horaInicio + ':00';
+                endDate = fecha + ' ' + horaFin + ':00';
             }
 
             var eventData = {
@@ -2014,13 +2307,22 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                 medico_id: eventMedico.val(),
                 start: startDate,
                 end: endDate,
+                fecha_inicio: startDate,
+                fecha_fin: endDate,
                 motivo: eventMotivo ? eventMotivo.value : '',
                 notas: eventNotas ? eventNotas.value : '',
                 estado: isNewCita ? 'pendiente' : (eventEstado.val() || 'pendiente'),
                 tipo_consulta_id: eventTipoConsulta.val() || '',
                 prioridad: prioridad
             };
-            var comp = getLivewireComponent(); if(!comp) return;
+            var comp = getLivewireComponent();
+            if(!comp) {
+                // Restablecer el botón si no se encuentra el componente Livewire
+                btnSubmit.disabled = false;
+                var isUpdate = btnSubmit.classList.contains('btn-update-event');
+                btnSubmit.innerHTML = isUpdate ? '<i class="ri ri-save-line me-1"></i> Actualizar' : '<i class="ri ri-add-line me-1"></i> Agregar';
+                return;
+            }
             if (btnSubmit.classList.contains('btn-update-event') && currentCitaId) {
                 comp.set('citaId', currentCitaId);
             }
@@ -2058,8 +2360,8 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     // ===================== LIVEWIRE LISTENERS =====================
     if(typeof Livewire!=='undefined'){Livewire.on('calendario-updated',function(){prefetchCache={};calendar.refetchEvents();});}
     if(typeof Livewire!=='undefined'){Livewire.on('cita-saved',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}prefetchCache={};calendar.refetchEvents();if(bsAddEventSidebar){try{bsAddEventSidebar.hide();}catch(e){}}});}
-    if(typeof Livewire!=='undefined'){Livewire.on('show-toast',function(){window.setTimeout(function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}},500);});}
-    if(typeof Livewire!=='undefined'){Livewire.on('show-alert',function(){window.setTimeout(function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}},500);});}
+    if(typeof Livewire!=='undefined'){Livewire.on('show-toast',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}});}
+    if(typeof Livewire!=='undefined'){Livewire.on('show-alert',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}});}
 
     // ===================== CITA-SAVED LISTENER =====================
     window.addEventListener('cita-saved', function() { prefetchCache={}; calendar.refetchEvents(); });

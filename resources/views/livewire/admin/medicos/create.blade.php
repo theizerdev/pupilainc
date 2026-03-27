@@ -237,8 +237,8 @@
                             </div>
                         </div>
 
-                        @if($especialidad_id)
-                            <div class="row">
+                        <div class="row">
+                                @if($especialidad_id)
                                 <div class="col-md-12">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <label class="fw-bold">Subespecialidades (Opcional)</label>
@@ -301,9 +301,9 @@
                             </div>
                         @endif
                     </div>
-                </div>
 
-                <!-- Componente del modal para crear subespecialidades -->
+                    <!-- Componente del modal para crear subespecialidades -->
+                </div>
                 <livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" :key="'subesp-modal-create-'.($especialidad_id ?: 'none')" />
 
                 <!-- Horarios de Atención -->
@@ -466,3 +466,11 @@
 
 <livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" />
 </div>
+
+@push('scripts')
+<script>
+    Livewire.on('subespecialidad-creada', () => {
+        Livewire.dispatch('refreshSubespecialidades', {{ $especialidad_id ?? 'null' }});
+    });
+</script>
+@endpush

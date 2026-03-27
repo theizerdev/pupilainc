@@ -79,6 +79,7 @@
     </style>
 
     @stack('styles')
+    @livewireStyles
   </head>
 
   <body>
@@ -102,7 +103,7 @@
 
             <!-- Content -->
             <div class="container-fluid flex-grow-1 container-p-y">
-              
+
               <!-- Componente de notificaciones global -->
               <x-notifications />
 
@@ -124,6 +125,7 @@
       <div class="layout-overlay layout-menu-toggle"></div>
     </div>
     <!-- /Layout wrapper -->
+     @livewireScripts
 
     <!-- Core JS -->
     <script src="/materialize/assets/vendor/libs/jquery/jquery.js"></script>
@@ -152,7 +154,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- Toast Container -->
-  
+
     @include('components.toast-container')
 
     @stack('scripts')

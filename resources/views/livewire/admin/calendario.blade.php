@@ -89,638 +89,14 @@
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/flatpickr/flatpickr.css" />
     <link rel="stylesheet" href="/materialize/assets/vendor/css/pages/app-calendar.css" />
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css" />
-    <style>
-        .slot-btn { cursor: pointer; transition: all .15s; font-size: 0.75rem; padding: 0.25rem 0.5rem; min-width: 0; text-align: center; }
-        .slot-btn:hover:not(.ocupado) { transform: scale(1.04); }
-        .slot-btn.selected { border-color: var(--bs-primary); box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.25); }
-        .slot-btn.ocupado { opacity: .4; cursor: not-allowed; text-decoration: line-through; }
-        .slots-container { max-height: 180px; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.35rem; }
-        .cascade-arrow { text-align: center; color: #aaa; font-size: .75rem; margin: 2px 0; }
+    <link rel="stylesheet" href="/css/calendar-custom.css" />
 
-        /* Event Cards */
-        .fc .fc-event {
-            border-radius: 4px !important;
-            border-left: 4px solid #000 !important;
-            transition: box-shadow 0.2s ease;
-            overflow: hidden;
-        }
-        .fc .fc-event:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            z-index: 10;
-        }
-
-        /* Timegrid Event - compacto, estilo Google Calendar */
-        .fc .fc-timegrid-event {
-            min-height: 0 !important;
-            border-radius: 4px !important;
-            overflow: hidden;
-            margin: 0 1px !important;
-        }
-        .fc .fc-timegrid-event .fc-event-main {
-            padding: 2px 4px !important;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            height: 100%;
-            overflow: hidden;
-        }
-        .fc .fc-timegrid-event .fc-event-time {
-            display: none;
-        }
-        .fc .fc-timegrid-event .fc-event-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            line-height: 1.2;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-        }
-
-        /* Controles de duracion */
-        .fc-event-duration-controls {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            margin-top: 4px;
-            position: relative;
-            z-index: 100;
-        }
-        .fc-event-duration-btn {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.5);
-            background: rgba(0,0,0,0.4);
-            color: #fff;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-            pointer-events: all;
-            position: relative;
-            z-index: 101;
-        }
-        .fc-event-duration-btn:hover {
-            background: rgba(0,0,0,0.6);
-            transform: scale(1.1);
-        }
-        .fc-event-duration-btn:active {
-            transform: scale(0.95);
-        }
-        .fc-event-duration-display {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #fff;
-            background: rgba(0,0,0,0.2);
-            padding: 2px 8px;
-            border-radius: 4px;
-            min-width: 50px;
-            text-align: center;
-        }
-
-        /* Sincronizacion de consulta */
-        .fc-event-sync-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            font-size: 0.65rem;
-            color: #fff;
-            background: rgba(0,0,0,0.25);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        /* Badge de tiempo de espera */
-        .fc-event-tiempo-badge {
-            font-size: 0.7rem !important;
-            padding: 3px 8px !important;
-            font-weight: 600;
-            white-space: nowrap !important;
-        }
-
-        /* Daygrid Event - Optimizado para mas informacion */
-        .fc .fc-daygrid-event {
-            padding: 4px 6px !important;
-            margin-bottom: 2px !important;
-            line-height: 1.3;
-            min-height: 0;
-        }
-        .fc .fc-daygrid-event .fc-event-time {
-            font-size: 0.8rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .fc .fc-daygrid-event .fc-event-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: initial !important;
-            line-height: 1.4;
-            word-break: break-word;
-        }
-        .fc .fc-daygrid-event .fc-event-type-badge {
-            font-size: 0.7rem !important;
-            padding: 3px 8px !important;
-            line-height: 1.5;
-            font-weight: 600;
-        }
-        .fc .fc-daygrid-event .badge {
-            font-size: 0.7rem !important;
-            padding: 3px 8px !important;
-            overflow: visible !important;
-            white-space: nowrap !important;
-        }
-        .fc .fc-daygrid-event .fc-event-subtitle {
-            font-size: 0.75rem;
-            opacity: 0.9;
-            white-space: normal !important;
-            overflow: visible !important;
-            text-overflow: initial !important;
-        }
-
-        /* ===== Lista de eventos (listMonth / listWeek) ===== */
-        .fc .fc-list-table {
-            width: 100% !important;
-            table-layout: auto !important;
-        }
-        .fc .fc-list-table td,
-        .fc .fc-list-table th {
-            vertical-align: middle;
-            padding: 10px 14px !important;
-            border-bottom: 1px solid var(--bs-border-color, #e9ecef) !important;
-        }
-        /* Columna del dot */
-        .fc .fc-list-event-graphic {
-            width: 12px !important;
-            padding-left: 12px !important;
-            padding-right: 0 !important;
-        }
-        /* Columna de hora */
-        .fc .fc-list-event-time {
-            white-space: nowrap;
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: var(--bs-heading-color, #333);
-            width: 1% !important;
-            padding-right: 16px !important;
-        }
-        /* Columna de título - ocupa todo el espacio restante */
-        .fc .fc-list-event-title {
-            font-size: 0.85rem;
-            width: 99% !important;
-        }
-        /* Fila de evento */
-        .fc .fc-list-event {
-            cursor: pointer;
-        }
-        .fc .fc-list-event:hover td {
-            background-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.04) !important;
-        }
-        /* Cabecera del día */
-        .fc .fc-list-day-cushion {
-            padding: 10px 14px !important;
-            font-weight: 700;
-            font-size: 0.85rem;
-            background-color: var(--bs-body-bg, #f5f5f9) !important;
-        }
-        .calendar-legend { font-size: 0.8rem; }
-        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .legend-bar { width: 4px; height: 16px; border-radius: 2px; display: inline-block; }
-
-        .medico-item {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-        .medico-item:hover {
-            background: rgba(var(--bs-primary-rgb), 0.08);
-        }
-        .medico-item.active {
-            background: rgba(var(--bs-primary-rgb), 0.12);
-            font-weight: 600;
-        }
-
-        /* Switch toggles - estilo moderno */
-        .form-switch .form-check-input {
-            width: 2.5rem !important;
-            height: 1.3rem !important;
-            cursor: pointer;
-        }
-        .form-switch .form-check-input:checked {
-            background-color: #198754;
-            border-color: #198754;
-        }
-        .form-switch .form-check-input:not(:checked) {
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
-        .form-switch .form-check-label {
-            cursor: pointer;
-        }
-
-        .fc .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
-            min-height: 60px !important;
-            padding: 3px 5px !important;
-        }
-        .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
-            margin-top: 2px !important;
-        }
-        .fc .fc-daygrid-day-top {
-            padding: 3px 5px !important;
-        }
-        .fc td.fc-daygrid-day {
-            min-height: 60px !important;
-            width: 100% !important;
-        }
-        .fc .fc-col-header-cell {
-            padding: 4px 0 !important;
-        }
-
-        /* Event type indicators */
-        .fc .fc-event .fc-event-type-badge {
-            font-size: 0.55rem;
-            padding: 0 4px;
-            border-radius: 3px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .perfect-scrollbar-container {
-            position: relative;
-        }
-        .perfect-scrollbar-container .ps__rail-y {
-            width: 6px;
-            background-color: transparent;
-        }
-        .perfect-scrollbar-container .ps__thumb-y {
-            width: 6px;
-            background-color: rgba(var(--bs-primary-rgb), 0.3);
-            border-radius: 3px;
-        }
-        .perfect-scrollbar-container .ps__thumb-y:hover {
-            background-color: rgba(var(--bs-primary-rgb), 0.5);
-        }
-
-        /* Toggle switches */
-        .toggle-section {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            transition: background 0.15s;
-        }
-        .toggle-section:hover {
-            background: rgba(var(--bs-primary-rgb), 0.04);
-        }
-        .toggle-section .form-check-input {
-            width: 2.5em;
-            height: 1.25em;
-        }
-
-        /* Tooltip custom */
-        .cal-tooltip {
-            position: absolute;
-            z-index: 9999;
-            background: var(--bs-body-bg, #fff);
-            border: 1px solid var(--bs-border-color, #dee2e6);
-            border-radius: 8px;
-            padding: 10px 14px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            pointer-events: none;
-            font-size: 0.8rem;
-            max-width: 280px;
-            line-height: 1.5;
-        }
-        .cal-tooltip .tooltip-header {
-            font-weight: 600;
-            margin-bottom: 4px;
-            padding-bottom: 4px;
-            border-bottom: 1px solid var(--bs-border-color, #dee2e6);
-        }
-        .cal-tooltip .tooltip-badge {
-            display: inline-block;
-            padding: 1px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #fff;
-        }
-
-        /* Cita event indicator */
-        .fc .fc-event.event-cita {
-            border-left-color: #0d6efd !important;
-        }
-        .fc .fc-event.event-consulta {
-            border-left-color: #6f42c1 !important;
-        }
-
-        /* Day Events Modal Styles */
-        .day-events-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .day-event-item {
-            border-radius: 8px;
-            padding: 12px 16px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .day-event-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .day-event-time {
-            font-weight: 600;
-            color: #495057;
-            font-size: 0.85rem;
-            white-space: nowrap;
-        }
-        .day-event-patient {
-            font-weight: 600;
-            color: #212529;
-            margin-bottom: 4px;
-        }
-        .day-event-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-        .day-event-meta i {
-            opacity: 0.6;
-        }
-        .day-event-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .day-events-stats {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .day-events-stats .col-6 {
-            position: relative;
-        }
-        .day-events-stats .col-6:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 70%;
-            width: 1px;
-            background: #dee2e6;
-        }
-
-        /* Floating toggles */
-        #floatingToggles {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--bs-body-bg, #fff);
-            border: 1px solid var(--bs-border-color, #dee2e6);
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.3s, transform 0.3s;
-            pointer-events: none;
-            min-width: 200px;
-        }
-        #floatingToggles.show {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: all;
-        }
-        #floatingToggles .toggle-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 0;
-        }
-        #floatingToggles .toggle-item:not(:last-child) {
-            border-bottom: 1px solid var(--bs-border-color, #dee2e6);
-            margin-bottom: 8px;
-            padding-bottom: 12px;
-        }
-
-        /* Sidebar animation */
-        .app-calendar-sidebar {
-            transition: all 0.3s ease-in-out;
-            width: 320px;
-            min-width: 320px;
-            max-width: 320px;
-            display: flex;
-            flex-direction: column;
-        }
-        .app-calendar-sidebar.sidebar-hidden {
-            max-width: 0 !important;
-            min-width: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            opacity: 0;
-        }
-
-        /* Scrollable sidebar content */
-        .app-calendar-sidebar .sidebar-scroll {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: #b2b2b2 #f0f0f0;
-        }
-        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-track {
-            background: #f0f0f0;
-            border-radius: 3px;
-        }
-        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-thumb {
-            background: #b2b2b2;
-            border-radius: 3px;
-        }
-        .app-calendar-sidebar .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-            background: #888;
-        }
-
-        /* Responsive sidebar */
-        @media (max-width: 992px) {
-            .app-calendar-sidebar {
-                width: 280px !important;
-                min-width: 280px !important;
-                max-width: 280px !important;
-            }
-        }
-        @media (max-width: 768px) {
-            .app-calendar-sidebar {
-                width: 100% !important;
-                min-width: 100% !important;
-                max-width: 100% !important;
-                position: fixed !important;
-                top: 0;
-                left: 0;
-                height: 100vh;
-                z-index: 1050;
-                background: #fff;
-            }
-        }
-
-        /* Estilos para validación de pacientes */
-        .form-control.is-invalid {
-            border-color: #dc3545;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right calc(0.375em + 0.1875rem) center;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
-        }
-
-        .invalid-feedback {
-            display: none;
-            width: 100%;
-            margin-top: 0.25rem;
-            font-size: 0.875em;
-            color: #dc3545;
-        }
-
-        .invalid-feedback.d-block {
-            display: block;
-        }
-
-        .form-floating > .form-control.is-invalid ~ label {
-            color: #dc3545;
-        }
-
-        .form-floating > .form-control.is-invalid ~ label::after {
-            background-color: transparent !important;
-        }
-
-        .form-floating > .form-control:focus.is-invalid {
-            border-color: #dc3545;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-        }
-
-        .form-floating > .form-control:not(:placeholder-shown).is-invalid ~ label {
-            color: #dc3545;
-        }
-
-        /* Estilos específicos para mensaje de error de fecha de nacimiento */
-        #mpFechaNacimiento_error {
-            color: #dc3545 !important;
-            font-size: 14px !important;
-            margin-top: 0.25rem !important;
-            margin-bottom: 0 !important;
-            font-weight: 400 !important;
-            line-height: 1.5 !important;
-        }
-
-        /* Estilo para botón deshabilitado */
-        #modalPacienteCreateBtn:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-
-        /* Toggle button in calendar header */
-        #toggleSidebarBtn {
-            transition: all 0.3s ease;
-            opacity: 0;
-            transform: scale(0.8);
-            pointer-events: none;
-        }
-        #toggleSidebarBtn.show {
-            opacity: 1;
-            transform: scale(1);
-            pointer-events: all;
-        }
-
-        /* Loading overlay */
-        .calendar-loading {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-        .calendar-loading.show {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        /* Acordeón de filtros mejorado */
-        .accordion-button.bg-transparent:not(.collapsed) {
-            background-color: rgba(13, 110, 253, 0.1) !important;
-            color: #0d6efd;
-        }
-        .accordion-button.bg-transparent:focus {
-            box-shadow: none;
-            border-color: rgba(13, 110, 253, 0.3);
-        }
-        .accordion-button::after {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230d6efd'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-        }
-        .accordion-button:not(.collapsed)::after {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230d6efd'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-        }
-        .accordion-item {
-            background-color: transparent;
-        }
-
-        /* Botones de filtros rápidos */
-        .btn-outline-primary:hover {
-            background-color: #0d6efd;
-            color: #fff;
-            border-color: #0d6efd;
-        }
-        .btn-outline-primary:active,
-        .btn-outline-primary.active {
-            background-color: #0d6efd;
-            color: #fff;
-        }
-
-        /* Badges de contadores */
-        .badge.rounded-pill {
-            font-size: 0.65rem;
-            padding: 0.25em 0.5em;
-        }
-
-        .calendar-scroll {
-            position: relative;
-            overflow: hidden;
-            height: calc(100vh - 180px);
-        }
-        @media (max-width: 992px) {
-            .calendar-scroll { height: calc(100vh - 220px); }
-        }
-        @media (max-width: 768px) {
-            .calendar-scroll { height: calc(100vh - 240px); }
-        }
-    </style>
     @endpush
 
     <div class="card app-calendar-wrapper" wire:ignore>
-        <div class="row g-0">
+        <div class="row g-0" style="min-width: 0;">
             <!-- Calendar Sidebar -->
-            <div class="col app-calendar-sidebar border-end" id="app-calendar-sidebar">
+            <div class="col app-calendar-sidebar sidebar-hidden border-end" id="app-calendar-sidebar">
                 <!-- Toggle Filtros Button (Fixed at top) -->
                 <div class="px-4 py-3 border-bottom bg-white sticky-top" style="z-index: 10;">
                     <div class="d-flex justify-content-between align-items-center">
@@ -735,39 +111,24 @@
 
                     <!-- Búsqueda Rápida -->
                     <div class="mb-3">
-                        <!-- Filtros Rápidos de Fecha -->
-                        <div class="d-flex gap-1 mb-2">
-                            <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btnGoToday">
-                                <i class="ri ri-sun-line me-1"></i>Hoy
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btnGoWeek">
-                                <i class="ri ri-calendar-week-line me-1"></i>Semana
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="btnGoMonth">
-                                <i class="ri ri-calendar-line me-1"></i>Mes
+                        <!-- Botón Nueva Cita -->
+                        <div class="mb-2">
+                            <button type="button" class="btn btn-sm btn-primary w-100 mb-4" id="btnNuevaCita">
+                                <i class="ri ri-add-line me-1"></i>Nueva Cita
                             </button>
                         </div>
 
                         <!-- Inline Mini Calendar - Filtro de Fecha Principal -->
-                        <div class="accordion" id="fechaAccordion">
-                            <div class="accordion-item border-0 bg-transparent">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fechaCollapse" aria-expanded="false">
-                                        <i class="ri ri-calendar-line me-2"></i>Seleccionar Fecha
-
-                                    </button>
-                                </h2>
-                                <div id="fechaCollapse" class="accordion-collapse collapse" data-bs-parent="#fechaAccordion">
-                                    <div class="accordion-body p-0 pt-2">
-                                        <div class="inline-calendar"></div>
-                                        <div id="fechaFiltroActivo" class="small mt-2" style="display: none;">
-                                            <span class="badge bg-primary w-100">
-                                                <i class="ri ri-calendar-check-line me-1"></i>
-                                                <span id="fechaFiltroTexto"></span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted fw-medium">FECHA</small>
+                            </div>
+                            <div class="inline-calendar"></div>
+                            <div id="fechaFiltroActivo" class="small mt-2" style="display: none;">
+                                <span class="badge bg-primary w-100">
+                                    <i class="ri ri-calendar-check-line me-1"></i>
+                                    <span id="fechaFiltroTexto"></span>
+                                </span>
                             </div>
                         </div>
 
@@ -785,6 +146,15 @@
 
                     <!-- Stats -->
                     <div class="border-bottom my-sm-0 mb-4 p-3">
+                        <div class="accordion" id="statsAccordion">
+                            <div class="accordion-item border-0 bg-transparent">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button p-1 py-2 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#statsCollapse" aria-expanded="true">
+                                        <i class="ri ri-bar-chart-line me-2"></i>Estadísticas
+                                    </button>
+                                </h2>
+                                <div id="statsCollapse" class="accordion-collapse collapse show" data-bs-parent="#statsAccordion">
+                                    <div class="accordion-body p-0 pt-2">
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <small class="text-muted fw-medium">HOY</small>
@@ -862,6 +232,10 @@
                                         <i class="ri-user-line text-info me-1"></i>
                                         <small class="text-muted">En espera:</small>
                                         <strong class="ms-auto">{{ $stats['consultas_en_espera'] }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1041,7 +415,7 @@
 
                 <!-- Offcanvas: Crear/Editar Cita -->
                 <div class="offcanvas offcanvas-end event-sidebar" tabindex="-1" id="addEventSidebar" aria-labelledby="addEventSidebarLabel">
-                    <div class="offcanvas-header border-bottom">
+                    <div class="offcanvas-header border-bottom ">
                         <h5 class="offcanvas-title" id="addEventSidebarLabel">Nueva Cita</h5>
                         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                     </div>
@@ -1113,37 +487,37 @@
                                 <label for="eventPrioridad">Prioridad</label>
                             </div>
 
-                            <!-- Sección especial para Alta/Emergencia -->
-                            <div id="prioridadAltaEmergenciaSection" class="mb-5" style="display: none;">
-                                <div class="alert alert-info py-2 px-3 mb-3">
-                                    <i class="ri ri-information-line me-1"></i>
-                                    <strong>Modo Prioridad Alta/Emergencia</strong>
-                                    <p class="mb-0 mt-1" style="font-size: 0.8rem;">Las franjas horarias ocupadas aparecerán deshabilitadas. Podrá definir un horario personalizado.</p>
-                                </div>
 
-                                <div class="row g-2 mb-3">
-                                    <div class="col-6">
-                                        <div class="form-floating">
-                                            <input type="time" class="form-control" id="eventHoraInicioPrioridad" name="eventHoraInicioPrioridad" step="300">
-                                            <label for="eventHoraInicioPrioridad">Hora de inicio</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="form-floating">
-                                            <input type="time" class="form-control" id="eventHoraFinPrioridad" name="eventHoraFinPrioridad" step="300">
-                                            <label for="eventHoraFinPrioridad">Hora de fin</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div id="horarioPrioridadError" class="text-danger mb-2" style="display: none;"></div>
-                            </div>
 
-                            <!-- 6. Horarios Disponibles -->
+                            <!-- 6. Horarios Disponibles (Solo Informativos) -->
                             <div id="slotsContainer" class="mb-5" style="display:none;">
-                                <label class="form-label fw-medium mb-2">Horarios Disponibles</label>
-                                <div id="slotsMessage" class="alert alert-warning d-none py-2 px-3 mb-2" role="alert"></div>
-                                <div id="slotsList" class="slots-container"></div>
+                                <label class="form-label fw-medium mb-2">
+                                    <i class="ri ri-information-line me-1"></i>Horarios del Médico
+                                    <small class="text-muted fw-normal">(Solo referencia)</small>
+                                </label>
+                                <div id="slotsMessage" class="alert alert-info py-2 px-3 mb-2" role="alert">
+                                    <i class="ri ri-information-line me-1"></i>
+                                    Estos son los horarios disponibles del médico. Debe seleccionar las horas manualmente abajo.
+                                </div>
+                                <div id="slotsList" class="slots-container" style="pointer-events: none; opacity: 0.7;"></div>
                             </div>
+
+                            <!-- 7. Horarios Manuales -->
+                            <div class="row g-2 mb-5">
+                                <div class="col-6">
+                                    <div class="form-floating form-control-validation">
+                                        <input type="time" class="form-control" id="eventHoraInicio" name="eventHoraInicio" step="300" required>
+                                        <label for="eventHoraInicio">Hora de Inicio</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-floating form-control-validation">
+                                        <input type="time" class="form-control" id="eventHoraFin" name="eventHoraFin" step="300" required>
+                                        <label for="eventHoraFin">Hora de Fin</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="horarioError" class="text-danger mb-3" style="display: none;"></div>
 
                             <!-- Hidden: fecha_inicio / fecha_fin -->
                             <div class="form-control-validation d-none">
