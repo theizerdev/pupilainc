@@ -80,11 +80,11 @@ class SubespecialidadModal extends Component
             $subespecialidad = Subespecialidad::create($validated);
 
             // Emitir evento global para que tanto Create como Edit lo escuchen
-            $this->dispatch('subespecialidad-creada', 
-                id: $subespecialidad->id,
-                nombre: $subespecialidad->nombre,
-                especialidad_id: $subespecialidad->especialidad_id
-            );
+            $this->dispatch('subespecialidad-creada', [
+                'id' => $subespecialidad->id,
+                'nombre' => $subespecialidad->nombre,
+                'especialidad_id' => $subespecialidad->especialidad_id
+            ]);
 
             $this->dispatch('notify', [
                 'type' => 'success',

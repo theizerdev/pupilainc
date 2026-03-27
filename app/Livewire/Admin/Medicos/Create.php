@@ -58,9 +58,16 @@ class Create extends Component
     // Horarios del médico
     public $horarios = [];
 
-    protected $listeners = [
-        'subespecialidad-creada' => 'onSubespecialidadCreada',
-    ];
+    // Modal subespecialidad
+    public $showSubespecialidadModal = false;
+    public $sub_nombre;
+    public $sub_codigo;
+    public $sub_descripcion;
+    public $sub_costo_consulta = 0;
+    public $sub_duracion_consulta = 30;
+    public $sub_requiere_cita_previa = true;
+    public $sub_color = '#3B82F6';
+    public $sub_icono = 'fa-stethoscope';
 
     protected function rules()
     {
@@ -141,27 +148,79 @@ class Create extends Component
         }
     }
 
-    public function onSubespecialidadCreada($data)
+    public function openSubespecialidadModal($especialidadId = null)
     {
-        // Verificar que la subespecialidad pertenezca a la especialidad actual
-        if ($data['especialidad_id'] != $this->especialidad_id) {
-            return;
+        if ($especialidadId) {
+            $this->especialidad_id = $especialidadId;
         }
+        
+        $this->dispatch('open-subespecialidad-modal', especialidadId: $this->especialidad_id);
+    }
 
-        // Agregar la nueva subespecialidad a la lista de seleccionadas
-        if (!in_array($data['id'], $this->subespecialidades_seleccionadas)) {
-            $this->subespecialidades_seleccionadas[] = $data['id'];
+    public function closeSubespecialidadModal()
+    {
+        $this->showSubespecialidadModal = false;
+        $this->resetValidation(['sub_nombre', 'sub_codigo', 'sub_descripcion', 'sub_costo_consulta', 'sub_duracion_consulta', 'sub_color', 'sub_icono']);
+    }
 
-            // Inicializar datos para la nueva subespecialidad
-            $this->subespecialidades_data[$data['id']] = [
+    public function storeSubespecialidad()
+    {
+        $validated = $this->validate([
+            'sub_nombre' => 'required|string|max:255',
+            'sub_codigo' => 'nullable|string|max:10|unique:subespecialidades,codigo',
+            'sub_descripcion' => 'nullable|string|max:1000',
+            'sub_color' => 'required|string|max:7',
+            'sub_icono' => 'required|string|max:100',
+            'sub_costo_consulta' => 'required|numeric|min:0',
+            'sub_duracion_consulta' => 'required|integer|min:15|max:240',
+            'sub_requiere_cita_previa' => 'boolean',
+        ]);
+
+        try {
+            $codigo = $validated['sub_codigo'] ?: \App\Models\Subespecialidad::generateCodigo();
+
+            $subespecialidad = \App\Models\Subespecialidad::create([
+                'nombre' => $validated['sub_nombre'],
+                'codigo' => $codigo,
+                'descripcion' => $validated['sub_descripcion'],
+                'color' => $validated['sub_color'],
+                'icono' => $validated['sub_icono'],
+                'costo_consulta' => $validated['sub_costo_consulta'],
+                'duracion_consulta' => $validated['sub_duracion_consulta'],
+                'requiere_cita_previa' => $validated['sub_requiere_cita_previa'],
+                'especialidad_id' => $this->especialidad_id,
+            ]);
+
+            // Agregar automáticamente a las seleccionadas
+            $this->subespecialidades_seleccionadas[] = $subespecialidad->id;
+            $this->subespecialidades_data[$subespecialidad->id] = [
                 'experiencia_anios' => 0,
                 'nivel_experiencia' => 'Básico',
                 'tarifa_consulta' => null,
             ];
-        }
 
-        // Limpiar el caché para forzar la recarga desde la base de datos
-        $this->subespecialidades_cache = [];
+            // Recargar caché
+            $this->subespecialidades_cache = Subespecialidad::forUser()
+                ->where('especialidad_id', $this->especialidad_id)
+                ->where('status', true)
+                ->orderBy('nombre')
+                ->get()
+                ->toArray();
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Subespecialidad '{$validated['sub_nombre']}' creada exitosamente.",
+                'duration' => 4000
+            ]);
+
+            $this->closeSubespecialidadModal();
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear la subespecialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
     }
 
     public function updatedSubespecialidadesSeleccionadas($value)
@@ -188,6 +247,30 @@ class Create extends Component
     public function isSubespecialidadSelected($subespecialidadId)
     {
         return in_array($subespecialidadId, $this->subespecialidades_seleccionadas);
+    }
+
+    // Escuchar el evento de creación de subespecialidad desde el componente hijo
+    protected $listeners = ['subespecialidad-creada' => 'actualizarListaSubespecialidades'];
+
+    public function actualizarListaSubespecialidades($data = null)
+    {
+        // Recargar la lista de subespecialidades
+        $this->subespecialidades_cache = Subespecialidad::forUser()
+            ->where('especialidad_id', $this->especialidad_id)
+            ->where('status', true)
+            ->orderBy('nombre')
+            ->get()
+            ->toArray();
+
+        // Si se proporcionaron datos del evento, agregar la nueva subespecialidad a las seleccionadas
+        if ($data && isset($data['id'])) {
+            $this->subespecialidades_seleccionadas[] = $data['id'];
+            $this->subespecialidades_data[$data['id']] = [
+                'experiencia_anios' => 0,
+                'nivel_experiencia' => 'Básico',
+                'tarifa_consulta' => null,
+            ];
+        }
     }
 
     public function store()
@@ -513,12 +596,6 @@ class Create extends Component
         if ($this->telefono) {
             $this->telefono = preg_replace('/[^0-9+]/', '', $this->telefono);
         }
-    }
-
-    function refreshSubespecialidades($especialidadId)
-    {
-        dd($especialidadId);
-
     }
 
     public function render()

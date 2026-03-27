@@ -237,74 +237,79 @@
                             </div>
                         </div>
 
+                        @if($especialidad_id)
                         <div class="row">
-                                @if($especialidad_id)
-                                <div class="col-md-12">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <label class="fw-bold">Subespecialidades (Opcional)</label>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" wire:click="$dispatch('open-subespecialidad-modal', { especialidadId: {{ $especialidad_id }} })">
-                                            <i class="fas fa-plus me-1"></i> Nueva Subespecialidad
-                                        </button>
-                                    </div>
-                                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
-                                            @forelse($subespecialidades as $subespecialidad)
-                                                <div class="form-check mb-2">
-                                                    <input class="form-check-input" type="checkbox"
-                                                           id="subespecialidad_{{ $subespecialidad->id }}"
-                                                           value="{{ $subespecialidad->id }}"
-                                                           wire:model.live="subespecialidades_seleccionadas"
-                                                           wire:change="updatedSubespecialidadesSeleccionadas">
-                                                    <label class="form-check-label" for="subespecialidad_{{ $subespecialidad->id }}">
-                                                        {{ $subespecialidad->nombre }}
-                                                    </label>
-                                                </div>
+                            <div class="col-md-12">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <label class="fw-bold">Subespecialidades (Opcional)</label>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary" 
+                                            wire:click="openSubespecialidadModal({{ $especialidad_id }})">
+                                        <i class="fas fa-plus me-1"></i> Nueva Subespecialidad
+                                    </button>
+                                </div>
+                                
+                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    @forelse($subespecialidades as $subespecialidad)
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox"
+                                                   id="subespecialidad_{{ $subespecialidad->id }}"
+                                                   value="{{ $subespecialidad->id }}"
+                                                   wire:model.live="subespecialidades_seleccionadas">
+                                            <label class="form-check-label" for="subespecialidad_{{ $subespecialidad->id }}">
+                                                {{ $subespecialidad->nombre }}
+                                            </label>
+                                        </div>
 
-                                                @if($this->isSubespecialidadSelected($subespecialidad->id))
-                                                    <div class="ms-4 mb-3 p-2 bg-light rounded">
-                                                        <div class="row">
-                                                            <div class="col-md-4">
-                                                                <div class="form-group mb-2">
-                                                                    <label class="small">Experiencia (años)</label>
-                                                                    <input type="number" class="form-control form-control-sm"
-                                                                           wire:model="subespecialidades_data.{{ $subespecialidad->id }}.experiencia_anios"
-                                                                           min="0" max="50">
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <div class="form-group mb-2">
-                                                                    <label class="small">Nivel</label>
-                                                                    <select class="form-control form-control-sm"
-                                                                            wire:model="subespecialidades_data.{{ $subespecialidad->id }}.nivel_experiencia">
-                                                                        <option value="Básico">Básico</option>
-                                                                        <option value="Intermedio">Intermedio</option>
-                                                                        <option value="Avanzado">Avanzado</option>
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <div class="form-group mb-2">
-                                                                    <label class="small">Tarifa (opcional)</label>
-                                                                    <input type="number" class="form-control form-control-sm"
-                                                                           wire:model="subespecialidades_data.{{ $subespecialidad->id }}.tarifa_consulta"
-                                                                           step="0.01" min="0">
-                                                                </div>
-                                                            </div>
+                                        @if($this->isSubespecialidadSelected($subespecialidad->id))
+                                            <div class="ms-4 mb-3 p-2 bg-light rounded">
+                                                <div class="row">
+                                                    <div class="col-md-4">
+                                                        <div class="form-group mb-2">
+                                                            <label class="small">Experiencia (años)</label>
+                                                            <input type="number" class="form-control form-control-sm"
+                                                                   wire:model="subespecialidades_data.{{ $subespecialidad->id }}.experiencia_anios"
+                                                                   min="0" max="50">
                                                         </div>
                                                     </div>
-                                                @endif
-                                            @empty
-                                                <p class="text-muted">No hay subespecialidades disponibles para esta especialidad.</p>
-                                            @endforelse
-                                        </div>
-                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-group mb-2">
+                                                            <label class="small">Nivel</label>
+                                                            <select class="form-control form-control-sm"
+                                                                    wire:model="subespecialidades_data.{{ $subespecialidad->id }}.nivel_experiencia">
+                                                                <option value="Básico">Básico</option>
+                                                                <option value="Intermedio">Intermedio</option>
+                                                                <option value="Avanzado">Avanzado</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-group mb-2">
+                                                            <label class="small">Tarifa (opcional)</label>
+                                                            <input type="number" class="form-control form-control-sm"
+                                                                   wire:model="subespecialidades_data.{{ $subespecialidad->id }}.tarifa_consulta"
+                                                                   step="0.01" min="0">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @empty
+                                        <p class="text-muted">No hay subespecialidades disponibles para esta especialidad.</p>
+                                    @endforelse
                                 </div>
                             </div>
+                        </div>
                         @endif
                     </div>
-
-                    <!-- Componente del modal para crear subespecialidades -->
                 </div>
-                <livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" :key="'subesp-modal-create-'.($especialidad_id ?: 'none')" />
+
+                <!-- Componente del modal para crear subespecialidades -->
+                @if($especialidad_id)
+                    <livewire:admin.medicos.subespecialidad-modal 
+                        :especialidad-id="$especialidad_id" 
+                        :key="'subespecialidad-modal-'.$especialidad_id" />
+                @endif
 
                 <!-- Horarios de Atención -->
                 <div class="card mb-4">
@@ -463,14 +468,4 @@
             </div>
         </div>
     </form>
-
-<livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" />
 </div>
-
-@push('scripts')
-<script>
-    Livewire.on('subespecialidad-creada', () => {
-        Livewire.dispatch('refreshSubespecialidades', {{ $especialidad_id ?? 'null' }});
-    });
-</script>
-@endpush

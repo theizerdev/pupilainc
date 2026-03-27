@@ -55,9 +55,16 @@ class Edit extends Component
     // Datos del país para el formato del teléfono
     public $pais;
 
-    protected $listeners = [
-        'subespecialidad-creada' => 'onSubespecialidadCreada',
-    ];
+    // Modal subespecialidad
+    public $showSubespecialidadModal = false;
+    public $sub_nombre;
+    public $sub_codigo;
+    public $sub_descripcion;
+    public $sub_costo_consulta = 0;
+    public $sub_duracion_consulta = 30;
+    public $sub_requiere_cita_previa = true;
+    public $sub_color = '#3B82F6';
+    public $sub_icono = 'fa-stethoscope';
 
     protected function rules()
     {
@@ -183,8 +190,19 @@ class Edit extends Component
 
      public function updatedEspecialidadId($value)
     {
-        $this->reset('subespecialidades_seleccionadas');
+        $this->subespecialidades_seleccionadas = [];
         $this->subespecialidades_data = [];
+
+        if ($value) {
+            $this->subespecialidades_cache = Subespecialidad::forUser()
+                ->where('especialidad_id', $value)
+                ->where('status', true)
+                ->orderBy('nombre')
+                ->get()
+                ->toArray();
+        } else {
+            $this->subespecialidades_cache = [];
+        }
     }
 
     public function updatedSubespecialidadesSeleccionadas($value)
@@ -208,22 +226,87 @@ class Edit extends Component
         }
     }
 
-    public function onSubespecialidadCreada($data)
-    {
-        // Agregar la nueva subespecialidad a la lista de seleccionadas
-        if (!in_array($data['id'], $this->subespecialidades_seleccionadas)) {
-            $this->subespecialidades_seleccionadas[] = $data['id'];
+    // Caché de subespecialidades para actualización después de crear una nueva
+    public $subespecialidades_cache = [];
 
-            // Inicializar datos para la nueva subespecialidad
-            $this->subespecialidades_data[$data['id']] = [
+    public function openSubespecialidadModal()
+    {
+        $this->sub_nombre = '';
+        $this->sub_codigo = '';
+        $this->sub_descripcion = '';
+        $this->sub_costo_consulta = 0;
+        $this->sub_duracion_consulta = 30;
+        $this->sub_requiere_cita_previa = true;
+        $this->sub_color = '#3B82F6';
+        $this->sub_icono = 'fa-stethoscope';
+        $this->resetValidation(['sub_nombre', 'sub_codigo', 'sub_descripcion', 'sub_costo_consulta', 'sub_duracion_consulta', 'sub_color', 'sub_icono']);
+        $this->showSubespecialidadModal = true;
+    }
+
+    public function closeSubespecialidadModal()
+    {
+        $this->showSubespecialidadModal = false;
+        $this->resetValidation(['sub_nombre', 'sub_codigo', 'sub_descripcion', 'sub_costo_consulta', 'sub_duracion_consulta', 'sub_color', 'sub_icono']);
+    }
+
+    public function storeSubespecialidad()
+    {
+        $validated = $this->validate([
+            'sub_nombre' => 'required|string|max:255',
+            'sub_codigo' => 'nullable|string|max:10|unique:subespecialidades,codigo',
+            'sub_descripcion' => 'nullable|string|max:1000',
+            'sub_color' => 'required|string|max:7',
+            'sub_icono' => 'required|string|max:100',
+            'sub_costo_consulta' => 'required|numeric|min:0',
+            'sub_duracion_consulta' => 'required|integer|min:15|max:240',
+            'sub_requiere_cita_previa' => 'boolean',
+        ]);
+
+        try {
+            $codigo = $validated['sub_codigo'] ?: \App\Models\Subespecialidad::generateCodigo();
+
+            $subespecialidad = \App\Models\Subespecialidad::create([
+                'nombre' => $validated['sub_nombre'],
+                'codigo' => $codigo,
+                'descripcion' => $validated['sub_descripcion'],
+                'color' => $validated['sub_color'],
+                'icono' => $validated['sub_icono'],
+                'costo_consulta' => $validated['sub_costo_consulta'],
+                'duracion_consulta' => $validated['sub_duracion_consulta'],
+                'requiere_cita_previa' => $validated['sub_requiere_cita_previa'],
+                'especialidad_id' => $this->especialidad_id,
+            ]);
+
+            // Agregar automáticamente a las seleccionadas
+            $this->subespecialidades_seleccionadas[] = $subespecialidad->id;
+            $this->subespecialidades_data[$subespecialidad->id] = [
                 'experiencia_anios' => 0,
                 'nivel_experiencia' => 'Básico',
                 'tarifa_consulta' => null,
             ];
-        }
 
-        // Forzar la actualización de la propiedad computada de subespecialidades
-        $this->dispatch('$refresh');
+            // Recargar caché
+            $this->subespecialidades_cache = Subespecialidad::forUser()
+                ->where('especialidad_id', $this->especialidad_id)
+                ->where('status', true)
+                ->orderBy('nombre')
+                ->get()
+                ->toArray();
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Subespecialidad '{$validated['sub_nombre']}' creada exitosamente.",
+                'duration' => 4000
+            ]);
+
+            $this->closeSubespecialidadModal();
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al crear la subespecialidad: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
     }
 
     public function save()
@@ -320,6 +403,13 @@ class Edit extends Component
 
     public function getSubespecialidadesProperty()
     {
+        // Si hay caché disponible, usarlo y convertir a objetos
+        if (!empty($this->subespecialidades_cache)) {
+            return collect(array_map(function($item) {
+                return (object)$item;
+            }, $this->subespecialidades_cache));
+        }
+
         if ($this->especialidad_id) {
             return Subespecialidad::forUser()
                 ->where('especialidad_id', $this->especialidad_id)

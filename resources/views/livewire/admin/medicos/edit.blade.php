@@ -238,7 +238,7 @@
                                 <div class="col-md-12">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <label class="fw-bold">Subespecialidades (Opcional)</label>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" wire:click="$dispatch('open-subespecialidad-modal', { especialidadId: {{ $especialidad_id }} })">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" wire:click="openSubespecialidadModal">
                                             <i class="fas fa-plus me-1"></i> Nueva Subespecialidad
                                         </button>
                                     </div>
@@ -453,6 +453,118 @@
         </div>
     </form>
 
-    <!-- Componente del modal para crear subespecialidades -->
-    <livewire:admin.medicos.subespecialidad-modal :especialidadId="$especialidad_id" />
+    @if($showSubespecialidadModal)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5); z-index: 1050;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle me-2"></i>Crear Nueva Subespecialidad
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="closeSubespecialidadModal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="subNombreEdit" class="fw-bold">Nombre *</label>
+                                <input type="text" class="form-control @error('sub_nombre') is-invalid @enderror"
+                                       id="subNombreEdit" wire:model="sub_nombre"
+                                       placeholder="Ej: Cirugía Refractiva, Retina...">
+                                @error('sub_nombre')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="subCodigoEdit" class="fw-bold">Código</label>
+                                <input type="text" class="form-control @error('sub_codigo') is-invalid @enderror"
+                                       id="subCodigoEdit" wire:model="sub_codigo"
+                                       placeholder="Auto-generado">
+                                @error('sub_codigo')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                                <small class="text-muted">Deje vacío para generar automáticamente</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="subCostoEdit" class="fw-bold">Costo de Consulta *</label>
+                                <input type="number" class="form-control @error('sub_costo_consulta') is-invalid @enderror"
+                                       id="subCostoEdit" wire:model="sub_costo_consulta"
+                                       step="0.01" min="0">
+                                @error('sub_costo_consulta')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="subDuracionEdit" class="fw-bold">Duración de Consulta (minutos) *</label>
+                                <input type="number" class="form-control @error('sub_duracion_consulta') is-invalid @enderror"
+                                       id="subDuracionEdit" wire:model="sub_duracion_consulta"
+                                       min="15" max="240">
+                                @error('sub_duracion_consulta')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="subColorEdit" class="fw-bold">Color de Identificación *</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color"
+                                           id="subColorEdit" wire:model="sub_color"
+                                           style="width: 60px; height: 38px;">
+                                    <input type="text" class="form-control" wire:model="sub_color" placeholder="#3B82F6" readonly>
+                                </div>
+                                @error('sub_color')
+                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="subIconoEdit" class="fw-bold">Icono Representativo *</label>
+                                <input type="text" class="form-control @error('sub_icono') is-invalid @enderror"
+                                       id="subIconoEdit" wire:model="sub_icono"
+                                       placeholder="fa-stethoscope">
+                                @error('sub_icono')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
+                                <small class="text-muted">Usa clases de Font Awesome</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="subDescripcionEdit" class="fw-bold">Descripción</label>
+                        <textarea class="form-control @error('sub_descripcion') is-invalid @enderror"
+                                  id="subDescripcionEdit" wire:model="sub_descripcion"
+                                  rows="3" placeholder="Descripción de la subespecialidad"></textarea>
+                        @error('sub_descripcion')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="subRequiereCitaEdit" wire:model="sub_requiere_cita_previa">
+                        <label class="form-check-label" for="subRequiereCitaEdit">Requiere cita previa</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" wire:click="closeSubespecialidadModal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" wire:click="storeSubespecialidad">
+                        <i class="fas fa-save me-1"></i>Crear Subespecialidad
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>
