@@ -1011,12 +1011,60 @@
 
         .calendar-scroll {
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             height: calc(100vh - 180px);
+            scrollbar-width: thin;
+            scrollbar-color: #b2b2b2 #f0f0f0;
+        }
+        .calendar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .calendar-scroll::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+        .calendar-scroll::-webkit-scrollbar-thumb {
+            background: #b2b2b2;
+            border-radius: 3px;
+        }
+        .calendar-scroll::-webkit-scrollbar-thumb:hover {
+            background: #888;
         }
         @media (max-width: 992px) {
             .calendar-scroll { height: calc(100vh - 220px); }
         }
         @media (max-width: 768px) {
             .calendar-scroll { height: calc(100vh - 240px); }
+        }
+
+        /* ===================== ENCABEZADO FIJO PARA VISTA SEMANA/DÍA ===================== */
+
+        /* El thead del scrollgrid contiene los encabezados de días */
+        .fc .fc-scrollgrid > thead,
+        .fc .fc-scrollgrid-section-header {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+        }
+
+        .fc .fc-scrollgrid-section-header > td,
+        .fc .fc-scrollgrid-section-header > th {
+            background: var(--bs-body-bg, #fff);
+        }
+
+        .fc .fc-col-header,
+        .fc .fc-col-header-cell {
+            background: var(--bs-body-bg, #fff);
+        }
+
+        /* Asegurar que la sección all-day también tenga fondo sólido */
+        .fc .fc-scrollgrid-section-header .fc-daygrid-body {
+            background: var(--bs-body-bg, #fff);
+        }
+
+        /* La tabla del scrollgrid no debe colapsar bordes para que sticky funcione */
+        .fc .fc-scrollgrid {
+            border-collapse: separate !important;
         }

@@ -441,17 +441,17 @@
 
 
 
-                            <div class="cascade-arrow"><i class="ri ri-arrow-down-s-line"></i></div>
+                            <div class="cascade-arrow" id="especialidadArrowTop"><i class="ri ri-arrow-down-s-line"></i></div>
 
                             <!-- 2. Especialidad -->
-                            <div class="form-floating form-floating-outline mb-5 form-control-validation">
+                            <div class="form-floating form-floating-outline mb-5 form-control-validation" id="especialidadContainer">
                                 <select class="select2 form-select" id="eventEspecialidad" name="eventEspecialidad" disabled>
                                     <option value="">Primero seleccione un paciente</option>
                                 </select>
                                 <label for="eventEspecialidad">Especialidad</label>
                             </div>
 
-                            <div class="cascade-arrow"><i class="ri ri-arrow-down-s-line"></i></div>
+                            <div class="cascade-arrow" id="especialidadArrowBottom"><i class="ri ri-arrow-down-s-line"></i></div>
 
                             <!-- 3. Subespecialidad (opcional) -->
                             <div class="form-floating form-floating-outline mb-5" id="subespecialidadContainer" style="display:none;">

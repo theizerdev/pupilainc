@@ -27,12 +27,33 @@ class Cita extends Model
     const ESTADO_CANCELADA = 'cancelada';
     const ESTADO_NO_ASISTIO = 'no_asistio';
 
+    // Estados de consulta (sincronizados con la consulta asociada)
+    const ESTADO_SALA_ESPERA = 'sala_espera';
+    const ESTADO_EN_ENFERMERIA = 'en_enfermeria';
+    const ESTADO_EN_CONSULTORIO = 'en_consultorio';
+    const ESTADO_EN_CONSULTORIO_OPTOMETRISTA = 'en_consultorio_optometrista';
+    const ESTADO_EN_GOTAS = 'en_gotas';
+    const ESTADO_EN_OPTICA = 'en_optica';
+    const ESTADO_EN_ESTUDIO = 'en_estudio';
+    const ESTADO_FINALIZADA = 'finalizada';
+    const ESTADO_PAGADA = 'pagada';
+
     const ESTADOS = [
         self::ESTADO_PENDIENTE,
         self::ESTADO_CONFIRMADA,
         self::ESTADO_COMPLETADA,
         self::ESTADO_CANCELADA,
         self::ESTADO_NO_ASISTIO,
+        // Estados de consulta
+        self::ESTADO_SALA_ESPERA,
+        self::ESTADO_EN_ENFERMERIA,
+        self::ESTADO_EN_CONSULTORIO,
+        self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA,
+        self::ESTADO_EN_GOTAS,
+        self::ESTADO_EN_OPTICA,
+        self::ESTADO_EN_ESTUDIO,
+        self::ESTADO_FINALIZADA,
+        self::ESTADO_PAGADA,
     ];
 
     const ESTADO_COLORES = [
@@ -41,6 +62,16 @@ class Cita extends Model
         'completada' => 'success',
         'cancelada' => 'danger',
         'no_asistio' => 'secondary',
+        // Consulta states
+        'sala_espera' => '#FFA726',
+        'en_enfermeria' => '#EF5350',
+        'en_consultorio' => '#42A5F5',
+        'en_consultorio_optometrista' => '#7E57C2',
+        'en_gotas' => '#26C6DA',
+        'en_optica' => '#AB47BC',
+        'en_estudio' => '#EC407A',
+        'finalizada' => '#66BB6A',
+        'pagada' => '#4CAF50',
     ];
 
     const ESTADO_LABELS = [
@@ -49,6 +80,16 @@ class Cita extends Model
         'completada' => 'Completada',
         'cancelada' => 'Cancelada',
         'no_asistio' => 'No Asistió',
+        // Consulta states
+        'sala_espera' => 'Sala de Espera',
+        'en_enfermeria' => 'En Enfermería',
+        'en_consultorio' => 'En Consultorio',
+        'en_consultorio_optometrista' => 'En Consultorio Optometrista',
+        'en_gotas' => 'En Gotas',
+        'en_optica' => 'En Óptica',
+        'en_estudio' => 'En Estudio',
+        'finalizada' => 'Finalizada',
+        'pagada' => 'Pagada',
     ];
     
     // Prioridades de citas
@@ -253,19 +294,33 @@ class Cita extends Model
             return;
         }
 
-        \Log::info('cambiarEstado: cambio detectado', ['cita_id' => $this->id, 'estadoAnterior' => $estadoAnterior, 'nuevoEstado' => $nuevoEstado, 'stack' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5)]);
+        \Log::info('cambiarEstado: cambio detectado', ['cita_id' => $this->id, 'estadoAnterior' => $estadoAnterior, 'nuevoEstado' => $nuevoEstado]);
+
+        $consultaEstados = [
+            self::ESTADO_SALA_ESPERA, self::ESTADO_EN_ENFERMERIA, self::ESTADO_EN_CONSULTORIO,
+            self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA, self::ESTADO_EN_GOTAS, self::ESTADO_EN_OPTICA,
+            self::ESTADO_EN_ESTUDIO, self::ESTADO_FINALIZADA, self::ESTADO_PAGADA,
+        ];
 
         $this->estado = $nuevoEstado;
         $this->save();
 
-        if ($nuevoEstado === self::ESTADO_CONFIRMADA) {
-            // Si la cita pasa a confirmada, crear consulta en sala de espera (forzar para prioridades altas/urgentes)
+        if (in_array($nuevoEstado, $consultaEstados)) {
+            // Ensure consulta exists then sync its estado
+            $this->crearConsultaSiNoExiste(true);
+            $consulta = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->first();
+            if ($consulta) {
+                $consulta->update([
+                    'estado' => $nuevoEstado,
+                    'estado_changed_at' => now(),
+                ]);
+            }
+        } elseif ($nuevoEstado === self::ESTADO_CONFIRMADA) {
             $this->crearConsultaSiNoExiste(true);
         } elseif ($nuevoEstado === self::ESTADO_PENDIENTE) {
-            // Cuando vuelva a pendiente no crear ni eliminar consultas automáticamente
-            // (mantener la consulta si existía por error, pero no crear nueva)
+            // Keep consulta if it exists
         } else {
-            // Cancelada/completada/no_asistio: eliminar consulta asociada
+            // cancelada/completada/no_asistio: delete associated consulta
             Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->delete();
         }
     } 

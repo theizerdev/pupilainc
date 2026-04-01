@@ -61,6 +61,9 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     const eventTipoConsulta = $('#eventTipoConsulta');
     const eventFecha = document.getElementById('eventFecha');
     const subespecialidadContainer = document.getElementById('subespecialidadContainer');
+    const especialidadContainer = document.getElementById('especialidadContainer');
+    const especialidadArrowTop = document.getElementById('especialidadArrowTop');
+    const especialidadArrowBottom = document.getElementById('especialidadArrowBottom');
     const slotsContainer = document.getElementById('slotsContainer');
     const slotsMessage = document.getElementById('slotsMessage');
     const slotsList = document.getElementById('slotsList');
@@ -744,8 +747,14 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
 
     // ===================== CASCADE LOGIC =====================
+    function showEspecialidadField(visible) {
+        if (especialidadContainer) especialidadContainer.style.display = visible ? '' : 'none';
+        if (especialidadArrowTop) especialidadArrowTop.style.display = visible ? '' : 'none';
+        if (especialidadArrowBottom) especialidadArrowBottom.style.display = visible ? '' : 'none';
+    }
+
     function resetCascadeFrom(level) {
-        if (level <= 2) { eventEspecialidad.val('').trigger('change.select2'); eventEspecialidad.prop('disabled',true); eventEspecialidad.empty().append('<option value="">Primero seleccione un paciente</option>'); selectedEspecialidadId = null; }
+        if (level <= 2) { showEspecialidadField(true); eventEspecialidad.val('').trigger('change.select2'); eventEspecialidad.prop('disabled',true); eventEspecialidad.empty().append('<option value="">Primero seleccione un paciente</option>'); selectedEspecialidadId = null; }
         if (level <= 3) { eventSubespecialidad.val('').trigger('change.select2'); if(subespecialidadContainer) subespecialidadContainer.style.display='none'; selectedSubespecialidadId = null; }
         if (level <= 4) { eventMedico.val('').trigger('change.select2'); eventMedico.prop('disabled',true); eventMedico.empty().append('<option value="">Primero seleccione una especialidad</option>'); }
         if (level <= 5) { if(slotsContainer) slotsContainer.style.display='none'; if(slotsList) slotsList.innerHTML=''; if(slotsMessage){slotsMessage.classList.add('d-none');slotsMessage.textContent='';} if(eventStartDate) eventStartDate.value=''; if(eventEndDate) eventEndDate.value=''; }
@@ -870,7 +879,15 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             comp.call('fetchEspecialidades').then(function(especialidades) {
                 eventEspecialidad.empty().append('<option value="">Seleccionar especialidad</option>');
                 especialidades.forEach(function(e){eventEspecialidad.append('<option value="'+e.id+'">'+e.nombre+'</option>');});
-                eventEspecialidad.prop('disabled',false); eventEspecialidad.trigger('change.select2');
+                eventEspecialidad.prop('disabled',false);
+                if (especialidades.length === 1) {
+                    // Auto-seleccionar y ocultar si solo hay una especialidad
+                    showEspecialidadField(false);
+                    eventEspecialidad.val(especialidades[0].id).trigger('change');
+                } else {
+                    showEspecialidadField(true);
+                    eventEspecialidad.trigger('change.select2');
+                }
             });
         });
     }
@@ -880,12 +897,25 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
             var espId = eventEspecialidad.val(); selectedEspecialidadId = espId||null; if(!espId){resetCascadeFrom(3);return;}
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(4);
             comp.call('fetchSubespecialidades', parseInt(espId)).then(function(subs) {
-                if(subs&&subs.length>0){eventSubespecialidad.empty().append('<option value="">Opcional - Seleccionar subespecialidad</option>');subs.forEach(function(s){eventSubespecialidad.append('<option value="'+s.id+'">'+s.nombre+'</option>');});if(subespecialidadContainer) subespecialidadContainer.style.display='';eventSubespecialidad.trigger('change.select2');}else{if(subespecialidadContainer) subespecialidadContainer.style.display='none';}
+                if(subs&&subs.length>0){
+                    eventSubespecialidad.empty().append('<option value="">Opcional - Seleccionar subespecialidad</option>');
+                    subs.forEach(function(s){eventSubespecialidad.append('<option value="'+s.id+'">'+s.nombre+'</option>');});
+                    if(subespecialidadContainer) subespecialidadContainer.style.display='';
+                    eventSubespecialidad.trigger('change.select2');
+                } else {
+                    if(subespecialidadContainer) subespecialidadContainer.style.display='none';
+                }
             });
             comp.call('fetchMedicos', parseInt(espId), null).then(function(medicos) {
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
                 medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
-                eventMedico.prop('disabled',false); eventMedico.trigger('change.select2');
+                eventMedico.prop('disabled',false);
+                if (medicos.length === 1) {
+                    // Auto-seleccionar si solo hay un médico
+                    eventMedico.val(medicos[0].id).trigger('change');
+                } else {
+                    eventMedico.trigger('change.select2');
+                }
             });
         });
     }
@@ -1214,18 +1244,23 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         var comp = getLivewireComponent();
         if (comp && eventPaciente.length) {
             eventPaciente.val(ep.paciente_id).trigger('change.select2');
+            // En edición: ocultar especialidad y subespecialidad siempre
+            showEspecialidadField(false);
+            if(subespecialidadContainer) subespecialidadContainer.style.display='none';
+
             comp.call('fetchEspecialidades').then(function(especialidades) {
                 eventEspecialidad.empty().append('<option value="">Seleccionar especialidad</option>');
                 especialidades.forEach(function(e){eventEspecialidad.append('<option value="'+e.id+'">'+e.nombre+'</option>');});
                 eventEspecialidad.prop('disabled',false);
-                if (ep.especialidad_id) {
-                    selectedEspecialidadId = String(ep.especialidad_id);
-                    eventEspecialidad.val(ep.especialidad_id).trigger('change.select2');
-                    comp.call('fetchSubespecialidades', parseInt(ep.especialidad_id)).then(function(subs) {
-                        if(subs&&subs.length>0){eventSubespecialidad.empty().append('<option value="">Opcional</option>');subs.forEach(function(s){eventSubespecialidad.append('<option value="'+s.id+'">'+s.nombre+'</option>');});if(subespecialidadContainer) subespecialidadContainer.style.display='';if(ep.subespecialidad_id){selectedSubespecialidadId=String(ep.subespecialidad_id);eventSubespecialidad.val(ep.subespecialidad_id).trigger('change.select2');}}
-                    });
+                var espIdToUse = ep.especialidad_id || (especialidades.length === 1 ? especialidades[0].id : null);
+                if (espIdToUse) {
+                    selectedEspecialidadId = String(espIdToUse);
+                    eventEspecialidad.val(espIdToUse).trigger('change.select2');
                     var subIdForMedicos = ep.subespecialidad_id ? parseInt(ep.subespecialidad_id) : null;
-                    comp.call('fetchMedicos', parseInt(ep.especialidad_id), subIdForMedicos).then(function(medicos) {
+                    if (ep.subespecialidad_id) {
+                        selectedSubespecialidadId = String(ep.subespecialidad_id);
+                    }
+                    comp.call('fetchMedicos', parseInt(espIdToUse), subIdForMedicos).then(function(medicos) {
                         eventMedico.empty().append('<option value="">Seleccionar médico</option>');
                         medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
                         eventMedico.prop('disabled',false);
@@ -1515,6 +1550,10 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     var calendarScrollContainer = document.getElementById('calendarScrollContainer');
     var calendarPs = null;
 
+    // ===================== DAYS SELECTOR STATE =====================
+    var customDaysCount = parseInt(localStorage.getItem('cal_days_count') || '7', 10);
+    if (customDaysCount < 2 || customDaysCount > 7) customDaysCount = 7;
+
     // ===================== FULLCALENDAR =====================
     var calendar = new Calendar(calendarEl, {
         initialView: 'timeGridDay',
@@ -1529,6 +1568,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         scrollTime: '07:00:00',
 
         contentHeight: 'auto',
+        stickyHeaderDates: true,
         expandRows: true,
         slotDuration: '00:30:00',
         eventMinHeight: 30,
@@ -1538,13 +1578,26 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
         dayMaxEvents: 5,
         editable: true,
         eventResizableFromStart: true,
+        views: {
+            timeGridCustom: {
+                type: 'timeGrid',
+                visibleRange: function(currentDate) {
+                    var start = new Date(currentDate.valueOf());
+                    var end = new Date(currentDate.valueOf());
+                    end.setDate(end.getDate() + (customDaysCount - 1));
+                    return { start: start, end: end };
+                },
+                dateIncrement: { days: 1 },
+                buttonText: 'Semana'
+            }
+        },
         customButtons: { sidebarToggle: { text: 'Menú' } },
-        headerToolbar: { start: 'sidebarToggle, prev,next, title', end: 'timeGridDay,timeGridWeek,dayGridMonth,listMonth' },
-        buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', list: 'Lista' },
+        headerToolbar: { start: 'sidebarToggle, prev,next, title', end: 'timeGridDay,timeGridCustom,dayGridMonth,listMonth' },
+        buttonText: { today: 'Hoy', month: 'Mes', day: 'Día', list: 'Lista' },
         direction: document.documentElement.getAttribute('dir')==='rtl'?'rtl':'ltr',
         initialDate: new Date(),
         navLinks: true,
-        datesSet: function () {
+        datesSet: function (info) {
             // Mover el header nativo fuera del "calendarScrollContainer"
             // De esa manera mantiene la 'lógica del proyecto' pero se escapa de PerfectScrollbar
             var header = document.querySelector('#calendar > .fc-header-toolbar');
@@ -1559,6 +1612,46 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                     scrollContainer.parentNode.insertBefore(wrapper, scrollContainer);
                 }
                 wrapper.appendChild(header);
+            }
+
+            // Inyectar selector de días junto al botón "Semana"
+            var isCustomView = info.view.type === 'timeGridCustom';
+            var existing = document.getElementById('daysSelectorWrapper');
+            if (isCustomView) {
+                if (!existing) {
+                    var customBtn = document.querySelector('.fc-timeGridCustom-button');
+                    if (customBtn) {
+                        var wrap = document.createElement('span');
+                        wrap.id = 'daysSelectorWrapper';
+                        wrap.style.display = 'inline-flex';
+                        wrap.style.alignItems = 'center';
+                        wrap.style.marginLeft = '6px';
+                        wrap.innerHTML =
+                            '<select id="daysSelectorSelect" class="form-select form-select-sm" style="width:auto;min-width:90px;padding:4px 28px 4px 10px;font-size:0.85rem;height:32px;border-radius:6px;cursor:pointer;" title="Días a mostrar">' +
+                                '<option value="2"' + (customDaysCount===2?' selected':'') + '>2 días</option>' +
+                                '<option value="3"' + (customDaysCount===3?' selected':'') + '>3 días</option>' +
+                                '<option value="4"' + (customDaysCount===4?' selected':'') + '>4 días</option>' +
+                                '<option value="5"' + (customDaysCount===5?' selected':'') + '>5 días</option>' +
+                                '<option value="6"' + (customDaysCount===6?' selected':'') + '>6 días</option>' +
+                                '<option value="7"' + (customDaysCount===7?' selected':'') + '>7 días</option>' +
+                            '</select>';
+                        customBtn.parentNode.insertBefore(wrap, customBtn.nextSibling);
+
+                        document.getElementById('daysSelectorSelect').addEventListener('change', function() {
+                            var days = parseInt(this.value, 10);
+                            customDaysCount = days;
+                            localStorage.setItem('cal_days_count', days);
+                            var currentDate = calendar.getDate();
+                            calendar.changeView('timeGridDay', currentDate);
+                            setTimeout(function() {
+                                calendar.changeView('timeGridCustom', currentDate);
+                            }, 0);
+                        });
+                    }
+                }
+                if (existing) existing.style.display = 'inline-flex';
+            } else {
+                if (existing) existing.style.display = 'none';
             }
         },
         eventContent: function(arg) {
@@ -1625,7 +1718,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
 
             // Controles de duracion para vistas de tiempo
             var durationControls = '';
-            if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
+            if (view.type === 'timeGridWeek' || view.type === 'timeGridCustom' || view.type === 'timeGridDay') {
                 var eventId = arg.event.id || '';
                 durationControls = '<div class="fc-event-duration-controls" data-event-id="' + eventId + '">' +
                     '<button hidden type="button" class="fc-event-duration-btn" data-minutes="-15" title="Disminuir 15 min">−</button>' +
@@ -1712,7 +1805,7 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
                         '</div>' +
                     '</div>';
                 }
-            } else if (view.type === 'timeGridWeek') {
+            } else if (view.type === 'timeGridWeek' || view.type === 'timeGridCustom') {
                 // Estilo Google Calendar: diseño horizontal con hora y título
                 var weekTimeStart = arg.event.start ? moment(arg.event.start).format('HH:mm') : '';
                 var weekTimeEnd = arg.event.end ? moment(arg.event.end).format('HH:mm') : '';
@@ -1854,11 +1947,8 @@ function initCalendarioGeneral(events, citaColores, consultaColores, citaLabels,
     }
     function initCalendarPs() {
         if (!calendarScrollContainer) return;
-        if (typeof PerfectScrollbar !== 'undefined') {
-            if (!calendarPs) calendarPs = new PerfectScrollbar(calendarScrollContainer, { wheelSpeed: 1, wheelPropagation: false, suppressScrollX: true, swipeEasing: true, minScrollbarLength: 40 });
-        } else {
-            calendarScrollContainer.style.overflowY = 'auto';
-        }
+        // Use native scroll so position:sticky works for day column headers
+        calendarScrollContainer.style.overflowY = 'auto';
         resizeCalendarScroll();
     }
     window.addEventListener('resize', resizeCalendarScroll);
