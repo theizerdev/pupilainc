@@ -1524,7 +1524,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         slotEventOverlap: true,
         slotMinTime: '06:00:00',
         slotMaxTime: '22:00:00',
-        scrollTime: '07:00:00',
+        scrollTime: (function() {
+            var now = new Date();
+            var h = Math.max(now.getHours() - 1, 6); // 1 hora antes de la actual, mínimo 06:00
+            return (h < 10 ? '0' : '') + h + ':00:00';
+        })(),
 
         contentHeight: 'auto',
         stickyHeaderDates: true,
@@ -1620,6 +1624,21 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 if (existing) existing.style.display = 'inline-flex';
             } else {
                 if (existing) existing.style.display = 'none';
+            }
+
+            // Auto-scroll a la hora actual cuando se entra a una vista timeGrid
+            if (info.view.type.indexOf('timeGrid') !== -1) {
+                setTimeout(function() {
+                    var sc = document.getElementById('calendarScrollContainer');
+                    if (!sc) return;
+                    var nowLine = sc.querySelector('.fc-timegrid-now-indicator-line');
+                    if (nowLine) {
+                        var cRect = sc.getBoundingClientRect();
+                        var nRect = nowLine.getBoundingClientRect();
+                        var off = nRect.top - cRect.top + sc.scrollTop;
+                        sc.scrollTop = Math.max(0, off - cRect.height * 0.3);
+                    }
+                }, 350);
             }
         },
         eventContent: function(arg) {
@@ -1871,6 +1890,22 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     calendar.render();
     modifyToggler();
     createToggleButton();
+
+    // Auto-scroll a la hora actual en vistas de timeGrid
+    setTimeout(function() {
+        var view = calendar.view;
+        if (view && view.type.indexOf('timeGrid') !== -1 && calendarScrollContainer) {
+            var nowIndicator = calendarScrollContainer.querySelector('.fc-timegrid-now-indicator-line');
+            if (nowIndicator) {
+                var containerRect = calendarScrollContainer.getBoundingClientRect();
+                var indicatorRect = nowIndicator.getBoundingClientRect();
+                var offset = indicatorRect.top - containerRect.top + calendarScrollContainer.scrollTop;
+                // Posicionar el indicador ~30% desde el tope para mostrar contexto previo
+                var targetScroll = Math.max(0, offset - containerRect.height * 0.3);
+                calendarScrollContainer.scrollTop = targetScroll;
+            }
+        }
+    }, 300);
     }
 
     // Initialize the calendar for the first time
