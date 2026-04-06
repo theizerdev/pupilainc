@@ -396,7 +396,18 @@ class Calendario extends Component
 
         }
 
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errores = collect($e->validator->errors()->all())->implode(' | ');
+            $this->dispatch('show-alert', [
+                'type' => 'error',
+                'title' => 'Error de validación',
+                'message' => $errores,
+                'icon' => 'error'
+            ]);
+            return;
+        }
 
         $inicio = Carbon::parse($this->fecha_inicio);
         $fin = Carbon::parse($this->fecha_fin);
@@ -463,6 +474,7 @@ class Calendario extends Component
                 'message' => 'Cita actualizada exitosamente.',
                 'icon' => 'success'
             ]);
+        } else {
             $data['created_by'] = auth()->id();
 
             if ($esPrioridadAltaOEmergencia) {

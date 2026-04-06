@@ -1170,6 +1170,15 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         if(btnCancelCita) btnCancelCita.classList.add('d-none');
         if(btnReagendar) btnReagendar.classList.add('d-none');
         if(btnReagendarAuto) btnReagendarAuto.classList.add('d-none');
+        // Restaurar campos ocultos en modo edición
+        var estadoContainer = document.getElementById('estadoContainer');
+        if(estadoContainer) estadoContainer.style.display = '';
+        var nuevoPacienteContainer = document.getElementById('nuevoPacienteContainer');
+        if(nuevoPacienteContainer) nuevoPacienteContainer.style.display = '';
+        var editInfoBanner = document.getElementById('editInfoBanner');
+        if(editInfoBanner) editInfoBanner.style.display = 'none';
+        // Re-habilitar paciente
+        if(eventPaciente && eventPaciente.length) eventPaciente.prop('disabled', false);
         // Cambiar título a "Nueva Cita"
         if(offcanvasTitle) offcanvasTitle.innerHTML = 'Nueva Cita';
     }
@@ -1196,6 +1205,15 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         if(btnCancelCita) btnCancelCita.classList.remove('d-none');
         if(btnReagendar) btnReagendar.classList.remove('d-none');
         if(btnReagendarAuto) btnReagendarAuto.classList.remove('d-none');
+        // Modo edición: ocultar estado (se cambia desde el modal), ocultar botón nuevo paciente, deshabilitar paciente
+        var estadoContainer = document.getElementById('estadoContainer');
+        if(estadoContainer) estadoContainer.style.display = 'none';
+        var nuevoPacienteContainer = document.getElementById('nuevoPacienteContainer');
+        if(nuevoPacienteContainer) nuevoPacienteContainer.style.display = 'none';
+        var editInfoBanner = document.getElementById('editInfoBanner');
+        if(editInfoBanner) editInfoBanner.style.display = '';
+        // Deshabilitar cambio de paciente en edición
+        if(eventPaciente.length) eventPaciente.prop('disabled', true);
 
         var ep = eventToUpdate.extendedProps;
         if(eventMotivo) eventMotivo.value = ep.motivo || ep.descripcion || '';
@@ -1840,6 +1858,14 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             if(btnCancelCita) btnCancelCita.classList.add('d-none');
             if(btnReagendar) btnReagendar.classList.add('d-none');
             if(btnReagendarAuto) btnReagendarAuto.classList.add('d-none');
+            // Modo creación: mostrar estado y botón nuevo paciente
+            var estadoContainer = document.getElementById('estadoContainer');
+            if(estadoContainer) estadoContainer.style.display = '';
+            var nuevoPacienteContainer = document.getElementById('nuevoPacienteContainer');
+            if(nuevoPacienteContainer) nuevoPacienteContainer.style.display = '';
+            var editInfoBanner = document.getElementById('editInfoBanner');
+            if(editInfoBanner) editInfoBanner.style.display = 'none';
+            if(eventPaciente && eventPaciente.length) eventPaciente.prop('disabled', false);
             if(fechaFlatpickr) fechaFlatpickr.setDate(dateOnly, false);
         },
         eventClick: function(info) {
@@ -2475,7 +2501,39 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             if (btnSubmit.classList.contains('btn-update-event') && currentCitaId) {
                 comp.set('citaId', currentCitaId);
             }
-            comp.call('saveCita', eventData);
+            comp.call('saveCita', eventData).catch(function(error) {
+                // Manejar errores de validación de Livewire u otros errores
+                btnSubmit.disabled = false;
+                var isUpdate = btnSubmit.classList.contains('btn-update-event');
+                btnSubmit.innerHTML = isUpdate ? '<i class="ri ri-save-line me-1"></i> Actualizar' : '<i class="ri ri-add-line me-1"></i> Agregar';
+
+                if (error && error.body && error.body.message) {
+                    // Error de validación de Livewire
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error de validación',
+                            html: error.body.message,
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    } else {
+                        alert('Error de validación: ' + error.body.message);
+                    }
+                } else {
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Ocurrió un error al guardar la cita. Por favor, intente de nuevo.',
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#dc3545'
+                        });
+                    } else {
+                        alert('Ocurrió un error al guardar la cita.');
+                    }
+                }
+            });
         });
     }
 
@@ -2508,7 +2566,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
     // ===================== LIVEWIRE LISTENERS =====================
     if(typeof Livewire!=='undefined'){Livewire.on('calendario-updated',function(){prefetchCache={};calendar.refetchEvents();});}
-    if(typeof Livewire!=='undefined'){Livewire.on('cita-saved',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}prefetchCache={};calendar.refetchEvents();if(bsAddEventSidebar){try{bsAddEventSidebar.hide();}catch(e){}}});}
+    if(typeof Livewire!=='undefined'){Livewire.on('cita-saved',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}prefetchCache={};calendar.refetchEvents();setTimeout(function(){if(bsAddEventSidebar){try{bsAddEventSidebar.hide();}catch(e){}}},600);});}
     if(typeof Livewire!=='undefined'){Livewire.on('show-toast',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}});}
     if(typeof Livewire!=='undefined'){Livewire.on('show-alert',function(){if(btnSubmit){btnSubmit.disabled=false;var isUpdate=btnSubmit.classList.contains('btn-update-event');btnSubmit.innerHTML=isUpdate?'<i class="ri ri-save-line me-1"></i> Actualizar':'<i class="ri ri-add-line me-1"></i> Agregar';}});}
 

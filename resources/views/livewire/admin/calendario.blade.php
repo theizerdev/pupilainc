@@ -353,10 +353,17 @@
                     <div class="offcanvas-body">
                         <form class="event-form pt-0" id="eventForm" onsubmit="return false">
                             <!-- 1. Paciente -->
-                            <div class="mb-3">
+                            <div class="mb-3" id="nuevoPacienteContainer">
                                 <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnModalPacienteRapido" data-bs-toggle="modal" data-bs-target="#modalPacienteRapido">
                                     <i class="ri ri-user-add-line me-1"></i> Nuevo Paciente
                                 </button>
+                            </div>
+                            <!-- Info banner visible solo en edición -->
+                            <div id="editInfoBanner" class="alert alert-light-primary alert-dismissible mb-3 py-2 px-3" style="display:none;" role="alert">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="ri ri-information-line"></i>
+                                    <small>Para cambiar el <strong>estado</strong>, haga clic en el badge de estado en el calendario.</small>
+                                </div>
                             </div>
                             <div class="form-floating form-floating-outline mb-5 form-control-validation">
                                 <select class="select2 form-select" id="eventPaciente" name="eventPaciente">
@@ -476,7 +483,7 @@
                             </div>
 
                             <!-- Estado -->
-                            <div class="form-floating form-floating-outline mb-5">
+                            <div class="form-floating form-floating-outline mb-5" id="estadoContainer">
                                 <select class="select2 form-select" id="eventEstado" name="eventEstado">
                                     @foreach($estadoLabels as $value => $label)
                                         <option value="{{ $value }}" data-color="{{ $estadoColores[$value] }}" {{ $value === 'programada' ? 'selected' : '' }}>
@@ -627,6 +634,41 @@
         </div>
 
         <!-- Modal: Ver más eventos del día -->
+
+        <!-- Modal: Cambiar Estado de Cita -->
+        <div class="modal fade" id="modalCambiarEstado" tabindex="-1" aria-labelledby="modalCambiarEstadoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalCambiarEstadoLabel">Cambiar Estado</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="estadoCitaId" />
+                        <input type="hidden" id="estadoCitaActual" />
+                        <div class="mb-3">
+                            <label for="estadoSelect" class="form-label">Nuevo estado</label>
+                            <select id="estadoSelect" class="form-select">
+                                <option value="">Seleccione un estado...</option>
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label for="estadoNota" class="form-label">Nota (opcional)</label>
+                            <textarea id="estadoNota" class="form-control" rows="2" placeholder="Agregar una nota al cambio de estado..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnGuardarEstado">
+                            <span class="indicator-label">Guardar</span>
+                            <span class="indicator-progress d-none">
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
