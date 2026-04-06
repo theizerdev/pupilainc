@@ -46,9 +46,9 @@ class Preconsulta extends Component
     public function mount(Paciente $paciente)
     {
         $this->paciente = $paciente;
-        $this->totalCitas = $paciente->citas()->where('estado', Cita::ESTADO_COMPLETADA)->count();
+        $this->totalCitas = $paciente->citas()->where('estado', Cita::ESTADO_FINALIZADA)->count();
         $this->ultimaVisita = $paciente->citas()
-            ->where('estado', Cita::ESTADO_COMPLETADA)
+            ->where('estado', Cita::ESTADO_FINALIZADA)
             ->latest('fecha_inicio')
             ->first();
 

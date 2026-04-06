@@ -37,8 +37,8 @@
                             </span>
                         </div>
                         <div>
-                            <h4 class="mb-0">{{ $stats['pendientes'] }}</h4>
-                            <small class="text-muted">Pendientes</small>
+                            <h4 class="mb-0">{{ $stats['programadas'] }}</h4>
+                            <small class="text-muted">Programadas</small>
                         </div>
                     </div>
                 </div>
@@ -72,8 +72,8 @@
                             </span>
                         </div>
                         <div>
-                            <h4 class="mb-0">{{ $stats['completadas'] }}</h4>
-                            <small class="text-muted">Completadas</small>
+                            <h4 class="mb-0">{{ $stats['finalizadas'] }}</h4>
+                            <small class="text-muted">Finalizadas</small>
                         </div>
                     </div>
                 </div>
@@ -299,10 +299,10 @@
                                                 @foreach($selectedPaciente->citas as $citaHistorial)
                                                     @php
                                                         $badgeColors = [
-                                                            'pendiente' => 'warning',
+                                                            'programada' => 'warning',
                                                             'confirmada' => 'primary',
                                                             'en_curso' => 'info',
-                                                            'completada' => 'success',
+                                                            'finalizada' => 'success',
                                                             'cancelada' => 'danger',
                                                             'no_asistio' => 'secondary',
                                                         ];
@@ -506,10 +506,10 @@
                                     <td>
                                         @php
                                             $badgeColors = [
-                                                'pendiente' => 'warning',
+                                                'programada' => 'warning',
                                                 'confirmada' => 'primary',
                                                 'en_curso' => 'info',
-                                                'completada' => 'success',
+                                                'finalizada' => 'success',
                                                 'cancelada' => 'danger',
                                                 'no_asistio' => 'secondary',
                                             ];
@@ -521,7 +521,7 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="d-inline-flex gap-1">
-                                            @if($cita->estado === 'pendiente' || $cita->estado === 'confirmada')
+                                            @if($cita->estado === 'programada' || $cita->estado === 'confirmada')
                                                 <button class="btn btn-icon btn-sm btn-label-info"
                                                         wire:click="marcarLlegada({{ $cita->id }})" title="Marcar llegada"
                                                         wire:confirm="¿Marcar llegada del paciente?">
@@ -531,18 +531,18 @@
                                             @if($cita->estado === 'en_curso')
                                                 <button class="btn btn-icon btn-sm btn-label-success"
                                                         wire:click="completarAtencion({{ $cita->id }})" title="Completar"
-                                                        wire:confirm="¿Marcar como atención completada?">
+                                                        wire:confirm="¿Marcar como atención finalizada?">
                                                     <i class="ri ri-check-line ri-16px"></i>
                                                 </button>
                                             @endif
-                                            @if(!in_array($cita->estado, ['completada', 'cancelada', 'no_asistio']))
+                                            @if(!in_array($cita->estado, ['finalizada', 'cancelada', 'no_asistio']))
                                                 <button class="btn btn-icon btn-sm btn-label-danger"
                                                         wire:click="cancelarCita({{ $cita->id }})" title="Cancelar"
                                                         wire:confirm="¿Está seguro de cancelar esta cita?">
                                                     <i class="ri ri-close-circle-line ri-16px"></i>
                                                 </button>
                                             @endif
-                                            @if(!in_array($cita->estado, ['completada', 'cancelada', 'no_asistio']))
+                                            @if(!in_array($cita->estado, ['finalizada', 'cancelada', 'no_asistio']))
                                                 <button class="btn btn-icon btn-sm btn-label-primary"
                                                         wire:click="enviarRecordatorio({{ $cita->id }})" title="Recordatorio WhatsApp">
                                                     <i class="ri ri-whatsapp-line ri-16px"></i>
@@ -643,9 +643,9 @@
     document.addEventListener('livewire:init', function () {
         var citasBarsOptions = {
             chart: { type: 'bar', height: 240, toolbar: { show: false } },
-            series: [{ name: 'Citas', data: [{{ $stats['pendientes'] }}, {{ $stats['confirmadas'] }}, {{ $stats['completadas'] }}, {{ $stats['canceladas'] }}, {{ $stats['no_asistio'] }}] }],
+            series: [{ name: 'Citas', data: [{{ $stats['programadas'] }}, {{ $stats['confirmadas'] }}, {{ $stats['finalizadas'] }}, {{ $stats['canceladas'] }}, {{ $stats['no_asistio'] }}] }],
             colors: ['#ffc107', '#7367f0', '#28c76f', '#ff4c51', '#a8aaae'],
-            xaxis: { categories: ['Pendientes', 'Confirmadas', 'Completadas', 'Canceladas', 'No asistió'] },
+            xaxis: { categories: ['Programadas', 'Confirmadas', 'Finalizadas', 'Canceladas', 'No asistió'] },
             plotOptions: { bar: { columnWidth: '45%', borderRadius: 6, distributed: true } },
             dataLabels: { enabled: true },
             legend: { show: false },

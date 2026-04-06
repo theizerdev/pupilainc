@@ -47,6 +47,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Función para crear y mostrar un toast
 window.showToast = function(type, message, duration = 5000) {
+  if (!type || typeof type !== 'string') {
+    console.warn('showToast called with invalid type:', type);
+    return;
+  }
+
   // Esperar a que el DOM esté listo y Bootstrap disponible
   function initToast() {
     const toastContainer = document.getElementById('global-toast-container');

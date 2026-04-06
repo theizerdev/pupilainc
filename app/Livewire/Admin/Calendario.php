@@ -27,7 +27,6 @@ class Calendario extends Component
     use HasDynamicLayout;
 
     public $mostrarCitas = true;
-    public $mostrarConsultas = true;
     public $filtroMedico = '';
 
     // Cita form properties
@@ -40,7 +39,7 @@ class Calendario extends Component
     public $fecha_fin = '';
     public $motivo = '';
     public $notas = '';
-    public $estado = 'pendiente';
+    public $estado = 'programada';
     public $tipo_consulta_id = '';
 
     public $filtroEstados = [];
@@ -118,10 +117,6 @@ class Calendario extends Component
             $eventos = array_merge($eventos, $this->fetchCitas());
         }
 
-        if ($this->mostrarConsultas) {
-            $eventos = array_merge($eventos, $this->fetchConsultas());
-        }
-
         return $eventos;
     }
 
@@ -138,89 +133,6 @@ class Calendario extends Component
             $event['id'] = 'cita_' . $cita->id;
             return $event;
         })->toArray();
-    }
-
-    protected function fetchConsultas()
-    {
-        $query = Consulta::with(['paciente', 'medico', 'especialidad']);
-
-        if (auth()->user()->hasRole('Doctor')) {
-            $medico = Medico::where('user_id', auth()->id())->first();
-            if ($medico) {
-                $query->where('medico_id', $medico->id);
-            }
-        }
-
-        $consultas = $query
-            ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
-            ->get();
-
-        return $consultas->map(function ($consulta) {
-            return $this->mapConsultaToEvent($consulta);
-        })->toArray();
-    }
-
-    protected function mapConsultaToEvent($consulta)
-    {
-        $nickname = $consulta->paciente->nickname ?? '';
-        $nombreCompleto = $consulta->paciente->nombre_completo;
-        $edad = $consulta->paciente->edad;
-        $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
-
-        $title = $nombreCompleto;
-        if (!empty($nickname)) {
-            $title = "({$nickname}) {$title}";
-        }
-
-        if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera !== null) {
-            $title .= ' [' . $consulta->tiempo_espera_formateado . ']';
-        }
-
-        // Determine the end time based on the associated appointment duration if available
-        $startTime = $consulta->fecha_consulta;
-        $endTime = $startTime->copy()->addMinutes(30); // Default to 30 minutes
-        
-        // If the consultation is linked to an appointment, use the appointment's duration
-        if ($consulta->cita) {
-            $appointmentDuration = $consulta->cita->fecha_inicio->diffInMinutes($consulta->cita->fecha_fin);
-            $endTime = $startTime->copy()->addMinutes($appointmentDuration);
-        }
-
-        // Get the state label of the associated appointment if it exists
-        $citaEstadoLabel = null;
-        if ($consulta->cita) {
-            $citaEstadoLabel = Cita::ESTADO_LABELS[$consulta->cita->estado] ?? ucfirst($consulta->cita->estado);
-        }
-
-        return [
-            'id' => 'consulta_' . $consulta->id,
-            'title' => $title,
-            'start' => $startTime->format('Y-m-d\TH:i:s'),
-            'end' => $endTime->format('Y-m-d\TH:i:s'),
-            'backgroundColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
-            'borderColor' => Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C',
-            'extendedProps' => [
-                'tipo_evento' => 'consulta',
-                'calendar' => $consulta->estado,
-                'codigo' => $consulta->codigo,
-                'paciente' => $nombreCompleto,
-                'nickname' => $nickname,
-                'edad' => $edadTexto,
-                'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
-                'medico_full' => $consulta->medico->nombre_completo ?? 'Sin médico',
-                'medico_id' => $consulta->medico_id,
-                'especialidad' => $consulta->especialidad->nombre ?? 'Sin especialidad',
-                'estado' => $consulta->estado,
-                'estado_label' => Consulta::ESTADO_LABELS[$consulta->estado] ?? ucfirst($consulta->estado),
-                'motivo' => $consulta->motivo_consulta,
-                'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
-                'estado_changed_at' => $consulta->estado_changed_at ? $consulta->estado_changed_at->format('Y-m-d H:i:s') : null,
-                'cita_id' => $consulta->cita_id, // Add reference to the associated appointment
-                'cita_prioridad' => $consulta->cita ? $consulta->cita->prioridad : null, // Include priority from associated appointment
-                'cita_prioridad_label' => $consulta->cita ? (Cita::PRIORIDAD_LABELS[$consulta->cita->prioridad ?? 'normal'] ?? 'Normal') : null, // Include priority label
-                'cita_estado_label' => $citaEstadoLabel, // Include state label from associated appointment
-            ],
-        ];
     }
 
     public function fetchEventosRango($inicio, $fin)
@@ -249,22 +161,6 @@ class Calendario extends Component
             })->toArray();
         }
 
-        if ($this->mostrarConsultas) {
-            $query = Consulta::with(['paciente', 'medico', 'especialidad'])
-                ->whereBetween('fecha_consulta', [$inicioCarbon, $finCarbon])
-                ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico));
-
-            if (auth()->user()->hasRole('Doctor')) {
-                $medico = Medico::where('user_id', auth()->id())->first();
-                if ($medico) {
-                    $query->where('medico_id', $medico->id);
-                }
-            }
-
-            $consultasEvents = $query->get()->map(fn($c) => $this->mapConsultaToEvent($c))->toArray();
-            $eventos = array_merge($eventos, $consultasEvents);
-        }
-
         return $eventos;
     }
 
@@ -274,21 +170,13 @@ class Calendario extends Component
         $this->dispatch('calendario-updated');
     }
 
-    public function toggleConsultas()
-    {
-        $this->mostrarConsultas = !$this->mostrarConsultas;
-        $this->dispatch('calendario-updated');
-    }
-
     public function getStatsProperty()
     {
         $hoy = Carbon::today();
 
         return [
             'citas_hoy' => Cita::whereDate('fecha_inicio', $hoy)->count(),
-            'consultas_hoy' => Consulta::whereDate('fecha_consulta', $hoy)->count(),
             'citas_pendientes' => Cita::porEstado(Cita::ESTADO_PENDIENTE)->count(),
-            'consultas_en_espera' => Consulta::porEstado(Consulta::ESTADO_SALA_ESPERA)->count(),
         ];
     }
 
@@ -464,7 +352,7 @@ class Calendario extends Component
 
     public function saveCita($eventData)
     {
-        
+
         // Rate limiting para guardar citas
         $rateLimitKey = 'calendario_save_cita_' . auth()->id();
         if (RateLimiter::tooManyAttempts($rateLimitKey, 10)) {
@@ -505,7 +393,7 @@ class Calendario extends Component
             $this->notas = $eventData['notas'] ?? $this->notas;
             $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
             $this->estado = $eventData['estado'] ?? $this->estado;
-            
+
         }
 
         $this->validate();
@@ -526,19 +414,7 @@ class Calendario extends Component
             return;
         }
 
-        // Validación de conflicto - solo para prioridad normal
-        if (!$esPrioridadAltaOEmergencia) {
-            $conflictos = Cita::sinConflicto($this->medico_id, $inicio, $fin, $this->citaId)->count();
-            if ($conflictos > 0) {
-                $this->dispatch('show-alert', [
-                    'type' => 'error',
-                    'title' => 'Conflicto de horario',
-                    'message' => 'El médico ya tiene una cita programada en ese horario.',
-                    'icon' => 'error'
-                ]);
-                return;
-            }
-        }
+
 
         // Validación de horario laboral - solo para prioridad normal
         if (!$esPrioridadAltaOEmergencia && !$this->validarHorarioMedico($this->medico_id, $inicio, $fin)) {
@@ -568,22 +444,16 @@ class Calendario extends Component
             $cita = Cita::findOrFail($this->citaId);
             $estadoAnterior = $cita->estado;
             $fechaAnterior = $cita->fecha_inicio->toDateTimeString();
-            
-            // Log de auditoría para actualización
             $oldData = $cita->toArray();
             $cita->update($data);
             $this->logCitaAction('update', $cita, $oldData);
 
             if ($estadoAnterior !== $this->estado) {
                 $this->notificarCambioEstado($cita, $estadoAnterior);
+                $cita->cambiarEstado($this->estado);
             }
 
-             if ($estadoAnterior !== $this->estado) {
-                $cita->cambiarEstado($this->estado);
-             }
-
             if ($fechaAnterior !== $cita->fecha_inicio->toDateTimeString()) {
-                // Reprogramar recordatorios si cambió la fecha
                 $cita->programarRecordatorios();
             }
 
@@ -593,20 +463,19 @@ class Calendario extends Component
                 'message' => 'Cita actualizada exitosamente.',
                 'icon' => 'success'
             ]);
-        } else {
             $data['created_by'] = auth()->id();
-            
+
             if ($esPrioridadAltaOEmergencia) {
                 $prioridadService = new CitaPrioridadService(true);
                 $data['prioridad'] = $prioridad;
-                
+
                 if (isset($this->fecha_inicio) && isset($this->fecha_fin)) {
                     $data['fecha_inicio'] = $inicio;
                     $data['fecha_fin'] = $fin;
                 }
-                
+
                 $resultado = $prioridadService->crearCitaConPrioridad($data);
-                
+
                 if ($resultado['success']) {
                     $cita = $resultado['cita'];
                     $mensaje = "Cita de prioridad {$prioridad} creada exitosamente.";
@@ -619,7 +488,7 @@ class Calendario extends Component
                     if ($resultado['solapamiento']) {
                         $mensaje .= " (Se registró solapamiento con cita existente)";
                     }
-                    
+
                     $this->dispatch('show-alert', [
                         'type' => 'success',
                         'title' => 'Cita creada',
@@ -762,7 +631,7 @@ class Calendario extends Component
         RateLimiter::hit($rateLimitKey, 300); // 5 intentos en 5 minutos
 
         $cita = Cita::findOrFail($id);
-        
+
         // Validación de permisos para eliminar
         if (!$this->authorizeCitaAction($cita, 'delete')) {
             $this->dispatch('show-toast', [
@@ -771,14 +640,14 @@ class Calendario extends Component
             ]);
             return;
         }
-        
+
         // Log de auditoría antes de eliminar
         $this->logCitaAction('delete', $cita);
-        
+
         $notificacion = $this->notificarCancelacion($cita);
         $cita->delete();
         $this->resetForm();
-        
+
         // Mostrar mensaje apropiado según el resultado de la notificación
         if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
@@ -796,7 +665,7 @@ class Calendario extends Component
                 'message' => 'Cita eliminada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
         }
-        
+
         $this->dispatch('cita-saved');
     }
 
@@ -807,7 +676,7 @@ class Calendario extends Component
             $rateLimitKey = 'calendario_crear_paciente_' . auth()->id();
             if (RateLimiter::tooManyAttempts($rateLimitKey, 15)) {
                 $this->dispatch('paciente-creado', [
-                    'success' => false, 
+                    'success' => false,
                     'message' => 'Demasiados intentos de crear pacientes. Por favor, espere un momento.',
                     'errors' => ['general' => 'Demasiados intentos. Por favor, espere.']
                 ]);
@@ -815,8 +684,8 @@ class Calendario extends Component
             }
             RateLimiter::hit($rateLimitKey, 300); // 15 intentos en 5 minutos
 
-            
-    
+
+
 
             // Sanitización de datos de entrada
             $nombres = strip_tags(trim($data['nombres'] ?? ''));
@@ -843,7 +712,7 @@ class Calendario extends Component
                     $tutorNombres = strip_tags(trim($tutorData['nombres'] ?? ''));
                     $tutorApellidos = strip_tags(trim($tutorData['apellidos'] ?? ''));
                     $tutorTelefono = isset($tutorData['telefono']) ? preg_replace('/[^0-9+\-\s\(\)]/', '', $tutorData['telefono']) : null;
-                    
+
                     // Validación de longitud para tutor
                     if (strlen($tutorNombres) <= 100 && strlen($tutorApellidos) <= 100) {
                         \App\Models\Tutor::create([
@@ -884,7 +753,7 @@ class Calendario extends Component
         } catch (\Exception $e) {
             Log::error('Error creando paciente rápido', ['error' => $e->getMessage()]);
             $this->dispatch('paciente-creado', [
-                'success' => false, 
+                'success' => false,
                 'message' => 'Error al crear el paciente: ' . $e->getMessage()
             ]);
         }
@@ -894,14 +763,28 @@ class Calendario extends Component
     {
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
+        $preconsultaResult = null;
+
+        if ($nuevoEstado === Cita::ESTADO_SALA_ESPERA && $estadoAnterior !== Cita::ESTADO_SALA_ESPERA) {
+            $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
+        }
+
         $cita->cambiarEstado($nuevoEstado);
         $notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);
-        
-        // Mostrar mensaje apropiado según el resultado de la notificación
+
+        $mensajeExtra = '';
+        if ($preconsultaResult) {
+            if ($preconsultaResult['whatsapp_enviado']) {
+                $mensajeExtra = ' Cuestionario preconsulta enviado por WhatsApp.';
+            } elseif ($preconsultaResult['preconsulta_creada']) {
+                $mensajeExtra = ' Cuestionario preconsulta creado.';
+            }
+        }
+
         if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
                 'type' => 'success',
-                'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado] . '. Notificaciones enviadas.'
+                'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado] . '. Notificaciones enviadas.' . $mensajeExtra
             ]);
         } elseif ($notificacion['success'] && !empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
@@ -914,24 +797,15 @@ class Calendario extends Component
                 'message' => 'Estado actualizado pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
         }
-        
+
         $this->dispatch('cita-saved');
     }
 
-    public function cambiarEstadoConsulta($consultaId, $nuevoEstado)
+    public function guardarNotaCita($citaId, $nota)
     {
-        $consulta = Consulta::findOrFail($consultaId);
-        $consulta->update([
-            'estado' => $nuevoEstado,
-            'estado_changed_at' => now(),
-        ]);
-
-        $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Estado actualizado a: ' . Consulta::ESTADO_LABELS[$nuevoEstado]
-        ]);
-
-        $this->dispatch('consulta-saved');
+        $cita = Cita::findOrFail($citaId);
+        $notasActuales = $cita->notas ? $cita->notas . "\n" : '';
+        $cita->update(['notas' => $notasActuales . $nota]);
     }
 
     public function enviarRecordatorio($citaId)
@@ -940,7 +814,7 @@ class Calendario extends Component
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
             $notificacion = $service->enviarRecordatorio($cita);
-            
+
             // Mostrar mensaje apropiado según el resultado de la notificación
             if ($notificacion['success'] && empty($notificacion['errors'])) {
                 $this->dispatch('show-toast', [
@@ -1032,7 +906,7 @@ class Calendario extends Component
     public function resetForm()
     {
         $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
-        $this->estado = 'pendiente';
+        $this->estado = 'programada';
         $this->resetValidation();
     }
 
@@ -1131,7 +1005,7 @@ class Calendario extends Component
             'fecha_fin' => Carbon::parse($data['fecha_fin'] ?? now()->addHour()),
             'motivo' => strip_tags(trim($data['motivo'] ?? '')),
             'notas' => strip_tags(trim($data['notas'] ?? '')),
-            'estado' => $this->citaId ? (in_array($data['estado'] ?? '', Cita::ESTADOS) ? $data['estado'] : 'pendiente') : 'pendiente',
+            'estado' => $this->citaId ? (in_array($data['estado'] ?? '', Cita::ESTADOS) ? $data['estado'] : 'programada') : 'programada',
             'tipo_consulta_id' => (int) ($data['tipo_consulta_id'] ?? 0),
         ];
     }
@@ -1203,9 +1077,6 @@ class Calendario extends Component
             'citaEstados' => Cita::ESTADOS,
             'citaEstadoLabels' => Cita::ESTADO_LABELS,
             'citaEstadoColores' => Cita::ESTADO_COLORES,
-            'consultaEstados' => array_keys(Consulta::ESTADO_LABELS),
-            'consultaEstadoLabels' => Consulta::ESTADO_LABELS,
-            'consultaEstadoColores' => Consulta::ESTADO_COLORES,
         ])->layout($this->getLayout());
     }
 }

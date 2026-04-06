@@ -271,10 +271,10 @@
                 </div>
                 <div class="card-body" wire:ignore>
                     <div class="mb-2 d-flex flex-wrap gap-2">
-                        <span class="badge" style="background:#ffc107;color:#212529;">Pendiente</span>
+                        <span class="badge" style="background:#ffc107;color:#212529;">Programada</span>
                         <span class="badge" style="background:#0d6efd;">Confirmada</span>
                         <span class="badge" style="background:#17a2b8;">En Curso</span>
-                        <span class="badge" style="background:#28a745;">Completada</span>
+                        <span class="badge" style="background:#66BB6A;">Finalizada</span>
                         <span class="badge" style="background:#dc3545;">Cancelada</span>
                         <span class="badge" style="background:#6c757d;">No Asistió</span>
                     </div>
@@ -497,20 +497,20 @@
             if (!el) return;
             var series = [];
             var colors = {
-                pendiente: '#ffc107',
+                programada: '#ffc107',
                 confirmada: '#0d6efd',
-                completada: '#28a745',
+                finalizada: '#66BB6A',
                 cancelada: '#dc3545',
                 no_asistio: '#6c757d'
             };
             var names = {
-                pendiente: 'Pendiente',
+                programada: 'Programada',
                 confirmada: 'Confirmada',
-                completada: 'Completada',
+                finalizada: 'Finalizada',
                 cancelada: 'Cancelada',
                 no_asistio: 'No Asistió'
             };
-            ['pendiente','confirmada','completada','cancelada','no_asistio'].forEach(function(st){
+            ['programada','confirmada','finalizada','cancelada','no_asistio'].forEach(function(st){
                 var data = Array.isArray(states && states[st]) ? states[st].map(function(v){ return Number(v) || 0; }) : [];
                 series.push({ name: names[st], data: data });
             });
@@ -520,7 +520,7 @@
                 stroke: { curve: 'smooth', width: 3 },
                 fill: { type: 'gradient', gradient: { shadeIntensity: 0.6, opacityFrom: 0.35, opacityTo: 0.1, stops: [0, 90, 100] } },
                 grid: { strokeDashArray: 4 },
-                colors: [colors.pendiente, colors.confirmada, colors.completada, colors.cancelada, colors.no_asistio],
+                colors: [colors.programada, colors.confirmada, colors.finalizada, colors.cancelada, colors.no_asistio],
                 series: series,
                 xaxis: { categories: labels },
                 yaxis: { min: 0, labels: { formatter: function(val){ return Math.round(val); } } },

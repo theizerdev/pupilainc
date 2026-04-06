@@ -113,7 +113,7 @@ class CitaPrioridadService
     protected function verificarSolapamiento($medicoId, Carbon $fechaHora, Carbon $fechaFin, $pacienteId = null): ?Cita
     {
         $query = Cita::where('medico_id', $medicoId)
-            ->whereIn('estado', [Cita::ESTADO_PENDIENTE, Cita::ESTADO_CONFIRMADA, Cita::ESTADO_COMPLETADA])
+            ->whereIn('estado', [Cita::ESTADO_PENDIENTE, Cita::ESTADO_CONFIRMADA, Cita::ESTADO_FINALIZADA])
             ->where(function ($q) use ($fechaHora, $fechaFin) {
                 $q->whereBetween('fecha_inicio', [$fechaHora, $fechaFin])
                     ->orWhereBetween('fecha_fin', [$fechaHora, $fechaFin])

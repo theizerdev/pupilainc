@@ -67,12 +67,12 @@
             box-shadow: 0 0.25rem 0.5rem rgba(76, 175, 80, 0.15);
         }
 
-        .cita-card.pendiente {
+        .cita-card.programada {
             border-left-color: #ff9800;
             background: linear-gradient(135deg, #fff8e1, #ffecb3);
         }
 
-        .cita-card.completada {
+        .cita-card.finalizada {
             border-left-color: #2196F3;
             background: linear-gradient(135deg, #e3f2fd, #bbdefb);
         }
@@ -300,8 +300,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <h5 class="card-title mb-1">Completadas</h5>
-                            <h2 class="mb-0">{{ $stats['citas_completadas_mes'] }}</h2>
+                            <h5 class="card-title mb-1">Finalizadas</h5>
+                            <h2 class="mb-0">{{ $stats['citas_finalizadas_mes'] }}</h2>
                             <small class="opacity-75">Este mes</small>
                         </div>
                         <div class="stats-icon-doctor">
@@ -425,8 +425,8 @@
                         @foreach($todayCitas as $cita)
                         <div class="cita-card {{ $cita->estado }}">
                             <div class="status-badge
-                                @if($cita->estado == 'pendiente') bg-warning text-dark
-                                @elseif($cita->estado == 'completada') bg-primary
+                                @if($cita->estado == 'programada') bg-warning text-dark
+                                @elseif($cita->estado == 'finalizada') bg-primary
                                 @elseif($cita->estado == 'cancelada') bg-danger
                                 @else bg-secondary
                                 @endif">
@@ -454,7 +454,7 @@
                                 </div>
                                 <div class="col-auto">
                                     <div class="d-flex gap-1">
-                                        @if($cita->estado == 'pendiente')
+                                        @if($cita->estado == 'programada')
                                         <a href="{{ route('doctor.consulta.proceso', $cita->id) }}"
                                            class="action-btn-doctor btn-start"
                                            title="Iniciar Consulta">
@@ -612,8 +612,8 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <div class="border-end border-md-end-0">
-                                <h3 class="text-primary mb-1">{{ $stats['citas_completadas_mes'] }}</h3>
-                                <small class="text-muted">Completadas</small>
+                                <h3 class="text-primary mb-1">{{ $stats['citas_finalizadas_mes'] }}</h3>
+                                <small class="text-muted">Finalizadas</small>
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">

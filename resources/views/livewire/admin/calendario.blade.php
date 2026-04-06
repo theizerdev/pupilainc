@@ -161,16 +161,10 @@
                                 <small class="text-muted">{{ now()->format('d/m/Y') }}</small>
                             </div>
                             <div class="row g-2">
-                                <div class="col-6">
+                                <div class="col-12">
                                     <div class="text-center p-2 rounded" style="background: rgba(13, 110, 253, 0.1);">
                                         <h5 class="mb-0 text-primary">{{ $stats['citas_hoy'] }}</h5>
                                         <small class="text-muted">Citas</small>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="text-center p-2 rounded" style="background: rgba(111, 66, 193, 0.1);">
-                                        <h5 class="mb-0" style="color: #6f42c1;">{{ $stats['consultas_hoy'] }}</h5>
-                                        <small class="text-muted">Consultas</small>
                                     </div>
                                 </div>
                             </div>
@@ -181,38 +175,11 @@
                                 <small class="text-muted">{{ now()->startOfWeek()->format('d/m') }} - {{ now()->endOfWeek()->format('d/m') }}</small>
                             </div>
                             <div class="row g-2">
-                                <div class="col-6">
+                                <div class="col-12">
                                     <div class="text-center p-2 rounded" style="background: rgba(13, 110, 253, 0.1);">
                                         <h5 class="mb-0 text-primary" id="citasSemana">0</h5>
                                         <small class="text-muted">Citas</small>
                                     </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="text-center p-2 rounded" style="background: rgba(111, 66, 193, 0.1);">
-                                        <h5 class="mb-0" style="color: #6f42c1;" id="consultasSemana">0</h5>
-                                        <small class="text-muted">Consultas</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Switches para mostrar/ocultar Citas y Consultas -->
-                        <div class="mb-3">
-                            <small class="text-muted fw-medium d-block mb-2">VISUALIZAR</small>
-                            <div class="d-flex gap-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="toggleCitas" checked
-                                           aria-label="Mostrar citas en el calendario">
-                                    <label class="form-check-label" for="toggleCitas">
-                                        <span class="badge" style="background: #0d6efd;">Citas</span>
-                                    </label>
-                                </div>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="toggleConsultas" checked
-                                           aria-label="Mostrar consultas en el calendario">
-                                    <label class="form-check-label" for="toggleConsultas">
-                                        <span class="badge" style="background: #6f42c1;">Consultas</span>
-                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -220,18 +187,11 @@
                         <div class="mb-3">
                             <small class="text-muted fw-medium d-block mb-2">ESTADO</small>
                             <div class="row g-2">
-                                <div class="col-6">
+                                <div class="col-12">
                                     <div class="d-flex align-items-center">
                                         <i class="ri-time-line text-warning me-1"></i>
                                         <small class="text-muted">Pendientes:</small>
                                         <strong class="ms-auto">{{ $stats['citas_pendientes'] }}</strong>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="d-flex align-items-center">
-                                        <i class="ri-user-line text-info me-1"></i>
-                                        <small class="text-muted">En espera:</small>
-                                        <strong class="ms-auto">{{ $stats['consultas_en_espera'] }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -316,7 +276,7 @@
                                                    data-value="{{ $value }}"
                                                    checked />
                                             <label class="form-check-label d-flex align-items-center" for="select-cita-{{ $value }}">
-                                                <span class="legend-dot me-2" style="background-color: {{ ['pendiente'=>'#ffc107','confirmada'=>'#0d6efd','completada'=>'#28a745','cancelada'=>'#dc3545','no_asistio'=>'#6c757d'][$value] ?? '#78909C' }};"></span>
+                                                <span class="legend-dot me-2" style="background-color: {{ ['programada'=>'#ffc107','confirmada'=>'#0d6efd','cancelada'=>'#dc3545','no_asistio'=>'#6c757d'][$value] ?? '#78909C' }};"></span>
                                                 {{ $label }}
                                             </label>
                                         </div>
@@ -326,36 +286,7 @@
                             </div>
                         </div>
 
-                        <hr class="mb-2 mx-n2" />
 
-                        <!-- Filtros de estados de Consultas -->
-                        <div class="accordion-item border-0 bg-transparent">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#consultasCollapse">
-                                    <i class="ri ri-stethoscope-line me-2"></i>Estados de Consultas
-                                    <span class="badge bg-primary rounded-pill ms-2" id="consultasActivasCount">0</span>
-
-                                </button>
-                            </h2>
-                            <div id="consultasCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
-                                <div class="accordion-body p-0 pt-2">
-                                    <div class="app-calendar-events-filter ps-3" id="filtros-consultas">
-                                    @foreach($consultaEstadoLabels as $value => $label)
-                                        <div class="form-check mb-2 ms-2">
-                                            <input class="form-check-input input-filter-consulta" type="checkbox"
-                                                   id="select-consulta-{{ $value }}"
-                                                   data-value="{{ $value }}"
-                                                   checked />
-                                            <label class="form-check-label d-flex align-items-center" for="select-consulta-{{ $value }}">
-                                                <span class="legend-dot me-2" style="background-color: {{ $consultaEstadoColores[$value] ?? '#78909C' }};"></span>
-                                                {{ $label }}
-                                            </label>
-                                        </div>
-                                    @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <!-- Médicos -->
@@ -389,7 +320,7 @@
             <!-- Calendar Content -->
             <div class="col app-calendar-content" style="position: relative;">
                 <div class="card shadow-none border-0">
-                    <div class="card-body pb-0" style="position: relative;">
+                    <div class="card-body pb-0 pt-0 px-2" style="position: relative;">
                         <!-- Loading Overlay -->
                         <div class="calendar-loading" id="calendarLoading">
                             <div class="spinner-border text-primary" role="status">
@@ -489,8 +420,8 @@
 
 
 
-                            <!-- 6. Horarios Disponibles (Solo Informativos) -->
-                            <div id="slotsContainer" class="mb-5" style="display:none;">
+                            <!-- 6. Horarios Disponibles (Solo Informativos - OCULTO) -->
+                            {{-- <div id="slotsContainer" class="mb-5" style="display:none;">
                                 <label class="form-label fw-medium mb-2">
                                     <i class="ri ri-information-line me-1"></i>Horarios del Médico
                                     <small class="text-muted fw-normal">(Solo referencia)</small>
@@ -500,7 +431,7 @@
                                     Estos son los horarios disponibles del médico. Debe seleccionar las horas manualmente abajo.
                                 </div>
                                 <div id="slotsList" class="slots-container" style="pointer-events: none; opacity: 0.7;"></div>
-                            </div>
+                            </div> --}}
 
                             <!-- 7. Horarios Manuales -->
                             <div class="row g-2 mb-5">
@@ -548,7 +479,7 @@
                             <div class="form-floating form-floating-outline mb-5">
                                 <select class="select2 form-select" id="eventEstado" name="eventEstado">
                                     @foreach($estadoLabels as $value => $label)
-                                        <option value="{{ $value }}" data-color="{{ $estadoColores[$value] }}" {{ $value === 'pendiente' ? 'selected' : '' }}>
+                                        <option value="{{ $value }}" data-color="{{ $estadoColores[$value] }}" {{ $value === 'programada' ? 'selected' : '' }}>
                                             {{ $label }}
                                         </option>
                                     @endforeach
@@ -718,9 +649,7 @@
                 initCalendarioGeneral(
                     @json($eventos),
                     @json($citaEstadoColores),
-                    @json($consultaEstadoColores),
-                    @json($citaEstadoLabels),
-                    @json($consultaEstadoLabels)
+                    @json($citaEstadoLabels)
                 );
             } else {
                 setTimeout(waitFC, 50);

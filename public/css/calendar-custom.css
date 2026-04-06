@@ -10,12 +10,15 @@
     position: relative;
     width: 100%;
     overflow: hidden;
+    /* Altura total del viewport menos navbar (~64px) y padding del container-p-y (~1.5rem x2 = 3rem ≈ 48px) */
+    height: calc(100vh - 112px);
 }
 
-.app-calendar-wrapper .row {
+.app-calendar-wrapper > .row {
     min-width: 0;
     width: 100%;
     display: flex;
+    height: 100%;
 }
 
 .app-calendar-content {
@@ -23,14 +26,37 @@
     min-width: 0;
     position: relative;
     width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     transition: all 0.3s ease-in-out;
+}
+
+.app-calendar-content > .card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.app-calendar-content > .card > .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header toolbar extraído del scroll container */
+#external-fc-header {
+    flex-shrink: 0;
 }
 
 /* Asegurar que el calendario se expanda completamente */
 #calendar {
     width: 100% !important;
     min-width: 0 !important;
-    height: 100% !important;
 }
 
 /* Permitir que las columnas del calendario se expandan */
@@ -51,13 +77,11 @@
 .fc {
     width: 100% !important;
     min-width: 0 !important;
-    height: 100% !important;
 }
 
 /* Permitir que la grilla del calendario se expanda */
 .fc .fc-view-harness {
     width: 100% !important;
-    height: 100% !important;
 }
 
 /* Permitir que las columnas de tiempo se expandan */
@@ -828,17 +852,17 @@
             width: 320px;
             min-width: 320px;
             max-width: 320px;
+            min-height: 0;
             display: flex;
             flex-direction: column;
         }
-        .app-calendar-sidebar.sidebar-hidden {
+            .app-calendar-sidebar.sidebar-hidden {
             max-width: 0 !important;
             min-width: 0 !important;
             padding: 0 !important;
             border: none !important;
             opacity: 0;
         }
-
         /* Scrollable sidebar content */
         .app-calendar-sidebar .sidebar-scroll {
             flex: 1;
@@ -1011,60 +1035,23 @@
 
         .calendar-scroll {
             position: relative;
+            flex: 1;
+            min-height: 0;
             overflow-y: auto;
             overflow-x: hidden;
-            height: calc(100vh - 180px);
             scrollbar-width: thin;
-            scrollbar-color: #b2b2b2 #f0f0f0;
+            scrollbar-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.3) transparent;
         }
         .calendar-scroll::-webkit-scrollbar {
             width: 6px;
         }
         .calendar-scroll::-webkit-scrollbar-track {
-            background: #f0f0f0;
-            border-radius: 3px;
+            background: transparent;
         }
         .calendar-scroll::-webkit-scrollbar-thumb {
-            background: #b2b2b2;
+            background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.3);
             border-radius: 3px;
         }
         .calendar-scroll::-webkit-scrollbar-thumb:hover {
-            background: #888;
-        }
-        @media (max-width: 992px) {
-            .calendar-scroll { height: calc(100vh - 220px); }
-        }
-        @media (max-width: 768px) {
-            .calendar-scroll { height: calc(100vh - 240px); }
-        }
-
-        /* ===================== ENCABEZADO FIJO PARA VISTA SEMANA/DÍA ===================== */
-
-        /* El thead del scrollgrid contiene los encabezados de días */
-        .fc .fc-scrollgrid > thead,
-        .fc .fc-scrollgrid-section-header {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            z-index: 3;
-        }
-
-        .fc .fc-scrollgrid-section-header > td,
-        .fc .fc-scrollgrid-section-header > th {
-            background: var(--bs-body-bg, #fff);
-        }
-
-        .fc .fc-col-header,
-        .fc .fc-col-header-cell {
-            background: var(--bs-body-bg, #fff);
-        }
-
-        /* Asegurar que la sección all-day también tenga fondo sólido */
-        .fc .fc-scrollgrid-section-header .fc-daygrid-body {
-            background: var(--bs-body-bg, #fff);
-        }
-
-        /* La tabla del scrollgrid no debe colapsar bordes para que sticky funcione */
-        .fc .fc-scrollgrid {
-            border-collapse: separate !important;
+            background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.5);
         }

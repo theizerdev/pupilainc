@@ -24,7 +24,7 @@ class Show extends Component
         return [
             'total_citas' => $this->tipoConsulta->citas()->count(),
             'citas_activas' => $this->tipoConsulta->citas()->where('estado', 'activa')->count(),
-            'citas_completadas' => $this->tipoConsulta->citas()->where('estado', 'completada')->count(),
+            'citas_finalizadas' => $this->tipoConsulta->citas()->where('estado', 'finalizada')->count(),
             'citas_canceladas' => $this->tipoConsulta->citas()->where('estado', 'cancelada')->count(),
         ];
     }

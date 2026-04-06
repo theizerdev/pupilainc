@@ -165,8 +165,8 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6 class="card-title mb-1">Completadas</h6>
-                                    <h3 class="mb-0">{{ format_money($analyticsData['resumen']['completadas'] ?? 0) }}</h3>
+                                    <h6 class="card-title mb-1">Finalizadas</h6>
+                                    <h3 class="mb-0">{{ format_money($analyticsData['resumen']['finalizadas'] ?? 0) }}</h3>
                                     <small class="opacity-75">
                                         <i class="fas fa-check-circle me-1"></i>
                                         {{ format_money($analyticsData['asistencia']['tasa_asistencia'] ?? 0, 1) }}% de asistencia

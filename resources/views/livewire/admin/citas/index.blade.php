@@ -277,8 +277,8 @@
                     </div>
                     <div class="app-calendar-events-filter text-heading">
                         <div class="form-check form-check-warning mb-5 ms-3">
-                            <input class="form-check-input input-filter" type="checkbox"  id="select-pendiente" data-value="pendiente" checked />
-                            <label class="form-check-label" for="select-pendiente">Pendiente</label>
+                            <input class="form-check-input input-filter" type="checkbox"  id="select-programada" data-value="programada" checked />
+                            <label class="form-check-label" for="select-programada">Programada</label>
                         </div>
                         <div class="form-check mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-confirmada" data-value="confirmada" checked />
@@ -286,8 +286,8 @@
                         </div>
 
                         <div class="form-check form-check-success mb-5 ms-3">
-                            <input class="form-check-input input-filter" type="checkbox" id="select-completada" data-value="completada" checked />
-                            <label class="form-check-label" for="select-completada">Completada</label>
+                            <input class="form-check-input input-filter" type="checkbox" id="select-finalizada" data-value="finalizada" checked />
+                            <label class="form-check-label" for="select-finalizada">Finalizada</label>
                         </div>
                         <div class="form-check form-check-danger mb-5 ms-3">
                             <input class="form-check-input input-filter" type="checkbox" id="select-cancelada" data-value="cancelada" checked />

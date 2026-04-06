@@ -93,7 +93,7 @@ class TestAnalyticsCitas extends Command
                     'tipo_cita' => 'consulta',
                     'canal_registro' => ['web', 'telefono', 'presencial'][rand(0, 2)],
                     'recordatorio_enviado' => false,
-                    'confirmacion_paciente' => in_array($estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_COMPLETADA]) ? true : (rand(0, 1) ? true : false),
+                    'confirmacion_paciente' => in_array($estado, [Cita::ESTADO_CONFIRMADA, Cita::ESTADO_FINALIZADA]) ? true : (rand(0, 1) ? true : false),
                 ]);
 
                 // Programar recordatorios para citas futuras confirmadas
@@ -143,7 +143,7 @@ class TestAnalyticsCitas extends Command
         $todosEstados = [
             Cita::ESTADO_PENDIENTE,
             Cita::ESTADO_CONFIRMADA,
-            Cita::ESTADO_COMPLETADA,
+            Cita::ESTADO_FINALIZADA,
             Cita::ESTADO_CANCELADA,
             Cita::ESTADO_NO_ASISTIO,
         ];
@@ -152,7 +152,7 @@ class TestAnalyticsCitas extends Command
             'todas' => $todosEstados,
             'confirmadas' => [Cita::ESTADO_CONFIRMADA],
             'canceladas' => [Cita::ESTADO_CANCELADA, Cita::ESTADO_NO_ASISTIO],
-            'completadas' => [Cita::ESTADO_COMPLETADA],
+            'completadas' => [Cita::ESTADO_FINALIZADA],
             'mixed' => $this->getDistribucionRealista(),
             default => $todosEstados,
         };
@@ -165,7 +165,7 @@ class TestAnalyticsCitas extends Command
         
         // 60% confirmadas/completadas
         for ($i = 0; $i < 60; $i++) {
-            $distribucion[] = $i < 45 ? Cita::ESTADO_CONFIRMADA : Cita::ESTADO_COMPLETADA;
+            $distribucion[] = $i < 45 ? Cita::ESTADO_CONFIRMADA : Cita::ESTADO_FINALIZADA;
         }
         
         // 25% pendientes
@@ -207,7 +207,7 @@ class TestAnalyticsCitas extends Command
                 'Emergencia imprevista',
                 'Sin aviso previo'
             ][rand(0, 4)],
-            Cita::ESTADO_COMPLETADA => [
+            Cita::ESTADO_FINALIZADA => [
                 'Consulta médica general',
                 'Revisión de rutina',
                 'Control de seguimiento',

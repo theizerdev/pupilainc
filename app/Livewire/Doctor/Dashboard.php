@@ -61,8 +61,8 @@ class Dashboard extends Component
             'citas_mes' => Cita::where('medico_id', $this->medico->id)
                 ->whereDate('fecha_inicio', '>=', $esteMes)
                 ->count(),
-            'citas_completadas_mes' => Cita::where('medico_id', $this->medico->id)
-                ->where('estado', 'completada')
+            'citas_finalizadas_mes' => Cita::where('medico_id', $this->medico->id)
+                ->where('estado', 'finalizada')
                 ->whereDate('fecha_inicio', '>=', $esteMes)
                 ->count(),
             'pacientes_unicos' => Cita::where('medico_id', $this->medico->id)
@@ -148,8 +148,8 @@ class Dashboard extends Component
                 ->first();
 
             if ($cita) {
-                $cita->update(['estado' => 'completada']);
-                session()->flash('success', 'Cita marcada como completada.');
+                $cita->update(['estado' => 'finalizada']);
+                session()->flash('success', 'Cita marcada como finalizada.');
                 $this->loadDashboardData();
             }
         } catch (\Exception $e) {

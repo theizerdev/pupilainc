@@ -44,7 +44,7 @@ class CitaAnalyticsService
 
         $total = $query->count();
         $confirmadas = (clone $query)->where('estado', Cita::ESTADO_CONFIRMADA)->count();
-        $completadas = (clone $query)->where('estado', Cita::ESTADO_COMPLETADA)->count();
+        $finalizadas = (clone $query)->where('estado', Cita::ESTADO_FINALIZADA)->count();
         $canceladas = (clone $query)->where('estado', Cita::ESTADO_CANCELADA)->count();
         $noAsistidas = (clone $query)->where('estado', Cita::ESTADO_NO_ASISTIO)->count();
 
@@ -59,11 +59,11 @@ class CitaAnalyticsService
         return [
             'total' => $total,
             'confirmadas' => $confirmadas,
-            'completadas' => $completadas,
+            'finalizadas' => $finalizadas,
             'canceladas' => $canceladas,
             'no_asistidas' => $noAsistidas,
             'tasa_confirmacion' => $total > 0 ? round(($confirmadas / $total) * 100, 2) : 0,
-            'tasa_completitud' => $total > 0 ? round(($completadas / $total) * 100, 2) : 0,
+            'tasa_completitud' => $total > 0 ? round(($finalizadas / $total) * 100, 2) : 0,
             'tasa_cancelacion' => $total > 0 ? round(($canceladas / $total) * 100, 2) : 0,
             'porcentaje_crecimiento' => round($porcentajeCrecimiento, 1),
         ];
@@ -182,7 +182,7 @@ class CitaAnalyticsService
         $query = $this->getBaseQuery($fechaInicio, $fechaFin);
         
         $total = $query->count();
-        $asistidas = (clone $query)->where('estado', Cita::ESTADO_COMPLETADA)->count();
+        $asistidas = (clone $query)->where('estado', Cita::ESTADO_FINALIZADA)->count();
         $noAsistidas = (clone $query)->where('estado', Cita::ESTADO_NO_ASISTIO)->count();
 
         return [
@@ -249,12 +249,12 @@ class CitaAnalyticsService
             ->where('medico_id', $medicoId)
             ->count();
             
-        $completadas = $this->getBaseQuery($fechaInicio, $fechaFin)
+        $finalizadas = $this->getBaseQuery($fechaInicio, $fechaFin)
             ->where('medico_id', $medicoId)
-            ->where('estado', Cita::ESTADO_COMPLETADA)
+            ->where('estado', Cita::ESTADO_FINALIZADA)
             ->count();
 
-        return $total > 0 ? round(($completadas / $total) * 100, 1) : 0;
+        return $total > 0 ? round(($finalizadas / $total) * 100, 1) : 0;
     }
 
     private function getTasaAsistenciaMedico(int $medicoId, Carbon $fechaInicio, Carbon $fechaFin): float
@@ -265,7 +265,7 @@ class CitaAnalyticsService
             
         $asistidas = $this->getBaseQuery($fechaInicio, $fechaFin)
             ->where('medico_id', $medicoId)
-            ->whereIn('estado', [Cita::ESTADO_COMPLETADA, Cita::ESTADO_CONFIRMADA])
+            ->whereIn('estado', [Cita::ESTADO_FINALIZADA, Cita::ESTADO_CONFIRMADA])
             ->count();
 
         return $total > 0 ? round(($asistidas / $total) * 100, 1) : 0;

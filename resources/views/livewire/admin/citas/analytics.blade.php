@@ -59,8 +59,8 @@
                             <div class="col-lg-3 col-6">
                                 <div class="small-box bg-success">
                                     <div class="inner">
-                                        <h3>{{ $analyticsData['resumen']['completadas'] ?? 0 }}</h3>
-                                        <p>Citas Completadas</p>
+                                        <h3>{{ $analyticsData['resumen']['finalizadas'] ?? 0 }}</h3>
+                                        <p>Citas Finalizadas</p>
                                     </div>
                                     <div class="icon">
                                         <i class="fas fa-check-circle"></i>

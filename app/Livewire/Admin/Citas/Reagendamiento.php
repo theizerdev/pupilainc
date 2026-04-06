@@ -149,7 +149,7 @@ class Reagendamiento extends Component
                 '' => 'Canceladas / No asistidas',
                 'cancelada' => 'Solo Canceladas',
                 'no_asistio' => 'Solo No Asistidas',
-                'pendiente' => 'Pendientes',
+                'programada' => 'Programadas',
                 'confirmada' => 'Confirmadas',
             ],
         ])->layout($this->getLayout());

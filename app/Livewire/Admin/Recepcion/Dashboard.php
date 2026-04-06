@@ -99,8 +99,8 @@ class Dashboard extends Component
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Cita no encontrada']);
             return;
         }
-        $cita->cambiarEstado(Cita::ESTADO_COMPLETADA);
-        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Atención completada']);
+        $cita->cambiarEstado(Cita::ESTADO_FINALIZADA);
+        $this->dispatch('show-toast', ['type' => 'success', 'message' => 'Atención finalizada']);
     }
 
     public function cancelarCita($citaId)
@@ -141,9 +141,9 @@ class Dashboard extends Component
             ->get();
         
         $this->stats = [
-            'pendientes' => $citasHoy->where('estado', Cita::ESTADO_PENDIENTE)->count(),
+            'programadas' => $citasHoy->where('estado', Cita::ESTADO_PENDIENTE)->count(),
             'confirmadas' => $citasHoy->where('estado', Cita::ESTADO_CONFIRMADA)->count(),
-            'completadas' => $citasHoy->where('estado', Cita::ESTADO_COMPLETADA)->count(),
+            'finalizadas' => $citasHoy->where('estado', Cita::ESTADO_FINALIZADA)->count(),
             'canceladas' => $citasHoy->where('estado', Cita::ESTADO_CANCELADA)->count(),
             'no_asistio' => $citasHoy->where('estado', Cita::ESTADO_NO_ASISTIO)->count(),
             'total' => $citasHoy->count(),

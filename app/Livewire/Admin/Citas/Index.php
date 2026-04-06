@@ -30,7 +30,7 @@ class Index extends Component
     public $fecha_fin = '';
     public $motivo = '';
     public $notas = '';
-    public $estado = 'pendiente';
+    public $estado = 'programada';
     public $tipo_consulta_id = '';
 
     public $filtroEstados = [];
@@ -307,9 +307,9 @@ class Index extends Component
 
         return [
             'total_hoy' => (clone $base)->whereDate('fecha_inicio', $hoy)->count(),
-            'pendientes' => (clone $base)->porEstado('pendiente')->count(),
+            'pendientes' => (clone $base)->porEstado('programada')->count(),
             'confirmadas' => (clone $base)->porEstado('confirmada')->count(),
-            'completadas_hoy' => (clone $base)->porEstado('completada')->whereDate('fecha_inicio', $hoy)->count(),
+            'finalizadas_hoy' => (clone $base)->porEstado('finalizada')->whereDate('fecha_inicio', $hoy)->count(),
         ];
     }
 
@@ -362,7 +362,7 @@ class Index extends Component
             'fecha_fin' => $fin,
             'motivo' => $this->motivo,
             'notas' => $this->notas,
-            'estado' => $this->citaId ? $this->estado : 'pendiente',
+            'estado' => $this->citaId ? $this->estado : 'programada',
             'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
         ];
 
@@ -665,7 +665,7 @@ class Index extends Component
     public function resetForm()
     {
         $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
-        $this->estado = 'pendiente';
+        $this->estado = 'programada';
         $this->resetValidation();
     }
 

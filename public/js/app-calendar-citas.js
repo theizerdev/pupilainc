@@ -45,11 +45,10 @@ function initCitasCalendar(events) {
     var psTiposConsulta = null;if (!calendarEl) return;
 
     const calendarColors = {
-        pendiente: '#ffc107',
+        programada: '#ffc107',
         confirmada: '#0d6efd',
         en_curso: '#17a2b8',
         sala_espera: '#fd7e14',
-        completada: '#28a745',
         cancelada: '#dc3545',
         no_asistio: '#6c757d'
     };

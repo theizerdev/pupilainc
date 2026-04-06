@@ -23,7 +23,7 @@ class UpdateCitaEstados extends Command
         $graceEnd = $now->copy()->subMinutes($grace);
 
         $this->actualizarEnCurso($now);
-        $this->actualizarCompletadas($graceEnd);
+        $this->actualizarFinalizadas($graceEnd);
         $this->actualizarNoAsistio($graceEnd);
 
         return Command::SUCCESS;
@@ -54,7 +54,7 @@ class UpdateCitaEstados extends Command
         }
     }
 
-    protected function actualizarCompletadas(Carbon $graceEnd): void
+    protected function actualizarFinalizadas(Carbon $graceEnd): void
     {
         $citas = Cita::where('fecha_fin', '<=', $graceEnd)
             ->where('estado', Cita::ESTADO_EN_CURSO)
@@ -62,7 +62,7 @@ class UpdateCitaEstados extends Command
 
         foreach ($citas as $cita) {
             $estadoAnterior = $cita->estado;
-            $cita->cambiarEstado(Cita::ESTADO_COMPLETADA);
+            $cita->cambiarEstado(Cita::ESTADO_FINALIZADA);
             $service = CitaNotificationService::forCompany($cita->empresa_id);
             $service->notificarCambioEstado($cita, $estadoAnterior);
             try {
@@ -70,7 +70,7 @@ class UpdateCitaEstados extends Command
                     ->performedOn($cita)
                     ->withProperties([
                         'previous' => $estadoAnterior,
-                        'new' => Cita::ESTADO_COMPLETADA,
+                        'new' => Cita::ESTADO_FINALIZADA,
                         'source' => 'scheduler'
                     ])
                     ->log('cita_estado_actualizado_automaticamente');

@@ -56,9 +56,9 @@
                         <div class="row align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                    Citas Completadas
+                                    Citas Finalizadas
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['citas_completadas'] }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $stats['citas_finalizadas'] }}</div>
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-tasks fa-2x text-gray-300"></i>
@@ -226,7 +226,7 @@
                                         <br>
                                         <small class="text-muted">{{ $cita->fecha_inicio->format('d/m/Y H:i') }}</small>
                                     </div>
-                                    <span class="badge badge-{{ $cita->estado === 'completada' ? 'success' : ($cita->estado === 'cancelada' ? 'danger' : 'info') }}">
+                                    <span class="badge badge-{{ $cita->estado === 'finalizada' ? 'success' : ($cita->estado === 'cancelada' ? 'danger' : 'info') }}">
                                         {{ $cita->estado }}
                                     </span>
                                 </div>

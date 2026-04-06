@@ -291,9 +291,11 @@ Route::middleware(['checkAdminPermission:access citas'])->group(function () {
     Route::get('/citas/confirmaciones', \App\Livewire\Admin\CitaConfirmationStats::class)->name('citas.confirmaciones');
 });
 
-// Gestión de Consultas
-Route::prefix('gestion')->as('gestion.')->group(function () {
-    Route::get('/consultas', \App\Livewire\Admin\Gestion\Consultas\Index::class)->name('consultas.index')->middleware('checkAdminPermission:access consultas');
+    // Gestión de Consultas
+    Route::prefix('gestion')->as('gestion.')->group(function () {
+        Route::get('/consultas', function () {
+        return redirect()->to('admin/calendario');
+    })->name('consultas.index')->middleware('checkAdminPermission:access consultas');
     Route::get('/consultas/sala-espera', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware('checkAdminPermission:access consultas');
     Route::get('/consultas/en-enfermeria', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware('checkAdminPermission:access consultas');
     Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware('checkAdminPermission:access consultas');

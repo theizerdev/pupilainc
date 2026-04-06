@@ -21,9 +21,8 @@ class Cita extends Model
 
     protected $table = 'citas';
 
-    const ESTADO_PENDIENTE = 'pendiente';
+    const ESTADO_PENDIENTE = 'programada';
     const ESTADO_CONFIRMADA = 'confirmada';
-    const ESTADO_COMPLETADA = 'completada';
     const ESTADO_CANCELADA = 'cancelada';
     const ESTADO_NO_ASISTIO = 'no_asistio';
 
@@ -41,7 +40,6 @@ class Cita extends Model
     const ESTADOS = [
         self::ESTADO_PENDIENTE,
         self::ESTADO_CONFIRMADA,
-        self::ESTADO_COMPLETADA,
         self::ESTADO_CANCELADA,
         self::ESTADO_NO_ASISTIO,
         // Estados de consulta
@@ -57,12 +55,11 @@ class Cita extends Model
     ];
 
     const ESTADO_COLORES = [
-        'pendiente' => 'warning',
-        'confirmada' => 'primary',
-        'completada' => 'success',
-        'cancelada' => 'danger',
-        'no_asistio' => 'secondary',
-        // Consulta states
+        'programada' => '#ffc107',
+        'confirmada' => '#0d6efd',
+        'cancelada' => '#dc3545',
+        'no_asistio' => '#6c757d',
+        'por_llegar' => '#9E9E9E',
         'sala_espera' => '#FFA726',
         'en_enfermeria' => '#EF5350',
         'en_consultorio' => '#42A5F5',
@@ -72,12 +69,12 @@ class Cita extends Model
         'en_estudio' => '#EC407A',
         'finalizada' => '#66BB6A',
         'pagada' => '#4CAF50',
+        'borrador' => '#BDBDBD',
     ];
 
     const ESTADO_LABELS = [
-        'pendiente' => 'Pendiente',
+        'programada' => 'Programada',
         'confirmada' => 'Confirmada',
-        'completada' => 'Completada',
         'cancelada' => 'Cancelada',
         'no_asistio' => 'No Asistió',
         // Consulta states
@@ -91,18 +88,18 @@ class Cita extends Model
         'finalizada' => 'Finalizada',
         'pagada' => 'Pagada',
     ];
-    
+
     // Prioridades de citas
     const PRIORIDAD_NORMAL = 'normal';
     const PRIORIDAD_ALTA = 'alta';
     const PRIORIDAD_EMERGENCIA = 'emergencia';
-    
+
     const PRIORIDADES = [
         self::PRIORIDAD_NORMAL,
         self::PRIORIDAD_ALTA,
         self::PRIORIDAD_EMERGENCIA,
     ];
-    
+
     const PRIORIDAD_LABELS = [
         'normal' => 'Normal',
         'alta' => 'Alta',
@@ -137,7 +134,7 @@ class Cita extends Model
     ];
 
     protected $attributes = [
-        'estado' => 'pendiente',
+        'estado' => 'programada',
     ];
 
     public function paciente(): BelongsTo
@@ -306,7 +303,6 @@ class Cita extends Model
         $this->save();
 
         if (in_array($nuevoEstado, $consultaEstados)) {
-            // Ensure consulta exists then sync its estado
             $this->crearConsultaSiNoExiste(true);
             $consulta = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->first();
             if ($consulta) {
@@ -318,18 +314,130 @@ class Cita extends Model
         } elseif ($nuevoEstado === self::ESTADO_CONFIRMADA) {
             $this->crearConsultaSiNoExiste(true);
         } elseif ($nuevoEstado === self::ESTADO_PENDIENTE) {
-            // Keep consulta if it exists
         } else {
-            // cancelada/completada/no_asistio: delete associated consulta
             Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->delete();
         }
-    } 
+    }
+
+    public function crearPreconsultaYEnviarWhatsApp(): array
+    {
+        $resultado = ['preconsulta_creada' => false, 'whatsapp_enviado' => false, 'token' => null];
+
+        try {
+            $token = \Illuminate\Support\Str::random(32);
+            $resultado['token'] = $token;
+
+            $cuestionario = \App\Models\Cuestionario::where('activo', true)->first();
+            if ($cuestionario) {
+                foreach ($cuestionario->preguntas as $pregunta) {
+                    \App\Models\RespuestaPreconsulta::create([
+                        'paciente_id' => $this->paciente_id,
+                        'cita_id' => $this->id,
+                        'consulta_id' => null,
+                        'pregunta_id' => $pregunta->id,
+                        'token_unico' => $token,
+                        'empresa_id' => $this->empresa_id,
+                        'sucursal_id' => $this->sucursal_id ?? 1,
+                        'completado' => false,
+                        'created_by' => $this->paciente_id,
+                    ]);
+                }
+                $resultado['preconsulta_creada'] = true;
+            }
+
+            $whatsappEnviado = $this->enviarCuestionarioWhatsApp($token);
+            $resultado['whatsapp_enviado'] = $whatsappEnviado;
+
+            \Log::info('Preconsulta creada para cita', ['cita_id' => $this->id, 'token' => $token, 'resultado' => $resultado]);
+        } catch (\Exception $e) {
+            \Log::error('Error creando preconsulta', ['cita_id' => $this->id, 'error' => $e->getMessage()]);
+        }
+
+        return $resultado;
+    }
+
+    protected function enviarCuestionarioWhatsApp(string $token): bool
+    {
+        try {
+            $paciente = $this->paciente;
+            if (!$paciente) return false;
+
+            $telefono = $paciente->telefono;
+            $edad = $paciente->fecha_nacimiento ? \Carbon\Carbon::parse($paciente->fecha_nacimiento)->age : null;
+            $esMenor = $edad !== null && $edad < 18;
+
+            if ($esMenor && $paciente->tutor && !empty($paciente->tutor->telefono)) {
+                $telefono = $paciente->tutor->telefono;
+            } elseif (empty($telefono) && $paciente->tutor) {
+                $telefono = $paciente->tutor->telefono;
+            }
+
+            if (empty($telefono) || trim($telefono) === '') {
+                return false;
+            }
+
+            $telefonoFormateado = $this->formatearTelefono($telefono);
+            $link = route('preconsulta.formulario', ['token' => $token]);
+
+            $saludo = $esMenor
+                ? "Estimado representante de *{$paciente->nombre_completo}*"
+                : "Hola *{$paciente->nombres}*";
+
+            $mensaje = "🏥 *Pre-consulta Médica*\n\n"
+                . "{$saludo},\n\n"
+                . "Para agilizar su atención médica, le solicitamos completar el siguiente cuestionario antes de su consulta:\n\n"
+                . "📋 *Cuestionario Pre-consulta*\n"
+                . "🔗 {$link}\n\n"
+                . "El cuestionario es confidencial y nos ayudará a brindarle una mejor atención.\n\n"
+                . "⏰ Le recomendamos completarlo mientras espera.\n\n"
+                . "Gracias por su confianza. 🙏";
+
+            $whatsappService = new \App\Services\WhatsAppService($this->empresa_id);
+            $resultado = $whatsappService->sendMessage($telefonoFormateado, $mensaje);
+
+            return $resultado !== null;
+        } catch (\Exception $e) {
+            \Log::warning('Error enviando WhatsApp de preconsulta', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    protected function formatearTelefono(string $telefono): string
+    {
+        $telefonoLimpio = preg_replace('/[^0-9]/', '', $telefono);
+
+        try {
+            if ($this->empresa_id) {
+                $empresa = \App\Models\Empresa::with('pais')->find($this->empresa_id);
+                if ($empresa && $empresa->pais && $empresa->pais->codigo_telefonico) {
+                    $codigoPais = preg_replace('/[^0-9]/', '', $empresa->pais->codigo_telefonico);
+                    if (!str_starts_with($telefonoLimpio, $codigoPais)) {
+                        if (str_starts_with($telefonoLimpio, '0')) {
+                            $telefonoLimpio = substr($telefonoLimpio, 1);
+                        }
+                        $telefonoLimpio = $codigoPais . $telefonoLimpio;
+                    }
+                    return $telefonoLimpio;
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error formateando teléfono', ['error' => $e->getMessage()]);
+        }
+
+        if (strlen($telefonoLimpio) === 10 && str_starts_with($telefonoLimpio, '0')) {
+            return '52' . $telefonoLimpio;
+        } elseif (strlen($telefonoLimpio) === 9 && !str_starts_with($telefonoLimpio, '5')) {
+            return '52' . $telefonoLimpio;
+        }
+
+        return $telefonoLimpio;
+    }
 
 
 
     protected function crearConsultaSiNoExiste(bool $force = false): void
     {
-        if ($this->estado !== self::ESTADO_CONFIRMADA) {
+        if (!$force && $this->estado !== self::ESTADO_CONFIRMADA) {
             \Log::info('crearConsultaSiNoExiste llamada sin estado confirmada', ['cita_id' => $this->id, 'estado' => $this->estado]);
             return;
         }
@@ -338,20 +446,20 @@ class Cita extends Model
             $existe = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->exists();
             if ($existe) {
                 \Log::info('consulta ya existe para cita, actualizando tiempos', ['cita_id' => $this->id]);
-                
+
                 // Update the existing consultation to match the appointment timing exactly
                 $consulta = Consulta::withoutGlobalScopes()->where('cita_id', $this->id)->first();
-                
+
                 $consulta->update([
                     'fecha_consulta' => $this->fecha_inicio,
                     'updated_at' => now()
                 ]);
-                
+
                 \Log::info("Consulta #{$consulta->id} actualizada para coincidir con la cita #{$this->id}", [
                     'fecha_consulta' => $this->fecha_inicio,
                     'duracion_minutos' => $this->duracion_minutos
                 ]);
-                
+
                 return;
             }
 
@@ -473,7 +581,7 @@ class Cita extends Model
         }
 
         $tieneConsulta = $this->consulta !== null;
-        
+
         // Información de la consulta asociada si existe
         $consultaEstadoLabel = null;
         if ($this->consulta) {
@@ -540,7 +648,7 @@ class Cita extends Model
     // Método para verificar si necesita confirmación
     public function necesitaConfirmacion(): bool
     {
-        return $this->estado === self::ESTADO_PENDIENTE && 
+        return $this->estado === self::ESTADO_PENDIENTE &&
                $this->fecha_inicio > now()->addHours(24);
     }
 
