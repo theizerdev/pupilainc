@@ -91,11 +91,7 @@
                     <div class="col-md-12">
                         <div class="form-group">
                             <label>&nbsp;</label>
-                            <div>
-                                <button type="button" class="btn btn-secondary btn-sm" wire:click="clearFilters">
-                                    <i class="fas fa-times"></i> Limpiar Filtros
-                                </button>
-                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -106,15 +102,15 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label for="search">Búsqueda:</label>
                             <input type="text" class="form-control" id="search" wire:model.live="search" placeholder="Buscar especialidad...">
                             <small class="form-text text-muted">Valor actual: {{ $search ?: 'vacío' }}</small>
                         </div>
                     </div>
-                    
-                    <div class="col-md-3">
+
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="empresa_id">Empresa:</label>
                             <select class="form-control" id="empresa_id" wire:model.live="empresa_id">
@@ -127,7 +123,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="sucursal_id">Sucursal:</label>
                             <select class="form-control" id="sucursal_id" wire:model.live="sucursal_id">
@@ -140,7 +136,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="status">Estado:</label>
                             <select class="form-control" id="status" wire:model.live="status">
@@ -151,6 +147,14 @@
                             <small class="form-text text-muted">Valor actual: {{ $status === '' ? 'todos' : ($status == '1' ? 'activo' : 'inactivo') }}</small>
                         </div>
                     </div>
+
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-group w-100">
+                            <button type="button" class="btn btn-secondary w-100 mb-4" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="fas fa-eraser"></i> Limpiar filtros
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -159,7 +163,7 @@
         <div class="card shadow">
             <div class="card-header py-3">
                 <h6 class="m-0 font-weight-bold text-primary">Listado de Especialidades</h6>
-                
+
             </div>
             <div class="card-body">
                 <div class="mb-3">
@@ -253,8 +257,8 @@
                                                 @endcan
                                                 @can('delete especialidades')
                                                 @if($this->tieneRelaciones($especialidad->id))
-                                                    <button type="button" class="dropdown-item text-secondary" 
-                                                            disabled 
+                                                    <button type="button" class="dropdown-item text-secondary"
+                                                            disabled
                                                             title="{{ $this->getInfoRelaciones($especialidad->id) }}"
                                                             data-bs-toggle="tooltip"
                                                             data-bs-placement="left">

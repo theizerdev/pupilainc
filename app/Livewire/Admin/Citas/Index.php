@@ -32,6 +32,7 @@ class Index extends Component
     public $notas = '';
     public $estado = 'programada';
     public $tipo_consulta_id = '';
+    public $prioridad = 'normal';
 
     public $filtroEstados = [];
     public $filtroMedico = '';
@@ -56,6 +57,7 @@ class Index extends Component
             'notas' => 'nullable|string|max:1000',
             'estado' => 'required|in:' . implode(',', Cita::ESTADOS),
             'tipo_consulta_id' => 'nullable|exists:tipo_consultas,id',
+            'prioridad' => 'required|in:' . implode(',', Cita::PRIORIDADES),
         ];
     }
 
@@ -330,6 +332,7 @@ class Index extends Component
             $this->notas = $eventData['notas'] ?? $this->notas;
             $this->estado = $eventData['estado'] ?? $this->estado;
             $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
+            $this->prioridad = $eventData['prioridad'] ?? $this->prioridad;
         }
 
         $this->validate();
@@ -364,6 +367,7 @@ class Index extends Component
             'notas' => $this->notas,
             'estado' => $this->citaId ? $this->estado : 'programada',
             'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
+            'prioridad' => $this->prioridad,
         ];
 
         if ($this->citaId) {
@@ -664,8 +668,9 @@ class Index extends Component
 
     public function resetForm()
     {
-        $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
+        $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id', 'prioridad']);
         $this->estado = 'programada';
+        $this->prioridad = 'normal';
         $this->resetValidation();
     }
 

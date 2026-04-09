@@ -53,6 +53,12 @@ function initCitasCalendar(events) {
         no_asistio: '#6c757d'
     };
 
+    const prioridadColors = {
+        normal: '#4e73df',
+        emergencia: '#e74a3b',
+        alta: '#fd7e14'
+    };
+
     function hexToRgba(hex, alpha) {
         try {
             hex = hex.replace('#', '');
@@ -90,6 +96,7 @@ function initCitasCalendar(events) {
     const eventMedico = $('#eventMedico');
     const eventEstado = $('#eventEstado');
     const eventTipoConsulta = $('#eventTipoConsulta');
+    const eventPrioridad = document.getElementById('eventPrioridad');
     const eventFecha = document.getElementById('eventFecha');
     const subespecialidadContainer = document.getElementById('subespecialidadContainer');
     const slotsContainer = document.getElementById('slotsContainer');
@@ -762,11 +769,13 @@ function initCitasCalendar(events) {
     }
 
     function applyTipoConsultaColors() {
-        // Aplicar colores a los eventos existentes
+        // Aplicar colores de prioridad a la barra izquierda de los eventos existentes
         document.querySelectorAll('.fc-event').forEach(function(eventEl) {
             var event = calendar.getEventById(eventEl.getAttribute('data-event-id'));
-            if (event && event.extendedProps.tipo_consulta_color) {
-                eventEl.style.borderLeftColor = event.extendedProps.tipo_consulta_color;
+            if (event) {
+                var prioridad = event.extendedProps.prioridad || 'normal';
+                var prioridadHex = prioridadColors[prioridad] || prioridadColors.normal;
+                eventEl.style.borderLeftColor = prioridadHex;
                 eventEl.style.borderLeftWidth = '4px';
             }
         });
@@ -794,6 +803,7 @@ function initCitasCalendar(events) {
         if (eventPaciente.length) eventPaciente.val('').trigger('change.select2');
         if (eventEstado.length) eventEstado.val('pendiente').trigger('change');
         if (eventTipoConsulta.length) eventTipoConsulta.val('').trigger('change.select2');
+        if (eventPrioridad) eventPrioridad.value = 'normal';
         resetCascadeFrom(2);
         eventToUpdate = null;
     }
@@ -851,6 +861,7 @@ function initCitasCalendar(events) {
         if (eventNotas) eventNotas.value = ep.notas || '';
         if (eventEstado.length) eventEstado.val(ep.estado || 'pendiente').trigger('change');
         if (eventTipoConsulta.length) eventTipoConsulta.val(ep.tipo_consulta_id || '').trigger('change.select2');
+        if (eventPrioridad) eventPrioridad.value = ep.prioridad || 'normal';
         if (start) start.setDate(eventToUpdate.start, true, 'Y-m-d H:i');
         if (end) {
             eventToUpdate.end !== null
@@ -980,6 +991,14 @@ function initCitasCalendar(events) {
                 var estadoColor = calendarColors[ep.estado] || '#6c757d';
                 var estadoBadge = '<span class="badge rounded-pill" style="background:' + estadoColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;white-space:nowrap;">' + estadoLabel + '</span>';
 
+                // Badge de prioridad (solo emergencia/alta)
+                var prioridadBadge = '';
+                if (ep.prioridad && ep.prioridad !== 'normal') {
+                    var prioridadLabel = ep.prioridad_label || ep.prioridad;
+                    var prioridadBadgeColor = prioridadColors[ep.prioridad] || '#6c757d';
+                    prioridadBadge = '<span class="badge rounded-pill" style="background:' + prioridadBadgeColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;white-space:nowrap;">' + prioridadLabel + '</span>';
+                }
+
                 // Tipo de consulta con efecto gota (punto-agua)
                 var tipoConsultaHtml = '';
                 if (ep.tipo_consulta_nombre) {
@@ -996,7 +1015,7 @@ function initCitasCalendar(events) {
                         '<div class="fc-event-title-container">' +
                             '<div class="fc-event-title">' + pacienteNombre + '</div>' +
                             '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
-                            '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px;">' + estadoBadge + tipoConsultaHtml + '</div>' +
+                            '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:1px;">' + estadoBadge + prioridadBadge + tipoConsultaHtml + '</div>' +
                         '</div>' +
                     '</div>';
                 } else if (view.type === 'timeGridWeek' || view.type === 'timeGridDay') {
@@ -1004,7 +1023,7 @@ function initCitasCalendar(events) {
                         '<div class="fc-event-title-container">' +
                             '<div class="fc-event-title">' + pacienteNombre + '</div>' +
                             '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
-                            '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + estadoBadge + tipoConsultaHtml + '</div>' +
+                            '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px;">' + estadoBadge + prioridadBadge + tipoConsultaHtml + '</div>' +
                         '</div>' +
                     '</div>';
                 } else if (view.type === 'listMonth' || view.type === 'listWeek') {
@@ -1013,7 +1032,7 @@ function initCitasCalendar(events) {
                             '<div class="fc-event-title">' + pacienteNombre + '</div>' +
                             '<div class="fc-event-subtitle">Dr(a). ' + medicoNombre + '</div>' +
                         '</div>' +
-                        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + estadoBadge + tipoConsultaHtml + '</div>' +
+                        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' + estadoBadge + prioridadBadge + tipoConsultaHtml + '</div>' +
                     '</div>';
                 } else {
                     return { html: '<div>' + arg.event.title + '</div>' };
@@ -1030,10 +1049,9 @@ function initCitasCalendar(events) {
                 info.el.style.borderRightColor = hexToRgba(stateHex, 0.4);
                 info.el.style.borderBottomColor = hexToRgba(stateHex, 0.4);
             }
-            if (ep.tipo_consulta_color) {
-                info.el.style.borderLeftColor = ep.tipo_consulta_color;
-                info.el.style.borderLeftWidth = '4px';
-            }
+            var prioridadHex = prioridadColors[ep.prioridad] || prioridadColors.normal;
+            info.el.style.borderLeftColor = prioridadHex;
+            info.el.style.borderLeftWidth = '4px';
             var startDate = info.event.start;
             var dateStr = startDate ? startDate.toLocaleDateString('es-VE', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
             var tooltipParts = [
@@ -1042,6 +1060,7 @@ function initCitasCalendar(events) {
                 'Fecha: ' + dateStr,
                 'Estado: ' + (ep.estado_label || ep.estado || ''),
             ];
+            if (ep.prioridad && ep.prioridad !== 'normal') tooltipParts.push('Prioridad: ' + (ep.prioridad_label || ep.prioridad));
             if (ep.tipo_consulta_nombre) tooltipParts.push('Tipo: ' + ep.tipo_consulta_nombre);
             if (ep.motivo) tooltipParts.push('Motivo: ' + ep.motivo);
             info.el.title = tooltipParts.join('\n');
@@ -1205,7 +1224,8 @@ function initCitasCalendar(events) {
                         motivo: eventMotivo ? eventMotivo.value : '',
                         notas: eventNotas ? eventNotas.value : '',
                         estado: 'pendiente',
-                        tipo_consulta_id: eventTipoConsulta.val() || ''
+                        tipo_consulta_id: eventTipoConsulta.val() || '',
+                        prioridad: eventPrioridad ? eventPrioridad.value : 'normal'
                     };
 
                     var comp = getLivewireComponent();
@@ -1227,7 +1247,8 @@ function initCitasCalendar(events) {
                         motivo: eventMotivo ? eventMotivo.value : '',
                         notas: eventNotas ? eventNotas.value : '',
                         estado: eventEstado.val() || 'pendiente',
-                        tipo_consulta_id: eventTipoConsulta.val() || ''
+                        tipo_consulta_id: eventTipoConsulta.val() || '',
+                        prioridad: eventPrioridad ? eventPrioridad.value : 'normal'
                     };
 
                     var comp = getLivewireComponent();

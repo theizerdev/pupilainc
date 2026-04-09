@@ -85,6 +85,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         borrador: '#BDBDBD'
     };
 
+    const prioridadColors = {
+        normal: '#4e73df',
+        emergencia: '#e74a3b',
+        alta: '#fd7e14'
+    };
+
     let currentEvents = events || [];
     let calendar = null;
     let selectedMedicoFilter = null;
@@ -1288,6 +1294,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         if(ep.notas) html+='<div><strong>Notas:</strong> '+ep.notas+'</div>';
         if(ep.tiempo_espera_formateado&&ep.tiempo_espera_formateado!=='No en sala de espera') html+='<div><strong>Tiempo espera:</strong> '+ep.tiempo_espera_formateado+'</div>';
         if(ep.tipo_consulta_nombre) html+='<div><strong>Tipo:</strong> '+ep.tipo_consulta_nombre+'</div>';
+        if(ep.prioridad && ep.prioridad !== 'normal') html+='<div><strong>Prioridad:</strong> '+(ep.prioridad_label||ep.prioridad)+'</div>';
         if(ep.codigo) html+='<div><strong>Código:</strong> '+ep.codigo+'</div>';
         var start=info.event.start,end=info.event.end;
         if(start){var timeStr=moment(start).format('DD/MM/YYYY HH:mm');if(end) timeStr+=' - '+moment(end).format('HH:mm');html+='<div><strong>Horario:</strong> '+timeStr+'</div>';}
@@ -1534,6 +1541,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         calendar = new Calendar(calendarEl, {
             initialView: startView,
             initialDate: startDate,
+            height: 'auto', // Permite que el contenedor nativo maneje el scroll
             plugins: [dayGridPlugin, interactionPlugin, listPlugin, timegridPlugin],
         events: fetchEvents,
         locale: 'es',
@@ -1541,17 +1549,16 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         nowIndicator: true,
         slotEventOverlap: true,
         slotMinTime: '06:00:00',
-        slotMaxTime: '22:00:00',
+        slotMaxTime: '24:00:00',
         scrollTime: (function() {
             var now = new Date();
-            var h = Math.max(now.getHours() - 1, 6); // 1 hora antes de la actual, mínimo 06:00
+            var h = Math.max(now.getHours() - 3, 6); // 3 horas antes de la actual, mínimo 06:00
             return (h < 10 ? '0' : '') + h + ':00:00';
         })(),
 
-        contentHeight: 'auto',
         stickyHeaderDates: true,
         expandRows: false, // Desactivar expandRows para que nuestras celdas compactas se respeten
-        slotDuration: '00:30:00',
+        slotDuration: '00:20:00',
         slotLabelFormat: {
             hour: 'numeric',
             minute: '2-digit',
@@ -1561,10 +1568,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         eventMinHeight: 20,
         eventShortHeight: 20,
         slotEventOverlap: false,
-        dayMaxEventRows: true,
-        dayMaxEvents: 5,
+        dayMaxEventRows: false, // Permitir que las filas crezcan infinitamente
+        dayMaxEvents: false, // Quitar límite para que siempre se muestren todos
         editable: true,
         eventResizableFromStart: true,
+        dragScroll: true, // Revertir a true para permitir ver la tarjeta al arrastrar
         views: {
             timeGridCustom: {
                 type: 'timeGrid',
@@ -1685,11 +1693,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 consultaBadge = '<span hidden class="badge" style="background:#00897B;color:#fff;font-size:0.6rem;padding:1px 5px;" title="Tiene consulta vinculada"><i class="ri ri-links-line"></i></span>';
             }
 
-            // Badge de prioridad (solo para citas, sin color)
+            // Badge de prioridad (solo para citas no-normales)
             var prioridadBadge = '';
             if (isCita && ep.prioridad && ep.prioridad !== 'normal') {
                 var prioridadLabel = ep.prioridad_label || ep.prioridad.charAt(0).toUpperCase() + ep.prioridad.slice(1);
-                prioridadBadge = '<span class="badge" style="background:#6c757d;color:#fff;font-size:0.6rem;padding:1px 6px;font-weight:600;" title="Prioridad ' + prioridadLabel + '">' + prioridadLabel + '</span>';
+                var prioridadBadgeColor = prioridadColors[ep.prioridad] || '#6c757d';
+                prioridadBadge = '<span class="badge" style="background:' + prioridadBadgeColor + ';color:#fff;font-size:0.6rem;padding:1px 6px;font-weight:600;" title="Prioridad ' + prioridadLabel + '">' + prioridadLabel + '</span>';
             }
 
             // Edad
@@ -1756,7 +1765,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                     estadoBadge +
                     prioridadIcon +
                     consultaIcon +
-                    '<span class="fc-event-title" style="flex:1;">' + nombreCompleto + '</span>' +
+                    '<span class="fc-event-title" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nombreCompleto + '</span>' +
                 '</div>';
             } else if (view.type === 'timeGridDay' || view.type === 'timeGridWeek' || view.type === 'timeGridCustom') {
                 if (duracionMinutos <= 30) {
@@ -1810,12 +1819,18 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             info.el.classList.add('event-cita');
 
             var tipoColor = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#1565C0' : '#7B1FA2');
-            var estadoColor = getEventColor(info.event);
 
-            // Estilo Google Calendar: fondo sólido, borde izquierdo de estado
+            // Estilo Google Calendar: fondo sólido, borde izquierdo según prioridad
             info.el.style.backgroundColor = tipoColor;
             info.el.style.borderColor = tipoColor;
-            info.el.style.borderLeftColor = estadoColor || tipoColor;
+            if (isCita) {
+                var prioridadHex = prioridadColors[ep.prioridad] || prioridadColors.normal;
+                info.el.style.borderLeftColor = prioridadHex + ' !important';
+                info.el.style.setProperty('border-left-color', prioridadHex, 'important');
+            } else {
+                info.el.style.borderLeftColor = tipoColor + ' !important';
+                info.el.style.setProperty('border-left-color', tipoColor, 'important');
+            }
             info.el.style.borderLeftWidth = '4px';
             info.el.style.color = '#fff';
 
@@ -2238,7 +2253,8 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 bgStyle = 'background: linear-gradient(135deg, ' + hexToRgba('#0d6efd', 0.15) + ' 0%, ' + hexToRgba(estadoColor, 0.1) + ' 100%);';
             }
 
-            html += '<div class="day-event-item event-cita" data-event-id="' + event.id + '" style="' + bgStyle + 'border-left: 4px solid ' + estadoColor + ';">';
+            var borderLeftColor = isCita ? (prioridadColors[ep.prioridad] || prioridadColors.normal) : estadoColor;
+            html += '<div class="day-event-item event-cita" data-event-id="' + event.id + '" style="' + bgStyle + 'border-left: 4px solid ' + borderLeftColor + ';">';
             html += '<div class="d-flex justify-content-between align-items-start mb-2">';
             html += '<div class="d-flex align-items-center gap-2">';
             html += '<span class="badge" style="background:' + estadoColor + ';color:#fff;font-size:0.65rem;">' + estadoLabel + '</span>';
@@ -2327,7 +2343,13 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         var badgeColor = citaCalendarColors[ep.estado] || '#78909C';
         var estadoLabel=ep.estado_label||ep.estadoLabel||ep.estado||'';
 
-        var html='<div class="mb-3"><span class="badge me-1" style="background:#0d6efd">CITA</span><span class="badge" style="background:'+badgeColor+'">'+estadoLabel+'</span></div>';
+        var prioridadDetailBadge = '';
+        if (ep.prioridad && ep.prioridad !== 'normal') {
+            var pColor = prioridadColors[ep.prioridad] || '#6c757d';
+            var pLabel = ep.prioridad_label || ep.prioridad;
+            prioridadDetailBadge = '<span class="badge ms-1" style="background:'+pColor+'">'+pLabel+'</span>';
+        }
+        var html='<div class="mb-3"><span class="badge me-1" style="background:#0d6efd">CITA</span><span class="badge" style="background:'+badgeColor+'">'+estadoLabel+'</span>'+prioridadDetailBadge+'</div>';
         html+='<div class="mb-3"><h6 class="mb-1">Paciente</h6><p class="mb-0">'+(ep.paciente||event.title)+'</p></div>';
         if(ep.edad) html+='<div class="mb-3"><h6 class="mb-1">Edad</h6><p class="mb-0">'+ep.edad+'</p></div>';
         html+='<div class="mb-3"><h6 class="mb-1">Médico</h6><p class="mb-0">'+(ep.medico||ep.medico_full||'Sin médico')+'</p></div>';
@@ -2347,6 +2369,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     var inlineFechaFiltroTexto = document.getElementById('fechaFiltroTexto');
 
     if (inlineCalendar) {
+        // Asegurar que Flatpickr use español
+        if (typeof flatpickr !== 'undefined' && flatpickr.l10ns && flatpickr.l10ns.es) {
+            flatpickr.localize(flatpickr.l10ns.es);
+        }
+
         inlineCalInstance = flatpickr(inlineCalendar, {
             inline: true,
             locale: 'es',

@@ -46,6 +46,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    padding-bottom: 0 !important; /* Evitar que el padding inferior empuje el calendario hacia abajo y cree scroll */
 }
 
 /* Header toolbar extraído del scroll container */
@@ -147,9 +148,7 @@
 
 /* Ajustar la altura de los eventos en la vista de mes */
 .fc-daygrid-event {
-    min-height: 28px !important;
-    display: flex !important;
-    align-items: center !important;
+    min-height: auto !important;
 }
 
 /* Indicador de más eventos */
@@ -655,7 +654,6 @@
         }
 
         .fc .fc-daygrid-day-frame.fc-scrollgrid-sync-inner {
-            min-height: 60px !important;
             padding: 3px 5px !important;
         }
         .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
@@ -665,7 +663,6 @@
             padding: 3px 5px !important;
         }
         .fc td.fc-daygrid-day {
-            min-height: 60px !important;
             width: 100% !important;
         }
         .fc .fc-col-header-cell {
@@ -747,10 +744,44 @@
 
         /* Cita event indicator */
         .fc .fc-event.event-cita {
-            border-left-color: #0d6efd !important;
+            /* Permitimos que el JS sobreescriba el color */
         }
         .fc .fc-event.event-consulta {
             border-left-color: #6f42c1 !important;
+        }
+
+        /* Estilos para arrastrar y redimensionar (Drag & Resize) */
+        .fc-event-dragging {
+            opacity: 0.75 !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        }
+        .fc-event-resizing {
+            opacity: 0.8 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        }
+        .fc-timegrid-event-harness-inset .fc-timegrid-event, .fc-timegrid-event.fc-event-mirror, .fc-timegrid-more-link {
+            box-shadow: 0 0 0 1px #fff;
+        }
+
+        /* Asegurar que el elemento fantasma (mirror) sea siempre visible */
+        .fc-timegrid-event-harness:has(.fc-event-mirror) {
+            z-index: 9999 !important;
+        }
+        .fc-event-mirror {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 0.9 !important;
+            z-index: 9999 !important;
+            background-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.9) !important;
+        }
+        .fc-timegrid-event-harness.fc-timegrid-event-harness-inset .fc-event-mirror {
+            z-index: 10000 !important;
+        }
+        .fc-v-event .fc-event-resizer-end {
+            bottom: 0;
+            height: 8px;
+            cursor: ns-resize;
+            background: rgba(0,0,0,0.1);
         }
 
         /* Day Events Modal Styles */
@@ -1040,18 +1071,4 @@
             overflow-y: auto;
             overflow-x: hidden;
             scrollbar-width: thin;
-            scrollbar-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.3) transparent;
-        }
-        .calendar-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .calendar-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .calendar-scroll::-webkit-scrollbar-thumb {
-            background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.3);
-            border-radius: 3px;
-        }
-        .calendar-scroll::-webkit-scrollbar-thumb:hover {
-            background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.5);
         }

@@ -76,7 +76,7 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <div class="form-group">
                             <label for="search" class="fw-bold"><i class="fas fa-search me-1"></i>Búsqueda:</label>
                             <input type="text" 
@@ -91,7 +91,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <div class="form-group">
                             <label for="status" class="fw-bold"><i class="fas fa-filter me-1"></i>Estado:</label>
                             <select class="form-control @error('status') is-invalid @enderror" 
@@ -104,6 +104,14 @@
                             @error('status')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-group w-100">
+                            <button type="button" class="btn btn-secondary w-100 mb-1" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="fas fa-eraser"></i> Limpiar Filtros
+                            </button>
                         </div>
                     </div>
                 </div>

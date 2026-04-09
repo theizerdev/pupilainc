@@ -299,6 +299,26 @@
                         </div>
                     </div>
 
+                    <!-- Prioridad (leyenda barra izquierda) -->
+                    <hr class="mb-5 mx-n4 mt-3" />
+                    <div class="mb-3 ms-1">
+                        <h5 class="mb-3">Prioridad</h5>
+                        <div class="d-flex flex-column gap-2 ms-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="legend-bar" style="background-color: #4e73df;"></span>
+                                <span class="small">Normal</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="legend-bar" style="background-color: #e74a3b;"></span>
+                                <span class="small">Emergencia</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="legend-bar" style="background-color: #fd7e14;"></span>
+                                <span class="small">Otros</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Tipo de Cita con filtro -->
                     @if($this->tiposConsulta->isNotEmpty())
                         <hr class="mb-5 mx-n4 mt-3" />
@@ -420,6 +440,16 @@
                                     @endforeach
                                 </select>
                                 <label for="eventTipoConsulta">Tipo de Cita</label>
+                            </div>
+
+                            <!-- Prioridad -->
+                            <div class="form-floating form-floating-outline mb-5">
+                                <select class="form-select" id="eventPrioridad" name="eventPrioridad">
+                                    <option value="normal" data-color="#4e73df" selected>Normal</option>
+                                    <option value="emergencia" data-color="#e74a3b">Emergencia</option>
+                                    <option value="alta" data-color="#fd7e14">Otros</option>
+                                </select>
+                                <label for="eventPrioridad">Prioridad</label>
                             </div>
 
                             <!-- Motivo -->

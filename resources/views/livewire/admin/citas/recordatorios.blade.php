@@ -124,15 +124,15 @@
                                         <td>
                                             <div class="btn-group btn-group-sm" role="group">
                                                 @if($recordatorio->estado === 'fallido')
-                                                    <button wire:click="reenviarRecordatorio({{ $recordatorio->id }})" 
-                                                            class="btn btn-outline-warning" 
+                                                    <button wire:click="reenviarRecordatorio({{ $recordatorio->id }})"
+                                                            class="btn btn-outline-warning"
                                                             title="Reenviar">
                                                         <i class="fas fa-redo"></i>
                                                     </button>
                                                 @endif
                                                 @if($recordatorio->estado === 'pendiente')
-                                                    <button wire:click="cancelarRecordatorio({{ $recordatorio->id }})" 
-                                                            class="btn btn-outline-danger" 
+                                                    <button wire:click="cancelarRecordatorio({{ $recordatorio->id }})"
+                                                            class="btn btn-outline-danger"
                                                             title="Cancelar">
                                                         <i class="fas fa-ban"></i>
                                                     </button>

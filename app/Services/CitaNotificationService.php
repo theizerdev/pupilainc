@@ -244,21 +244,57 @@ class CitaNotificationService
         return true;
     }
 
-    public function enviarRecordatorio(Cita $cita): bool
+    public function enviarRecordatorio(Cita $cita): array
     {
         $cita->loadMissing(['paciente.tutor', 'medico']);
 
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        if (empty($telefonos)) return false;
+        if (empty($telefonos)) {
+            return [
+                'success' => false,
+                'errors' => ['El paciente no tiene un número de teléfono registrado'],
+                'message' => 'Error al enviar recordatorio'
+            ];
+        }
 
         $mensaje = $this->construirMensajeRecordatorio($cita);
         $resultado = false;
+        $errores = [];
 
         foreach ($telefonos as $telefono) {
-            $resultado = $this->enviar($telefono, $mensaje) || $resultado;
+            // Guardar o buscar el mensaje en la tabla como "manual"
+            $scheduledMessage = WhatsAppScheduledMessage::updateOrCreate(
+                [
+                    'cita_id' => $cita->id,
+                    'notification_type' => 'manual',
+                    'recipient_phone' => $telefono,
+                ],
+                [
+                    'empresa_id' => $cita->empresa_id ?? $this->empresaId,
+                    'recipient_name' => $cita->paciente->nombre_completo,
+                    'message_content' => $mensaje,
+                    'scheduled_at' => now(),
+                    'status' => 'pending',
+                    'attempts' => 0,
+                    'max_attempts' => 3,
+                    'created_by' => auth()->id(),
+                ]
+            );
+
+            if ($this->enviar($telefono, $mensaje)) {
+                $resultado = true;
+                $scheduledMessage->markAsSent();
+            } else {
+                $errores[] = "No se pudo enviar mensaje al teléfono {$telefono}";
+                $scheduledMessage->markAsFailed("Error al conectar con la API de WhatsApp");
+            }
         }
 
-        return $resultado;
+        return [
+            'success' => $resultado,
+            'errors' => $errores,
+            'message' => $resultado ? 'Recordatorio enviado correctamente' : 'No se pudo enviar el recordatorio'
+        ];
     }
 
     // ===== RESOLUCIÓN DE DESTINATARIOS =====

@@ -229,8 +229,8 @@ class Cita extends Model
 
     public function scopeEnRango($query, $inicio, $fin)
     {
-        return $query->where('fecha_inicio', '<', $fin)
-                     ->where('fecha_fin', '>', $inicio);
+        return $query->where('fecha_inicio', '<=', $fin)
+                     ->where('fecha_fin', '>=', $inicio);
     }
 
     public function scopeSinConflicto($query, $medicoId, $inicio, $fin, $excludeId = null)

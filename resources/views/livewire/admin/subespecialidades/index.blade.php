@@ -138,7 +138,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="status">Estado:</label>
                             <select class="form-select" id="status" wire:model.change="status">
@@ -146,6 +146,14 @@
                                 <option value="1">Activo</option>
                                 <option value="0">Inactivo</option>
                             </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-1 d-flex align-items-end">
+                        <div class="form-group w-100">
+                            <button type="button" class="btn btn-secondary w-100 mb-1" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="icon-base ri ri-eraser-line"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

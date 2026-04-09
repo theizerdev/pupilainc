@@ -144,70 +144,14 @@
                         </button>
                     </div>
 
-                    <!-- Stats -->
-                    <div class="border-bottom my-sm-0 mb-4 p-3">
-                        <div class="accordion" id="statsAccordion">
-                            <div class="accordion-item border-0 bg-transparent">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button p-1 py-2 bg-transparent" type="button" data-bs-toggle="collapse" data-bs-target="#statsCollapse" aria-expanded="true">
-                                        <i class="ri ri-bar-chart-line me-2"></i>Estadísticas
-                                    </button>
-                                </h2>
-                                <div id="statsCollapse" class="accordion-collapse collapse show" data-bs-parent="#statsAccordion">
-                                    <div class="accordion-body p-0 pt-2">
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <small class="text-muted fw-medium">HOY</small>
-                                <small class="text-muted">{{ now()->format('d/m/Y') }}</small>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <div class="text-center p-2 rounded" style="background: rgba(13, 110, 253, 0.1);">
-                                        <h5 class="mb-0 text-primary">{{ $stats['citas_hoy'] }}</h5>
-                                        <small class="text-muted">Citas</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <small class="text-muted fw-medium">SEMANA</small>
-                                <small class="text-muted">{{ now()->startOfWeek()->format('d/m') }} - {{ now()->endOfWeek()->format('d/m') }}</small>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <div class="text-center p-2 rounded" style="background: rgba(13, 110, 253, 0.1);">
-                                        <h5 class="mb-0 text-primary" id="citasSemana">0</h5>
-                                        <small class="text-muted">Citas</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <small class="text-muted fw-medium d-block mb-2">ESTADO</small>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <div class="d-flex align-items-center">
-                                        <i class="ri-time-line text-warning me-1"></i>
-                                        <small class="text-muted">Pendientes:</small>
-                                        <strong class="ms-auto">{{ $stats['citas_pendientes'] }}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
 
 
                     <hr class="mb-4 mx-n4 mt-3" />
 
                     <!-- Filtros Container -->
-                    <div id="filtrosContainer" style="overflow-y: auto;">
+                    <div id="filtrosContainer">
 
                     <!-- Filtro por Especialidad (Colapsable) -->
                     <div class="accordion" id="filtrosAccordion">
@@ -295,7 +239,7 @@
                         <h6 class="mb-0">Médicos</h6>
                         <small class="text-muted" id="medicosCount">{{ $medicos->count() }}</small>
                     </div>
-                    <div id="medicos-calendario" class="ms-1" style="max-height: 200px; overflow-y: auto;">
+                    <div id="medicos-calendario" class="ms-1" style="{{ $medicos->isEmpty() ? '' : 'max-height: 200px; overflow-y: auto;' }}">
                         @foreach($medicos as $medico)
                             <div class="medico-item d-flex justify-content-between align-items-center mb-1"
                                  data-medico-id="{{ $medico->id }}">
@@ -309,7 +253,7 @@
                             </div>
                         @endforeach
                         @if($medicos->isEmpty())
-                            <small class="text-muted">Sin médicos activos</small>
+                            <small class="text-muted d-block text-center mt-2 mb-3">Sin médicos activos</small>
                         @endif
                     </div>
 
@@ -676,6 +620,7 @@
     <script src="/materialize/assets/vendor/libs/fullcalendar/fullcalendar.js"></script>
     <script src="/materialize/assets/vendor/libs/moment/moment.js"></script>
     <script src="/materialize/assets/vendor/libs/flatpickr/flatpickr.js"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
     <script src="/materialize/assets/vendor/libs/@form-validation/popular.js"></script>
     <script src="/materialize/assets/vendor/libs/@form-validation/bootstrap5.js"></script>
     <script src="/materialize/assets/vendor/libs/@form-validation/auto-focus.js"></script>
