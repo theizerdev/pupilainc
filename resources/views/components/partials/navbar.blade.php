@@ -88,6 +88,12 @@
                 <!-- / Style Switcher-->
 
 
+                <!-- Chat Internal Indicator -->
+                <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
+                  @livewire('chat-notifications')
+                </li>
+                <!-- / Chat Internal Indicator -->
+
                 <!-- Notification -->
                 <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
                   @livewire('notification-bell')

@@ -28,12 +28,8 @@
         <div>Dashboard</div>
       </a>
     </li>
-    <li class="menu-item {{ request()->routeIs('admin.chat-interno.index') ? 'active' : '' }}">
-      <a href="{{ url('admin/chat-interno') }}" class="menu-link">
-        <i class="menu-icon tf-icons ri ri-chat-1-line"></i>
-        <div>Chat Interno</div>
-      </a>
-    </li>
+
+
 
     @include('components.partials.menu-sector-items', ['isHorizontal' => false])
   </ul>

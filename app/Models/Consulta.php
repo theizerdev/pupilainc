@@ -254,6 +254,11 @@ class Consulta extends Model
         return $this->belongsTo(Sucursal::class);
     }
 
+    public function gotasAplicadas()
+    {
+        return $this->hasMany(ConsultaGota::class);
+    }
+
     public function scopePorEstado($query, $estado)
     {
         return $query->where('estado', $estado);

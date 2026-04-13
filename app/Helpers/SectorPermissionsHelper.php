@@ -44,7 +44,14 @@ if (!function_exists('getPermissionSectors')) {
                 'description' => 'WhatsApp, mensajes y plantillas',
                 'color' => 'teal',
                 'icon' => 'ri-whatsapp-line',
-                'modules' => ['whatsapp', 'whatsapp templates', 'whatsapp messages']
+                'modules' => ['whatsapp', 'whatsapp templates', 'whatsapp messages', 'chat interno']
+            ],
+             'medico' => [
+                'name' => '🏥 Médico',
+                'description' => 'Gestión de pacientes, médicos, citas y especialidades',
+                'color' => 'blue',
+                'icon' => 'ri-heart-pulse-line',
+                'modules' => ['tipo-consultas', 'pacientes', 'medicos', 'citas', 'especialidades', 'subespecialidades']
             ],
             'sistema' => [
                 'name' => '🔧 Sistema',
@@ -173,7 +180,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'route_horizontal' => 'admin.calendario',
                         'active' => 'admin.calendario',
                     ],
-                    
+
                 ]
             ],
             'medico' => [
@@ -351,7 +358,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.template-customization',
                         'active' => 'admin.template-customization',
                     ],
-                   
+
                 ]
             ],
             'comunicaciones' => [

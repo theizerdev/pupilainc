@@ -166,15 +166,32 @@
                                     @if($consulta->estado === \App\Models\Consulta::ESTADO_PAGADA)
                                         <i class="ri ri-check-double-line text-success ms-1" title="Pagada"></i>
                                     @endif
+                                    @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_GOTAS && $consulta->gotasAplicadas->count() > 0)
+                                        <div class="mt-1 d-flex flex-column gap-1">
+                                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style="font-size: 0.7rem;">
+                                                <i class="ri ri-drop-fill me-1"></i>{{ $consulta->gotasAplicadas->count() }} aplicación(es)
+                                            </span>
+                                            <span class="badge bg-light text-secondary border" style="font-size: 0.65rem;">
+                                                OD: {{ $consulta->gotasAplicadas->sum('gotas_od') }} | OI: {{ $consulta->gotasAplicadas->sum('gotas_oi') }}
+                                            </span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($consulta->estado_changed_at)
-                                        <small class="text-muted" title="{{ $consulta->estado_changed_at->format('d/m/Y H:i') }}">
+                                        <small class="text-muted d-block" title="{{ $consulta->estado_changed_at->format('d/m/Y H:i') }}">
                                             <i class="ri ri-time-line"></i>
                                             {{ $consulta->estado_changed_at->diffForHumans(null, true, true) }}
                                         </small>
                                     @else
-                                        <small class="text-muted">-</small>
+                                        <small class="text-muted d-block">-</small>
+                                    @endif
+
+                                    @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_GOTAS && $consulta->gotasAplicadas->count() > 0)
+                                        <small class="text-info d-block mt-1" title="Última aplicación de gotas: {{ $consulta->gotasAplicadas->last()->created_at->format('d/m/Y H:i') }}">
+                                            <i class="ri ri-timer-line"></i>
+                                            {{ $consulta->gotasAplicadas->last()->created_at->diffForHumans(null, true, true) }}
+                                        </small>
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -183,45 +200,6 @@
                                             <i class="ri ri-more-2-fill"></i>
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <!-- @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center"
-                                                       href="{{ route('admin.consulta.informe', $consulta->id) }}"
-                                                       target="_blank">
-                                                        <i class="ri ri-file-text-line me-2"></i>
-                                                        Informe Médico
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center"
-                                                       href="{{ route('admin.consulta.justificativo', $consulta->id) }}"
-                                                       target="_blank">
-                                                        <i class="ri ri-file-list-line me-2"></i>
-                                                        Justificativo
-                                                    </a>
-                                                </li>
-                                                @if($consulta->reposo)
-                                                    <li>
-                                                        <a class="dropdown-item d-flex align-items-center"
-                                                           href="{{ route('admin.consulta.reposo', $consulta->id) }}"
-                                                           target="_blank">
-                                                            <i class="ri ri-file-shield-line me-2"></i>
-                                                            Reposo Médico
-                                                        </a>
-                                                    </li>
-                                                @endif
-                                                <li><hr class="dropdown-divider"></li>
-                                                @can('create pagos')
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center"
-                                                       href="{{ route('admin.pagos.create') }}">
-                                                        <i class="ri ri-money-dollar-circle-line me-2"></i>
-                                                        Registrar Pago
-                                                    </a>
-                                                </li>
-                                                @endcan
-                                                <li><hr class="dropdown-divider"></li>
-                                            @endif -->
 
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
                                                 <li>
@@ -229,6 +207,28 @@
                                                        data-bs-toggle="modal" data-bs-target="#registrarSignosVitalesModal{{ $consulta->id }}">
                                                         <i class="ri ri-heart-pulse-line me-2"></i>
                                                         Registrar Signos Vitales
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                            @endif
+
+                                            @if(in_array($consulta->estado, [\App\Models\Consulta::ESTADO_EN_CONSULTORIO]))
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center"
+                                                       href="{{ route('admin.consulta.proceso', $consulta->id) }}">
+                                                        <i class="ri ri-stethoscope-line me-2"></i>
+                                                        Procesar Consulta
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                            @endif
+
+                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_GOTAS)
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center" href="#"
+                                                       data-bs-toggle="modal" data-bs-target="#registrarGotasModal{{ $consulta->id }}">
+                                                        <i class="ri ri-drop-line me-2"></i>
+                                                        Registrar Aplicación de Gotas
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
@@ -270,6 +270,9 @@
     @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
         @livewire('admin.gestion.consultas.registrar-signos-vitales', ['consultaId' => $consulta->id], key('signos-vitales-' . $consulta->id))
     @endif
+    @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_GOTAS)
+        @livewire('admin.gestion.consultas.registrar-gotas', ['consultaId' => $consulta->id], key('gotas-' . $consulta->id))
+    @endif
 @endforeach
 
 <script>
@@ -284,6 +287,16 @@
     window.addEventListener('cerrar-modal-signos-vitales', event => {
         // Cerrar todos los modales de signos vitales
         document.querySelectorAll('[id^="registrarSignosVitalesModal"]').forEach(modal => {
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            if (bootstrapModal) {
+                bootstrapModal.hide();
+            }
+        });
+    });
+
+    window.addEventListener('cerrar-modal-gotas', event => {
+        // Cerrar todos los modales de gotas
+        document.querySelectorAll('[id^="registrarGotasModal"]').forEach(modal => {
             const bootstrapModal = bootstrap.Modal.getInstance(modal);
             if (bootstrapModal) {
                 bootstrapModal.hide();

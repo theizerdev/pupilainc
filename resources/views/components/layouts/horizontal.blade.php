@@ -126,7 +126,7 @@
     </div>
     <!-- /Layout wrapper -->
      @livewireScripts
-
+    @livewire('chat-notifications')
     <!-- Core JS -->
     <script src="/materialize/assets/vendor/libs/jquery/jquery.js"></script>
     <script src="/materialize/assets/vendor/libs/popper/popper.js"></script>

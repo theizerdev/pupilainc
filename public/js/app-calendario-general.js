@@ -1308,8 +1308,10 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
     // ===================== FILTER LOGIC =====================
     function getActiveFilters() {
-        var citasEnabled = toggleCitas ? toggleCitas.checked : true;
-        var citaStates = citasEnabled ? filterInputsCita.filter(function(c){return c.checked;}).map(function(c){return c.dataset.value;}) : [];
+        var tc = document.getElementById('toggleCitas');
+        var citasEnabled = tc ? tc.checked : true;
+        var inputs = Array.from(document.querySelectorAll('.input-filter-cita'));
+        var citaStates = citasEnabled ? inputs.filter(function(c){return c.checked;}).map(function(c){return c.dataset.value;}) : [];
         return { citaStates: citaStates, citasEnabled: citasEnabled };
     }
 
@@ -1354,9 +1356,8 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             }
 
             // Restaurar todos los checkboxes de estados
-            if (filterInputsCita) {
-                filterInputsCita.forEach(function(cb) { cb.checked = true; });
-            }
+            var inputs = Array.from(document.querySelectorAll('.input-filter-cita'));
+            inputs.forEach(function(cb) { cb.checked = true; });
 
             // Limpiar prefetch cache y recargar
             prefetchCache = {};
@@ -1424,19 +1425,20 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
         // Contador de citas activas
         var citasCount = document.getElementById('citasActivasCount');
-        if (citasCount && filterInputsCita) {
-            var checkedCitas = filterInputsCita.filter(function(cb) { return cb.checked; }).length;
-            var totalCitas = filterInputsCita.length;
+        var inputs = Array.from(document.querySelectorAll('.input-filter-cita'));
+        if (citasCount && inputs) {
+            var checkedCitas = inputs.filter(function(cb) { return cb.checked; }).length;
+            var totalCitas = inputs.length;
             citasCount.textContent = checkedCitas + '/' + totalCitas;
         }
     }
 
     // Actualizar contadores cuando cambien los filtros
-    if (filterInputsCita) {
-        filterInputsCita.forEach(function(cb) {
-            cb.addEventListener('change', updateAccordionCounts);
-        });
-    }
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('input-filter-cita')) {
+            updateAccordionCounts();
+        }
+    });
     if (filterEspecialidad) {
         filterEspecialidad.addEventListener('change', updateAccordionCounts);
     }
@@ -2403,7 +2405,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
     // ===================== TOGGLE HANDLERS =====================
     if(toggleCitas){toggleCitas.addEventListener('change',function(){filtrosCitas.style.display=this.checked?'':'none';prefetchCache={};calendar.refetchEvents();});}
-    filterInputsCita.forEach(function(input){input.addEventListener('change',function(){prefetchCache={};calendar.refetchEvents();});});
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList.contains('input-filter-cita')) {
+            prefetchCache = {};
+            calendar.refetchEvents();
+        }
+    });
 
     // ===================== MEDICO FILTER =====================
     if(medicosContainer){

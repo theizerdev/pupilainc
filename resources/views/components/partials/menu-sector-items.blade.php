@@ -8,7 +8,10 @@
         $sectorActive = isSectorActive($sector['items']);
         $hasVisibleItems = false;
         foreach ($sector['items'] as $item) {
-            if (isset($item['permissions'])) {
+            if (!isset($item['permissions']) && !isset($item['permission'])) {
+                $hasVisibleItems = true; // Si no tiene restricción de permisos, es visible para todos
+                break;
+            } elseif (isset($item['permissions'])) {
                 if (auth()->user()->canAny($item['permissions'])) {
                     $hasVisibleItems = true;
                     break;
@@ -31,7 +34,7 @@
 
         @foreach($sector['items'] as $item)
             @php
-                $canAccess = false;
+                $canAccess = true; // Por defecto asumimos que tiene acceso (para ítems sin restricción como Chat Interno)
                 if (isset($item['permissions'])) {
                     $canAccess = auth()->user()->canAny($item['permissions']);
                 } elseif (isset($item['permission'])) {

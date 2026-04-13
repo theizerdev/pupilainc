@@ -359,6 +359,11 @@
                                         <small class="user-status text-body">{{ $selectedUser->roles->first()?->name ?? 'Usuario' }}</small>
                                     </div>
                                 </div>
+                                <div class="d-flex align-items-center">
+                                    <button type="button" class="btn btn-sm btn-icon btn-text-secondary rounded-pill" id="toggle-chat-sound" title="Alternar sonido de notificaciones">
+                                        <i class="ri ri-volume-up-line fs-5"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -382,8 +387,16 @@
                                     @endif
 
                                     {{-- Message bubble --}}
-                                    <div class="wa-message-row {{ $msg['is_mine'] ? 'out' : 'in' }}">
-                                        <div class="wa-bubble {{ $msg['is_mine'] ? 'wa-bubble-out' : 'wa-bubble-in' }}">
+                                    <div class="wa-message-row {{ $msg['is_mine'] ? 'out' : 'in' }} {{ !$msg['is_mine'] && !$msg['is_read'] ? 'unread-msg cursor-pointer' : '' }}"
+                                         @if(!$msg['is_mine'] && !$msg['is_read']) wire:click="markAsRead" title="Clic para marcar como leído" @endif>
+
+                                        @if(!$msg['is_mine'] && !$msg['is_read'])
+                                            <div class="d-flex align-items-center me-2">
+                                                <span class="badge bg-primary p-1 rounded-circle" style="width: 8px; height: 8px;"></span>
+                                            </div>
+                                        @endif
+
+                                        <div class="wa-bubble {{ $msg['is_mine'] ? 'wa-bubble-out' : 'wa-bubble-in' }}" style="{{ !$msg['is_mine'] && !$msg['is_read'] ? 'font-weight: 500; box-shadow: 0 1px 4px rgba(105,108,255,0.4); border: 1px solid var(--bs-primary);' : '' }}">
                                             @if(!$msg['is_mine'])
                                                 <div class="wa-sender-name">{{ $msg['sender_name'] }}</div>
                                             @endif
@@ -424,6 +437,9 @@
         </div>
     </div>
 
+    {{-- Input oculto para que el notificador global sepa qué chat está activo --}}
+    <input type="hidden" id="chat-selected-user-id" value="{{ $selectedUserId }}">
+
     @push('scripts')
     <script>
         document.addEventListener('livewire:initialized', () => {
@@ -431,6 +447,19 @@
                 const chatBody = document.getElementById('chat-history-body');
                 if (chatBody) {
                     chatBody.scrollTop = chatBody.scrollHeight;
+                }
+            };
+
+            let readTimer = null;
+
+            const startReadTimer = () => {
+                clearTimeout(readTimer);
+                // Si hay mensajes no leídos, marcar como leído después de 3 segundos
+                const hasUnread = document.querySelector('.unread-msg');
+                if (hasUnread) {
+                    readTimer = setTimeout(() => {
+                        @this.markAsRead();
+                    }, 3000);
                 }
             };
 
@@ -442,9 +471,50 @@
                 if (el.id === 'chat-history-body') {
                     scrollToBottom();
                 }
+                if (el.classList && el.classList.contains('app-chat')) {
+                    startReadTimer();
+                }
             });
 
             scrollToBottom();
+            startReadTimer();
+
+            // Sincronizar contadores globales a locales
+            window.addEventListener('update-chat-unread-counts', () => {
+                @this.pollMessages();
+            });
+
+            // Toggle de sonido
+            const initSoundToggle = () => {
+                const btn = document.getElementById('toggle-chat-sound');
+                if (!btn) return;
+
+                const icon = btn.querySelector('i');
+                const isEnabled = localStorage.getItem('chatSoundEnabled') !== 'false';
+
+                if (isEnabled) {
+                    icon.className = 'ri ri-volume-up-line fs-5';
+                    btn.classList.add('text-primary');
+                    btn.classList.remove('text-muted');
+                } else {
+                    icon.className = 'ri ri-volume-mute-line fs-5';
+                    btn.classList.add('text-muted');
+                    btn.classList.remove('text-primary');
+                }
+
+                btn.onclick = () => {
+                    const current = localStorage.getItem('chatSoundEnabled') !== 'false';
+                    localStorage.setItem('chatSoundEnabled', !current);
+                    initSoundToggle(); // Refrescar icono
+                };
+            };
+
+            initSoundToggle();
+            Livewire.hook('morph.updated', ({ el }) => {
+                if (el.id === 'toggle-chat-sound') {
+                    initSoundToggle();
+                }
+            });
         });
     </script>
     @endpush

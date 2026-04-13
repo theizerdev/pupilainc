@@ -38,6 +38,7 @@ class ListaPorEstado extends Component
         'success' => 'mostrarSuccess',
         'error' => 'mostrarError',
         'signos-vitales-guardado' => 'cerrarModalSignosVitales',
+        'gotas-actualizadas' => '$refresh',
     ];
 
     public function mostrarSuccess($message)
@@ -147,7 +148,7 @@ class ListaPorEstado extends Component
 
     public function getConsultasProperty()
     {
-        $query = Consulta::with(['paciente', 'medico', 'especialidad'])
+        $query = Consulta::with(['paciente', 'medico', 'especialidad', 'gotasAplicadas'])
             ->whereIn('estado', $this->estadosFiltro);
 
         if (auth()->user()->hasRole('Doctor')) {

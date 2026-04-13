@@ -86,7 +86,7 @@ class ChatInterno extends Component
 
         if ($this->selectedUser) {
             $this->loadMessages();
-            $this->markAsRead();
+            // Ya no marcamos como leído inmediatamente. Se hará vía JS (3 seg o clic)
         }
     }
 
@@ -150,7 +150,7 @@ class ChatInterno extends Component
 
         $currentUser = Auth::user();
 
-        ChatMessage::where('sender_id', $this->selectedUserId)
+        $updated = ChatMessage::where('sender_id', $this->selectedUserId)
             ->where('receiver_id', $currentUser->id)
             ->where('empresa_id', $currentUser->empresa_id)
             ->where('is_read', false)
@@ -158,13 +158,17 @@ class ChatInterno extends Component
                 'is_read' => true,
                 'read_at' => now(),
             ]);
+
+        if ($updated) {
+            $this->loadMessages();
+            $this->dispatch('chat-marked-as-read');
+        }
     }
 
     public function pollMessages()
     {
         if ($this->selectedUserId) {
             $this->loadMessages();
-            $this->markAsRead();
         }
     }
 
