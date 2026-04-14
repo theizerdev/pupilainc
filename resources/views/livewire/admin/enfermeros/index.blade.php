@@ -112,7 +112,7 @@
         </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <div class="form-group">
                         <label for="search">Búsqueda</label>
                         <input type="text" class="form-control" id="search" wire:model.live.debounce.300ms="search" placeholder="Buscar por nombre, documento, licencia...">
@@ -162,11 +162,11 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
                     <div class="form-group">
                         <label>&nbsp;</label>
-                        <button type="button" class="btn btn-secondary w-100" wire:click="resetFilters">
-                            <i class="fas fa-undo"></i>
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100" wire:click="clearFilters" title="Limpiar Filtros">
+                            <i class="ri ri-close-line me-1"></i>Limpiar Filtros
                         </button>
                     </div>
                 </div>
@@ -279,10 +279,11 @@
                                             <a class="dropdown-item" href="{{ route('admin.enfermeros.horarios', $enfermero->id) }}">
                                                 <i class="fas fa-clock me-2"></i>Horarios
                                             </a>
-                                            <button class="dropdown-item" wire:click="enviarMensajeBienvenida({{ $enfermero->id }})"
+                                            <!-- Temporalmente oculto: Envío de bienvenida por WhatsApp -->
+                                            {{-- <button class="dropdown-item" wire:click="enviarMensajeBienvenida({{ $enfermero->id }})"
                                                     onclick="confirm('¿Está seguro de enviar el mensaje de bienvenida por WhatsApp?') || event.stopImmediatePropagation()">
                                                 <i class="fab fa-whatsapp me-2 text-success"></i>Enviar Bienvenida
-                                            </button>
+                                            </button> --}}
                                             <div class="dropdown-divider"></div>
                                             <button class="dropdown-item" wire:click="toggleStatus({{ $enfermero->id }})" 
                                                     onclick="confirm('¿Está seguro de cambiar el estado?') || event.stopImmediatePropagation()">

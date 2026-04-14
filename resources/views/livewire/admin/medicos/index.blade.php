@@ -96,7 +96,7 @@
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="search">Búsqueda:</label>
                             <input type="text" class="form-control" id="search" wire:model.live.debounce.300ms="search" placeholder="Buscar médico...">
@@ -150,11 +150,11 @@
                         </div>
                     </div>
 
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label>&nbsp;</label>
-                            <button type="button" class="btn btn-secondary btn-block" wire:click="resetFilters">
-                                <i class="fas fa-refresh"></i>
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="ri ri-close-line me-1"></i>Limpiar Filtros
                             </button>
                         </div>
                     </div>

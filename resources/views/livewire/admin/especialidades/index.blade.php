@@ -148,10 +148,11 @@
                         </div>
                     </div>
 
-                    <div class="col-md-2 d-flex align-items-end">
-                        <div class="form-group w-100">
-                            <button type="button" class="btn btn-secondary w-100 mb-4" wire:click="clearFilters" title="Limpiar Filtros">
-                                <i class="fas fa-eraser"></i> Limpiar filtros
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="ri ri-close-line me-1"></i>Limpiar Filtros
                             </button>
                         </div>
                     </div>

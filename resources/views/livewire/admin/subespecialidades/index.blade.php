@@ -114,7 +114,7 @@
                         </div>
                     </div>
                     
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="especialidad_id">Especialidad:</label>
                             <select class="form-select" id="especialidad_id" wire:model.change="especialidad_id">
@@ -149,10 +149,11 @@
                         </div>
                     </div>
                     
-                    <div class="col-md-1 d-flex align-items-end">
-                        <div class="form-group w-100">
-                            <button type="button" class="btn btn-secondary w-100 mb-1" wire:click="clearFilters" title="Limpiar Filtros">
-                                <i class="icon-base ri ri-eraser-line"></i>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="ri ri-close-line me-1"></i>Limpiar Filtros
                             </button>
                         </div>
                     </div>

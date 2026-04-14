@@ -119,7 +119,7 @@ use Illuminate\Support\Facades\Storage;
         <div class="card shadow mb-4">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label for="search">Búsqueda:</label>
                             <input type="text" class="form-control" id="search" wire:model.live.debounce.300ms="search" placeholder="Buscar paciente...">
@@ -171,11 +171,11 @@ use Illuminate\Support\Facades\Storage;
                         </div>
                     </div>
 
-                    <div class="col-md-1">
+                    <div class="col-md-2">
                         <div class="form-group">
                             <label>&nbsp;</label>
-                            <button type="button" class="btn btn-secondary btn-block" wire:click="resetFilters">
-                                <i class="fas fa-refresh"></i>
+                            <button type="button" class="btn btn-sm btn-outline-secondary w-100" wire:click="clearFilters" title="Limpiar Filtros">
+                                <i class="ri ri-close-line me-1"></i>Limpiar Filtros
                             </button>
                         </div>
                     </div>
@@ -319,13 +319,14 @@ use Illuminate\Support\Facades\Storage;
                                                     <a class="dropdown-item" href="{{ route('admin.pacientes.carnet-menor.pdf', $paciente->id) }}" target="_blank" rel="noopener">
                                                         <i class="ri ri-file-pdf-2-line me-1"></i> Ver PDF del Carnet
                                                     </a>
-                                                    <form action="{{ route('admin.pacientes.carnet-menor.whatsapp', $paciente->id) }}" method="POST"
+                                                    <!-- Temporalmente oculto: Envío por WhatsApp -->
+                                                    {{-- <form action="{{ route('admin.pacientes.carnet-menor.whatsapp', $paciente->id) }}" method="POST"
                                                           onsubmit="return confirm('¿Enviar el carnet por WhatsApp al tutor?')">
                                                         @csrf
                                                         <button type="submit" class="dropdown-item">
                                                             <i class="ri ri-whatsapp-line me-1"></i> Enviar por WhatsApp (Tutor)
                                                         </button>
-                                                    </form>
+                                                    </form> --}}
                                                 @endif
 
                                                 @can('delete pacientes')
