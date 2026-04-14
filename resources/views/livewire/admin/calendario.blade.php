@@ -95,6 +95,7 @@
 
     <div class="card app-calendar-wrapper" wire:ignore>
         <div class="row g-0" style="min-width: 0;">
+            
             <!-- Calendar Sidebar -->
             <div class="col app-calendar-sidebar sidebar-hidden border-end" id="app-calendar-sidebar">
                 <!-- Toggle Filtros Button (Fixed at top) -->
@@ -108,7 +109,7 @@
                 </div>
                 <!-- Scrollable Content -->
                 <div class="px-4 py-3 sidebar-scroll" id="filtrosScrollContainer">
-
+                    
                     <!-- Búsqueda Rápida -->
                     <div class="mb-3">
                         <!-- Botón Nueva Cita -->
@@ -116,6 +117,13 @@
                             <button type="button" class="btn btn-sm btn-primary w-100 mb-4" id="btnNuevaCita">
                                 <i class="ri ri-add-line me-1"></i>Nueva Cita
                             </button>
+                        </div>
+
+                        
+                        <!-- Búsqueda por paciente -->
+                        <div class="input-group input-group-sm mt-2 mb-4">
+                            <span class="input-group-text"><i class="ri ri-search-line"></i></span>
+                            <input type="text" class="form-control" id="searchPaciente" placeholder="Buscar paciente...">
                         </div>
 
                         <!-- Inline Mini Calendar - Filtro de Fecha Principal -->
@@ -132,11 +140,6 @@
                             </div>
                         </div>
 
-                        <!-- Búsqueda por paciente -->
-                        <div class="input-group input-group-sm mt-2">
-                            <span class="input-group-text"><i class="ri ri-search-line"></i></span>
-                            <input type="text" class="form-control" id="searchPaciente" placeholder="Buscar paciente...">
-                        </div>
 
                         <!-- Botón limpiar filtros -->
                         <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btnLimpiarFiltros">
@@ -155,107 +158,26 @@
 
                     <!-- Filtro por Especialidad (Colapsable) -->
                     <div class="accordion" id="filtrosAccordion">
-                        <!-- Filtro por Especialidad -->
-                        <div class="accordion-item border-0 bg-transparent">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#especialidadCollapse">
-                                    <i class="ri ri-medicine-bottle-line me-2"></i>Especialidad
-                                    <span class="badge bg-primary rounded-pill ms-2" id="especialidadCount">{{ \App\Models\Categoria::count() }}</span>
+                       
 
-                                </button>
-                            </h2>
-                            <div id="especialidadCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
-                                <div class="accordion-body p-0 pt-2">
-                                    <select class="form-select form-select-sm" id="filterEspecialidad">
-                                        <option value="">Todas las especialidades</option>
-                                        @foreach($medicos->pluck('especialidades')->flatten()->unique('id') as $esp)
-                                            <option value="{{ $esp->id }}">{{ $esp->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr class="mb-2 mx-n2" />
-
+                       
                         <!-- Filtro por Médico -->
-                        <div class="accordion-item border-0 bg-transparent">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#medicoCollapse">
-                                    <i class="ri ri-user-star-line me-2"></i>Médico
-                                    <span class="badge bg-secondary rounded-pill ms-2" id="medicoCount">0</span>
+                         <select class="form-select form-select-sm" id="filterMedico">
+                            <option value="">Todos los médicos</option>
+                            @foreach($medicos as $medico)
+                                <option value="{{ $medico->id }}">{{ $medico->nombres.' '.$medico->apellidos }}</option>
+                            @endforeach
+                        </select>
 
-                                </button>
-                            </h2>
-                            <div id="medicoCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
-                                <div class="accordion-body p-0 pt-2">
-                                    <select class="form-select form-select-sm" id="filterMedico">
-                                        <option value="">Todos los médicos</option>
-                                        @foreach($medicos as $medico)
-                                            <option value="{{ $medico->id }}">{{ $medico->nombre }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+                       
 
-                        <hr class="mb-2 mx-n2" />
-
-                        <!-- Filtros de estados de Citas -->
-                        <div class="accordion-item border-0 bg-transparent">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button p-1 py-2 bg-transparent collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#citasCollapse">
-                                    <i class="ri ri-calendar-check-line me-2"></i>Estados de Citas
-                                    <span class="badge bg-primary rounded-pill ms-2" id="citasActivasCount">0</span>
-
-                                </button>
-                            </h2>
-                            <div id="citasCollapse" class="accordion-collapse collapse" data-bs-parent="#filtrosAccordion">
-                                <div class="accordion-body p-0 pt-2">
-                                    <div class="app-calendar-events-filter ps-3" id="filtros-citas">
-                                    @foreach($citaEstadoLabels as $value => $label)
-                                        <div class="form-check mb-2 ms-2">
-                                            <input class="form-check-input input-filter-cita" type="checkbox"
-                                                   id="select-cita-{{ $value }}"
-                                                   data-value="{{ $value }}"
-                                                   checked />
-                                            <label class="form-check-label d-flex align-items-center" for="select-cita-{{ $value }}">
-                                                <span class="legend-dot me-2" style="background-color: {{ ['programada'=>'#ffc107','confirmada'=>'#0d6efd','cancelada'=>'#dc3545','no_asistio'=>'#6c757d'][$value] ?? '#78909C' }};"></span>
-                                                {{ $label }}
-                                            </label>
-                                        </div>
-                                    @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
 
                     </div>
 
-                    <!-- Médicos -->
-                    <hr class="mb-4 mx-n4" />
-                    <div class="mb-3 ms-1 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Médicos</h6>
-                        <small class="text-muted" id="medicosCount">{{ $medicos->count() }}</small>
-                    </div>
-                    <div id="medicos-calendario" class="ms-1" style="{{ $medicos->isEmpty() ? '' : 'max-height: 200px; overflow-y: auto;' }}">
-                        @foreach($medicos as $medico)
-                            <div class="medico-item d-flex justify-content-between align-items-center mb-1"
-                                 data-medico-id="{{ $medico->id }}">
-                                <span>{{ $medico->nombre_completo }}</span>
-                                <div class="d-flex align-items-center gap-1">
-                                    <div class="progress" style="width: 40px; height: 4px;">
-                                        <div class="progress-bar bg-primary medico-ocupacion" data-medico-id="{{ $medico->id }}" style="width: 0%"></div>
-                                    </div>
-                                    <small class="text-muted medico-citas-count" data-medico-id="{{ $medico->id }}">0</small>
-                                </div>
-                            </div>
-                        @endforeach
-                        @if($medicos->isEmpty())
-                            <small class="text-muted d-block text-center mt-2 mb-3">Sin médicos activos</small>
-                        @endif
-                    </div>
+                  
+                   
+                   
 
                     </div>
                 </div>
@@ -321,21 +243,24 @@
                                 <label for="eventPaciente">Paciente</label>
                             </div>
 
+                           <div class="cascade-arrow" id="especialidadArrowTop"><i class="ri ri-arrow-down-s-line"></i></div>
 
+                            <!-- 2. Especialidad -->
+                            <div class="form-floating form-floating-outline mb-5 form-control-validation" id="especialidadContainer">
+                                <select class="select2 form-select" id="eventEspecialidad" name="eventEspecialidad" disabled>
+                                    <option value="">Primero seleccione un paciente</option>
+                                </select>
+                                <label for="eventEspecialidad">Especialidad</label>
+                            </div>
 
-
+                            <div class="cascade-arrow" id="especialidadArrowBottom"><i class="ri ri-arrow-down-s-line"></i></div>
 
                             <!-- 3. Subespecialidad (opcional) -->
                             <div class="form-floating form-floating-outline mb-5" id="subespecialidadContainer" style="display:none;">
-                               <input type="hidden" name="eventEspecialidad" id="eventEspecialidad" />
-                                <label for="eventEspecialidad">Subespecialidad (opcional)</label>
-                            </div>
-                            <!-- 3. Subespecialidad (opcional) -->
-                            <div class="form-floating form-floating-outline mb-5" id="subespecialidadContainer" style="display:none;">
-                               <input type="hidden" name="eventSubespecialidad" id="eventSubespecialidad" />
-                                <label for="eventSubespecialidad">Subespecialidad (opcional)</label>
-                            </div>
-
+                                <select class="select2 form-select" id="eventSubespecialidad" name="eventSubespecialidad">
+                                    <option value="">Opcional - Seleccionar subespecialidad</option>
+                            </select>
+                              </div>
                             <!-- 4. Médico -->
                             <div class="form-floating form-floating-outline mb-5 form-control-validation">
                                 <select class="select2 form-select" id="eventMedico" name="eventMedico" disabled>
