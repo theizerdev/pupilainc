@@ -323,23 +323,16 @@
 
 
 
-                            <div class="cascade-arrow" id="especialidadArrowTop"><i class="ri ri-arrow-down-s-line"></i></div>
 
-                            <!-- 2. Especialidad -->
-                            <div class="form-floating form-floating-outline mb-5 form-control-validation" id="especialidadContainer">
-                                <select class="select2 form-select" id="eventEspecialidad" name="eventEspecialidad" disabled>
-                                    <option value="">Primero seleccione un paciente</option>
-                                </select>
-                                <label for="eventEspecialidad">Especialidad</label>
-                            </div>
-
-                            <div class="cascade-arrow" id="especialidadArrowBottom"><i class="ri ri-arrow-down-s-line"></i></div>
 
                             <!-- 3. Subespecialidad (opcional) -->
                             <div class="form-floating form-floating-outline mb-5" id="subespecialidadContainer" style="display:none;">
-                                <select class="select2 form-select" id="eventSubespecialidad" name="eventSubespecialidad">
-                                    <option value="">Opcional - Seleccionar subespecialidad</option>
-                                </select>
+                               <input type="hidden" name="eventEspecialidad" id="eventEspecialidad" />
+                                <label for="eventEspecialidad">Subespecialidad (opcional)</label>
+                            </div>
+                            <!-- 3. Subespecialidad (opcional) -->
+                            <div class="form-floating form-floating-outline mb-5" id="subespecialidadContainer" style="display:none;">
+                               <input type="hidden" name="eventSubespecialidad" id="eventSubespecialidad" />
                                 <label for="eventSubespecialidad">Subespecialidad (opcional)</label>
                             </div>
 
