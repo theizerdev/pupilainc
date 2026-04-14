@@ -37,6 +37,15 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" class="form-control @error('phone') is-invalid @enderror"
+                           wire:model="phone" placeholder="Ingrese el número de teléfono">
+                    @error('phone')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Contraseña</label>
                     <input type="password" class="form-control @error('password') is-invalid @enderror"
                            wire:model="password" placeholder="Ingrese la nueva contraseña (dejar en blanco para no cambiar)">
@@ -93,7 +102,7 @@
                     @enderror
                 </div>
 
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Estado</label>
                     <select class="form-select @error('status') is-invalid @enderror" wire:model="status">
                         <option value="active">Activo</option>

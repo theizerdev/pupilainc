@@ -41,9 +41,28 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label">Teléfono</label>
+                    <input type="text" class="form-control @error('phone') is-invalid @enderror"
+                           wire:model="phone" placeholder="Ingrese el número de teléfono">
+                    @error('phone')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Contraseña <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control @error('password') is-invalid @enderror"
-                           wire:model="password" placeholder="Ingrese la contraseña">
+                    <div class="input-group">
+                        <input type="{{ $showPassword ? 'text' : 'password' }}" class="form-control @error('password') is-invalid @enderror"
+                               wire:model="password" placeholder="Ingrese la contraseña">
+                        <button type="button" class="btn btn-outline-secondary" wire:click="togglePasswordVisibility" 
+                                title="{{ $showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña' }}">
+                            <i class="ri {{ $showPassword ? 'ri-eye-off-line' : 'ri-eye-line' }}"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" wire:click="generatePassword" 
+                                title="Generar contraseña segura">
+                            <i class="ri ri-key-2-line"></i>
+                        </button>
+                    </div>
                     @error('password')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -51,8 +70,14 @@
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Confirmar Contraseña <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control @error('password_confirmation') is-invalid @enderror"
-                           wire:model="password_confirmation" placeholder="Confirme la contraseña">
+                    <div class="input-group">
+                        <input type="{{ $showPasswordConfirmation ? 'text' : 'password' }}" class="form-control @error('password_confirmation') is-invalid @enderror"
+                               wire:model="password_confirmation" placeholder="Confirme la contraseña">
+                        <button type="button" class="btn btn-outline-secondary" wire:click="togglePasswordConfirmationVisibility" 
+                                title="{{ $showPasswordConfirmation ? 'Ocultar contraseña' : 'Mostrar contraseña' }}">
+                            <i class="ri {{ $showPasswordConfirmation ? 'ri-eye-off-line' : 'ri-eye-line' }}"></i>
+                        </button>
+                    </div>
                     @error('password_confirmation')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -97,7 +122,7 @@
                     @enderror
                 </div>
 
-                <div class="col-md-12 mb-3">
+                <div class="col-md-6 mb-3">
                     <label class="form-label">Estado</label>
                     <select class="form-select @error('status') is-invalid @enderror" wire:model="status">
                         <option value="1">Activo</option>

@@ -102,6 +102,7 @@ class Edit extends Component
         $user = User::find($this->user->id);
         $user->name = $this->name;
         $user->email = $this->email;
+        $user->phone = $this->phone;
         $user->password = $data['password'] ?? $user->password;
         $user->empresa_id = $this->empresa_id;
         $user->sucursal_id = $this->sucursal_id;

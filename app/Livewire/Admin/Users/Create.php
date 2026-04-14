@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\UserWelcomeMail;
 use Illuminate\Validation\Rules;
+use App\Services\WhatsAppService;
 
 class Create extends Component
 {
@@ -28,6 +29,9 @@ class Create extends Component
     public $role;
     public $sucursales = [];
     public $username;
+    public $phone;
+    public $showPassword = false;
+    public $showPasswordConfirmation = false;
 
     protected function rules()
     {
@@ -39,7 +43,8 @@ class Create extends Component
             'empresa_id' => ['required', 'exists:empresas,id'],
             'sucursal_id' => ['required', 'exists:sucursales,id'],
             'status' => ['boolean'],
-            'role' => ['required', 'exists:roles,name']
+            'role' => ['required', 'exists:roles,name'],
+            'phone' => ['nullable', 'string', 'max:20']
         ];
     }
 
@@ -135,6 +140,61 @@ class Create extends Component
         $this->generateUsername();
     }
 
+    /**
+     * Generar contraseña segura automáticamente
+     * Incluye mayúsculas, minúsculas, números y caracteres especiales
+     */
+    public function generatePassword()
+    {
+        $lowercase = 'abcdefghijklmnopqrstuvwxyz';
+        $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $numbers = '0123456789';
+        $special = '!@#$%&*';
+        
+        $password = '';
+        
+        // Asegurar al menos un carácter de cada tipo
+        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+        $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
+        $password .= $numbers[random_int(0, strlen($numbers) - 1)];
+        $password .= $special[random_int(0, strlen($special) - 1)];
+        
+        // Completar con caracteres aleatorios hasta 12 caracteres
+        $allChars = $lowercase . $uppercase . $numbers . $special;
+        for ($i = 0; $i < 8; $i++) {
+            $password .= $allChars[random_int(0, strlen($allChars) - 1)];
+        }
+        
+        // Mezclar los caracteres para que no estén en orden predecible
+        $password = str_shuffle($password);
+        
+        $this->password = $password;
+        $this->password_confirmation = $password;
+        
+        // Mostrar notificación de que se generó la contraseña
+        $this->dispatch('notify', [
+            'type' => 'info',
+            'message' => 'Contraseña segura generada: ' . $password,
+            'duration' => 5000
+        ]);
+    }
+
+    /**
+     * Alternar la visibilidad del campo de contraseña
+     */
+    public function togglePasswordVisibility()
+    {
+        $this->showPassword = !$this->showPassword;
+    }
+
+    /**
+     * Alternar la visibilidad del campo de confirmación de contraseña
+     */
+    public function togglePasswordConfirmationVisibility()
+    {
+        $this->showPasswordConfirmation = !$this->showPasswordConfirmation;
+    }
+
     public function save()
     {
         $this->validate();
@@ -149,26 +209,133 @@ class Create extends Component
         $user->empresa_id = $this->empresa_id;
         $user->sucursal_id = $this->sucursal_id;
         $user->status = $this->status;
+        $user->phone = $this->phone;
         $user->save();
 
         $user->assignRole($this->role);
 
-        // Enviar correo de bienvenida
-        try {
-            Mail::to($user->email)->send(new UserWelcomeMail($user, $plainPassword));
-            $mensajeCorreo = ' Se ha enviado un correo con las credenciales.';
-        } catch (\Exception $e) {
-            \Log::error('Error enviando correo de bienvenida: ' . $e->getMessage());
-            $mensajeCorreo = '';
-        }
+
+        // Enviar mensaje de WhatsApp de bienvenida
+        $this->enviarMensajeBienvenida($user, $plainPassword);
 
         $this->dispatch('notify', [
             'type' => 'success',
-            'message' => "Usuario '{$user->name}' creado exitosamente.{$mensajeCorreo}",
+            'message' => "Usuario '{$user->name}' creado exitosamente! Se ha enviado un mensaje de  r WhatsApp.",
             'duration' => 5000
         ]);
 
         return redirect()->route('admin.users.index');
+    }
+
+    private function enviarMensajeBienvenida($user, $plainPassword = null)
+    {
+        try {
+            // Verificar que el usuario tenga teléfono
+            if (empty($user->phone)) {
+                \Log::warning('No se puede enviar mensaje de WhatsApp: el usuario no tiene teléfono registrado', [
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+
+            // Formatear el número de teléfono (agregar +51 si es peruano)
+            $telefono = $this->formatearTelefono($user->phone);
+
+            // Crear el mensaje de bienvenida
+            $mensaje = $this->crearMensajeBienvenida($user, $plainPassword);
+
+            // Enviar mensaje por WhatsApp
+            $whatsAppService = new WhatsAppService($user->empresa_id);
+
+            if ($whatsAppService->isConfigured()) {
+                $resultado = $whatsAppService->sendMessage($telefono, $mensaje, true);
+
+                if ($resultado) {
+                    \Log::info('Mensaje de bienvenida enviado por WhatsApp', [
+                        'user_id' => $user->id,
+                        'telefono' => $telefono,
+                        'message_id' => $resultado['messageId'] ?? null
+                    ]);
+                } else {
+                    \Log::warning('No se pudo enviar el mensaje de WhatsApp', [
+                        'user_id' => $user->id,
+                        'telefono' => $telefono
+                    ]);
+                }
+            } else {
+                \Log::warning('WhatsApp no está configurado para esta empresa', [
+                    'empresa_id' => $user->empresa_id
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            // Si falla el envío del mensaje, no debe afectar la creación del usuario
+            \Log::error('Error al enviar mensaje de WhatsApp al usuario: ' . $e->getMessage(), [
+                'user_id' => $user->id
+            ]);
+        }
+    }
+
+    protected function formatearTelefono(string $telefono): string
+    {
+        $limpio = preg_replace('/\D/', '', $telefono);
+
+        if (str_starts_with($limpio, '0')) {
+            $limpio = substr($limpio, 1);
+        }
+
+        $codigo = $this->obtenerCodigoPais();
+
+        if (!str_starts_with($limpio, $codigo) && strlen($limpio) >= 7 && strlen($limpio) <= 12) {
+            $limpio = $codigo . $limpio;
+        }
+
+        return '+' . $limpio;
+    }
+
+    protected function obtenerCodigoPais(): string
+    {
+        $codigoPais = '51'; // Código por defecto para Perú
+
+        $empId = auth()->user()->empresa_id;
+        if (!$empId && auth()->check() && auth()->user()->empresa_id) {
+            $empId = auth()->user()->empresa_id;
+        }
+
+        if ($empId) {
+            $empresa = \DB::table('empresas')->where('id', $empId)->first();
+            if ($empresa && $empresa->pais_id) {
+                $pais = \DB::table('pais')->where('id', $empresa->pais_id)->first();
+                if ($pais && $pais->codigo_telefonico) {
+                    $codigoPais = ltrim($pais->codigo_telefonico, '+');
+                }
+            }
+        }
+
+        return $codigoPais;
+    }
+
+    private function crearMensajeBienvenida($user, $plainPassword = null)
+    {
+        $empresa = $user->empresa;
+        $sucursal = $user->sucursal;
+        $passwordToShow = $plainPassword ?: 'La contraseña que registraste';
+ 
+        $mensaje = "🎉 *¡Bienvenido(a) a {$empresa->razon_social}!* 🎉\n\n";
+        $mensaje .= "Hola *{$user->name}*,\n\n";
+        $mensaje .= "Tu cuenta ha sido creada exitosamente. Aquí están tus credenciales de acceso:\n\n";
+        $mensaje .= "*🌐 Plataforma:* " . env('APP_URL', 'http://localhost') . "\n";
+        $mensaje .= "*👤 Usuario:* {$user->username}\n";
+        $mensaje .= "*🔑 Contraseña:* {$passwordToShow}\n\n";
+        
+
+
+        $mensaje .= "*📱 ¿Necesitas ayuda?*\n";
+        $mensaje .= "No dudes en contactarnos. ¡Estamos aquí para ayudarte!\n\n";
+        $mensaje .= "*⚠️ Importante:* Por seguridad, te recomendamos cambiar tu contraseña en tu primer inicio de sesión.\n\n";
+        $mensaje .= "*¡Gracias por unirte a nuestro equipo!* 🚀";
+
+        return $mensaje;
     }
 
     public function render()
