@@ -87,7 +87,7 @@ class Calendario extends Component
     {
         return [
             'paciente_id' => 'required|exists:pacientes,id',
-            'especialidad_id' => 'required|exists:especialidades,id',
+            'especialidad_id' => 'nullable|exists:especialidades,id',
             'subespecialidad_id' => 'nullable|exists:subespecialidades,id',
             'medico_id' => 'required|exists:medicos,id',
             'fecha_inicio' => 'required|date',
@@ -243,16 +243,17 @@ class Calendario extends Component
         })->toArray();
     }
 
-    public function fetchMedicos($especialidadId, $subespecialidadId = null)
+    public function fetchMedicos($especialidadId = null, $subespecialidadId = null)
     {
-        if (!$especialidadId) return [];
-
         $query = Medico::activos()
-            ->forUser()
-            ->whereHas('especialidades', function ($q) use ($especialidadId) {
+            ->forUser();
+
+        if ($especialidadId) {
+            $query->whereHas('especialidades', function ($q) use ($especialidadId) {
                 $q->where('especialidad_id', $especialidadId)
                   ->where('medico_especialidad.status', true);
             });
+        }
 
         if ($subespecialidadId) {
             $query->whereHas('subespecialidades', function ($q) use ($subespecialidadId) {
@@ -394,6 +395,15 @@ class Calendario extends Component
             $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
             $this->estado = $eventData['estado'] ?? $this->estado;
 
+            if (!$this->especialidad_id && $this->medico_id) {
+                $medico = Medico::with(['especialidades', 'subespecialidades'])->find($this->medico_id);
+                if ($medico) {
+                    $this->especialidad_id = $medico->especialidad_id ?: ($medico->especialidades->first()->id ?? null);
+                    if (!$this->subespecialidad_id) {
+                        $this->subespecialidad_id = $medico->subespecialidades->first()->id ?? null;
+                    }
+                }
+            }
         }
 
         try {

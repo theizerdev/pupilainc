@@ -740,9 +740,9 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     }
 
     function resetCascadeFrom(level) {
-        if (level <= 2) { showEspecialidadField(true); eventEspecialidad.val('').trigger('change.select2'); eventEspecialidad.prop('disabled',true); eventEspecialidad.empty().append('<option value="">Primero seleccione un paciente</option>'); selectedEspecialidadId = null; }
+        if (level <= 2) { showEspecialidadField(false); eventEspecialidad.val('').trigger('change.select2'); eventEspecialidad.prop('disabled',true); eventEspecialidad.empty().append('<option value="">Primero seleccione un paciente</option>'); selectedEspecialidadId = null; }
         if (level <= 3) { eventSubespecialidad.val('').trigger('change.select2'); if(subespecialidadContainer) subespecialidadContainer.style.display='none'; selectedSubespecialidadId = null; }
-        if (level <= 4) { eventMedico.val('').trigger('change.select2'); eventMedico.prop('disabled',true); eventMedico.empty().append('<option value="">Primero seleccione una especialidad</option>'); }
+        if (level <= 4) { eventMedico.val('').trigger('change.select2'); eventMedico.prop('disabled',true); eventMedico.empty().append('<option value="">Primero seleccione un paciente</option>'); }
         if (level <= 5) { if(slotsContainer) slotsContainer.style.display='none'; if(slotsList) slotsList.innerHTML=''; if(slotsMessage){slotsMessage.classList.add('d-none');slotsMessage.textContent='';} if(eventStartDate) eventStartDate.value=''; if(eventEndDate) eventEndDate.value=''; }
     }
 
@@ -862,18 +862,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         eventPaciente.on('change', function() {
             var pacienteId = eventPaciente.val(); if(!pacienteId){resetCascadeFrom(2);return;}
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(3);
-            comp.call('fetchEspecialidades').then(function(especialidades) {
-                eventEspecialidad.empty().append('<option value="">Seleccionar especialidad</option>');
-                especialidades.forEach(function(e){eventEspecialidad.append('<option value="'+e.id+'">'+e.nombre+'</option>');});
-                eventEspecialidad.prop('disabled',false);
-                if (especialidades.length === 1) {
-                    // Auto-seleccionar y ocultar si solo hay una especialidad
-                    showEspecialidadField(false);
-                    eventEspecialidad.val(especialidades[0].id).trigger('change');
-                } else {
-                    showEspecialidadField(true);
-                    eventEspecialidad.trigger('change.select2');
-                }
+            showEspecialidadField(false);
+            comp.call('fetchMedicos', null, null).then(function(medicos) {
+                eventMedico.empty().append('<option value="">Seleccionar médico</option>');
+                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                eventMedico.prop('disabled', false);
+                eventMedico.trigger('change.select2');
             });
         });
     }
@@ -1311,7 +1305,24 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         var tc = document.getElementById('toggleCitas');
         var citasEnabled = tc ? tc.checked : true;
         var inputs = Array.from(document.querySelectorAll('.input-filter-cita'));
-        var citaStates = citasEnabled ? inputs.filter(function(c){return c.checked;}).map(function(c){return c.dataset.value;}) : [];
+        var citaStates = [];
+        if (citasEnabled) {
+            if (inputs.length > 0) {
+                citaStates = inputs.filter(function(c) {
+                    return c.checked;
+                }).map(function(c) {
+                    return c.dataset.value;
+                });
+            } else {
+                // Si no existen filtros de estado en la vista, mostrar todas las citas
+                citaStates = Array.from(new Set(currentEvents.map(function(ev) {
+                    var ep = ev.extendedProps || {};
+                    return ep.calendar || ep.estado || null;
+                }).filter(function(value) {
+                    return value;
+                })));
+            }
+        }
         return { citaStates: citaStates, citasEnabled: citasEnabled };
     }
 
@@ -2430,9 +2441,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 eventPaciente: {
                     validators: { notEmpty: { message: 'Seleccione un paciente' } }
                 },
-                eventEspecialidad: {
-                    validators: { notEmpty: { message: 'Seleccione una especialidad' } }
-                },
                 eventMedico: {
                     validators: { notEmpty: { message: 'Seleccione un médico' } }
                 },
@@ -2463,9 +2471,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         // Solo agregar listeners si los elementos existen
         if(eventPaciente && eventPaciente.length) {
             eventPaciente.on('change',function(){fv.revalidateField('eventPaciente');});
-        }
-        if(eventEspecialidad && eventEspecialidad.length) {
-            eventEspecialidad.on('change',function(){fv.revalidateField('eventEspecialidad');});
         }
         if(eventMedico && eventMedico.length) {
             eventMedico.on('change',function(){fv.revalidateField('eventMedico');});

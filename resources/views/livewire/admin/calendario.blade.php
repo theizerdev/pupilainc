@@ -243,28 +243,28 @@
                                 <label for="eventPaciente">Paciente</label>
                             </div>
 
-                           <div class="cascade-arrow" id="especialidadArrowTop"><i class="ri ri-arrow-down-s-line"></i></div>
+                           <div class="cascade-arrow" id="especialidadArrowTop" style="display:none;"><i class="ri ri-arrow-down-s-line"></i></div>
 
                             <!-- 2. Especialidad -->
-                            <div class="form-floating form-floating-outline mb-5 form-control-validation" id="especialidadContainer">
+                            <div class="form-floating form-floating-outline mb-5 form-control-validation" id="especialidadContainer" style="display:none;">
                                 <select class="select2 form-select" id="eventEspecialidad" name="eventEspecialidad" disabled>
                                     <option value="">Primero seleccione un paciente</option>
                                 </select>
                                 <label for="eventEspecialidad">Especialidad</label>
                             </div>
 
-                            <div class="cascade-arrow" id="especialidadArrowBottom"><i class="ri ri-arrow-down-s-line"></i></div>
+                            <div class="cascade-arrow" id="especialidadArrowBottom" style="display:none;"><i class="ri ri-arrow-down-s-line"></i></div>
 
                             <!-- 3. Subespecialidad (opcional) -->
                             <div class="form-floating form-floating-outline mb-5" id="subespecialidadContainer" style="display:none;">
                                 <select class="select2 form-select" id="eventSubespecialidad" name="eventSubespecialidad">
                                     <option value="">Opcional - Seleccionar subespecialidad</option>
-                            </select>
-                              </div>
+                                </select>
+                            </div>
                             <!-- 4. Médico -->
                             <div class="form-floating form-floating-outline mb-5 form-control-validation">
                                 <select class="select2 form-select" id="eventMedico" name="eventMedico" disabled>
-                                    <option value="">Primero seleccione una especialidad</option>
+                                    <option value="">Primero seleccione un paciente</option>
                                 </select>
                                 <label for="eventMedico">Médico</label>
                             </div>
