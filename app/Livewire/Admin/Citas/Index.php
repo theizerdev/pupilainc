@@ -12,7 +12,7 @@ use App\Models\TipoConsulta;
 use App\Services\CitaNotificationService;
 use App\Services\CitaConfirmationBotonesService;
 use App\Services\CitaReagendamientoService;
-use Livewire\Component; 
+use Livewire\Component;
 use App\Traits\HasDynamicLayout;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +42,7 @@ class Index extends Component
     public function mount()
     {
         $this->filtroEstados = Cita::ESTADOS;
+        return redirect()->to('admin/calendario');
     }
 
     protected function rules()
@@ -462,7 +463,7 @@ class Index extends Component
         $notificacion = $this->notificarCancelacion($cita);
         $cita->delete();
         $this->resetForm();
-        
+
         // Mostrar mensaje apropiado según el resultado de la notificación
         if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
@@ -480,7 +481,7 @@ class Index extends Component
                 'message' => 'Cita eliminada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
         }
-        
+
         $this->dispatch('cita-saved');
     }
 
@@ -491,7 +492,7 @@ class Index extends Component
             $apellidos = trim($data['apellidos'] ?? '');
             if ($nombres === '' || $apellidos === '') {
                 $this->dispatch('paciente-creado', [
-                    'success' => false, 
+                    'success' => false,
                     'message' => 'Nombres y apellidos son obligatorios.'
                 ]);
                 return;
@@ -537,7 +538,7 @@ class Index extends Component
         } catch (\Exception $e) {
             Log::error('Error creando paciente rápido', ['error' => $e->getMessage()]);
             $this->dispatch('paciente-creado', [
-                'success' => false, 
+                'success' => false,
                 'message' => 'Error al crear el paciente: ' . $e->getMessage()
             ]);
         }
@@ -549,7 +550,7 @@ class Index extends Component
         $estadoAnterior = $cita->estado;
         $cita->cambiarEstado($nuevoEstado);
         $notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);
-        
+
         // Mostrar mensaje apropiado según el resultado de la notificación
         if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
@@ -567,7 +568,7 @@ class Index extends Component
                 'message' => 'Estado actualizado pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
         }
-        
+
         $this->dispatch('cita-saved');
     }
 
@@ -577,7 +578,7 @@ class Index extends Component
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
             $notificacion = $service->enviarRecordatorio($cita);
-            
+
             // Mostrar mensaje apropiado según el resultado de la notificación
             if ($notificacion['success'] && empty($notificacion['errors'])) {
                 $this->dispatch('show-toast', [

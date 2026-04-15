@@ -58,7 +58,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'edit medicos schedule',
                     ]
                 ],
-                'enfermeros' => [
+               /* 'enfermeros' => [
                     'name' => 'Enfermería',
                     'permissions' => [
                         'access enfermeros',
@@ -71,7 +71,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'view enfermeros schedule',
                         'edit enfermeros schedule',
                     ]
-                ],
+                ],*/
                 'citas' => [
                     'name' => 'Citas',
                     'permissions' => [
@@ -112,7 +112,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     'name' => 'Consultas',
                     'permissions' => [
                         'access consultas',
-                        'access consultas calendario',
+                        //'access consultas calendario',
                         'access consultas en espera',
                         'access consultas en enfermeria',
                         'access consultas en consultorio',
@@ -126,8 +126,8 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 💰 SECTOR ADMINISTRACIÓN
-          
-            'administracion' => [
+
+            /*'administracion' => [
                 'cajas' => [
                     'name' => 'Cajas',
                     'permissions' => [
@@ -153,7 +153,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export exchange-rates',
                     ]
                 ],
-             
+
                 'pagos' => [
                     'name' => 'Pagos',
                     'permissions' => [
@@ -181,7 +181,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'deactivate conceptos pago',
                     ]
                 ],
-               
+
                 'series' => [
                     'name' => 'Series de Documentos',
                     'permissions' => [
@@ -203,7 +203,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'apply reglas mora',
                     ]
                 ],
-                */
+
                  'categorias' => [
                     'name' => 'Categorías',
                     'permissions' => [
@@ -226,7 +226,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage baremos',
                     ]
                 ],
-                /*
+
                 'clientes_fiscales' => [
                     'name' => 'Clientes Fiscales',
                     'permissions' => [
@@ -270,9 +270,9 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete anulacion-talonarios',
                         'view anulacion-talonarios',
                     ]
-                ],*/
-            ],
-        
+                ],
+            ],*/
+
 
             // ⚙️ SECTOR CONFIGURACIÓN
             'configuracion' => [
@@ -291,7 +291,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export empresas',
                     ]
                 ],
-                'consultorios' => [
+                /*'consultorios' => [
                     'name' => 'Consultorios',
                     'permissions' => [
                         'access consultorios',
@@ -300,7 +300,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete consultorios',
                         'view consultorios',
                     ]
-                ],
+                ],*/
                 'sucursales' => [
                     'name' => 'Sucursales',
                     'permissions' => [
@@ -375,11 +375,11 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage template customization',
                     ]
                 ],
-               
+
             ],
 
             // 📊 SECTOR MONITOREO
-            'monitoreo' => [
+            /*'monitoreo' => [
                 'sesiones' => [
                     'name' => 'Sesiones Activas',
                     'permissions' => [
@@ -436,7 +436,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     ]
                 ],
 
-            ],
+            ],*/
 
             // 📱 SECTOR COMUNICACIONES (Adicional)
             'comunicaciones' => [
@@ -460,7 +460,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 🛎️ SECTOR RECEPCIÓN
-            'recepcion' => [
+           /* 'recepcion' => [
                 'dashboard' => [
                     'name' => 'Dashboard Recepción',
                     'permissions' => [
@@ -477,7 +477,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'ver respuestas preconsulta',
                     ]
                 ],
-            ],
+            ],*/
         ];
 
         // Crear permisos organizados por sectores y módulos
@@ -517,16 +517,6 @@ class SectorRolesAndPermissionsSeeder extends Seeder
         ])->get();
         $admin->syncPermissions($adminPermissions);
 
-        // Rol Director Médico - Sector Médico completo + Monitoreo
-        $directorMedico = Role::firstOrCreate(['name' => 'Director Médico']);
-        $directorMedicoPermissions = Permission::whereIn('sector', ['medico', 'monitoreo'])
-            ->orWhereIn('name', [
-                'access dashboard',
-                'dashboard.alerts',
-                'view activity log',
-            ])->get();
-        $directorMedico->syncPermissions($directorMedicoPermissions);
-
         // Rol Médico - Solo sector médico
         $medico = Role::firstOrCreate(['name' => 'Médico']);
         $medicoPermissions = Permission::where('sector', 'medico')
@@ -539,15 +529,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
         $chatPermission = Permission::where('name', 'access chat interno')->get();
         $medico->syncPermissions($medicoPermissions->merge($chatPermission));
 
-        // Rol Enfermería - Sector médico limitado
-        $enfermeria = Role::firstOrCreate(['name' => 'Enfermería']);
-        $enfermeriaPermissions = Permission::where('sector', 'medico')
-            ->whereIn('name', [
-                'access consultas',
-                'access consultas en enfermeria',
-                'registrar signos vitales',
-            ])->get();
-        $enfermeria->syncPermissions($enfermeriaPermissions->merge($chatPermission));
+
 
         // Rol Recepción - Sector médico + administración limitada
         $recepcion = Role::firstOrCreate(['name' => 'Recepción']);
@@ -555,7 +537,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ->whereIn('name', [
                 // Recepción
                 'access recepcion dashboard',
-                'manage consultorios',
+                //'manage consultorios',
                 // Apertura de Consultas (nuevo módulo)
                 'access consulta apertura',
                 'iniciar consulta',
@@ -576,55 +558,18 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'confirm citas',
                 'cancel citas',
                 // Administración limitada
-                'access conceptos pago',
-                'view conceptos pago',
-                'access series',
-                'access cajas',
-                'view cajas',
-                'access pagos',
-                'create pagos',
-                'view pagos',
+               // 'access conceptos pago',
+               // 'view conceptos pago',
+                //'access series',
+                //'access cajas',
+               // 'view cajas',
+                //'access pagos',
+               // 'create pagos',
+               // 'view pagos',
             ])->get();
         $recepcion->syncPermissions($recepcionPermissions->merge($chatPermission));
 
-        // Rol Cajero - Solo sector administración
-        $cajero = Role::firstOrCreate(['name' => 'Cajero']);
-        $cajeroPermissions = Permission::where('sector', 'administracion')
-            ->whereIn('name', [
-                'access cajas',
-                'view cajas',
-                'open cajas',
-                'close cajas',
-                'access pagos',
-                'create pagos',
-                'view pagos',
-                'process pagos',
-                'access conceptos pago',
-                'view conceptos pago',
-                'access series',
-                'view exchange-rates',
-                'generate pagos comprobantes',
-                'access baremos',
-                'view baremos',
-                'access clientes-fiscales',
-                'create clientes-fiscales',
-                'view clientes-fiscales',
-            ])->get();
-        $cajero->syncPermissions($cajeroPermissions);
-
-        // Rol Auditor - Solo sector monitoreo
-        $auditor = Role::firstOrCreate(['name' => 'Auditor']);
-        $auditorPermissions = Permission::where('sector', 'monitoreo')->get();
-        $auditor->syncPermissions($auditorPermissions);
-
-        // Rol Configurador - Solo sector configuración
-        $configurador = Role::firstOrCreate(['name' => 'Configurador']);
-        $configuradorPermissions = Permission::where('sector', 'configuracion')
-            ->whereNotIn('name', [
-                'assign roles',
-                'assign permissions',
-                'manage permissions',
-            ])->get();
-        $configurador->syncPermissions($configuradorPermissions);
+         $this->command->info('✅ Roles y permisos procesados exitosamente');
+        $this->command->info('📊 Total de permisos procesados: ' . count(Permission::all()));
     }
 }
