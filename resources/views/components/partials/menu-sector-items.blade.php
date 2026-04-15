@@ -32,9 +32,18 @@
             </li>
         @endif
 
+        @if($isHorizontal)
+            <li class="menu-item {{ $sectorActive ? 'active open' : '' }}">
+                <a href="javascript:void(0);" class="menu-link menu-toggle">
+                    <i class="menu-icon tf-icons ri {{ $sector['icon'] }}"></i>
+                    <div>{{ $sector['label'] }}</div>
+                </a>
+                <ul class="menu-sub">
+        @endif
+
         @foreach($sector['items'] as $item)
             @php
-                $canAccess = true; // Por defecto asumimos que tiene acceso (para ítems sin restricción como Chat Interno)
+                $canAccess = true; // Por defecto asumimos que tiene acceso
                 if (isset($item['permissions'])) {
                     $canAccess = auth()->user()->canAny($item['permissions']);
                 } elseif (isset($item['permission'])) {
@@ -47,7 +56,11 @@
                     @php $itemActive = isMenuItemActive($item); @endphp
                     <li class="menu-item {{ $itemActive ? 'active open' : '' }}">
                         <a href="javascript:void(0);" class="menu-link menu-toggle">
-                            <i class="menu-icon tf-icons ri {{ $item['icon'] }}"></i>
+                            @if(!$isHorizontal)
+                                <i class="menu-icon tf-icons ri {{ $item['icon'] }}"></i>
+                            @else
+                                <i class="menu-icon tf-icons ri {{ $item['icon'] ?? 'ri-file-line' }} d-none d-lg-block"></i>
+                            @endif
                             <div>{{ $item['label'] }}</div>
                         </a>
                         <ul class="menu-sub">
@@ -76,12 +89,21 @@
                     @endphp
                     <li class="menu-item {{ $itemActive ? 'active' : '' }}">
                         <a href="{{ route($routeName) }}" class="menu-link">
-                            <i class="menu-icon tf-icons ri {{ $item['icon'] }}"></i>
+                            @if(!$isHorizontal)
+                                <i class="menu-icon tf-icons ri {{ $item['icon'] }}"></i>
+                            @else
+                                <i class="menu-icon tf-icons ri {{ $item['icon'] ?? 'ri-file-line' }} d-none d-lg-block"></i>
+                            @endif
                             <div>{{ $item['label'] }}</div>
                         </a>
                     </li>
                 @endif
             @endif
         @endforeach
+
+        @if($isHorizontal)
+                </ul>
+            </li>
+        @endif
     @endif
 @endforeach

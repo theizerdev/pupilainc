@@ -204,13 +204,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.medicos.index',
                         'active' => 'admin.medicos.*',
                     ],
-                    [
+                    /*[
                         'label' => 'Enfermeros',
                         'icon' => 'ri-nurse-line',
                         'permission' => 'access enfermeros',
                         'route' => 'admin.enfermeros.index',
                         'active' => 'admin.enfermeros.*',
-                    ],
+                    ],*/
                     [
                         'label' => 'Pacientes',
                         'icon' => 'ri-user-heart-line',
@@ -224,7 +224,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access citas',
                         'active' => 'admin.citas.*',
                         'children' => [
-                            ['label' => 'Calendario', 'route' => 'admin.calendario', 'active' => 'admin.calendario'],
+                            //['label' => 'Calendario', 'route' => 'admin.calendario', 'active' => 'admin.calendario'],
                             ['label' => 'Gestión de Citas', 'route' => 'admin.citas.index', 'active' => 'admin.citas.index'],
                             ['label' => 'Analytics', 'route' => 'admin.citas.analytics', 'active' => 'admin.citas.analytics'],
                             ['label' => 'Recordatorios', 'route' => 'admin.citas.recordatorios', 'active' => 'admin.citas.recordatorios'],
@@ -256,6 +256,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],
                 ]
             ],
+            /*
             'administracion' => [
                 'label' => 'Administración',
                 'icon' => 'ri-money-dollar-circle-line',
@@ -324,6 +325,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],
                 ]
             ],
+            */
             'configuracion' => [
                 'label' => 'Configuración',
                 'icon' => 'ri-settings-3-line',
@@ -336,7 +338,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'children' => [
                             ['label' => 'Empresas', 'permission' => 'access empresas', 'route' => 'admin.empresas.index', 'active' => 'admin.empresas.index'],
                             ['label' => 'Sucursales', 'permission' => 'access sucursales', 'route' => 'admin.sucursales.index', 'active' => 'admin.sucursales.index'],
-                            ['label' => 'Consultorios', 'permission' => 'access consultorios', 'route' => 'admin.consultorios.index', 'active' => 'admin.consultorios.index'],
+                            //['label' => 'Consultorios', 'permission' => 'access consultorios', 'route' => 'admin.consultorios.index', 'active' => 'admin.consultorios.index'],
                             ['label' => 'Países', 'permission' => 'access paises', 'route' => 'admin.paises.index', 'active' => 'admin.paises.index'],
                         ]
                     ],
