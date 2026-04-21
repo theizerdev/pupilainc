@@ -5,7 +5,6 @@ namespace App\Livewire\Auth;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use App\Models\User;
 use App\Services\WhatsAppService;
 
@@ -30,15 +29,22 @@ class ForgotPassword extends Component
     {
         $this->reset('successMessage');
         $this->resetValidation();
-
-        $validated = $this->validate();
+        $this->validate();
 
         $user = $this->findUser($this->identifier);
 
-        // Respuesta genérica para no revelar si el usuario existe (OWASP)
-        if (!$user || !$user->phone || !$user->empresa_id) {
-            $this->successMessage = __('auth_ui.reset_link_sent_whatsapp');
-            $this->identifier = '';
+        if (!$user) {
+            $this->addError('identifier', 'No encontramos ninguna cuenta asociada a este número de teléfono.');
+            return;
+        }
+
+        if (!$user->phone) {
+            $this->addError('identifier', 'Este usuario no tiene un número de teléfono registrado.');
+            return;
+        }
+
+        if (!$user->empresa_id) {
+            $this->addError('identifier', 'Usuario sin empresa asociada. Contacta al administrador.');
             return;
         }
 
@@ -47,16 +53,47 @@ class ForgotPassword extends Component
 
     private function findUser(string $identifier): ?User
     {
-        $clean = trim($identifier);
+        // Dejar solo dígitos
+        $digits = preg_replace('/\D/', '', trim($identifier));
 
-        // Buscar solo por teléfono (se eliminó soporte email en este flujo)
-        $digits = preg_replace('/\D/', '', $clean);
+        // Variantes del número que pueden estar guardadas en BD
+        $sinCero    = ltrim($digits, '0');           // 4241703465
+        $conCero    = '0' . $sinCero;                // 04241703465
 
-        // Intentar con y sin código de país
-        return User::where('phone', $clean)
-            ->orWhere('phone', $digits)
-            ->orWhere('phone', ltrim($digits, '0'))
+        return User::where('phone', $digits)
+            ->orWhere('phone', $sinCero)
+            ->orWhere('phone', $conCero)
             ->first();
+    }
+
+    private function formatearTelefono(string $telefono, User $user): string
+    {
+        // 1. Dejar solo dígitos
+        $digits = preg_replace('/\D/', '', $telefono);
+
+        // 2. Obtener código del país desde la empresa del usuario
+        $codigoPais = '58'; // Venezuela por defecto
+        if ($user->empresa?->pais_id) {
+            $pais = DB::table('pais')
+                ->where('id', $user->empresa->pais_id)
+                ->value('codigo_telefonico');
+            if ($pais) {
+                $codigoPais = ltrim(trim($pais), '+');
+            }
+        }
+
+        // 3. Quitar 0 inicial si existe (04241703465 → 4241703465)
+        if (str_starts_with($digits, '0')) {
+            $digits = substr($digits, 1);
+        }
+
+        // 4. Quitar código de país si ya está incluido (evitar 5858...)
+        if (str_starts_with($digits, $codigoPais)) {
+            $digits = substr($digits, strlen($codigoPais));
+        }
+
+        // 5. Resultado: +584241703465
+        return '+' . $codigoPais . $digits;
     }
 
     private function sendTokenByWhatsApp(User $user): void
@@ -74,8 +111,19 @@ class ForgotPassword extends Component
                 ['token', 'created_at']
             );
 
+            $code     = User::find($user->id);
+            $code->verification_code = $token;
+            $code->save();
+
             $telefono = $this->formatearTelefono($user->phone, $user);
-            $resetUrl = route('password.reset.token', ['token' => $token, 'email' => $user->email]);
+            $resetUrl = route('password.reset.token', ['token' => $token]);
+
+            \Log::info('Password reset — número formateado', [
+                'user_id'          => $user->id,
+                'phone_original'   => $user->phone,
+                'phone_formateado' => $telefono,
+                'pais_id'          => $user->empresa?->pais_id,
+            ]);
 
             $message  = "🔐 *Recuperación de Contraseña*\n\n";
             $message .= "Hola *{$user->name}*,\n\n";
@@ -87,13 +135,11 @@ class ForgotPassword extends Component
 
             $whatsApp = new WhatsAppService($user->empresa_id);
 
-            // Enviar solo si WhatsApp está configurado, sin bloquear si falla
             if ($whatsApp->isConfigured()) {
                 try {
-                    // Timeout reducido a 8s para no bloquear el formulario
                     $whatsApp->setTimeout(8);
                     $result = $whatsApp->sendMessage($telefono, $message, true);
-                    \Log::info('Password reset WhatsApp sent', [
+                    \Log::info('Password reset WhatsApp enviado', [
                         'user_id' => $user->id,
                         'phone'   => $telefono,
                         'result'  => $result,
@@ -115,32 +161,8 @@ class ForgotPassword extends Component
             ]);
         }
 
-        // Siempre mostrar mensaje genérico de éxito
         $this->successMessage = __('auth_ui.reset_link_sent_whatsapp');
         $this->identifier = '';
-    }
-
-    private function formatearTelefono(string $telefono, User $user): string
-    {
-        $limpio = preg_replace('/\D/', '', $telefono);
-
-        if (str_starts_with($limpio, '0')) {
-            $limpio = substr($limpio, 1);
-        }
-
-        $codigo = '58'; // default Venezuela
-        if ($user->empresa?->pais_id) {
-            $pais = DB::table('pais')->where('id', $user->empresa->pais_id)->value('codigo_telefonico');
-            if ($pais) {
-                $codigo = ltrim($pais, '+');
-            }
-        }
-
-        if (!str_starts_with($limpio, $codigo)) {
-            $limpio = $codigo . $limpio;
-        }
-
-        return '+' . $limpio;
     }
 
     public function hasError(string $field): bool

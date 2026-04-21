@@ -33,6 +33,10 @@ class ResetPassword extends Component
     {
         $this->token = $token;
         $this->email = $email;
+        $user = User::where('verification_code', $token)->first();
+        if ($user) {
+            $this->email = $user->email;
+        }
     }
 
     public function resetPassword()
@@ -75,12 +79,14 @@ class ResetPassword extends Component
         // Actualizar contraseña
         $user->update([
             'password' => Hash::make($this->password),
+            'verification_code' => null,
         ]);
 
         // Eliminar token usado
         DB::table('password_reset_tokens')->where('email', $this->email)->delete();
 
         session()->flash('status', 'Contraseña restablecida exitosamente.');
+
 
         return redirect()->route('login');
     }

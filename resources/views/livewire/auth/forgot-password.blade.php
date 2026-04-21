@@ -13,48 +13,53 @@
               <i class="ri ri-whatsapp-line fs-5"></i>
               <div>{{ $successMessage }}</div>
             </div>
-          @endif
-
-          @if(!$successMessage)
+            <div class="text-center mt-3">
+              <a href="{{ route('login') }}" class="btn btn-primary w-100">
+                <i class="ri ri-arrow-left-line me-1"></i>Volver al inicio de sesión
+              </a>
+            </div>
+          @else
             <form wire:submit="sendResetLink">
+
               <div class="form-floating form-floating-outline mb-3 form-control-validation">
                 <input
                   type="text"
                   class="form-control @if($hasError('identifier')) is-invalid @endif"
                   id="identifier"
                   wire:model="identifier"
-                  placeholder="{{ __('auth_ui.email_or_phone') }}"
-                  autofocus />
+                  placeholder="Ej: 04121234567"
+                  autofocus
+                  inputmode="tel" />
                 <label for="identifier">{{ __('auth_ui.email_or_phone') }}</label>
                 @if($hasError('identifier'))
-                  <div class="invalid-feedback d-block">{{ $getError('identifier') }}</div>
+                  <div class="invalid-feedback d-block">
+                    <i class="ri ri-error-warning-line me-1"></i>{{ $getError('identifier') }}
+                  </div>
                 @endif
               </div>
 
-              <div class="alert alert-info py-2 mb-4" role="alert">
-                <i class="ri ri-information-line me-1"></i>
-                Recibirás un enlace de recuperación por <strong>WhatsApp</strong> con validez de <strong>15 minutos</strong>.
+              <div class="alert alert-info py-2 mb-4 d-flex align-items-center gap-2">
+                <i class="ri ri-whatsapp-line fs-5 text-success"></i>
+                <small>Recibirás un enlace de recuperación por <strong>WhatsApp</strong> válido por <strong>15 minutos</strong>.</small>
               </div>
 
               <div class="mb-5">
                 <button class="btn btn-primary d-grid w-100" type="submit" wire:loading.attr="disabled">
-                  <span wire:loading.remove>
+                  <span wire:loading.remove wire:target="sendResetLink">
                     <i class="ri ri-whatsapp-line me-1"></i>{{ __('auth_ui.send_reset_link') }}
                   </span>
-                  <span wire:loading>
-                    <span class="spinner-border spinner-border-sm me-1"></span>Enviando...
-                  </span>
+
                 </button>
               </div>
             </form>
-          @endif
 
-          <div class="text-center">
-            <a href="{{ route('login') }}" class="d-flex align-items-center justify-content-center">
-              <i class="icon-base ri ri-arrow-left-s-line"></i>
-              {{ __('auth_ui.back_to_login') }}
-            </a>
-          </div>
+            <div class="text-center">
+              <a href="{{ route('login') }}" class="d-flex align-items-center justify-content-center">
+                <i class="icon-base ri ri-arrow-left-s-line"></i>
+                {{ __('auth_ui.back_to_login') }}
+              </a>
+            </div>
+          @endif
         </div>
       </div>
     </div>

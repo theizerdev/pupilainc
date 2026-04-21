@@ -102,9 +102,7 @@
             <div class="mb-5">
               <button class="btn btn-primary d-grid w-100" type="submit" wire:loading.attr="disabled">
                 <span wire:loading.remove>{{ __('auth_ui.reset_button') }}</span>
-                <span wire:loading>
-                  <span class="spinner-border spinner-border-sm me-1"></span>Procesando...
-                </span>
+
               </button>
             </div>
           </form>
