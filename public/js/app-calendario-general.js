@@ -74,7 +74,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         no_asistio: '#6c757d',
         por_llegar: '#9E9E9E',
         sala_espera: '#FFA726',
-        en_enfermeria: '#EF5350',
         en_consultorio: '#42A5F5',
         en_consultorio_optometrista: '#7E57C2',
         en_gotas: '#26C6DA',
@@ -1716,7 +1715,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
             // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
-            
+
             // Para gotas y dilatado, usar el tiempo calculado desde el backend
             if ((ep.estado === 'en_gotas' || ep.estado === 'dilatado') && ep.tiempo_gotas_formateado) {
                 var iconoTiempo = 'ri-drop-line';
@@ -1724,7 +1723,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + '"></i>' + ep.tiempo_gotas_formateado + '</span>';
             } else {
                 // Para otros estados activos, calcular el tiempo desde estado_changed_at
-                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
+                var estadosActivos = ['sala_espera', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
                 var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
 
                 if (esEstadoActivo && ep.estado_changed_at) {
@@ -1839,7 +1838,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         eventDidMount: function(info) {
             var ep = info.event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
             info.el.classList.add('event-cita');
-            
+
             // Agregar data-event-id para poder actualizar timers
             info.el.setAttribute('data-event-id', info.event.id);
 
@@ -2000,7 +1999,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     };
     var postConfirmStates = {
         'sala_espera': 'Sala de Espera',
-        'en_enfermeria': 'Enfermería',
         'en_consultorio': 'Consultorio',
         'en_consultorio_optometrista': 'Consultorio Optometrista',
         'en_gotas': 'Gotas',
@@ -2012,7 +2010,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         'cancelada': 'Cancelada',
         'no_asistio': 'No Asistió'
     };
-    var confirmedStates = ['confirmada','sala_espera','en_enfermeria','en_consultorio','en_consultorio_optometrista','en_gotas','dilatado','en_optica','en_estudio','finalizada','pagada'];
+    var confirmedStates = ['confirmada','sala_espera','en_consultorio','en_consultorio_optometrista','en_gotas','dilatado','en_optica','en_estudio','finalizada','pagada'];
 
     // Inicializar el modal de Bootstrap
     var modalCambiarEstado = null;
