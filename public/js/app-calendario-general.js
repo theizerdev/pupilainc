@@ -78,6 +78,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         en_consultorio: '#42A5F5',
         en_consultorio_optometrista: '#7E57C2',
         en_gotas: '#26C6DA',
+        dilatado: '#00BCD4',
         en_optica: '#AB47BC',
         en_estudio: '#EC407A',
         finalizada: '#66BB6A',
@@ -1098,10 +1099,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     function isPastDateTime(date) {
         if (!date) return false;
         var now = new Date();
-        // Dar una tolerancia de 2 horas hacia atrás para evitar falsos positivos
-        // Esto permite seleccionar el bloque de tiempo actual incluso si empezó hace un rato,
-        // o registrar un paciente que llegó tarde.
-        now.setHours(now.getHours() - 2);
+        // No comparamos contra horas pasadas, sino que verificamos que la fecha
+        // sea suficientemente futura para permitir la reserva.
+        // Permitimos crear citas que sean al menos 10 minutos en el futuro
+        // para evitar problemas de tiempo real
+        now.setMinutes(now.getMinutes() + 10);
         return date.getTime() < now.getTime();
     }
     function showPastAlert() {
@@ -1270,6 +1272,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         if(ep.motivo||ep.descripcion) html+='<div><strong>Motivo:</strong> '+(ep.motivo||ep.descripcion)+'</div>';
         if(ep.notas) html+='<div><strong>Notas:</strong> '+ep.notas+'</div>';
         if(ep.tiempo_espera_formateado&&ep.tiempo_espera_formateado!=='No en sala de espera') html+='<div><strong>Tiempo espera:</strong> '+ep.tiempo_espera_formateado+'</div>';
+        if(ep.tiempo_gotas_formateado) html+='<div><strong>Tiempo en gotas:</strong> '+ep.tiempo_gotas_formateado+'</div>';
         if(ep.tipo_consulta_nombre) html+='<div><strong>Tipo:</strong> '+ep.tipo_consulta_nombre+'</div>';
         if(ep.prioridad && ep.prioridad !== 'normal') html+='<div><strong>Prioridad:</strong> '+(ep.prioridad_label||ep.prioridad)+'</div>';
         if(ep.codigo) html+='<div><strong>Código:</strong> '+ep.codigo+'</div>';
@@ -1703,13 +1706,16 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
             if (!isCita) {
-                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'en_optica', 'en_estudio'];
+                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'dilatado', 'en_optica', 'en_estudio'];
                 var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
 
                 if (esEstadoActivo && ep.estado_changed_at) {
                     var te = formatTiempoEstado(ep.estado_changed_at);
                     if (te) {
-                        tiempoBadge = '<span class="fc-event-tiempo-badge" style="background:#E64A19;color:#fff;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ri-time-line me-1"></i>' + te + '</span>';
+                        // Mostrar badge especial para gotas y dilatado
+                        var iconoTiempo = (ep.estado === 'en_gotas' || ep.estado === 'dilatado') ? 'ri-drop-line' : 'ri-time-line';
+                        var colorTiempo = (ep.estado === 'en_gotas' || ep.estado === 'dilatado') ? '#00BCD4' : '#E64A19';
+                        tiempoBadge = '<span class="fc-event-tiempo-badge" style="background:' + colorTiempo + ';color:#fff;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + ' me-1"></i>' + te + '</span>';
                     }
                 }
             }
@@ -1975,6 +1981,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         'en_consultorio': 'Consultorio',
         'en_consultorio_optometrista': 'Consultorio Optometrista',
         'en_gotas': 'Gotas',
+        'dilatado': 'Dilatado',
         'en_optica': 'Óptica',
         'en_estudio': 'Estudio',
         'finalizada': 'Finalizada',
@@ -1982,7 +1989,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         'cancelada': 'Cancelada',
         'no_asistio': 'No Asistió'
     };
-    var confirmedStates = ['confirmada','sala_espera','en_enfermeria','en_consultorio','en_consultorio_optometrista','en_gotas','en_optica','en_estudio','finalizada','pagada'];
+    var confirmedStates = ['confirmada','sala_espera','en_enfermeria','en_consultorio','en_consultorio_optometrista','en_gotas','dilatado','en_optica','en_estudio','finalizada','pagada'];
 
     // Inicializar el modal de Bootstrap
     var modalCambiarEstado = null;

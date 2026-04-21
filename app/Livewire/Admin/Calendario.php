@@ -183,11 +183,20 @@ class Calendario extends Component
     public function getMedicosProperty()
     {
         // Issue 6: Solo médicos que tienen citas registradas en el calendario
-        return Medico::activos()
+        $query = Medico::activos()
             ->forUser()
-            ->whereHas('citas')
-            ->orderBy('nombres')
-            ->get();
+            ->whereHas('citas', function($q) {
+                $q->forUser();
+                
+                // Considerar solo citas activas (no canceladas ni no asistidas)
+                $q->whereNotIn('estado', [
+                    \App\Models\Cita::ESTADO_CANCELADA, 
+                    \App\Models\Cita::ESTADO_NO_ASISTIO
+                ]);
+            })
+            ->orderBy('nombres');
+            
+        return $query->get();
     }
 
     // ===== COMPUTED PROPERTIES =====
@@ -435,6 +444,7 @@ class Calendario extends Component
             $ahora    = Carbon::now($timezone);
             $inicioTz = Carbon::parse($this->fecha_inicio, $timezone);
 
+            // Validar que la cita no esté en el pasado
             if ($inicioTz->lt($ahora)) {
                 $this->dispatch('show-alert', [
                     'type'    => 'warning',
@@ -444,9 +454,29 @@ class Calendario extends Component
                 ]);
                 return;
             }
+            
+            // Validar que la cita tenga al menos 2 horas de anticipación
+            $minimaAnticipacion = $ahora->copy()->addHours(2);
+            if ($inicioTz->lt($minimaAnticipacion)) {
+                $horasRestantes = $ahora->diffInHours($inicioTz);
+                $minutosRestantes = $ahora->diffInMinutes($inicioTz) % 60;
+                
+                $mensaje = "La cita debe tener al menos 2 horas de anticipación.";
+                if ($horasRestantes > 0) {
+                    $mensaje .= " Quedan $horasRestantes horas y $minutosRestantes minutos para la hora indicada.";
+                } else {
+                    $mensaje .= " Quedan $minutosRestantes minutos para la hora indicada.";
+                }
+                
+                $this->dispatch('show-alert', [
+                    'type'    => 'warning',
+                    'title'   => 'Fecha no permitida',
+                    'message' => $mensaje,
+                    'icon'    => 'warning'
+                ]);
+                return;
+            }
         }
-
-
 
         // Validación de horario laboral - solo para prioridad normal
         if (!$esPrioridadAltaOEmergencia && !$this->validarHorarioMedico($this->medico_id, $inicio, $fin)) {

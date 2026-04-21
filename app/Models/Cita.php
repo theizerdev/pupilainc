@@ -32,6 +32,7 @@ class Cita extends Model
     const ESTADO_EN_CONSULTORIO = 'en_consultorio';
     const ESTADO_EN_CONSULTORIO_OPTOMETRISTA = 'en_consultorio_optometrista';
     const ESTADO_EN_GOTAS = 'en_gotas';
+    const ESTADO_DILATADO = 'dilatado';
     const ESTADO_EN_OPTICA = 'en_optica';
     const ESTADO_EN_ESTUDIO = 'en_estudio';
     const ESTADO_FINALIZADA = 'finalizada';
@@ -48,6 +49,7 @@ class Cita extends Model
         self::ESTADO_EN_CONSULTORIO,
         self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA,
         self::ESTADO_EN_GOTAS,
+        self::ESTADO_DILATADO,
         self::ESTADO_EN_OPTICA,
         self::ESTADO_EN_ESTUDIO,
         self::ESTADO_FINALIZADA,
@@ -65,6 +67,7 @@ class Cita extends Model
         'en_consultorio' => '#42A5F5',
         'en_consultorio_optometrista' => '#7E57C2',
         'en_gotas' => '#26C6DA',
+        'dilatado' => '#00BCD4',
         'en_optica' => '#AB47BC',
         'en_estudio' => '#EC407A',
         'finalizada' => '#66BB6A',
@@ -83,6 +86,7 @@ class Cita extends Model
         'en_consultorio' => 'En Consultorio',
         'en_consultorio_optometrista' => 'En Consultorio Optometrista',
         'en_gotas' => 'En Gotas',
+        'dilatado' => 'Dilatado',
         'en_optica' => 'En Óptica',
         'en_estudio' => 'En Estudio',
         'finalizada' => 'Finalizada',
@@ -311,7 +315,31 @@ class Cita extends Model
                     'estado_changed_at' => now(),
                 ]);
             }
+            
+            // Verificar si es el primer cambio al estado de sala de espera y si la preconsulta aún está pendiente
+            // y si no se han completado las respuestas de preconsulta
+            if ($nuevoEstado === self::ESTADO_SALA_ESPERA && 
+                $estadoAnterior !== self::ESTADO_SALA_ESPERA) {
+                
+                // Verificar si ya se completaron las respuestas de preconsulta
+                $yaTieneRespuestas = $this->respuestasPreconsulta()
+                    ->where('completado', true)
+                    ->exists();
+                
+                // Solo enviar el formulario si no ha sido completado previamente
+                if ($this->estado_preconsulta === 'pendiente' && !$yaTieneRespuestas) {
+                    $this->crearPreconsultaYEnviarWhatsApp();
+                }
+            }
         } elseif ($nuevoEstado === self::ESTADO_CONFIRMADA) {
+            // Solo enviar preconsulta si está pendiente y no hay respuestas completadas
+            $yaTieneRespuestas = $this->respuestasPreconsulta()
+                ->where('completado', true)
+                ->exists();
+                
+            if ($this->estado_preconsulta === 'pendiente' && !$yaTieneRespuestas) {
+                $this->crearPreconsultaYEnviarWhatsApp();
+            }
             $this->crearConsultaSiNoExiste(true);
         } elseif ($nuevoEstado === self::ESTADO_PENDIENTE) {
         } else {
@@ -584,8 +612,13 @@ class Cita extends Model
 
         // Información de la consulta asociada si existe
         $consultaEstadoLabel = null;
+        $tiempoGotasFormateado = null;
         if ($this->consulta) {
             $consultaEstadoLabel = Consulta::ESTADO_LABELS[$this->consulta->estado] ?? ucfirst($this->consulta->estado);
+            // Agregar tiempo en gotas si aplica
+            if (in_array($this->consulta->estado, ['en_gotas', 'dilatado'])) {
+                $tiempoGotasFormateado = $this->consulta->tiempo_gotas_formateado;
+            }
         }
 
         return [
@@ -621,6 +654,7 @@ class Cita extends Model
                 'tiene_consulta' => $tieneConsulta,
                 'consulta_id' => $this->consulta?->id,
                 'consulta_estado_label' => $consultaEstadoLabel, // Etiqueta del estado de la consulta asociada
+                'tiempo_gotas_formateado' => $tiempoGotasFormateado, // Tiempo en gotas si aplica
             ],
         ];
     }

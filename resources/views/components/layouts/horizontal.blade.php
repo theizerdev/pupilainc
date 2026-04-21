@@ -156,6 +156,9 @@
     <!-- Toast Container -->
 
     @include('components.toast-container')
+    
+    <!-- Widget de Chat Flotante Global -->
+    @livewire('floating-chat-widget')
 
     @stack('scripts')
   </body>

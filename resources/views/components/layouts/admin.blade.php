@@ -224,6 +224,9 @@
 
     <!-- Toast Container -->
     @include('components.toast-container')
+    
+    <!-- Widget de Chat Flotante Global -->
+    @livewire('floating-chat-widget')
 
     <!-- Core JS -->
      <script src="/materialize/assets/vendor/libs/jquery/jquery.js"></script>

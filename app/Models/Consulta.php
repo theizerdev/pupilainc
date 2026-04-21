@@ -22,6 +22,7 @@ class Consulta extends Model
     const ESTADO_EN_CONSULTORIO = 'en_consultorio';
     const ESTADO_EN_CONSULTORIO_OPTOMETRISTA = 'en_consultorio_optometrista';
     const ESTADO_EN_GOTAS = 'en_gotas';
+    const ESTADO_DILATADO = 'dilatado';
     const ESTADO_EN_OPTICA = 'en_optica';
     const ESTADO_EN_ESTUDIO = 'en_estudio';
 
@@ -32,6 +33,7 @@ class Consulta extends Model
         self::ESTADO_EN_CONSULTORIO,
         self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA,
         self::ESTADO_EN_GOTAS,
+        self::ESTADO_DILATADO,
         self::ESTADO_EN_OPTICA,
         self::ESTADO_EN_ESTUDIO,
         self::ESTADO_FINALIZADA,
@@ -46,6 +48,7 @@ class Consulta extends Model
         self::ESTADO_EN_CONSULTORIO => 'En Consultorio',
         self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA => 'En Consultorio Optometrista',
         self::ESTADO_EN_GOTAS => 'En Gotas',
+        self::ESTADO_DILATADO => 'Dilatado',
         self::ESTADO_EN_OPTICA => 'En Óptica',
         self::ESTADO_EN_ESTUDIO => 'En Estudio',
         self::ESTADO_FINALIZADA => 'Finalizada',
@@ -60,6 +63,7 @@ class Consulta extends Model
         self::ESTADO_EN_CONSULTORIO => '#42A5F5',
         self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA => '#7E57C2',
         self::ESTADO_EN_GOTAS => '#26C6DA',
+        self::ESTADO_DILATADO => '#00BCD4',
         self::ESTADO_EN_OPTICA => '#AB47BC',
         self::ESTADO_EN_ESTUDIO => '#EC407A',
         self::ESTADO_FINALIZADA => '#66BB6A',
@@ -152,6 +156,22 @@ class Consulta extends Model
     }
 
     /**
+     * Calcula el tiempo transcurrido en estado Gotas
+     */
+    public function getTiempoEnGotasAttribute()
+    {
+        if ($this->estado === self::ESTADO_EN_GOTAS || $this->estado === self::ESTADO_DILATADO) {
+            $fechaReferencia = $this->estado_changed_at ?? $this->updated_at;
+            if ($fechaReferencia) {
+                $minutos = \Carbon\Carbon::now()->diffInMinutes($fechaReferencia);
+                return max(0, $minutos);
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Formatea el tiempo de espera para display
      */
     public function getTiempoEsperaFormateadoAttribute()
@@ -163,6 +183,35 @@ class Consulta extends Model
         }
         
         // Si es menos de 1 minuto, mostrar "Ahora"
+        if ($minutos < 1) {
+            return 'Ahora';
+        }
+        
+        if ($minutos < 60) {
+            return "{$minutos} min";
+        }
+        
+        $horas = floor($minutos / 60);
+        $minutosRestantes = $minutos % 60;
+        
+        if ($minutosRestantes === 0) {
+            return "{$horas}h";
+        }
+        
+        return "{$horas}h {$minutosRestantes}min";
+    }
+
+    /**
+     * Formatea el tiempo en gotas para display
+     */
+    public function getTiempoGotasFormateadoAttribute()
+    {
+        $minutos = $this->tiempo_en_gotas;
+        
+        if ($minutos === null) {
+            return null;
+        }
+        
         if ($minutos < 1) {
             return 'Ahora';
         }
