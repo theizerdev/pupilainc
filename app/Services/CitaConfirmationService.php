@@ -133,14 +133,18 @@ class CitaConfirmationService
     {
         $confirmacion->marcarComoConfirmada($respuesta);
         
-        // Actualizar estado de la cita y crear consulta "por llegar"
         $cita = $confirmacion->cita;
-        if ($cita && $cita->estado === Cita::ESTADO_PENDIENTE) {
+        if ($cita && in_array($cita->estado, [Cita::ESTADO_PENDIENTE, Cita::ESTADO_PROGRAMADA ?? Cita::ESTADO_PENDIENTE])) {
             $cita->cambiarEstado(Cita::ESTADO_CONFIRMADA);
         }
 
+        // Issue 9: Enviar preconsulta al confirmar si aún no fue llenada
+        if ($cita && $cita->estado_preconsulta === 'pendiente') {
+            $cita->crearPreconsultaYEnviarWhatsApp();
+        }
+
         Log::info('Cita confirmada exitosamente', [
-            'cita_id' => $cita->id,
+            'cita_id'  => $cita->id,
             'paciente' => $cita->paciente->nombre_completo
         ]);
     }

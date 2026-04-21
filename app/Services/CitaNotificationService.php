@@ -110,14 +110,14 @@ class CitaNotificationService
         $errores = [];
 
         // Crear confirmación y enviar mensaje unificado (notificación + confirmación)
-        
+
             $confirmacion = $this->crearConfirmacion($cita);
             if ($confirmacion) {
                 $mensajePaciente = $this->construirMensajeNuevaCitaConConfirmacion($cita, $confirmacion);
             } else {
                 $mensajePaciente = $this->construirMensajeNuevaCita($cita);
             }
-        
+
 
         foreach ($telefonos as $telefono) {
             if ($this->enviar($telefono, $mensajePaciente)) {
@@ -171,7 +171,14 @@ class CitaNotificationService
         foreach ($recordatorios as $tipo => $fechaEnvio) {
             if ($fechaEnvio->isPast()) continue;
 
-            $mensaje = $this->construirMensajeRecordatorio($cita, $etiquetas[$tipo]);
+            // Issue 10: En el recordatorio de 12h incluir preconsulta si no fue llenada
+            $incluirPreconsulta = ($tipo === 'cita_recordatorio_12h')
+                && ($cita->estado_preconsulta === 'pendiente')
+                && $cita->token_preconsulta;
+
+            $mensaje = $incluirPreconsulta
+                ? $this->construirMensajeRecordatorioConPreconsulta($cita, $etiquetas[$tipo])
+                : $this->construirMensajeRecordatorio($cita, $etiquetas[$tipo]);
 
             foreach ($telefonos as $telefono) {
                 $this->programarMensaje($cita, $telefono, $mensaje, $tipo, $fechaEnvio);
@@ -205,7 +212,7 @@ class CitaNotificationService
         // Notificar Paciente
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
         $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
-        
+
         foreach ($telefonos as $telefono) {
             $this->enviar($telefono, $mensajePaciente);
         }
@@ -448,7 +455,7 @@ class CitaNotificationService
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
         $esMenor = $cita->paciente->es_menor;
-        if (!$esMenor) 
+        if (!$esMenor)
             {
               $saludo = "Estimado(a) *{$cita->paciente->nombre_completo}*";
             }
@@ -599,4 +606,20 @@ class CitaNotificationService
             . "{$tiempoTexto}\n"
             . "Por favor, llegue 15 minutos antes.";
     }
+
+
+    protected function construirMensajeRecordatorioConPreconsulta(Cita $cita, string $tiempoRestante = null): string
+    {
+        $base = $this->construirMensajeRecordatorio($cita, $tiempoRestante);
+        $link = route('preconsulta.formulario', ['token' => $cita->token_preconsulta]);
+
+        return $base
+            . "\n\n────────────────────\n"
+            . "Para agilizar su atencion, complete el cuestionario de pre-consulta antes de su cita:\n\n"
+            . $link . "\n\n"
+            . "Es confidencial y nos ayudara a brindarle mejor atencion.";
+    }
+
+
+
 }

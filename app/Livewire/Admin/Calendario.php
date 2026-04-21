@@ -182,7 +182,12 @@ class Calendario extends Component
 
     public function getMedicosProperty()
     {
-        return Medico::activos()->orderBy('nombres')->get();
+        // Issue 6: Solo médicos que tienen citas registradas en el calendario
+        return Medico::activos()
+            ->forUser()
+            ->whereHas('citas')
+            ->orderBy('nombres')
+            ->get();
     }
 
     // ===== COMPUTED PROPERTIES =====
@@ -424,15 +429,21 @@ class Calendario extends Component
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
-        // Validación de fecha pasada - solo para prioridad normal
-        if ($inicio < now() && !$esPrioridadAltaOEmergencia) {
-            $this->dispatch('show-alert', [
-                'type' => 'warning',
-                'title' => 'Fecha no permitida',
-                'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
-                'icon' => 'warning'
-            ]);
-            return;
+        // Validación de fecha pasada con zona horaria de la empresa
+        if (!$esPrioridadAltaOEmergencia) {
+            $timezone = $this->getEmpresaTimezone();
+            $ahora    = Carbon::now($timezone);
+            $inicioTz = Carbon::parse($this->fecha_inicio, $timezone);
+
+            if ($inicioTz->lt($ahora)) {
+                $this->dispatch('show-alert', [
+                    'type'    => 'warning',
+                    'title'   => 'Fecha no permitida',
+                    'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
+                    'icon'    => 'warning'
+                ]);
+                return;
+            }
         }
 
 
@@ -597,7 +608,12 @@ class Calendario extends Component
         $inicio = Carbon::parse($start);
         $fin = Carbon::parse($end);
 
-        if ($inicio < now()) {
+        // Validación de fecha pasada con zona horaria de la empresa
+        $timezone = $this->getEmpresaTimezone();
+        $ahora    = Carbon::now($timezone);
+        $inicioTz = Carbon::parse($start, $timezone);
+
+        if ($inicioTz->lt($ahora)) {
             $this->dispatch('show-alert', [
                 'type' => 'warning',
                 'title' => 'Fecha no permitida',
@@ -712,16 +728,81 @@ class Calendario extends Component
             // Sanitización de datos de entrada
             $nombres = strip_tags(trim($data['nombres'] ?? ''));
             $apellidos = strip_tags(trim($data['apellidos'] ?? ''));
+            $documento = !empty($data['documento_identidad'])
+                ? preg_replace('/[^0-9A-Za-z]/', '', $data['documento_identidad'])
+                : null;
+            $telefono = !empty($data['telefono'])
+                ? preg_replace('/[^0-9+\-\s\(\)]/', '', $data['telefono'])
+                : null;
+
+            // Validación de campos requeridos
+            if (strlen($nombres) < 2 || strlen($apellidos) < 2) {
+                $this->dispatch('paciente-creado', [
+                    'success' => false,
+                    'message' => 'Nombres y apellidos son obligatorios.',
+                    'errors'  => ['general' => 'Nombres y apellidos son obligatorios.']
+                ]);
+                return;
+            }
+
+            $empresaId  = auth()->user()->empresa_id;
+            $sucursalId = auth()->user()->sucursal_id;
+
+            // Detección de duplicados
+            // 1. Por documento si viene informado
+            if ($documento) {
+                $existePorDoc = Paciente::where('empresa_id', $empresaId)
+                    ->where('documento_identidad', $documento)
+                    ->first();
+                if ($existePorDoc) {
+                    $this->dispatch('paciente-creado', [
+                        'success' => false,
+                        'message' => "Ya existe un paciente con ese documento: {$existePorDoc->nombre_completo}.",
+                        'errors'  => ['documento_identidad' => 'Este documento ya está registrado.']
+                    ]);
+                    return;
+                }
+            }
+
+            // 2. Por nombre + apellido (coincidencia exacta, case-insensitive)
+            $existePorNombre = Paciente::where('empresa_id', $empresaId)
+                ->whereRaw('LOWER(nombres) = ?', [strtolower($nombres)])
+                ->whereRaw('LOWER(apellidos) = ?', [strtolower($apellidos)])
+                ->first();
+            if ($existePorNombre) {
+                $this->dispatch('paciente-creado', [
+                    'success' => false,
+                    'message' => "Ya existe un paciente con ese nombre: {$existePorNombre->nombre_completo}. Si es la misma persona, búsquela en el listado.",
+                    'errors'  => ['nombres' => 'Ya existe un paciente con este nombre y apellido.']
+                ]);
+                return;
+            }
+
+            // 3. Por teléfono si viene informado
+            if ($telefono) {
+                $telefonoLimpio = preg_replace('/\D/', '', $telefono);
+                $existePorTel = Paciente::where('empresa_id', $empresaId)
+                    ->whereRaw("REGEXP_REPLACE(telefono, '[^0-9]', '') = ?", [$telefonoLimpio])
+                    ->first();
+                if ($existePorTel) {
+                    $this->dispatch('paciente-creado', [
+                        'success' => false,
+                        'message' => "Ya existe un paciente con ese teléfono: {$existePorTel->nombre_completo}.",
+                        'errors'  => ['telefono' => 'Este teléfono ya está registrado.']
+                    ]);
+                    return;
+                }
+            }
 
             $paciente = Paciente::create([
-                'nombres' => $nombres,
-                'apellidos' => $apellidos,
-                'documento_identidad' => isset($data['documento_identidad']) ? preg_replace('/[^0-9]/', '', $data['documento_identidad']) : null,
-                'telefono' => isset($data['telefono']) ? preg_replace('/[^0-9+\-\s\(\)]/', '', $data['telefono']) : null,
-                'fecha_nacimiento' => isset($data['fecha_nacimiento']) && $data['fecha_nacimiento'] ? Carbon::parse($data['fecha_nacimiento']) : null,
-                'empresa_id' =>  auth()->user()->empresa_id,
-                'sucursal_id' => auth()->user()->sucursal_id,
-                'status' => true,
+                'nombres'             => $nombres,
+                'apellidos'           => $apellidos,
+                'documento_identidad' => $documento,
+                'telefono'            => $telefono,
+                'fecha_nacimiento'    => !empty($data['fecha_nacimiento']) ? Carbon::parse($data['fecha_nacimiento']) : null,
+                'empresa_id'          => $empresaId,
+                'sucursal_id'         => $sucursalId,
+                'status'              => true,
             ]);
 
             $esMenorFlag = (bool) ($data['es_menor'] ?? false);
@@ -788,7 +869,17 @@ class Calendario extends Component
         $preconsultaResult = null;
 
         if ($nuevoEstado === Cita::ESTADO_SALA_ESPERA && $estadoAnterior !== Cita::ESTADO_SALA_ESPERA) {
-            $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
+            // Issue 8: Solo enviar si la preconsulta aún no fue completada
+            if ($cita->estado_preconsulta === 'pendiente') {
+                $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
+            }
+        }
+
+        // Issue 9: Al confirmar manualmente, enviar preconsulta si no fue llenada
+        if ($nuevoEstado === Cita::ESTADO_CONFIRMADA && $estadoAnterior !== Cita::ESTADO_CONFIRMADA) {
+            if ($cita->estado_preconsulta === 'pendiente') {
+                $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
+            }
         }
 
         $cita->cambiarEstado($nuevoEstado);
@@ -1070,6 +1161,23 @@ class Calendario extends Component
                 'message' => 'Error al notificar cancelación: ' . $e->getMessage()
             ];
         }
+    }
+
+    protected function getEmpresaTimezone(): string
+    {
+        try {
+            $empresaId = auth()->user()?->empresa_id;
+            if ($empresaId) {
+                $paisId = \DB::table('empresas')->where('id', $empresaId)->value('pais_id');
+                if ($paisId) {
+                    $tz = \DB::table('pais')->where('id', $paisId)->value('zona_horaria');
+                    if ($tz) return $tz;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('No se pudo obtener timezone de empresa', ['error' => $e->getMessage()]);
+        }
+        return config('app.timezone', 'UTC');
     }
 
     protected function getPageTitle(): string

@@ -384,18 +384,16 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             });
         }
 
-        // Documento
+        // Documento (opcional)
         var documentoInput = document.getElementById('mpDocumento');
         if (documentoInput) {
             documentoInput.addEventListener('blur', function() {
                 var value = this.value.trim();
                 clearFieldError('mpDocumento');
-                if (!value) {
-                    showFieldError('documento_identidad', 'Este campo es requerido');
-                } else {
-                    var documentoLimpio = value.replace(/[^0-9]/g, '');
-                    if (documentoLimpio.length < 6 || documentoLimpio.length > 12) {
-                        showFieldError('documento_identidad', 'El documento debe tener entre 6 y 12 dígitos');
+                if (value) {
+                    var documentoLimpio = value.replace(/[^0-9A-Za-z]/g, '');
+                    if (documentoLimpio.length < 4 || documentoLimpio.length > 20) {
+                        showFieldError('documento_identidad', 'El documento debe tener entre 4 y 20 caracteres');
                     }
                 }
                 actualizarEstadoBotonSubmit();
@@ -413,9 +411,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             telefonoInput.addEventListener('blur', function() {
                 var value = this.value.trim();
                 clearFieldError('mpTelefono');
-                if (!value) {
-                    showFieldError('telefono', 'Este campo es requerido');
-                } else {
+                if (value) {
                     var telefonoLimpio = value.replace(/[^0-9]/g, '');
                     if (telefonoLimpio.length < 7 || telefonoLimpio.length > 15) {
                         showFieldError('telefono', 'El teléfono debe tener entre 7 y 15 dígitos');
@@ -510,31 +506,23 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             errores.push('apellidos');
         }
 
-        // Validar documento de identidad
+        // Validar documento de identidad (opcional)
         var documentoInput = document.getElementById('mpDocumento');
-        var documentoValue = documentoInput.value.trim();
+        var documentoValue = documentoInput ? documentoInput.value.trim() : '';
         clearFieldError('mpDocumento');
-
-        if (!documentoValue) {
-            showFieldError('documento_identidad', 'Este campo es requerido');
-            errores.push('documento_identidad');
-        } else {
-            var documentoLimpio = documentoValue.replace(/[^0-9]/g, '');
-            if (documentoLimpio.length < 6 || documentoLimpio.length > 12) {
-                showFieldError('documento_identidad', 'El documento debe tener entre 6 y 12 dígitos');
+        if (documentoValue) {
+            var documentoLimpio = documentoValue.replace(/[^0-9A-Za-z]/g, '');
+            if (documentoLimpio.length < 4 || documentoLimpio.length > 20) {
+                showFieldError('documento_identidad', 'El documento debe tener entre 4 y 20 caracteres');
                 errores.push('documento_identidad');
             }
         }
 
-        // Validar teléfono
+        // Validar teléfono (opcional)
         var telefonoInput = document.getElementById('mpTelefono');
-        var telefonoValue = telefonoInput.value.trim();
+        var telefonoValue = telefonoInput ? telefonoInput.value.trim() : '';
         clearFieldError('mpTelefono');
-
-        if (!telefonoValue) {
-            showFieldError('telefono', 'Este campo es requerido');
-            errores.push('telefono');
-        } else {
+        if (telefonoValue) {
             var telefonoLimpio = telefonoValue.replace(/[^0-9]/g, '');
             if (telefonoLimpio.length < 7 || telefonoLimpio.length > 15) {
                 showFieldError('telefono', 'El teléfono debe tener entre 7 y 15 dígitos');
@@ -542,20 +530,15 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
             }
         }
 
-        // Validar fecha de nacimiento
+        // Validar fecha de nacimiento (opcional)
         var fechaInput = document.getElementById('mpFechaNacimiento');
-        var fechaValue = fechaInput.value;
+        var fechaValue = fechaInput ? fechaInput.value : '';
         clearFieldError('mpFechaNacimiento');
-
-        if (!fechaValue || fechaValue.trim() === '') {
-            showFieldError('fecha_nacimiento', 'Este campo es requerido');
-            errores.push('fecha_nacimiento');
-        } else {
+        if (fechaValue && fechaValue.trim() !== '') {
             var fecha = new Date(fechaValue);
             var hoy = new Date();
             var fechaMinima = new Date();
             fechaMinima.setFullYear(fechaMinima.getFullYear() - 120);
-
             if (isNaN(fecha.getTime())) {
                 showFieldError('fecha_nacimiento', 'La fecha no es válida');
                 errores.push('fecha_nacimiento');

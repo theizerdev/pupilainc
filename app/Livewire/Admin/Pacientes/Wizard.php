@@ -77,7 +77,6 @@ class Wizard extends Component
     protected $messages = [
         'nombres.required' => 'El nombre del paciente es obligatorio.',
         'apellidos.required' => 'Los apellidos son obligatorios.',
-        'documento_identidad.required' => 'El documento de identidad es obligatorio.',
         'documento_identidad.unique' => 'Este documento de identidad ya está registrado.',
         'fecha_nacimiento.required' => 'La fecha de nacimiento es obligatoria.',
         'fecha_nacimiento.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
@@ -349,10 +348,21 @@ class Wizard extends Component
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
             'documento_identidad' => [
-                'required',
+                'nullable',
                 'string',
                 'max:50',
-                Rule::unique('pacientes')->ignore($this->pacienteId),
+                // Unique solo si no es null/vacío
+                function ($attribute, $value, $fail) {
+                    if (!empty($value)) {
+                        $exists = \App\Models\Paciente::where('documento_identidad', $value)
+                            ->where('empresa_id', auth()->user()->empresa_id)
+                            ->when($this->pacienteId, fn($q) => $q->where('id', '!=', $this->pacienteId))
+                            ->exists();
+                        if ($exists) {
+                            $fail('Este documento de identidad ya está registrado.');
+                        }
+                    }
+                },
             ],
             'telefono' => 'nullable|regex:/^[\d\s\-\+\(\)]+$/|max:20',
             'email' => 'nullable|email|max:255',

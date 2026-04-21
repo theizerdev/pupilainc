@@ -45,18 +45,25 @@
             Livewire.on('paciente-creado', (event) => {
                 const data = event[0];
 
-                // Solo cerrar el modal si fue exitoso y no hay errores de validación
+                // Solo cerrar el modal si fue exitoso y no hay errores
                 if (data.success && !data.errors) {
                     $('#modalPacienteRapido').modal('hide');
                 }
 
-                // Usar el sistema de toasts de la plantilla
+                // Mostrar errores de campo si los hay
+                if (!data.success && data.errors) {
+                    if (typeof showPacienteValidationErrors === 'function') {
+                        showPacienteValidationErrors(data.errors);
+                    }
+                }
+
+                // Toast de resultado
                 const toastContainer = document.querySelector('.toast-container');
                 if (toastContainer) {
                     const toastHtml = `
-                        <div class="bs-toast toast ${data.success ? 'bg-success' : 'bg-danger'}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                        <div class="bs-toast toast ${data.success ? 'bg-success' : 'bg-danger'}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="6000">
                             <div class="toast-header">
-                                <i class="ri ri-check-line me-2"></i>
+                                <i class="ri ri-${data.success ? 'check' : 'error-warning'}-line me-2"></i>
                                 <div class="me-auto fw-medium">${data.success ? 'Éxito' : 'Error'}</div>
                                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
                             </div>
@@ -71,9 +78,10 @@
                 }
 
                 if (data.success && data.paciente) {
-                    // Si se creó correctamente, añadirlo al select y seleccionarlo
                     const select = document.getElementById('eventPaciente');
-                    const nombreMostrar = data.paciente.nickname ? `${data.paciente.nombre} (${data.paciente.nickname}) - ${data.paciente.documento_identidad || ''}` : `${data.paciente.nombre} - ${data.paciente.documento_identidad || ''}`;
+                    const nombreMostrar = data.paciente.nickname
+                        ? `${data.paciente.nombre} (${data.paciente.nickname}) - ${data.paciente.documento_identidad || ''}`
+                        : `${data.paciente.nombre} - ${data.paciente.documento_identidad || ''}`;
                     const option = new Option(nombreMostrar, data.paciente.id, true, true);
                     select.appendChild(option);
                     $(select).trigger('change');
@@ -95,7 +103,7 @@
 
     <div class="card app-calendar-wrapper" wire:ignore>
         <div class="row g-0" style="min-width: 0;">
-            
+
             <!-- Calendar Sidebar -->
             <div class="col app-calendar-sidebar sidebar-hidden border-end" id="app-calendar-sidebar">
                 <!-- Toggle Filtros Button (Fixed at top) -->
@@ -109,7 +117,7 @@
                 </div>
                 <!-- Scrollable Content -->
                 <div class="px-4 py-3 sidebar-scroll" id="filtrosScrollContainer">
-                    
+
                     <!-- Búsqueda Rápida -->
                     <div class="mb-3">
                         <!-- Botón Nueva Cita -->
@@ -119,7 +127,24 @@
                             </button>
                         </div>
 
-                        
+                        <!-- Filtro por Médico -->
+                        <div class="mb-3">
+                            <small class="text-muted fw-medium d-block mb-2">MÉDICO</small>
+                            <select class="form-select form-select-sm" id="filterMedico"
+                                    wire:model.live="filtroMedico">
+                                <option value="">Todos los médicos</option>
+                                @foreach($medicos as $medico)
+                                    <option value="{{ $medico->id }}">{{ $medico->nombres.' '.$medico->apellidos }}</option>
+                                @endforeach
+                            </select>
+                            @if($filtroMedico)
+                                <button type="button" class="btn btn-xs btn-link text-danger p-0 mt-1"
+                                        wire:click="$set('filtroMedico', '')">
+                                    <i class="ri ri-close-line me-1"></i>Limpiar filtro médico
+                                </button>
+                            @endif
+
+
                         <!-- Búsqueda por paciente -->
                         <div class="input-group input-group-sm mt-2 mb-4">
                             <span class="input-group-text"><i class="ri ri-search-line"></i></span>
@@ -158,26 +183,21 @@
 
                     <!-- Filtro por Especialidad (Colapsable) -->
                     <div class="accordion" id="filtrosAccordion">
-                       
 
-                       
-                        <!-- Filtro por Médico -->
-                         <select class="form-select form-select-sm" id="filterMedico">
-                            <option value="">Todos los médicos</option>
-                            @foreach($medicos as $medico)
-                                <option value="{{ $medico->id }}">{{ $medico->nombres.' '.$medico->apellidos }}</option>
-                            @endforeach
-                        </select>
 
-                       
+
+
+                        </div>
+
+
 
 
 
                     </div>
 
-                  
-                   
-                   
+
+
+
 
                     </div>
                 </div>
@@ -187,6 +207,10 @@
             <div class="col app-calendar-content" style="position: relative;">
                 <div class="card shadow-none border-0">
                     <div class="card-body pb-0 pt-0 px-2" style="position: relative;">
+
+                        <!-- Barra de filtros rápidos ENCIMA del calendario (Issue 6) -->
+
+
                         <!-- Loading Overlay -->
                         <div class="calendar-loading" id="calendarLoading">
                             <div class="spinner-border text-primary" role="status">
@@ -216,6 +240,7 @@
                         <h5 class="offcanvas-title" id="addEventSidebarLabel">Nueva Cita</h5>
                         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                     </div>
+
                     <div class="offcanvas-body">
                         <form class="event-form pt-0" id="eventForm" onsubmit="return false">
                             <!-- 1. Paciente -->
