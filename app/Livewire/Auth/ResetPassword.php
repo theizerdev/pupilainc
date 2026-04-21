@@ -3,125 +3,96 @@
 namespace App\Livewire\Auth;
 
 use Livewire\Component;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
-use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class ResetPassword extends Component
 {
-    public $token;
-    public $email = '';
-    public $password = '';
-    public $password_confirmation = '';
-    public $successMessage;
+    public string $token = '';
+    public string $email = '';
+    public string $password = '';
+    public string $password_confirmation = '';
+    public ?string $successMessage = null;
 
-    // Propiedades para manejar errores de validación
-    public $errors = [];
-
-    public function rules()
+    protected function rules(): array
     {
         return [
-            'token' => 'required',
-            'email' => 'required|email',
+            'token'    => 'required|string|size:6',
+            'email'    => 'required|email',
             'password' => ['required', 'confirmed', PasswordRule::defaults()],
         ];
     }
 
-    public function mount($token)
+    protected $messages = [
+        'token.size' => 'El código debe tener 6 dígitos.',
+    ];
+
+    public function mount(string $token, string $email = ''): void
     {
         $this->token = $token;
+        $this->email = $email;
     }
 
     public function resetPassword()
     {
-        $this->errors = []; // Limpiar errores anteriores
+        $this->reset('successMessage');
+        $this->resetValidation();
+        $this->validate();
 
-        try {
-            $this->validate();
-        } catch (ValidationException $e) {
-            $this->errors = $e->validator->errors()->messages();
-            return;
-        }
-
-        // Buscar el usuario por email o teléfono
-        $user = $this->findUserByEmailOrPhone($this->email);
+        $user = User::where('email', $this->email)->first();
 
         if (!$user) {
-            $this->errors['email'] = [__('auth_ui.user_not_found')];
+            $this->addError('email', 'Usuario no encontrado.');
             return;
         }
 
-        $status = Password::reset(
-            [
-                'token' => $this->token,
-                'email' => $user->email, // Usar el email del usuario encontrado
-                'password' => $this->password,
-                'password_confirmation' => $this->password_confirmation,
-            ],
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password)
-                ])->setRememberToken(Str::random(60));
+        // Buscar token en password_reset_tokens
+        $resetRecord = DB::table('password_reset_tokens')
+            ->where('email', $this->email)
+            ->first();
 
-                $user->save();
-
-                event(new PasswordReset($user));
-            }
-        );
-
-        if ($status == Password::PASSWORD_RESET) {
-            $this->successMessage = __($status);
-            $this->email = '';
-            $this->password = '';
-            $this->password_confirmation = '';
-
-            session()->flash('status', __($status));
-
-            return redirect()->route('login');
-        } else {
-            $this->errors['email'] = [__($status)];
-        }
-    }
-
-    /**
-     * Buscar usuario por email o teléfono
-     */
-    private function findUserByEmailOrPhone($identifier)
-    {
-        // Limpiar el identificador
-        $cleanIdentifier = trim($identifier);
-
-        // Buscar por email primero
-        $user = \App\Models\User::where('email', $cleanIdentifier)->first();
-        if ($user) {
-            return $user;
+        if (!$resetRecord) {
+            $this->addError('token', 'Token inválido o expirado.');
+            return;
         }
 
-        // Si no es email, buscar por teléfono
-        // Limpiar el teléfono (remover espacios, guiones, etc.)
-        $cleanPhone = preg_replace('/[^\d]/', '', $cleanIdentifier);
-
-        // Si no comienza con código de país, agregar el código de Venezuela por defecto
-        if (!preg_match('/^58/', $cleanPhone)) {
-            $cleanPhone = '58' . $cleanPhone;
+        // Validar caducidad (15 minutos)
+        $createdAt = \Carbon\Carbon::parse($resetRecord->created_at);
+        if ($createdAt->addMinutes(15)->isPast()) {
+            DB::table('password_reset_tokens')->where('email', $this->email)->delete();
+            $this->addError('token', 'El token ha expirado. Solicita uno nuevo.');
+            return;
         }
 
-        return \App\Models\User::where('phone', $cleanPhone)->first();
+        // Validar token
+        if (!Hash::check($this->token, $resetRecord->token)) {
+            $this->addError('token', 'El código ingresado es incorrecto.');
+            return;
+        }
+
+        // Actualizar contraseña
+        $user->update([
+            'password' => Hash::make($this->password),
+        ]);
+
+        // Eliminar token usado
+        DB::table('password_reset_tokens')->where('email', $this->email)->delete();
+
+        session()->flash('status', 'Contraseña restablecida exitosamente.');
+
+        return redirect()->route('login');
     }
 
-    // Método para verificar si un campo tiene error
-    public function hasError($field)
+    public function hasError(string $field): bool
     {
-        return isset($this->errors[$field]) && !empty($this->errors[$field]);
+        return $this->getErrorBag()->has($field);
     }
 
-    // Método para obtener los mensajes de error de un campo
-    public function getError($field)
+    public function getError(string $field): string
     {
-        return $this->hasError($field) ? $this->errors[$field][0] : '';
+        return $this->getErrorBag()->first($field);
     }
 
     public function render()
@@ -129,6 +100,6 @@ class ResetPassword extends Component
         return view('livewire.auth.reset-password', [
             'hasError' => $this->hasError(...),
             'getError' => $this->getError(...),
-        ])->layout('components.layouts.auth-basic', ['title' => 'Reset Password']);
+        ])->layout('components.layouts.auth-basic', ['title' => 'Restablecer Contraseña']);
     }
 }

@@ -76,7 +76,7 @@ class Create extends Component
             'apellidos' => 'required|string|max:255',
             'genero' => 'nullable|string|max:20',
             'documento_identidad' => 'required|string|max:50|unique:medicos,documento_identidad',
-            'telefono' => 'nullable|string|max:20',
+            'telefono' => 'nullable|string|max:20|unique:users,phone',
             'direccion' => 'nullable|string|max:500',
             'licencia_medica' => 'required|string|max:50|unique:medicos,licencia_medica',
             'anios_experiencia' => 'required|integer|min:0|max:50',

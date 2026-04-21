@@ -43,6 +43,7 @@ Route::middleware('guest')->group(function () {
     Route::get('register', \App\Livewire\Auth\Register::class)->name('register');
     Route::get('password/reset', \App\Livewire\Auth\ForgotPassword::class)->name('password.request');
     Route::get('password/reset/{token}', \App\Livewire\Auth\ResetPassword::class)->name('password.reset');
+    Route::get('password/cambiar/{token}', \App\Livewire\Auth\ResetPassword::class)->name('password.reset.token');
 });
 
 Route::middleware('auth')->group(function () {

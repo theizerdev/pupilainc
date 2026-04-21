@@ -3,217 +3,124 @@
 namespace App\Livewire\Auth;
 
 use Livewire\Component;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use App\Models\User;
 use App\Services\WhatsAppService;
 
 class ForgotPassword extends Component
 {
-    public $identifier = '';
-    public $method = 'phone'; // 'email' o 'phone'
-    public $successMessage;
-    public $user;
+    public string $identifier = '';
+    public ?string $successMessage = null;
 
-    // Propiedades para manejar errores de validación
-    public $errors = [];
-
-    public function rules()
+    protected function rules(): array
     {
         return [
-            'identifier' => 'required|string',
-            'method' => 'required|in:email,phone',
+            'identifier' => 'required|string|min:7',
         ];
     }
 
+    protected $messages = [
+        'identifier.required' => 'Ingresa tu número de teléfono.',
+        'identifier.min'      => 'El número de teléfono no es válido.',
+    ];
+
     public function sendResetLink()
     {
-        $this->reset(['successMessage']);
+        $this->reset('successMessage');
         $this->resetValidation();
 
-        $this->validate();
+        $validated = $this->validate();
 
-        // Buscar usuario por email o teléfono
-        $user = $this->findUserByIdentifier($this->identifier);
-   
-        if (!$user) {
-            $this->addError('identifier', __('auth_ui.user_not_found'));
-            return;
-        }
+        $user = $this->findUser($this->identifier);
 
-        if ($this->method === 'email') {
-            $this->sendResetLinkByEmail($user);
-        } else {
-            $this->sendResetLinkByWhatsApp($user);
-        }
-
-        // Forzar re-renderizado para mostrar mensajes
-        $this->js('$wire.$refresh()');
-    }
-
-    /**
-     * Buscar usuario por email o teléfono
-     */
-    private function findUserByIdentifier($identifier)
-    {
-        // Limpiar el identificador
-        $cleanIdentifier = trim($identifier);
-   
-        // Buscar por email primero
-        $user = User::where('email', $cleanIdentifier)->first();
-        if ($user) {
-            return $user;
-        }
-
-        return User::where('phone', $cleanIdentifier)->first();
-    }
-
-    /**
-     * Enviar enlace de restablecimiento por email
-     */
-    private function sendResetLinkByEmail(User $user)
-    {
-        $status = Password::sendResetLink(
-            ['email' => $user->email]
-        );
-
-        if ($status == Password::RESET_LINK_SENT) {
-            $this->successMessage = __('auth_ui.reset_link_sent_email');
+        // Respuesta genérica para no revelar si el usuario existe (OWASP)
+        if (!$user || !$user->phone || !$user->empresa_id) {
+            $this->successMessage = __('auth_ui.reset_link_sent_whatsapp');
             $this->identifier = '';
-        } else {
-            $this->addError('identifier', __($status));
+            return;
         }
+
+        $this->sendTokenByWhatsApp($user);
     }
 
-    /**
-     * Enviar enlace de restablecimiento por WhatsApp
-     */
-    private function sendResetLinkByWhatsApp(User $user)
-    {   
+    private function findUser(string $identifier): ?User
+    {
+        $clean = trim($identifier);
 
-        $this->user = $user;
-        
-        if (!$user->phone) {
-            $this->addError('identifier', __('auth_ui.no_phone_registered'));
-            return;
-        }
+        // Buscar solo por teléfono (se eliminó soporte email en este flujo)
+        $digits = preg_replace('/\D/', '', $clean);
 
-        // Validar que el usuario tenga empresa configurada
-        if (!$user->empresa_id) {
-            $this->addError('identifier', 'Usuario no tiene empresa asociada. Contacte al administrador.');
-            return;
-        }
+        // Intentar con y sin código de país
+        return User::where('phone', $clean)
+            ->orWhere('phone', $digits)
+            ->orWhere('phone', ltrim($digits, '0'))
+            ->first();
+    }
 
-        // Validar que la empresa tenga WhatsApp configurado
-        $empresa = $user->empresa;
-        if (!$empresa || !$empresa->whatsapp_api_key) {
-            $this->addError('identifier', 'La empresa no tiene WhatsApp configurado. Contacte al administrador.');
-            return;
-        }
-
+    private function sendTokenByWhatsApp(User $user): void
+    {
         try {
+            $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-            $telefonoFormateado = $this->formatearTelefono($user->phone);
-          
-            // Generar nueva contraseña de 8 dígitos numéricos
-            $newPassword = str_pad(mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT);
+            DB::table('password_reset_tokens')->upsert(
+                [
+                    'email'      => $user->email,
+                    'token'      => Hash::make($token),
+                    'created_at' => now(),
+                ],
+                ['email'],
+                ['token', 'created_at']
+            );
 
-            // Actualizar la contraseña del usuario directamente
-            $user->update([
-                'password' => Hash::make($newPassword)
-            ]);
+            $telefono = $this->formatearTelefono($user->phone, $user);
+            $resetUrl = route('password.reset.token', ['token' => $token, 'email' => $user->email]);
 
-            // Preparar mensaje de WhatsApp con la nueva contraseña
-            $message = "🏥 *Nueva Contraseña Generada*\n\n";
+            $message  = "🔐 *Recuperación de Contraseña*\n\n";
             $message .= "Hola *{$user->name}*,\n\n";
-            $message .= "✅ Hemos generado una nueva contraseña para tu cuenta.\n\n";
-            $message .= "🔑 *Contraseña temporal:* {$newPassword}\n\n";
-            $message .= "📋 *Importante:*\n";
-            $message .= "• Ingresa con esta contraseña\n";
-            $message .= "• Cámbiala inmediatamente en tu perfil\n";
-            $message .= "• Esta contraseña es temporal por seguridad\n\n";
-            $message .= "¿Necesitas ayuda? Contacta a soporte técnico.\n\n";
-            $message .= "Gracias por confiar en nosotros. 😊";
+            $message .= "Recibimos una solicitud para restablecer tu contraseña.\n\n";
+            $message .= "🔗 *Enlace de recuperación:*\n{$resetUrl}\n\n";
+            $message .= "⏱️ Este enlace expira en *15 minutos*.\n\n";
+            $message .= "⚠️ Si no solicitaste este cambio, ignora este mensaje.\n\n";
+            $message .= "¿Necesitas ayuda? Contacta al administrador del sistema.";
 
-
-            
-           
-
-            // Enviar por WhatsApp - usar empresa del usuario
             $whatsApp = new WhatsAppService($user->empresa_id);
-            $result = $whatsApp->sendMessage($telefonoFormateado, $message, true);
 
-            // Log detallado para debugging
-            \Log::info('WhatsApp password reset attempt', [
-                'user_id' => $user->id,
-                'user_name' => $user->name,
-                'user_phone' => $user->phone,
-                'phone_formatted' => $telefonoFormateado,
-                'message_length' => strlen($message),
-                'result' => $result,
-                'result_type' => gettype($result),
-                'result_keys' => is_array($result) ? array_keys($result) : null,
-                'api_url' => config('whatsapp.api_url'),
-                'company_id' => $whatsApp->getCompanyId(),
-                'service_configured' => $whatsApp->isConfigured(),
-                'empresa_id' => $user->empresa_id
-            ]);
-
-            if ($result && is_array($result) && isset($result['success']) && $result['success']) {
-                $this->successMessage = __('auth_ui.password_reset_success_whatsapp');
-                $this->identifier = '';
+            // Enviar solo si WhatsApp está configurado, sin bloquear si falla
+            if ($whatsApp->isConfigured()) {
+                try {
+                    // Timeout reducido a 8s para no bloquear el formulario
+                    $whatsApp->setTimeout(8);
+                    $result = $whatsApp->sendMessage($telefono, $message, true);
+                    \Log::info('Password reset WhatsApp sent', [
+                        'user_id' => $user->id,
+                        'phone'   => $telefono,
+                        'result'  => $result,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::warning('WhatsApp send failed (non-blocking)', [
+                        'user_id' => $user->id,
+                        'error'   => $e->getMessage(),
+                    ]);
+                }
             } else {
-                // Log the error details
-                \Log::error('WhatsApp password reset failed', [
-                    'user_id' => $user->id,
-                    'result' => $result,
-                    'result_type' => gettype($result)
-                ]);
-                $this->addError('identifier', __('auth_ui.whatsapp_send_failed'));
+                \Log::warning('WhatsApp no configurado', ['empresa_id' => $user->empresa_id]);
             }
 
         } catch (\Exception $e) {
-            \Log::error('Error sending WhatsApp password reset', [
+            \Log::error('Error in sendTokenByWhatsApp', [
                 'user_id' => $user->id,
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ]);
-            $this->addError('identifier', __('auth_ui.whatsapp_send_failed'));
         }
+
+        // Siempre mostrar mensaje genérico de éxito
+        $this->successMessage = __('auth_ui.reset_link_sent_whatsapp');
+        $this->identifier = '';
     }
 
-    
-    /**
-     * Obtiene el código de país de la empresa
-     */
-    protected function obtenerCodigoPais(): string
-    {
-      
-        $codigoPais = '58';
-
-            $empresa = $this->user->empresa;
-            if ($empresa && $empresa->pais_id) {
-                $pais = \DB::table('pais')->where('id', $empresa->pais_id)->first();
-                if ($pais && $pais->codigo_telefonico) {
-                    $codigoPais = ltrim($pais->codigo_telefonico, '+');
-                    \Log::info('Código de país encontrado', [
-                        'empresa_id' =>  $empresa->id,
-                        'pais_id' => $empresa->pais_id,
-                        'codigo_telefonico' => $pais->codigo_telefonico,
-                        'codigo_pais' => $codigoPais
-                    ]);
-                }
-            }
-        
-
-        return $codigoPais;
-    }
-
-    /**
-     * Formatea el número de teléfono al formato internacional
-     */
-    protected function formatearTelefono(string $telefono): string
+    private function formatearTelefono(string $telefono, User $user): string
     {
         $limpio = preg_replace('/\D/', '', $telefono);
 
@@ -221,23 +128,27 @@ class ForgotPassword extends Component
             $limpio = substr($limpio, 1);
         }
 
-        $codigo = $this->obtenerCodigoPais();
+        $codigo = '58'; // default Venezuela
+        if ($user->empresa?->pais_id) {
+            $pais = DB::table('pais')->where('id', $user->empresa->pais_id)->value('codigo_telefonico');
+            if ($pais) {
+                $codigo = ltrim($pais, '+');
+            }
+        }
 
-        if (!str_starts_with($limpio, $codigo) && strlen($limpio) >= 7 && strlen($limpio) <= 12) {
+        if (!str_starts_with($limpio, $codigo)) {
             $limpio = $codigo . $limpio;
         }
 
         return '+' . $limpio;
     }
 
-    // Método para verificar si un campo tiene error
-    public function hasError($field)
+    public function hasError(string $field): bool
     {
         return $this->getErrorBag()->has($field);
     }
 
-    // Método para obtener los mensajes de error de un campo
-    public function getError($field)
+    public function getError(string $field): string
     {
         return $this->getErrorBag()->first($field);
     }
@@ -247,6 +158,6 @@ class ForgotPassword extends Component
         return view('livewire.auth.forgot-password', [
             'hasError' => $this->hasError(...),
             'getError' => $this->getError(...),
-        ])->layout('components.layouts.auth-basic', ['title' => 'Forgot Password']);
+        ])->layout('components.layouts.auth-basic', ['title' => 'Recuperar Contraseña']);
     }
 }

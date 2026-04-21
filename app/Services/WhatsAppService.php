@@ -16,6 +16,12 @@ class WhatsAppService
 
     private $timeout;
 
+    public function setTimeout(int $seconds): self
+    {
+        $this->timeout = $seconds;
+        return $this;
+    }
+
     /**
      * Constructor del servicio WhatsApp
      *

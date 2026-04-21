@@ -65,7 +65,7 @@ if (!function_exists('getPermissionSectors')) {
                 'description' => 'Gestión de productos, categorías y marcas',
                 'color' => 'indigo',
                 'icon' => 'ri-store-2-line',
-                'modules' => ['categorias-producto', 'marcas']
+                'modules' => ['categorias-producto', 'marcas', 'almacenes', 'proveedores', 'productos', 'movimientos-inventario', 'ordenes-compra', 'alertas-inventario']
             ],
         ];
     }
@@ -416,18 +416,44 @@ if (!function_exists('getSectorMenuItems')) {
                 'icon' => 'ri-store-2-line',
                 'items' => [
                     [
-                        'label' => 'Categorías',
-                        'icon' => 'ri-price-tag-3-line',
-                        'permission' => 'access categorias-producto',
-                        'route' => 'admin.inventario.categorias.index',
-                        'active' => 'admin.inventario.categorias.*',
+                        'label' => 'Alertas',
+                        'icon' => 'ri-alarm-warning-line',
+                        'permission' => 'access alertas-inventario',
+                        'route' => 'admin.inventario.alertas.index',
+                        'active' => 'admin.inventario.alertas.*',
                     ],
                     [
-                        'label' => 'Marcas',
-                        'icon' => 'ri-bookmark-line',
-                        'permission' => 'access marcas',
-                        'route' => 'admin.inventario.marcas.index',
-                        'active' => 'admin.inventario.marcas.*',
+                        'label' => 'Productos',
+                        'icon' => 'ri-box-3-line',
+                        'permission' => 'access productos',
+                        'route' => 'admin.inventario.productos.index',
+                        'active' => 'admin.inventario.productos.*',
+                    ],
+                    [
+                        'label' => 'Movimientos',
+                        'icon' => 'ri-swap-box-line',
+                        'permission' => 'access movimientos-inventario',
+                        'route' => 'admin.inventario.movimientos.index',
+                        'active' => 'admin.inventario.movimientos.*',
+                    ],
+                    [
+                        'label' => 'Órdenes de Compra',
+                        'icon' => 'ri-shopping-cart-line',
+                        'permission' => 'access ordenes-compra',
+                        'route' => 'admin.inventario.ordenes-compra.index',
+                        'active' => 'admin.inventario.ordenes-compra.*',
+                    ],
+                    [
+                        'label' => 'Configuración',
+                        'icon' => 'ri-settings-3-line',
+                        'permissions' => ['access categorias-producto', 'access marcas', 'access almacenes', 'access proveedores'],
+                        'active' => 'admin.inventario.categorias.*|admin.inventario.marcas.*|admin.inventario.almacenes.*|admin.inventario.proveedores.*',
+                        'children' => [
+                            ['label' => 'Categorías',  'permission' => 'access categorias-producto', 'route' => 'admin.inventario.categorias.index',  'active' => 'admin.inventario.categorias.*'],
+                            ['label' => 'Marcas',       'permission' => 'access marcas',              'route' => 'admin.inventario.marcas.index',       'active' => 'admin.inventario.marcas.*'],
+                            ['label' => 'Almacenes',    'permission' => 'access almacenes',           'route' => 'admin.inventario.almacenes.index',    'active' => 'admin.inventario.almacenes.*'],
+                            ['label' => 'Proveedores',  'permission' => 'access proveedores',         'route' => 'admin.inventario.proveedores.index',  'active' => 'admin.inventario.proveedores.*'],
+                        ]
                     ],
                 ],
             ],

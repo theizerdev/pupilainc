@@ -53,7 +53,7 @@ class Edit extends Component
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $this->user->id],
-            'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()]+$/'],
+            'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()]+$/', \Illuminate\Validation\Rule::unique('users', 'phone')->ignore($this->user->id)],
             'whatsapp_verification_enabled' => ['boolean'],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'empresa_id' => ['required', 'exists:empresas,id'],

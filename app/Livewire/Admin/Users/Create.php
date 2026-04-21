@@ -44,7 +44,7 @@ class Create extends Component
             'sucursal_id' => ['required', 'exists:sucursales,id'],
             'status' => ['boolean'],
             'role' => ['required', 'exists:roles,name'],
-            'phone' => ['nullable', 'string', 'max:20']
+            'phone' => ['nullable', 'string', 'max:20', 'unique:users,phone']
         ];
     }
 

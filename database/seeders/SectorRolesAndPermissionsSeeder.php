@@ -460,6 +460,59 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'view marcas',
                     ]
                 ],
+                'almacenes' => [
+                    'name' => 'Almacenes',
+                    'permissions' => [
+                        'access almacenes',
+                        'create almacenes',
+                        'edit almacenes',
+                        'delete almacenes',
+                    ]
+                ],
+                'proveedores' => [
+                    'name' => 'Proveedores',
+                    'permissions' => [
+                        'access proveedores',
+                        'create proveedores',
+                        'edit proveedores',
+                        'delete proveedores',
+                        'view proveedores',
+                    ]
+                ],
+                'productos' => [
+                    'name' => 'Productos',
+                    'permissions' => [
+                        'access productos',
+                        'create productos',
+                        'edit productos',
+                        'delete productos',
+                        'view productos',
+                    ]
+                ],
+                'movimientos_inventario' => [
+                    'name' => 'Movimientos de Inventario',
+                    'permissions' => [
+                        'access movimientos-inventario',
+                        'create movimientos-inventario',
+                        'view movimientos-inventario',
+                    ]
+                ],
+                'ordenes_compra' => [
+                    'name' => 'Órdenes de Compra',
+                    'permissions' => [
+                        'access ordenes-compra',
+                        'create ordenes-compra',
+                        'edit ordenes-compra',
+                        'delete ordenes-compra',
+                        'view ordenes-compra',
+                    ]
+                ],
+                'alertas_inventario' => [
+                    'name' => 'Alertas de Inventario',
+                    'permissions' => [
+                        'access alertas-inventario',
+                    ]
+                ],
             ],
 
             // 📱 SECTOR COMUNICACIONES (Adicional)

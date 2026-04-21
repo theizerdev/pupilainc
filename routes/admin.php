@@ -355,4 +355,35 @@ Route::prefix('inventario')->name('inventario.')->group(function () {
         Route::get('/marcas/crear', \App\Livewire\Admin\Inventario\Marcas\Create::class)->name('marcas.create');
         Route::get('/marcas/{marca}/editar', \App\Livewire\Admin\Inventario\Marcas\Edit::class)->name('marcas.edit');
     });
+
+    Route::middleware(['checkAdminPermission:access almacenes'])->group(function () {
+        Route::get('/almacenes', \App\Livewire\Admin\Inventario\Almacenes\Index::class)->name('almacenes.index');
+    });
+
+    Route::middleware(['checkAdminPermission:access proveedores'])->group(function () {
+        Route::get('/proveedores', \App\Livewire\Admin\Inventario\Proveedores\Index::class)->name('proveedores.index');
+        Route::get('/proveedores/crear', \App\Livewire\Admin\Inventario\Proveedores\Form::class)->name('proveedores.create');
+        Route::get('/proveedores/{proveedor}/editar', \App\Livewire\Admin\Inventario\Proveedores\Form::class)->name('proveedores.edit');
+    });
+
+    Route::middleware(['checkAdminPermission:access productos'])->group(function () {
+        Route::get('/productos', \App\Livewire\Admin\Inventario\Productos\Index::class)->name('productos.index');
+        Route::get('/productos/crear', \App\Livewire\Admin\Inventario\Productos\Form::class)->name('productos.create');
+        Route::get('/productos/{producto}/editar', \App\Livewire\Admin\Inventario\Productos\Form::class)->name('productos.edit');
+        Route::get('/productos/{producto}', \App\Livewire\Admin\Inventario\Productos\Show::class)->name('productos.show');
+    });
+
+    Route::middleware(['checkAdminPermission:access movimientos-inventario'])->group(function () {
+        Route::get('/movimientos', \App\Livewire\Admin\Inventario\Movimientos\Index::class)->name('movimientos.index');
+        Route::get('/movimientos/crear', \App\Livewire\Admin\Inventario\Movimientos\Create::class)->name('movimientos.create');
+    });
+
+    Route::middleware(['checkAdminPermission:access ordenes-compra'])->group(function () {
+        Route::get('/ordenes-compra', \App\Livewire\Admin\Inventario\OrdenesCompra\Index::class)->name('ordenes-compra.index');
+        Route::get('/ordenes-compra/crear', \App\Livewire\Admin\Inventario\OrdenesCompra\Form::class)->name('ordenes-compra.create');
+    });
+
+    Route::middleware(['checkAdminPermission:access alertas-inventario'])->group(function () {
+        Route::get('/alertas', \App\Livewire\Admin\Inventario\Alertas\Index::class)->name('alertas.index');
+    });
 });

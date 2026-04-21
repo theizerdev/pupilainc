@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             CategoriaSeeder::class, // Categorías para clasificación de elementos
             CategoriaProductoSeeder::class, // Categorías de producto para inventario
             MarcaSeeder::class, // Marcas para inventario
+            InventarioBaseSeeder::class, // Almacenes y proveedores base
         ]);
     }
 }
