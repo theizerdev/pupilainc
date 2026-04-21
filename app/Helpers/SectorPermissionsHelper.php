@@ -249,6 +249,7 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'En Enfermería', 'route' => 'admin.gestion.consultas.en-enfermeria', 'active' => 'admin.gestion.consultas.en-enfermeria', 'permission' => 'access consultas en enfermeria'],
                             ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio', 'permission' => 'access consultas en consultorio'],
                             ['label' => 'En Gotas', 'route' => 'admin.gestion.consultas.en-gotas', 'active' => 'admin.gestion.consultas.en-gotas', 'permission' => 'access consultas en gotas'],
+                            ['label' => 'Dilatado', 'route' => 'admin.gestion.consultas.dilatado', 'active' => 'admin.gestion.consultas.dilatado', 'permission' => 'access consultas en gotas'],
                             ['label' => 'En Óptica', 'route' => 'admin.gestion.consultas.en-optica', 'active' => 'admin.gestion.consultas.en-optica', 'permission' => 'access consultas en optica'],
                             ['label' => 'En Estudio', 'route' => 'admin.gestion.consultas.en-estudio', 'active' => 'admin.gestion.consultas.en-estudio', 'permission' => 'access consultas en estudio'],
                             ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas', 'permission' => 'access consultas finalizadas'],

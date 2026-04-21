@@ -26,6 +26,7 @@ class Index extends Component
             Consulta::ESTADO_EN_CONSULTORIO,
             Consulta::ESTADO_EN_CONSULTORIO_OPTOMETRISTA,
             Consulta::ESTADO_EN_GOTAS,
+            Consulta::ESTADO_DILATADO,
             Consulta::ESTADO_EN_OPTICA,
             Consulta::ESTADO_EN_ESTUDIO,
             Consulta::ESTADO_FINALIZADA,
@@ -74,6 +75,11 @@ class Index extends Component
             $title .= ' [' . $consulta->tiempo_espera_formateado . ']';
         }
         
+        // Si está en gotas o dilatado, agregar tiempo en gotas
+        if (in_array($consulta->estado, [Consulta::ESTADO_EN_GOTAS, Consulta::ESTADO_DILATADO]) && $consulta->tiempo_gotas_formateado !== null) {
+            $title .= ' [' . $consulta->tiempo_gotas_formateado . ']';
+        }
+        
         return [
             'id' => $consulta->id,
             'title' => $title,
@@ -99,6 +105,7 @@ class Index extends Component
                 'preconsulta' => $consulta->preconsulta,
                 'tiempo_espera' => $consulta->tiempo_sala_espera,
                 'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
+                'tiempo_gotas_formateado' => $consulta->tiempo_gotas_formateado,
             ],
         ];
     }

@@ -299,7 +299,7 @@ class Cita extends Model
 
         $consultaEstados = [
             self::ESTADO_SALA_ESPERA, self::ESTADO_EN_ENFERMERIA, self::ESTADO_EN_CONSULTORIO,
-            self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA, self::ESTADO_EN_GOTAS, self::ESTADO_EN_OPTICA,
+            self::ESTADO_EN_CONSULTORIO_OPTOMETRISTA, self::ESTADO_EN_GOTAS, self::ESTADO_DILATADO, self::ESTADO_EN_OPTICA,
             self::ESTADO_EN_ESTUDIO, self::ESTADO_FINALIZADA, self::ESTADO_PAGADA,
         ];
 

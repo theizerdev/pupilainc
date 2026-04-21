@@ -1463,6 +1463,17 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         return days + 'd ' + (hours % 24) + 'h';
     }
 
+    // ===================== ACTUALIZAR TIMERS EN TIEMPO REAL =====================
+    function updateTimers() {
+        // Refrescar eventos del calendario para obtener tiempos actualizados desde el backend
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    }
+
+    // Actualizar timers cada 30 segundos
+    setInterval(updateTimers, 30000);
+
     // ===================== EVENT RENDERING =====================
     function getEventColor(event) {
         var ep = event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', estado = ep.calendar||ep.estado||'';
@@ -1705,17 +1716,23 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
             // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
-            if (!isCita) {
-                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'dilatado', 'en_optica', 'en_estudio'];
+            
+            // Para gotas y dilatado, usar el tiempo calculado desde el backend
+            if ((ep.estado === 'en_gotas' || ep.estado === 'dilatado') && ep.tiempo_gotas_formateado) {
+                var iconoTiempo = 'ri-drop-line';
+                var colorTiempo = '#00BCD4';
+                tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + '"></i>' + ep.tiempo_gotas_formateado + '</span>';
+            } else {
+                // Para otros estados activos, calcular el tiempo desde estado_changed_at
+                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
                 var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
 
                 if (esEstadoActivo && ep.estado_changed_at) {
                     var te = formatTiempoEstado(ep.estado_changed_at);
                     if (te) {
-                        // Mostrar badge especial para gotas y dilatado
-                        var iconoTiempo = (ep.estado === 'en_gotas' || ep.estado === 'dilatado') ? 'ri-drop-line' : 'ri-time-line';
-                        var colorTiempo = (ep.estado === 'en_gotas' || ep.estado === 'dilatado') ? '#00BCD4' : '#E64A19';
-                        tiempoBadge = '<span class="fc-event-tiempo-badge" style="background:' + colorTiempo + ';color:#fff;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + ' me-1"></i>' + te + '</span>';
+                        var iconoTiempo = 'ri-time-line';
+                        var colorTiempo = '#E64A19';
+                        tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + '"></i>' + te + '</span>';
                     }
                 }
             }
@@ -1768,6 +1785,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                     prioridadIcon +
                     consultaIcon +
                     '<span class="fc-event-title" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nombreCompleto + '</span>' +
+                    (tiempoBadge ? tiempoBadge : '') +
                 '</div>';
             } else if (view.type === 'timeGridDay' || view.type === 'timeGridWeek' || view.type === 'timeGridCustom') {
                 if (duracionMinutos <= 30) {
@@ -1777,6 +1795,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                         prioridadIcon +
                         consultaIcon +
                         '<span class="fc-event-title" style="flex:1;">' + nombreCompleto + '</span>' +
+                        (tiempoBadge ? tiempoBadge : '') +
                         '<span class="fc-event-subtitle" style="flex-shrink:0;">' + medicoNombre + '</span>' +
                     '</div>';
                 } else {
@@ -1787,6 +1806,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                                 prioridadIcon +
                                 consultaIcon +
                                 '<span class="fc-event-title">' + nombreCompleto + '</span>' +
+                                (tiempoBadge ? tiempoBadge : '') +
                             '</div>' +
                             '<span class="fc-event-subtitle">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
                         '</div>' +
@@ -1819,6 +1839,9 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         eventDidMount: function(info) {
             var ep = info.event.extendedProps||{}, tipoEvento = ep.tipo_evento||'cita', isCita = tipoEvento==='cita';
             info.el.classList.add('event-cita');
+            
+            // Agregar data-event-id para poder actualizar timers
+            info.el.setAttribute('data-event-id', info.event.id);
 
             var tipoColor = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#1565C0' : '#7B1FA2');
 
