@@ -438,6 +438,30 @@ class SectorRolesAndPermissionsSeeder extends Seeder
 
             ],*/
 
+            // 📦 SECTOR INVENTARIO
+            'inventario' => [
+                'categorias_producto' => [
+                    'name' => 'Categorías de Producto',
+                    'permissions' => [
+                        'access categorias-producto',
+                        'create categorias-producto',
+                        'edit categorias-producto',
+                        'delete categorias-producto',
+                        'view categorias-producto',
+                    ]
+                ],
+                'marcas' => [
+                    'name' => 'Marcas',
+                    'permissions' => [
+                        'access marcas',
+                        'create marcas',
+                        'edit marcas',
+                        'delete marcas',
+                        'view marcas',
+                    ]
+                ],
+            ],
+
             // 📱 SECTOR COMUNICACIONES (Adicional)
             'comunicaciones' => [
                 'whatsapp' => [

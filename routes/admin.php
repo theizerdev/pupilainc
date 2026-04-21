@@ -334,10 +334,25 @@ Route::prefix('seniat')->as('seniat.')->middleware(['checkAdminPermission:access
 });
 Route::get('/impuestos', \App\Livewire\Admin\Impuestos\Index::class)->name('impuestos.index');
 
-// Categorías
+// Categorías (baremos/pagos)
 Route::middleware(['checkAdminPermission:access categorias'])->group(function () {
     Route::get('/categorias', \App\Livewire\Admin\Categorias\Index::class)->name('categorias.index');
     Route::get('/categorias/crear', \App\Livewire\Admin\Categorias\Create::class)->name('categorias.create');
     Route::get('/categorias/{categoria}/editar', \App\Livewire\Admin\Categorias\Edit::class)->name('categorias.edit');
     Route::get('/categorias/{categoria}/ver', \App\Livewire\Admin\Categorias\Show::class)->name('categorias.show');
+});
+
+// Inventario
+Route::prefix('inventario')->name('inventario.')->group(function () {
+    Route::middleware(['checkAdminPermission:access categorias-producto'])->group(function () {
+        Route::get('/categorias', \App\Livewire\Admin\Inventario\Categorias\Index::class)->name('categorias.index');
+        Route::get('/categorias/crear', \App\Livewire\Admin\Inventario\Categorias\Create::class)->name('categorias.create');
+        Route::get('/categorias/{categoria}/editar', \App\Livewire\Admin\Inventario\Categorias\Edit::class)->name('categorias.edit');
+    });
+
+    Route::middleware(['checkAdminPermission:access marcas'])->group(function () {
+        Route::get('/marcas', \App\Livewire\Admin\Inventario\Marcas\Index::class)->name('marcas.index');
+        Route::get('/marcas/crear', \App\Livewire\Admin\Inventario\Marcas\Create::class)->name('marcas.create');
+        Route::get('/marcas/{marca}/editar', \App\Livewire\Admin\Inventario\Marcas\Edit::class)->name('marcas.edit');
+    });
 });

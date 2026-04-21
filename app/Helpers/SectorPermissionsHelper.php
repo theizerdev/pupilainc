@@ -59,7 +59,14 @@ if (!function_exists('getPermissionSectors')) {
                 'color' => 'gray',
                 'icon' => 'ri-tools-line',
                 'modules' => ['system', 'api', 'jwt']
-            ]
+            ],
+            'inventario' => [
+                'name' => '📦 Inventario',
+                'description' => 'Gestión de productos, categorías y marcas',
+                'color' => 'indigo',
+                'icon' => 'ri-store-2-line',
+                'modules' => ['categorias-producto', 'marcas']
+            ],
         ];
     }
 }
@@ -401,6 +408,26 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access database export',
                         'route' => 'admin.database-export',
                         'active' => 'admin.database-export',
+                    ],
+                ],
+            ],
+            'inventario' => [
+                'label' => 'Inventario',
+                'icon' => 'ri-store-2-line',
+                'items' => [
+                    [
+                        'label' => 'Categorías',
+                        'icon' => 'ri-price-tag-3-line',
+                        'permission' => 'access categorias-producto',
+                        'route' => 'admin.inventario.categorias.index',
+                        'active' => 'admin.inventario.categorias.*',
+                    ],
+                    [
+                        'label' => 'Marcas',
+                        'icon' => 'ri-bookmark-line',
+                        'permission' => 'access marcas',
+                        'route' => 'admin.inventario.marcas.index',
+                        'active' => 'admin.inventario.marcas.*',
                     ],
                 ],
             ],
