@@ -569,7 +569,7 @@
     <script src="/materialize/assets/vendor/libs/@form-validation/auto-focus.js"></script>
     <script src="/materialize/assets/vendor/libs/select2/select2.js"></script>
     <script src="/materialize/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-    <script src="{{ asset('js/app-calendario-general.js') }}"></script>
+    <script src="{{ asset('js/app-calendario-general.js') }}?v={{ time() }}"></script>
     @endpush
 
     @push('scripts')
@@ -579,7 +579,8 @@
                 initCalendarioGeneral(
                     @json($eventos),
                     @json($citaEstadoColores),
-                    @json($citaEstadoLabels)
+                    @json($citaEstadoLabels),
+                    @json($timezone)
                 );
             } else {
                 setTimeout(waitFC, 50);
