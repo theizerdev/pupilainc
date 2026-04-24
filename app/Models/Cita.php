@@ -537,6 +537,16 @@ class Cita extends Model
             return;
         }
 
+        // Recordatorio 48 horas antes
+        if ($this->fecha_inicio->subHours(48) > now()) {
+            $this->recordatorios()->create([
+                'tipo' => '48h',
+                'fecha_envio_programado' => $this->fecha_inicio->copy()->subHours(48),
+                'canal' => 'whatsapp',
+                'mensaje' => $this->generarMensajeRecordatorio('48h')
+            ]);
+        }
+
         // Recordatorio 24 horas antes
         if ($this->fecha_inicio->subDay() > now()) {
             $this->recordatorios()->create([
@@ -566,6 +576,32 @@ class Cita extends Model
         $sucursal = $this->sucursal->nombre;
 
         switch ($tipo) {
+            case '48h':
+                $mensaje = "🩺 *Recordatorio de Cita Médica*\n\n" .
+                           "Hola {$this->paciente->nombre_completo},\n\n" .
+                           "Le recordamos que tiene una cita médica programada:\n\n" .
+                           "📅 *Fecha:* {$fecha}\n" .
+                           "👨‍⚕️ *Médico:* {$medico}\n" .
+                           "🏥 *Especialidad:* {$especialidad}\n" .
+                           "🏢 *Sucursal:* {$sucursal}\n\n";
+                           
+                // Incluir formulario de preconsulta si aún no ha sido completado
+                if ($this->estado_preconsulta !== 'completado') {
+                    // Generar token si no existe
+                    if (!$this->token_preconsulta) {
+                        $token = \Illuminate\Support\Str::random(32);
+                        $this->update(['token_preconsulta' => $token]);
+                    }
+                    
+                    $mensaje .= "📋 *FORMULARIO DE PRECONSULTA*\n\n" .
+                               "Para agilizar su atención, le solicitamos completar el formulario de preconsulta:\n\n" .
+                               "🔗 Complete su preconsulta aquí: " . route('preconsulta.formulario', ['token' => $this->token_preconsulta]) . "\n\n" .
+                               "⏰ Recuerde completarlo antes de su cita.\n\n";
+                }
+                
+                $mensaje .= "Por favor confirme su asistencia respondiendo *SI* o *NO*";
+                return $mensaje;
+
             case '24h':
                 return "🩺 *Recordatorio de Cita Médica*\n\n" .
                        "Hola {$this->paciente->nombre_completo},\n\n" .
@@ -621,11 +657,16 @@ class Cita extends Model
             }
         }
 
+        // Convertir las fechas de UTC a la zona horaria del usuario para mostrarlas correctamente
+        $timezone = session('timezone', config('app.timezone', 'America/Caracas'));
+        $inicioLocal = $this->fecha_inicio->tz($timezone);
+        $finLocal = $this->fecha_fin->tz($timezone);
+
         return [
             'id' => $this->id,
             'title' => $nombrePaciente,
-            'start' => $this->fecha_inicio->format('Y-m-d\TH:i:s'),
-            'end' => $this->fecha_fin->format('Y-m-d\TH:i:s'),
+            'start' => $inicioLocal->format('Y-m-d\TH:i:s'),
+            'end' => $finLocal->format('Y-m-d\TH:i:s'),
             'allDay' => false,
             'extendedProps' => [
                 'tipo_evento' => 'cita',

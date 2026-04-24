@@ -20,23 +20,7 @@
               <!-- /Search -->
 
               <ul class="navbar-nav flex-row align-items-center ms-md-auto">
-                <li class="nav-item dropdown-language dropdown me-2 me-xl-0">
-                  <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <i class="icon-base ri ri-translate-2 icon-md"></i>
-                  </a>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                      <a class="dropdown-item {{ app()->getLocale() === 'es' ? 'active' : '' }}" href="{{ route('lang.switch', 'es') }}">
-                        <span>🇪🇸 Español</span>
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item {{ app()->getLocale() === 'en' ? 'active' : '' }}" href="{{ route('lang.switch', 'en') }}">
-                        <span>🇺🇸 English</span>
-                      </a>
-                    </li>
-                  </ul>
-                </li>
+                
                 <!--/ Language -->
 
                 <!-- Style Switcher -->

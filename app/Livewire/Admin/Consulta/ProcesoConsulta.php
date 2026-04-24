@@ -8,9 +8,12 @@ use App\Models\ConsultaEvaluacion;
 use App\Models\ConsultaEstudio;
 use App\Models\ConsultaTratamiento;
 use App\Models\RespuestaPreconsulta;
-
+use App\Traits\HasDynamicLayout;
 class ProcesoConsulta extends Component
 {
+	
+	use HasDynamicLayout;
+	
     public $consulta;
     public $pasoActual = 0; // Iniciar en paso 0 (Signos Vitales)
     public $nuevoEstado = '';
@@ -563,6 +566,6 @@ class ProcesoConsulta extends Component
         return view('livewire.admin.consulta.proceso-consulta', [
             'respuestasPreconsulta' => $respuestasPreconsulta,
             'cuestionarioCompleto' => $cuestionarioCompleto,
-        ]);
+        ])->layout($this->getLayout());
     }
 }

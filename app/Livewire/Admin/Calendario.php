@@ -62,6 +62,8 @@ class Calendario extends Component
     public function mount()
     {
         $this->filtroEstados = Cita::ESTADOS;
+         $timezone = $this->getEmpresaTimezone();
+
     }
 
     // Métodos de formateo para el formulario de paciente rápido
@@ -187,15 +189,15 @@ class Calendario extends Component
             ->forUser()
             ->whereHas('citas', function($q) {
                 $q->forUser();
-                
+
                 // Considerar solo citas activas (no canceladas ni no asistidas)
                 $q->whereNotIn('estado', [
-                    \App\Models\Cita::ESTADO_CANCELADA, 
+                    \App\Models\Cita::ESTADO_CANCELADA,
                     \App\Models\Cita::ESTADO_NO_ASISTIO
                 ]);
             })
             ->orderBy('nombres');
-            
+
         return $query->get();
     }
 
@@ -438,44 +440,34 @@ class Calendario extends Component
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
-        // Validación de fecha pasada con zona horaria de la empresa
-        if (!$esPrioridadAltaOEmergencia) {
-            $timezone = $this->getEmpresaTimezone();
-            $ahora    = Carbon::now($timezone);
-            $inicioTz = Carbon::parse($this->fecha_inicio, $timezone);
+        $timezone = $this->getEmpresaTimezone();
+        $inicio = Carbon::parse($this->fecha_inicio, $timezone)->tz('UTC');
+        $fin = Carbon::parse($this->fecha_fin, $timezone)->tz('UTC');
+        $prioridad = $eventData['prioridad'] ?? 'normal';
+        $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
-            // Validar que la cita no esté en el pasado
-            if ($inicioTz->lt($ahora)) {
-                $this->dispatch('show-alert', [
-                    'type'    => 'warning',
-                    'title'   => 'Fecha no permitida',
-                    'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
-                    'icon'    => 'warning'
-                ]);
-                return;
-            }
-            
-            // Validar que la cita tenga al menos 2 horas de anticipación
-            $minimaAnticipacion = $ahora->copy()->addHours(2);
-            if ($inicioTz->lt($minimaAnticipacion)) {
-                $horasRestantes = $ahora->diffInHours($inicioTz);
-                $minutosRestantes = $ahora->diffInMinutes($inicioTz) % 60;
-                
-                $mensaje = "La cita debe tener al menos 2 horas de anticipación.";
-                if ($horasRestantes > 0) {
-                    $mensaje .= " Quedan $horasRestantes horas y $minutosRestantes minutos para la hora indicada.";
-                } else {
-                    $mensaje .= " Quedan $minutosRestantes minutos para la hora indicada.";
-                }
-                
-                $this->dispatch('show-alert', [
-                    'type'    => 'warning',
-                    'title'   => 'Fecha no permitida',
-                    'message' => $mensaje,
-                    'icon'    => 'warning'
-                ]);
-                return;
-            }
+        $ahora    = Carbon::now($timezone);
+        $inicioTz = Carbon::parse($this->fecha_inicio, $timezone);
+
+        Log::info('Validando cita', [
+            'fecha_inicio_raw' => $this->fecha_inicio,
+            'inicio_tz' => $inicioTz->toDateTimeString(),
+            'inicio_tz_name' => $inicioTz->timezoneName,
+            'ahora' => $ahora->toDateTimeString(),
+            'ahora_tz_name' => $ahora->timezoneName,
+            'timestamp_inicio' => $inicioTz->timestamp,
+            'timestamp_ahora' => $ahora->timestamp
+        ]);
+
+        // Validar que la cita no esté en el pasado (Comparación por timestamp para evitar errores de TZ)
+        if ($inicioTz->timestamp < $ahora->timestamp) {
+            $this->dispatch('show-alert', [
+                'type'    => 'warning',
+                'title'   => 'Fecha no permitida',
+                'message' => 'No se permite en el pasado. (Cita: ' . $inicioTz->format('H:i') . ', Ahora: ' . $ahora->format('H:i') . ')',
+                'icon'    => 'warning'
+            ]);
+            return;
         }
 
         // Validación de horario laboral - solo para prioridad normal
@@ -569,11 +561,23 @@ class Calendario extends Component
                 }
             } else {
                 $data['prioridad'] = $prioridad;
+                
+                // Si la prioridad es alta o emergencia, el estado debe ser sala de espera
+                if ($esPrioridadAltaOEmergencia) {
+                    $data['estado'] = Cita::ESTADO_SALA_ESPERA;
+                }
+                
                 $cita = new Cita();
                 $cita->fill($data);
                 $cita->save();
 
                 $this->logCitaAction('create', $cita);
+                
+                // Si es una cita de prioridad alta o emergencia, crear automáticamente la consulta en sala de espera
+                if ($esPrioridadAltaOEmergencia) {
+                    $cita->crearConsultaSiNoExiste(true);
+                }
+                
                 $notificacion = $this->notificarNuevaCita($cita);
                 $cita->programarRecordatorios();
 
@@ -635,19 +639,19 @@ class Calendario extends Component
             return;
         }
 
+        // NO convertir timezone - usar la fecha exactamente como se envía desde el navegador
+        // Esto evita los errores de conversión de hora al guardar citas
         $inicio = Carbon::parse($start);
         $fin = Carbon::parse($end);
 
-        // Validación de fecha pasada con zona horaria de la empresa
-        $timezone = $this->getEmpresaTimezone();
-        $ahora    = Carbon::now($timezone);
-        $inicioTz = Carbon::parse($start, $timezone);
+        // Validación de fecha pasada (usando hora local del servidor)
+        $ahora = Carbon::now();
 
-        if ($inicioTz->lt($ahora)) {
+        if ($inicio->lt($ahora)) {
             $this->dispatch('show-alert', [
                 'type' => 'warning',
                 'title' => 'Fecha no permitida',
-                'message' => 'No se pueden crear ni mover citas a fechas u horas pasadas.',
+                'message' => 'No se permite en el pasado. (Cita: ' . $inicio->format('H:i') . ', Ahora: ' . $ahora->format('H:i') . ')',
                 'icon' => 'warning'
             ]);
             $this->dispatch('cita-saved');
@@ -1237,6 +1241,7 @@ class Calendario extends Component
             'citaEstados' => Cita::ESTADOS,
             'citaEstadoLabels' => Cita::ESTADO_LABELS,
             'citaEstadoColores' => Cita::ESTADO_COLORES,
+            'timezone' => $this->getEmpresaTimezone(),
         ])->layout($this->getLayout());
     }
 }

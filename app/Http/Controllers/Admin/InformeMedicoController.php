@@ -39,7 +39,7 @@ class InformeMedicoController extends Controller
         $this->diagnosticos();
         $this->estudios();
         $this->tratamientos();
-        $this->firma();
+        //$this->firma();
 
         // Orden de estudios (página separada)
         if ($this->consulta->estudios && $this->consulta->estudios->count() > 0) {
@@ -47,7 +47,7 @@ class InformeMedicoController extends Controller
             $this->encabezado('ORDEN DE ESTUDIOS');
             $this->datosPacienteResumido();
             $this->estudiosDetallado();
-            $this->firmaSimple();
+            //$this->firmaSimple();
         }
 
         // Recipe médico (página separada)
@@ -56,7 +56,7 @@ class InformeMedicoController extends Controller
             $this->encabezado('RECIPE MÉDICO');
             $this->datosPacienteResumido();
             $this->tratamientosDetallado();
-            $this->firmaSimple();
+            //$this->firmaSimple();
         }
 
         return response($this->fpdf->Output('S'), 200, [
@@ -351,7 +351,7 @@ class InformeMedicoController extends Controller
         $this->fpdf->SetTextColor(150, 150, 150);
         $this->fpdf->Cell(0, 5, utf8_decode('Documento confidencial - Uso exclusivo médico'), 0, 1, 'C');
         $this->fpdf->SetTextColor(0, 0, 0);
-        
+
         $this->fpdf->Ln(5);
         $this->fpdf->SetFont('Arial', '', 9);
         $this->fpdf->Cell(0, 6, utf8_decode('_________________________________'), 0, 1, 'C');
@@ -368,17 +368,17 @@ class InformeMedicoController extends Controller
         $this->fpdf->Cell(40, 6, utf8_decode('Paciente:'), 0, 0);
         $this->fpdf->SetFont('Arial', '', 9);
         $this->fpdf->Cell(0, 6, utf8_decode($paciente->nombre_completo), 0, 1);
-        
+
         $this->fpdf->SetFont('Arial', 'B', 9);
         $this->fpdf->Cell(40, 6, utf8_decode('Documento:'), 0, 0);
         $this->fpdf->SetFont('Arial', '', 9);
         $this->fpdf->Cell(60, 6, utf8_decode($paciente->documento_identidad), 0, 0);
-        
+
         $this->fpdf->SetFont('Arial', 'B', 9);
         $this->fpdf->Cell(30, 6, utf8_decode('Fecha:'), 0, 0);
         $this->fpdf->SetFont('Arial', '', 9);
         $this->fpdf->Cell(0, 6, $this->consulta->created_at->format('d/m/Y'), 0, 1);
-        
+
         $this->fpdf->Ln(3);
     }
 
@@ -391,15 +391,15 @@ class InformeMedicoController extends Controller
         foreach ($this->consulta->estudios as $index => $estudio) {
             $this->fpdf->SetFont('Arial', 'B', 10);
             $this->fpdf->Cell(0, 7, utf8_decode(($index + 1) . '. ' . strtoupper($estudio->tipo_estudio)), 0, 1);
-            
+
             $this->fpdf->SetFont('Arial', '', 10);
             $this->fpdf->MultiCell(0, 6, utf8_decode($estudio->nombre_estudio), 0);
-            
+
             if ($estudio->indicaciones) {
                 $this->fpdf->SetFont('Arial', 'I', 9);
                 $this->fpdf->MultiCell(0, 5, utf8_decode('Indicaciones: ' . $estudio->indicaciones), 0);
             }
-            
+
             $this->fpdf->Ln(3);
         }
     }
@@ -414,11 +414,11 @@ class InformeMedicoController extends Controller
             $this->fpdf->SetFont('Arial', 'B', 10);
             $this->fpdf->Cell(10, 7, ($index + 1) . '.', 0, 0);
             $this->fpdf->Cell(0, 7, utf8_decode($trat->medicamento), 0, 1);
-            
+
             $this->fpdf->SetFont('Arial', '', 10);
             $this->fpdf->SetX(25);
             $this->fpdf->MultiCell(0, 6, utf8_decode($trat->indicaciones), 0);
-            
+
             $this->fpdf->Ln(3);
         }
     }

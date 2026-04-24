@@ -4,8 +4,10 @@
  */
 
 'use strict';
+var globalCompanyTimezone = 'local';
 
-function initCalendarioGeneral(events, citaColores, citaLabels) {
+function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
+    globalCompanyTimezone = companyTimezone || 'local';
     (function ensureNowIndicatorStyle() {
         if (document.getElementById('fc-now-indicator-style')) return;
         var s = document.createElement('style');
@@ -74,7 +76,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         no_asistio: '#6c757d',
         por_llegar: '#9E9E9E',
         sala_espera: '#FFA726',
-        en_enfermeria: '#EF5350',
         en_consultorio: '#42A5F5',
         en_consultorio_optometrista: '#7E57C2',
         en_gotas: '#26C6DA',
@@ -1096,28 +1097,82 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     }
 
     // ===================== DATE VALIDATION =====================
-    function isPastDateTime(date) {
-        if (!date) return false;
-        var now = new Date();
-        // No comparamos contra horas pasadas, sino que verificamos que la fecha
-        // sea suficientemente futura para permitir la reserva.
-        // Permitimos crear citas que sean al menos 10 minutos en el futuro
-        // para evitar problemas de tiempo real
-        now.setMinutes(now.getMinutes() + 10);
-        return date.getTime() < now.getTime();
+    function isPastDateTime(date, info) {
+        if (!date || !info) return false;
+
+        try {
+            // FullCalendar usa 'dateStr' en clics y 'event.startStr' en arrastres
+            var rawStr = info.dateStr || (info.event ? info.event.startStr : null);
+            if (!rawStr) return false;
+
+            // 1. Obtener la cadena de la fecha seleccionada (formato ISO: YYYY-MM-DDTHH:mm:ss)
+            var selectedStr = rawStr.includes('T') ? rawStr : rawStr + 'T00:00:00';
+
+            // 2. Obtener el "ahora" en la zona horaria LOCAL del navegador
+            // para que coincida exactamente con lo que el usuario ve en la línea roja.
+            var nowStr = new Date().toLocaleString('sv-SE').replace(' ', 'T');
+
+            // 3. Comparar como cadenas (orden lexicográfico funciona para ISO)
+            // Añadimos un pequeño margen: si son el mismo minuto, permitimos.
+            // Para eso comparamos solo hasta los minutos.
+            var selectedMin = selectedStr.substring(0, 16);
+            var nowMin = nowStr.substring(0, 16);
+
+            if (selectedMin < nowMin) {
+                showPastAlert(selectedMin.replace('T', ' '), nowMin.replace('T', ' '));
+                return true;
+            }
+        } catch (e) {
+            console.error('Error in isPastDateTime:', e);
+        }
+        return false;
     }
-    function showPastAlert() {
+
+    function showPastAlert(selected, now) {
+        // Extraer solo la hora para el mensaje
+        var selTime = selected.substring(11);
+        var nowTime = now.substring(11);
+        var msg = 'No se pueden crear citas en el pasado. (Seleccionado: ' + selTime + ', Ahora: ' + nowTime + ')';
+
         if (window.Swal) {
-            Swal.fire({ icon: 'warning', title: 'Fecha no permitida', text: 'No se pueden crear ni mover citas a fechas u horas pasadas.', confirmButtonText: 'Entendido' });
+            Swal.fire({
+                icon: 'warning',
+                title: 'Fecha no permitida',
+                text: msg,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#ffc107'
+            });
         } else {
-            alert('No se pueden crear ni mover citas a fechas u horas pasadas.');
+            alert(msg);
         }
     }
 
     // ===================== FORM HELPERS =====================
     function formatDateForLivewire(date) {
         if (!date) return '';
-        return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0') + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0') + ':' + String(date.getSeconds()).padStart(2,'0');
+
+        try {
+            // NO usar timezone de empresa - usar hora local del navegador
+            // Esto evita conversiones incorrectas al guardar citas
+            var options = {
+                timeZone: undefined, // Usar timezone local del navegador
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            };
+            var formatter = new Intl.DateTimeFormat('en-US', options);
+            var parts = formatter.formatToParts(date);
+
+            var p = {};
+            parts.forEach(function(part) { p[part.type] = part.value; });
+
+            // Reconstruir formato Y-m-d H:i:s (Intl en-US da m/d/Y por defecto en format())
+            return p.year + '-' + p.month + '-' + p.day + ' ' + p.hour + ':' + p.minute + ':' + p.second;
+        } catch (e) {
+            console.error('Error formatting date:', e);
+            // Fallback: usar hora local directamente
+            return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0') + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0') + ':' + String(date.getSeconds()).padStart(2,'0');
+        }
     }
 
     function resetValues() {
@@ -1551,6 +1606,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         calendar = new Calendar(calendarEl, {
             initialView: startView,
             initialDate: startDate,
+            timeZone: 'local', // Usar 'local' para evitar doble conversión - los eventos ya vienen con hora correcta desde PHP
             height: 'auto', // Permite que el contenedor nativo maneje el scroll
             plugins: [dayGridPlugin, interactionPlugin, listPlugin, timegridPlugin],
         events: fetchEvents,
@@ -1568,7 +1624,9 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
         stickyHeaderDates: true,
         expandRows: false, // Desactivar expandRows para que nuestras celdas compactas se respeten
-        slotDuration: '00:20:00',
+        slotDuration: '00:10:00',
+        slotLabelInterval: '01:00:00',
+        snapDuration: '00:05:00',
         slotLabelFormat: {
             hour: 'numeric',
             minute: '2-digit',
@@ -1724,7 +1782,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + '"></i>' + ep.tiempo_gotas_formateado + '</span>';
             } else {
                 // Para otros estados activos, calcular el tiempo desde estado_changed_at
-                var estadosActivos = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
+                var estadosActivos = ['sala_espera', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
                 var esEstadoActivo = estadosActivos.indexOf(ep.estado) !== -1;
 
                 if (esEstadoActivo && ep.estado_changed_at) {
@@ -1864,7 +1922,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         },
         dateClick: function(info) {
             var clickedDate = info.date || new Date(info.dateStr);
-            if(isPastDateTime(clickedDate)){showPastAlert();return;}
+            if(isPastDateTime(clickedDate, info)){return;}
             var dateOnly = info.dateStr.substring(0,10);
 
             // Limpiar estado de edición anterior
@@ -1874,11 +1932,20 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
 
             // Si se hizo click en un slot de tiempo (timeGrid), auto-completar la hora
             if (info.view.type.includes('timeGrid')) {
-                var startHour = String(clickedDate.getHours()).padStart(2, '0') + ':' + String(clickedDate.getMinutes()).padStart(2, '0');
+                // Usamos la cadena de fecha de FullCalendar para obtener la hora exacta
+                // en la zona horaria del calendario (evitando desfases locales)
+                var startHour = info.dateStr.includes('T') ? info.dateStr.substring(11, 16) : '08:00';
 
-                // Calcular hora de fin sumando la duración base (30 mins por defecto)
+                // Calcular hora de fin sumando la duración base (usando el objeto Date pero formateando con cuidado)
                 var endDate = new Date(clickedDate.getTime() + (currentSlotDuration * 60000));
                 var endHour = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
+
+                // Si estamos en una vista con zona horaria, es mejor recalcular el fin basándose en el inicio de la cadena
+                if (info.dateStr.includes('T')) {
+                    var parts = startHour.split(':');
+                    var mins = parseInt(parts[0]) * 60 + parseInt(parts[1]) + currentSlotDuration;
+                    endHour = String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+                }
 
                 if (eventHoraInicio) {
                     eventHoraInicio.value = startHour;
@@ -1932,7 +1999,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         eventDrop: function(info) {
             var ep = info.event.extendedProps||{};
             if(ep.tipo_evento!=='cita'){info.revert();return;}
-            if(isPastDateTime(info.event.start)){info.revert();showPastAlert();return;}
+            if(isPastDateTime(info.event.start, info)){info.revert();return;}
             var comp = getLivewireComponent(); if(!comp){info.revert();return;}
             var newStart = info.event.start;
             var newEnd = info.event.end;
@@ -1941,12 +2008,17 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
                 newEnd = new Date(newStart.getTime() + durMs);
             }
             if(!newEnd) newEnd = newStart;
-            comp.call('updateCitaFechas', getCitaId(info.event.id), formatDateForLivewire(newStart), formatDateForLivewire(newEnd));
+
+            // Preferimos usar la cadena con zona horaria de FullCalendar si está disponible
+            var startStr = info.event.startStr ? info.event.startStr.replace('T', ' ').substring(0, 19) : formatDateForLivewire(newStart);
+            var endStr = info.event.endStr ? info.event.endStr.replace('T', ' ').substring(0, 19) : formatDateForLivewire(newEnd);
+
+            comp.call('updateCitaFechas', getCitaId(info.event.id), startStr, endStr);
         },
         eventResize: function(info) {
             var ep = info.event.extendedProps||{};
             if(ep.tipo_evento!=='cita'){info.revert();return;}
-            if(isPastDateTime(info.event.start)){info.revert();showPastAlert();return;}
+            if(isPastDateTime(info.event.start, info)){info.revert();return;}
             var comp = getLivewireComponent(); if(!comp){info.revert();return;}
             comp.call('updateCitaFechas', getCitaId(info.event.id), formatDateForLivewire(info.event.start), info.event.end?formatDateForLivewire(info.event.end):formatDateForLivewire(info.event.start));
         },
@@ -2000,7 +2072,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
     };
     var postConfirmStates = {
         'sala_espera': 'Sala de Espera',
-        'en_enfermeria': 'Enfermería',
         'en_consultorio': 'Consultorio',
         'en_consultorio_optometrista': 'Consultorio Optometrista',
         'en_gotas': 'Gotas',
@@ -2012,7 +2083,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels) {
         'cancelada': 'Cancelada',
         'no_asistio': 'No Asistió'
     };
-    var confirmedStates = ['confirmada','sala_espera','en_enfermeria','en_consultorio','en_consultorio_optometrista','en_gotas','dilatado','en_optica','en_estudio','finalizada','pagada'];
+    var confirmedStates = ['confirmada','sala_espera','en_consultorio','en_consultorio_optometrista','en_gotas','dilatado','en_optica','en_estudio','finalizada','pagada'];
 
     // Inicializar el modal de Bootstrap
     var modalCambiarEstado = null;

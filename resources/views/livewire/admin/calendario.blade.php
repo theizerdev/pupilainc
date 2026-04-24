@@ -126,6 +126,10 @@
                                 <i class="ri ri-add-line me-1"></i>Nueva Cita
                             </button>
                         </div>
+                         <!-- Botón limpiar filtros -->
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2 mb-3" id="btnLimpiarFiltros">
+                            <i class="ri ri-close-line me-1"></i>Limpiar Filtros
+                        </button>
 
                         <!-- Filtro por Médico -->
                         <div class="mb-3">
@@ -166,10 +170,7 @@
                         </div>
 
 
-                        <!-- Botón limpiar filtros -->
-                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btnLimpiarFiltros">
-                            <i class="ri ri-close-line me-1"></i>Limpiar Filtros
-                        </button>
+                       
                     </div>
 
 
@@ -435,7 +436,7 @@
                                     <div class="col-md-12">
                                         <div class="form-floating form-floating-outline">
                                             <input type="text" class="form-control" id="mpDocumento" placeholder="Documento de identidad" required>
-                                            <label for="mpDocumento">Documento <span class="text-danger">*</span></label>
+                                            <label for="mpDocumento">Documento</label>
                                         </div>
                                     </div>
                                     <div class="col-md-12">
@@ -569,7 +570,7 @@
     <script src="/materialize/assets/vendor/libs/@form-validation/auto-focus.js"></script>
     <script src="/materialize/assets/vendor/libs/select2/select2.js"></script>
     <script src="/materialize/assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-    <script src="{{ asset('js/app-calendario-general.js') }}"></script>
+    <script src="{{ asset('js/app-calendario-general.js') }}?v={{ time() }}"></script>
     @endpush
 
     @push('scripts')
@@ -579,7 +580,8 @@
                 initCalendarioGeneral(
                     @json($eventos),
                     @json($citaEstadoColores),
-                    @json($citaEstadoLabels)
+                    @json($citaEstadoLabels),
+                    @json($timezone)
                 );
             } else {
                 setTimeout(waitFC, 50);
