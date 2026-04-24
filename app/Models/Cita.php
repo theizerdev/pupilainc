@@ -658,11 +658,26 @@ class Cita extends Model
         // Información de la consulta asociada si existe
         $consultaEstadoLabel = null;
         $tiempoGotasFormateado = null;
+        $gotasCount = 0;
+        $gotasOdTotal = 0;
+        $gotasOiTotal = 0;
+        $tiempoUltimaGota = null;
         if ($this->consulta) {
             $consultaEstadoLabel = Consulta::ESTADO_LABELS[$this->consulta->estado] ?? ucfirst($this->consulta->estado);
             // Agregar tiempo en gotas si aplica
             if (in_array($this->consulta->estado, ['en_gotas', 'dilatado'])) {
                 $tiempoGotasFormateado = $this->consulta->tiempo_gotas_formateado;
+            }
+            // Datos de gotas aplicadas (como en lista-por-estado.blade.php)
+            $gotasAplicadas = $this->consulta->gotasAplicadas;
+            $gotasCount = $gotasAplicadas->count();
+            if ($gotasCount > 0) {
+                $gotasOdTotal = (int) $gotasAplicadas->sum('gotas_od');
+                $gotasOiTotal = (int) $gotasAplicadas->sum('gotas_oi');
+                $ultimaGota = $gotasAplicadas->last();
+                if ($ultimaGota && $ultimaGota->created_at) {
+                    $tiempoUltimaGota = $ultimaGota->created_at->diffForHumans(null, true, true);
+                }
             }
         }
 
@@ -705,6 +720,10 @@ class Cita extends Model
                 'consulta_id' => $this->consulta?->id,
                 'consulta_estado_label' => $consultaEstadoLabel, // Etiqueta del estado de la consulta asociada
                 'tiempo_gotas_formateado' => $tiempoGotasFormateado, // Tiempo en gotas si aplica
+                'gotas_count' => $gotasCount,
+                'gotas_od_total' => $gotasOdTotal,
+                'gotas_oi_total' => $gotasOiTotal,
+                'tiempo_ultima_gota' => $tiempoUltimaGota,
             ],
         ];
     }

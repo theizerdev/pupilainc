@@ -1775,11 +1775,27 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
 
-            // Para gotas y dilatado, usar el tiempo calculado desde el backend
-            if ((ep.estado === 'en_gotas' || ep.estado === 'dilatado') && ep.tiempo_gotas_formateado) {
-                var iconoTiempo = 'ri-drop-line';
+            // Badge de aplicaciones de gotas (solo en estado en_gotas)
+            var gotasBadge = '';
+            if (ep.estado === 'en_gotas' && ep.gotas_count > 0) {
+                gotasBadge = '<span class="fc-event-gotas-badge" style="background:#e0f7fa;color:#00838f;font-size:0.55rem;padding:1px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap;border:1px solid #b2ebf2;" title="' + ep.gotas_count + ' aplicación(es) de gotas"><i class="ri-drop-fill" style="font-size:0.6rem;"></i>' + ep.gotas_count + ' apps · OI:' + (ep.gotas_oi_total || 0) + ' OD:' + (ep.gotas_od_total || 0) + '</span>';
+            }
+
+            // Tiempo en estado
+            if (ep.estado === 'en_gotas') {
+                var iconoTiempo = 'ri-timer-line';
                 var colorTiempo = '#00BCD4';
-                tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + '"></i>' + ep.tiempo_gotas_formateado + '</span>';
+                var textoTiempoGotas = ep.tiempo_ultima_gota || ep.tiempo_gotas_formateado || '';
+                if (textoTiempoGotas) {
+                    tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo desde última aplicación de gotas"><i class="ri ' + iconoTiempo + '"></i>' + textoTiempoGotas + '</span>';
+                }
+            } else if (ep.estado === 'dilatado') {
+                var iconoTiempo = 'ri-timer-line';
+                var colorTiempo = '#00BCD4';
+                var textoTiempoDilatado = ep.tiempo_gotas_formateado || '';
+                if (textoTiempoDilatado) {
+                    tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo de dilatación"><i class="ri ' + iconoTiempo + '"></i>' + textoTiempoDilatado + '</span>';
+                }
             } else {
                 // Para otros estados activos, calcular el tiempo desde estado_changed_at
                 var estadosActivos = ['sala_espera', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
@@ -1846,41 +1862,27 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                     (tiempoBadge ? tiempoBadge : '') +
                 '</div>';
             } else if (view.type === 'timeGridDay' || view.type === 'timeGridWeek' || view.type === 'timeGridCustom') {
-                if (duracionMinutos <= 30) {
-                    // Diseño ultracompacto para citas de 30 min o menos
-                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;box-sizing:border-box;overflow:hidden;gap:4px;">' +
-                        '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:0px;">' +
-                            '<div style="display:flex;align-items:center;gap:2px;overflow:hidden;">' +
-                                prioridadIcon +
-                                consultaIcon +
-                                '<span class="fc-event-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nombreCompleto + '</span>' +
-                            '</div>' +
-                            '<span class="fc-event-subtitle" style="font-size:0.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
+                // Diseño horizontal unificado: toda la info del paciente en una sola línea,
+                // alineada a la misma altura que el badge de estado (derecha).
+                // Debajo del estado va la hora inicio-fin.
+                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;box-sizing:border-box;overflow:hidden;gap:4px;">' +
+                    '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:0px;justify-content:center;">' +
+                        '<div style="display:flex;align-items:center;gap:2px;overflow:hidden;">' +
+                            prioridadIcon +
+                            consultaIcon +
+                            '<span class="fc-event-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nombreCompleto + '</span>' +
                         '</div>' +
-                        '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:0px;">' +
+                        '<span class="fc-event-subtitle" style="font-size:0.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.85;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
+                    '</div>' +
+                    '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:0px;line-height:1.1;">' +
+                        '<div style="display:flex;flex-direction:row;align-items:center;gap:2px;flex-wrap:wrap;justify-content:flex-end;">' +
                             estadoBadge +
+                            (gotasBadge ? gotasBadge : '') +
                             (tiempoBadge ? tiempoBadge : '') +
-                            '<span class="fc-event-subtitle" style="font-size:0.55rem;white-space:nowrap;">' + gridTimeRange + '</span>' +
                         '</div>' +
-                    '</div>';
-                } else {
-                    // Diseño para citas largas (> 30 min)
-                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:flex-start;box-sizing:border-box;overflow:hidden;gap:4px;">' +
-                        '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:1px;">' +
-                            '<div style="display:flex;align-items:center;gap:3px;">' +
-                                prioridadIcon +
-                                consultaIcon +
-                                '<span class="fc-event-title">' + nombreCompleto + '</span>' +
-                            '</div>' +
-                            '<span class="fc-event-subtitle">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
-                        '</div>' +
-                        '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px;">' +
-                            estadoBadge +
-                            (tiempoBadge ? tiempoBadge : '') +
-                            '<span class="fc-event-subtitle" style="font-size:0.6rem;">' + gridTimeRange + '</span>' +
-                        '</div>' +
-                    '</div>';
-                }
+                        '<span class="fc-event-subtitle" style="font-size:0.55rem;white-space:nowrap;">' + gridTimeRange + '</span>' +
+                    '</div>' +
+                '</div>';
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
                 // Horario desde - hasta
                 var listTimeStart = arg.event.start ? moment(arg.event.start).format('HH:mm') : '';
@@ -1893,7 +1895,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                         '<div style="font-size:0.75rem;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</div>' +
                         '<div style="font-size:0.7rem;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="ri-time-line" style="font-size:0.65rem;"></i> ' + listTimeRange + '</div>' +
                     '</div>' +
-                    '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;flex-wrap:nowrap;justify-content:flex-end;">' + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;flex-wrap:nowrap;justify-content:flex-end;">' + prioridadBadge + consultaBadge + gotasBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else {
                 return { html: '<div>' + arg.event.title + '</div>' };

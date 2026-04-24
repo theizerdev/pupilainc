@@ -124,7 +124,7 @@ class Calendario extends Component
 
     protected function fetchCitas()
     {
-        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'consulta.gotasAplicadas'])
             ->forUser()
             ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
             ->get();
@@ -149,7 +149,7 @@ class Calendario extends Component
         $eventos = [];
 
         if ($this->mostrarCitas) {
-            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'consulta.gotasAplicadas'])
                 ->forUser()
                 ->enRango($inicioCarbon, $finCarbon)
                 ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
