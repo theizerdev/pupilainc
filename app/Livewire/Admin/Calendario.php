@@ -435,19 +435,18 @@ class Calendario extends Component
             return;
         }
 
+        $timezone = $this->getEmpresaTimezone();
+        
+        // Parsear las fechas considerando la zona horaria del usuario y convertirlas a UTC para almacenamiento
+        // Usar formato correcto: Carbon::parse($input) según especificación
         $inicio = Carbon::parse($this->fecha_inicio);
         $fin = Carbon::parse($this->fecha_fin);
-        $prioridad = $eventData['prioridad'] ?? 'normal';
-        $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
-
-        $timezone = $this->getEmpresaTimezone();
-        $inicio = Carbon::parse($this->fecha_inicio, $timezone)->tz('UTC');
-        $fin = Carbon::parse($this->fecha_fin, $timezone)->tz('UTC');
+        
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
         $ahora    = Carbon::now($timezone);
-        $inicioTz = Carbon::parse($this->fecha_inicio, $timezone);
+        $inicioTz = Carbon::parse($this->fecha_inicio);
 
         Log::info('Validando cita', [
             'fecha_inicio_raw' => $this->fecha_inicio,
@@ -903,13 +902,13 @@ class Calendario extends Component
         $preconsultaResult = null;
 
         if ($nuevoEstado === Cita::ESTADO_SALA_ESPERA && $estadoAnterior !== Cita::ESTADO_SALA_ESPERA) {
-            // Issue 8: Solo enviar si la preconsulta aún no fue completada
+            // Solo enviar si la preconsulta aún no fue enviada ni completada
             if ($cita->estado_preconsulta === 'pendiente') {
                 $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
             }
         }
 
-        // Issue 9: Al confirmar manualmente, enviar preconsulta si no fue llenada
+        // Al confirmar manualmente, enviar preconsulta solo si no fue enviada ni completada
         if ($nuevoEstado === Cita::ESTADO_CONFIRMADA && $estadoAnterior !== Cita::ESTADO_CONFIRMADA) {
             if ($cita->estado_preconsulta === 'pendiente') {
                 $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();

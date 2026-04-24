@@ -327,7 +327,7 @@ class Cita extends Model
                     ->exists();
                 
                 // Solo enviar el formulario si no ha sido completado previamente
-                if ($this->estado_preconsulta === 'pendiente' && !$yaTieneRespuestas) {
+                if ($this->estado_preconsulta === 'pendiente') {
                     $this->crearPreconsultaYEnviarWhatsApp();
                 }
             }
@@ -375,6 +375,15 @@ class Cita extends Model
 
             $whatsappEnviado = $this->enviarCuestionarioWhatsApp($token);
             $resultado['whatsapp_enviado'] = $whatsappEnviado;
+
+            // Actualizar el estado de la preconsulta a 'enviado' después de enviar el cuestionario
+            if ($whatsappEnviado) {
+                $this->update([
+                    'estado_preconsulta' => 'enviado',
+                    'token_preconsulta' => $token,
+                    'fecha_envio_preconsulta' => now(),
+                ]);
+            }
 
             \Log::info('Preconsulta creada para cita', ['cita_id' => $this->id, 'token' => $token, 'resultado' => $resultado]);
         } catch (\Exception $e) {

@@ -1847,29 +1847,36 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 '</div>';
             } else if (view.type === 'timeGridDay' || view.type === 'timeGridWeek' || view.type === 'timeGridCustom') {
                 if (duracionMinutos <= 30) {
-                    // Diseño ultracompacto para citas de 30 min o menos (1 sola línea)
-                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;box-sizing:border-box;overflow:hidden;gap:3px;">' +
-                        estadoBadge +
-                        prioridadIcon +
-                        consultaIcon +
-                        '<span class="fc-event-title" style="flex:1;">' + nombreCompleto + '</span>' +
-                        (tiempoBadge ? tiempoBadge : '') +
-                        '<span class="fc-event-subtitle" style="flex-shrink:0;">' + medicoNombre + '</span>' +
+                    // Diseño ultracompacto para citas de 30 min o menos
+                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;box-sizing:border-box;overflow:hidden;gap:4px;">' +
+                        '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:0px;">' +
+                            '<div style="display:flex;align-items:center;gap:2px;overflow:hidden;">' +
+                                prioridadIcon +
+                                consultaIcon +
+                                '<span class="fc-event-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nombreCompleto + '</span>' +
+                            '</div>' +
+                            '<span class="fc-event-subtitle" style="font-size:0.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
+                        '</div>' +
+                        '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:0px;">' +
+                            estadoBadge +
+                            (tiempoBadge ? tiempoBadge : '') +
+                            '<span class="fc-event-subtitle" style="font-size:0.55rem;white-space:nowrap;">' + gridTimeRange + '</span>' +
+                        '</div>' +
                     '</div>';
                 } else {
-                    // Diseño para citas largas (> 30 min) (2 líneas)
+                    // Diseño para citas largas (> 30 min)
                     html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:flex-start;box-sizing:border-box;overflow:hidden;gap:4px;">' +
                         '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:1px;">' +
                             '<div style="display:flex;align-items:center;gap:3px;">' +
                                 prioridadIcon +
                                 consultaIcon +
                                 '<span class="fc-event-title">' + nombreCompleto + '</span>' +
-                                (tiempoBadge ? tiempoBadge : '') +
                             '</div>' +
                             '<span class="fc-event-subtitle">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
                         '</div>' +
                         '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px;">' +
                             estadoBadge +
+                            (tiempoBadge ? tiempoBadge : '') +
                             '<span class="fc-event-subtitle" style="font-size:0.6rem;">' + gridTimeRange + '</span>' +
                         '</div>' +
                     '</div>';
@@ -2609,7 +2616,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 fecha_fin: endDate,
                 motivo: eventMotivo ? eventMotivo.value : '',
                 notas: eventNotas ? eventNotas.value : '',
-                estado: isNewCita ? 'programada' : (eventEstado.val() || 'programada'),
+                estado: isNewCita ? (prioridad === 'alta' || prioridad === 'emergencia' ? 'sala_espera' : 'programada') : (eventEstado.val() || 'programada'),
                 tipo_consulta_id: eventTipoConsulta.val() || '',
                 prioridad: prioridad
             };
