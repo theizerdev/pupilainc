@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             CategoriaProductoSeeder::class, // Categorías de producto para inventario
             MarcaSeeder::class, // Marcas para inventario
             InventarioBaseSeeder::class, // Almacenes y proveedores base
+            TipoVarianteSeeder::class, // Tipos y valores de variantes para productos
         ]);
     }
 }

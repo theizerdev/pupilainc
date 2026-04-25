@@ -20,6 +20,7 @@ class Producto extends Model
         'stock_minimo', 'stock_maximo', 'punto_reorden',
         'fecha_vencimiento', 'ubicacion_fisica',
         'requiere_receta', 'es_medicamento', 'status', 'imagen',
+        'codigo_barras', 'peso', 'dimensiones',
         'empresa_id', 'sucursal_id',
     ];
 
@@ -33,6 +34,7 @@ class Producto extends Model
         'requiere_receta'   => 'boolean',
         'es_medicamento'    => 'boolean',
         'status'            => 'boolean',
+        'peso'              => 'decimal:3',
     ];
 
     // ─── Relaciones ───────────────────────────────────────────────
@@ -55,6 +57,21 @@ class Producto extends Model
     public function ordenesDetalle()
     {
         return $this->hasMany(OrdenCompraDetalle::class);
+    }
+
+    public function variantes()
+    {
+        return $this->hasMany(ProductoVariante::class)->orderBy('orden')->orderBy('id');
+    }
+
+    public function imagenes()
+    {
+        return $this->hasMany(ProductoImagen::class)->orderBy('orden');
+    }
+
+    public function imagenPrincipal()
+    {
+        return $this->hasOne(ProductoImagen::class)->where('principal', true)->orderBy('orden');
     }
 
     // ─── Stock ────────────────────────────────────────────────────

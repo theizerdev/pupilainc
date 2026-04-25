@@ -3,6 +3,10 @@
 namespace App\Livewire\Admin\Inventario\Productos;
 
 use App\Models\Producto;
+use App\Models\ProductoVariante;
+use App\Models\ProductoImagen;
+use App\Models\TipoVariante;
+use App\Models\ValorVariante;
 use App\Models\CategoriaProducto;
 use App\Models\Marca;
 use App\Models\Proveedor;
@@ -20,6 +24,10 @@ class Form extends Component
     public ?Producto $producto = null;
     public bool $isEdit = false;
 
+    // ─── Tab activo ───────────────────────────────────────────────
+    public string $activeTab = 'general';
+
+    // ─── Info General ──────────────────────────────────────────────
     public $nombre = '';
     public $codigo = '';
     public $sku = '';
@@ -28,23 +36,40 @@ class Form extends Component
     public $marca_id = '';
     public $proveedor_id = '';
     public $unidad_medida = 'unidad';
+    public $codigo_barras = '';
+    public $dimensiones = '';
+    public $ubicacion_fisica = '';
+
+    // ─── Precios / Stock ──────────────────────────────────────────
     public $precio_costo = 0;
     public $precio_venta = 0;
     public $stock_minimo = 0;
     public $stock_maximo = '';
     public $punto_reorden = 0;
+    public $peso = '';
     public $fecha_vencimiento = '';
-    public $ubicacion_fisica = '';
+    public $stock_inicial = 0;
+    public $almacen_inicial_id = '';
+
+    // ─── Opciones ─────────────────────────────────────────────────
     public $requiere_receta = false;
     public $es_medicamento = false;
     public $status = true;
+
+    // ─── Imagen principal (legacy) ───────────────────────────────
     public $imagen;
     public $imagen_actual = null;
     public $eliminar_imagen = false;
 
-    // Stock inicial (solo creación)
-    public $stock_inicial = 0;
-    public $almacen_inicial_id = '';
+    // ─── Galería de imágenes ──────────────────────────────────────
+    public $imagenes_nuevas = [];
+    public $imagenes_existentes = [];
+    public $imagenes_a_eliminar = [];
+    public $imagen_principal_id = null;
+
+    // ─── Variantes ─────────────────────────────────────────────────
+    public $variantes = [];
+    public $variantes_imagenes = [];
 
     // Preview código
     public $codigo_preview = '';
@@ -63,6 +88,7 @@ class Form extends Component
             'nombre'               => 'required|string|max:255',
             'codigo'               => 'nullable|string|max:50',
             'sku'                  => 'nullable|string|max:50',
+            'codigo_barras'        => 'nullable|string|max:50',
             'descripcion'          => 'nullable|string|max:1000',
             'categoria_producto_id'=> 'nullable|exists:categorias_producto,id',
             'marca_id'             => 'nullable|exists:marcas,id',
@@ -73,20 +99,41 @@ class Form extends Component
             'stock_minimo'         => 'required|integer|min:0',
             'stock_maximo'         => 'nullable|integer|min:0|gte:stock_minimo',
             'punto_reorden'        => 'required|integer|min:0',
-            'fecha_vencimiento'    => 'nullable|date',
+            'fecha_vencimiento'    => $this->es_medicamento ? 'required|date' : 'nullable|date',
             'ubicacion_fisica'     => 'nullable|string|max:255',
             'requiere_receta'      => 'boolean',
             'es_medicamento'       => 'boolean',
             'status'               => 'boolean',
+            'peso'                 => 'nullable|numeric|min:0',
+            'dimensiones'          => 'nullable|string|max:50',
             'imagen'               => 'nullable|image|max:2048',
+            'imagenes_nuevas.*'    => 'nullable|image|max:2048',
             'stock_inicial'        => 'integer|min:0',
             'almacen_inicial_id'   => 'nullable|exists:almacenes,id',
+            'variantes'            => 'nullable|array',
+            'variantes.*.tipo_variante_id' => 'nullable|exists:tipo_variantes,id',
+            'variantes.*.valor_variante_id'=> 'nullable|exists:valor_variantes,id',
+            'variantes.*.sku_variante'    => 'nullable|string|max:50',
+            'variantes.*.atributo'        => 'nullable|string|max:50',
+            'variantes.*.valor'           => 'nullable|string|max:50',
+            'variantes.*.codigo_barras'    => 'nullable|string|max:50',
+            'variantes.*.precio_costo'     => 'nullable|numeric|min:0',
+            'variantes.*.precio_venta'     => 'nullable|numeric|min:0',
+            'variantes.*.stock'            => 'nullable|integer|min:0',
+            'variantes.*.tamano'           => 'nullable|string|max:50',
+            'variantes.*.peso'             => 'nullable|numeric|min:0',
+            'variantes.*.presentacion'     => 'nullable|string|max:50',
+            'variantes.*.unidad_medida'    => 'nullable|string|max:30',
+            'variantes.*.alt'              => 'nullable|string|max:255',
+            'variantes.*.status'           => 'boolean',
+            'variantes_imagenes.*'         => 'nullable|image|max:2048',
         ];
     }
 
     protected $messages = [
         'precio_venta.gte'   => 'El precio de venta no puede ser menor al precio de costo.',
         'stock_maximo.gte'   => 'El stock máximo no puede ser menor al stock mínimo.',
+        'fecha_vencimiento.required' => 'La fecha de vencimiento es obligatoria para medicamentos.',
     ];
 
     public function mount(?Producto $producto = null)
@@ -97,19 +144,57 @@ class Form extends Component
             $this->imagen_actual = $producto->imagen;
 
             $this->fill($producto->only(
-                'nombre', 'codigo', 'sku', 'descripcion',
+                'nombre', 'codigo', 'sku', 'codigo_barras', 'descripcion',
                 'categoria_producto_id', 'marca_id', 'proveedor_id',
                 'unidad_medida', 'precio_costo', 'precio_venta',
                 'stock_minimo', 'stock_maximo', 'punto_reorden',
-                'ubicacion_fisica', 'requiere_receta', 'es_medicamento', 'status'
+                'ubicacion_fisica', 'requiere_receta', 'es_medicamento', 'status',
+                'peso', 'dimensiones'
             ));
 
-            // Fix: formatear fecha para input type="date"
             $this->fecha_vencimiento = $producto->fecha_vencimiento
                 ? $producto->fecha_vencimiento->format('Y-m-d')
                 : '';
+
+            // Imágenes existentes
+            $this->imagenes_existentes = $producto->imagenes->map(function ($img) {
+                return [
+                    'id'        => $img->id,
+                    'url'       => $img->url,
+                    'titulo'    => $img->titulo,
+                    'orden'     => $img->orden,
+                    'principal' => (bool) $img->principal,
+                ];
+            })->toArray();
+
+            if (!empty($this->imagenes_existentes)) {
+                $principal = collect($this->imagenes_existentes)->firstWhere('principal', true);
+                $this->imagen_principal_id = $principal['id'] ?? $this->imagenes_existentes[0]['id'];
+            }
+
+            // Variantes existentes
+            $this->variantes = $producto->variantes->map(function ($v) {
+                return [
+                    'id'                => $v->id,
+                    'tipo_variante_id'  => $v->tipo_variante_id,
+                    'valor_variante_id' => $v->valor_variante_id,
+                    'sku_variante'      => $v->sku_variante,
+                    'atributo'          => $v->atributo,
+                    'valor'             => $v->valor,
+                    'codigo_barras'     => $v->codigo_barras,
+                    'precio_costo'      => $v->precio_costo,
+                    'precio_venta'      => $v->precio_venta,
+                    'stock'             => $v->stock,
+                    'tamano'            => $v->tamano,
+                    'peso'              => $v->peso,
+                    'presentacion'      => $v->presentacion,
+                    'unidad_medida'     => $v->unidad_medida,
+                    'alt'               => $v->alt,
+                    'status'            => (bool) $v->status,
+                    'imagen_existente'  => $v->imagen,
+                ];
+            })->toArray();
         } else {
-            // Preview del próximo código
             $this->codigo_preview = 'PROD-' . str_pad(
                 Producto::withoutGlobalScopes()->count() + 1, 5, '0', STR_PAD_LEFT
             );
@@ -152,6 +237,95 @@ class Form extends Component
         return $this->producto->stockTotal();
     }
 
+    // ─── Tabs ─────────────────────────────────────────────────────
+    public function setTab(string $tab)
+    {
+        $this->activeTab = $tab;
+    }
+
+    // ─── Imágenes ───────────────────────────────────────────────────
+    public function addImagenGaleria()
+    {
+        $this->imagenes_nuevas[] = null;
+    }
+
+    public function removeImagenNueva(int $index)
+    {
+        if (isset($this->imagenes_nuevas[$index])) {
+            unset($this->imagenes_nuevas[$index]);
+            $this->imagenes_nuevas = array_values($this->imagenes_nuevas);
+        }
+    }
+
+    public function removeImagenExistente(int $id)
+    {
+        $this->imagenes_a_eliminar[] = $id;
+        $this->imagenes_existentes = array_values(array_filter($this->imagenes_existentes, fn($i) => $i['id'] !== $id));
+    }
+
+    public function setImagenPrincipal(int $id)
+    {
+        $this->imagen_principal_id = $id;
+        $this->imagenes_existentes = collect($this->imagenes_existentes)->map(function ($img) use ($id) {
+            $img['principal'] = ($img['id'] === $id);
+            return $img;
+        })->toArray();
+    }
+
+    // ─── Variantes ────────────────────────────────────────────────
+    public function getTiposVariantesProperty()
+    {
+        return TipoVariante::forUser()->activos()->with('valores')->orderBy('nombre')->get();
+    }
+
+    public function addVarianteManual()
+    {
+        $this->variantes[] = [
+            'id'                => null,
+            'tipo_variante_id'  => null,
+            'valor_variante_id' => null,
+            'atributo'          => '',
+            'valor'             => '',
+            'sku_variante'      => '',
+            'codigo_barras'     => '',
+            'precio_costo'      => '',
+            'precio_venta'      => '',
+            'stock'             => 0,
+            'tamano'            => '',
+            'peso'              => '',
+            'presentacion'      => '',
+            'unidad_medida'     => $this->unidad_medida,
+            'alt'               => '',
+            'status'            => true,
+            'imagen_existente'  => null,
+        ];
+    }
+
+    public function selectValorPredefinido(int $index, int $valorId)
+    {
+        if (!isset($this->variantes[$index])) return;
+        $this->variantes[$index]['valor_variante_id'] = $valorId;
+        $this->variantes[$index]['valor'] = '';
+    }
+
+    public function clearValorPredefinido(int $index)
+    {
+        if (!isset($this->variantes[$index])) return;
+        $this->variantes[$index]['valor_variante_id'] = null;
+    }
+
+    public function removeVariante(int $index)
+    {
+        if (isset($this->variantes[$index])) {
+            unset($this->variantes[$index]);
+            $this->variantes = array_values($this->variantes);
+            if (isset($this->variantes_imagenes[$index])) {
+                unset($this->variantes_imagenes[$index]);
+                $this->variantes_imagenes = array_values($this->variantes_imagenes);
+            }
+        }
+    }
+
     // ─── Save ──────────────────────────────────────────────────────
     public function save()
     {
@@ -161,7 +335,7 @@ class Form extends Component
 
         $data = $this->validate();
 
-        // Imagen
+        // Imagen principal (legacy)
         $imagenPath = $this->imagen_actual;
         if ($this->eliminar_imagen) {
             if ($this->imagen_actual) Storage::disk('public')->delete($this->imagen_actual);
@@ -173,7 +347,10 @@ class Form extends Component
         }
 
         $payload = collect($data)
-            ->except(['stock_inicial', 'almacen_inicial_id', 'imagen'])
+            ->except([
+                'stock_inicial', 'almacen_inicial_id', 'imagen',
+                'imagenes_nuevas', 'variantes', 'variantes_imagenes',
+            ])
             ->merge([
                 'empresa_id'  => auth()->user()->empresa_id,
                 'sucursal_id' => auth()->user()->sucursal_id,
@@ -183,6 +360,7 @@ class Form extends Component
 
         if ($this->isEdit) {
             $this->producto->update($payload);
+            $producto = $this->producto;
             $msg = "Producto '{$this->nombre}' actualizado.";
         } else {
             $producto = Producto::create($payload);
@@ -201,8 +379,89 @@ class Form extends Component
             }
         }
 
+        $this->syncImagenes($producto);
+        $this->syncVariantes($producto);
+
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg, 'duration' => 4000]);
         return redirect()->route('admin.inventario.productos.index');
+    }
+
+    protected function syncImagenes(Producto $producto)
+    {
+        // Eliminar marcadas
+        foreach ($this->imagenes_a_eliminar as $id) {
+            $img = ProductoImagen::find($id);
+            if ($img) {
+                Storage::disk('public')->delete($img->imagen);
+                $img->delete();
+            }
+        }
+
+        // Actualizar principal y orden de existentes
+        foreach ($this->imagenes_existentes as $idx => $img) {
+            ProductoImagen::where('id', $img['id'])->update([
+                'orden'     => $idx,
+                'principal' => ($img['id'] == $this->imagen_principal_id),
+            ]);
+        }
+
+        // Subir nuevas
+        foreach ($this->imagenes_nuevas as $idx => $file) {
+            if ($file) {
+                $path = $file->store('productos', 'public');
+                $producto->imagenes()->create([
+                    'imagen'    => $path,
+                    'titulo'    => null,
+                    'orden'     => count($this->imagenes_existentes) + $idx,
+                    'principal' => false,
+                ]);
+            }
+        }
+    }
+
+    protected function syncVariantes(Producto $producto)
+    {
+        $variantesInput = collect($this->variantes ?? [])->filter(function ($v) {
+            return !empty($v['atributo']) || !empty($v['valor']) || !empty($v['tipo_variante_id']);
+        });
+
+        $idsExistentes = $variantesInput->pluck('id')->filter()->all();
+        $producto->variantes()->whereNotIn('id', $idsExistentes)->delete();
+
+        foreach ($variantesInput as $index => $v) {
+            $imgPath = $v['imagen_existente'] ?? null;
+            if (!empty($this->variantes_imagenes[$index])) {
+                $imgPath = $this->variantes_imagenes[$index]->store('productos', 'public');
+            }
+
+            $data = [
+                'tipo_variante_id'  => $v['tipo_variante_id'] ?? null,
+                'valor_variante_id' => $v['valor_variante_id'] ?? null,
+                'sku_variante'      => $v['sku_variante'] ?? null,
+                'atributo'          => $v['atributo'] ?? null,
+                'valor'             => $v['valor'] ?? null,
+                'codigo_barras'     => $v['codigo_barras'] ?? null,
+                'precio_costo'      => $v['precio_costo'] ?: null,
+                'precio_venta'      => $v['precio_venta'] ?: null,
+                'stock'             => (int) ($v['stock'] ?? 0),
+                'tamano'            => $v['tamano'] ?? null,
+                'peso'              => $v['peso'] ?: null,
+                'presentacion'      => $v['presentacion'] ?? null,
+                'unidad_medida'     => $v['unidad_medida'] ?? null,
+                'alt'               => $v['alt'] ?? null,
+                'orden'             => $index,
+                'status'            => (bool) ($v['status'] ?? true),
+                'empresa_id'        => auth()->user()->empresa_id,
+                'sucursal_id'       => auth()->user()->sucursal_id,
+                'imagen'            => $imgPath,
+            ];
+
+            if (!empty($v['id'])) {
+                $producto->variantes()->where('id', $v['id'])->update($data);
+            } else {
+                $producto->variantes()->create($data);
+            }
+        }
     }
 
     public function getCategoriasProperty()  { return CategoriaProducto::forUser()->activas()->orderBy('nombre')->get(); }
@@ -213,11 +472,12 @@ class Form extends Component
     public function render()
     {
         return view('livewire.admin.inventario.productos.form', [
-            'categorias'  => $this->categorias,
-            'marcas'      => $this->marcas,
-            'proveedores' => $this->proveedores,
-            'almacenes'   => $this->almacenes,
-            'unidades'    => self::UNIDADES,
+            'categorias'     => $this->categorias,
+            'marcas'         => $this->marcas,
+            'proveedores'    => $this->proveedores,
+            'almacenes'      => $this->almacenes,
+            'unidades'       => self::UNIDADES,
+            'tiposVariantes' => $this->tiposVariantes,
         ])->layout($this->getLayout());
     }
 }
