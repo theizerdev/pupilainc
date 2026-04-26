@@ -234,6 +234,36 @@
                                                 <li><hr class="dropdown-divider"></li>
                                             @endif
 
+                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
+                                                <li><h6 class="dropdown-header">Imprimir</h6></li>
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center"
+                                                       href="{{ route('admin.consulta.informe', $consulta->id) }}"
+                                                       target="_blank">
+                                                        <i class="ri ri-file-text-line me-2 text-primary"></i>
+                                                        Informe Médico
+                                                    </a>
+                                                </li>
+                                                @if($consulta->reposo)
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center"
+                                                       href="{{ route('admin.consulta.reposo', $consulta->id) }}"
+                                                       target="_blank">
+                                                        <i class="ri ri-hotel-bed-line me-2 text-success"></i>
+                                                        Reposo Médico
+                                                    </a>
+                                                </li>
+                                                @endif
+                                                <li>
+                                                    <a class="dropdown-item d-flex align-items-center" href="#"
+                                                       data-bs-toggle="modal"
+                                                       data-bs-target="#modalConstancia{{ $consulta->id }}">
+                                                        <i class="ri ri-award-line me-2 text-warning"></i>
+                                                        Constancia de Asistencia
+                                                    </a>
+                                                </li>
+                                            @endif
+
                                         </ul>
                                     </div>
                                 </td>
@@ -275,6 +305,90 @@
     @endif
 @endforeach
 
+{{-- Modales de Constancia de Asistencia --}}
+@foreach($consultas as $consulta)
+    @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
+    <div class="modal fade" id="modalConstancia{{ $consulta->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form method="GET" action="{{ route('admin.consulta.constancia', $consulta->id) }}" target="_blank">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="ri ri-award-line me-2 text-warning"></i>Constancia de Asistencia
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small mb-3">
+                            Paciente: <strong>{{ $consulta->paciente->nombre_completo }}</strong>
+                        </p>
+
+                        <div class="mb-3">
+                            <label class="form-label">Motivo de la consulta (para la constancia)</label>
+                            <input type="text" class="form-control" name="motivo"
+                                   value="Consulta médica" placeholder="Ej: Consulta médica, control, etc.">
+                        </div>
+
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="chkAcomp{{ $consulta->id }}"
+                                   name="acompanante" value="1"
+                                   onchange="toggleAcompanante({{ $consulta->id }}, this.checked)">
+                            <label class="form-check-label" for="chkAcomp{{ $consulta->id }}">
+                                Incluir acompañante
+                            </label>
+                        </div>
+
+                        <div id="seccionAcomp{{ $consulta->id }}" style="display:none">
+                            <div class="card border bg-light p-3">
+                                <div class="mb-2">
+                                    <label class="form-label small">Nombre completo del acompañante</label>
+                                    <input type="text" class="form-control form-control-sm"
+                                           name="nombre_acompanante" placeholder="Nombre y apellido">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Cédula / Documento</label>
+                                    <input type="text" class="form-control form-control-sm"
+                                           name="documento_acompanante" placeholder="Ej: 12345678">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small">Relación con el paciente</label>
+                                    <select class="form-select form-select-sm" name="relacion_acompanante">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="familiar">Familiar</option>
+                                        <option value="padre/madre">Padre / Madre</option>
+                                        <option value="cónyuge">Cónyuge</option>
+                                        <option value="hijo(a)">Hijo(a)</option>
+                                        <option value="hermano(a)">Hermano(a)</option>
+                                        <option value="tutor legal">Tutor legal</option>
+                                        <option value="amigo(a)">Amigo(a)</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if($consulta->paciente->es_menor && $consulta->paciente->tutor)
+                        <div class="alert alert-info small mt-3 mb-0">
+                            <i class="ri ri-information-line me-1"></i>
+                            Paciente menor de edad. Si no agrega acompañante manual, se incluirá automáticamente
+                            al tutor: <strong>{{ $consulta->paciente->tutor->nombre_completo }}</strong>
+                            ({{ $consulta->paciente->tutor->parentesco }}).
+                        </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="ri ri-printer-line me-1"></i>Generar Constancia
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @endif
+@endforeach
+
 <script>
     window.addEventListener('alert', event => {
         if (event.detail.type === 'success') {
@@ -303,5 +417,10 @@
             }
         });
     });
+
+    function toggleAcompanante(consultaId, show) {
+        const seccion = document.getElementById('seccionAcomp' + consultaId);
+        if (seccion) seccion.style.display = show ? 'block' : 'none';
+    }
 </script>
 </div>

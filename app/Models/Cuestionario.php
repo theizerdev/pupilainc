@@ -14,6 +14,7 @@ class Cuestionario extends Model
         'tipo',
         'activo',
         'empresa_id',
+        'especialidad_id',
     ];
 
     protected $casts = [
@@ -23,6 +24,11 @@ class Cuestionario extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function especialidad(): BelongsTo
+    {
+        return $this->belongsTo(Especialidad::class);
     }
 
     public function preguntas(): HasMany

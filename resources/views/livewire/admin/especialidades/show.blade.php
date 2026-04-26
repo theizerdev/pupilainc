@@ -226,6 +226,14 @@
                             </a>
                         @endcan
 
+                        <a href="{{ route('admin.especialidades.plantilla', $especialidad) }}" class="btn btn-primary btn-block mt-2">
+                            <i class="ri ri-layout-line"></i> Configurar Plantilla de Consulta
+                        </a>
+
+                        <a href="{{ route('admin.especialidades.cuestionario', $especialidad) }}" class="btn btn-info btn-block mt-2">
+                            <i class="ri ri-questionnaire-line"></i> Configurar Cuestionario
+                        </a>
+
                         <button class="btn btn-info btn-block mt-2">
                             <i class="fas fa-calendar-plus"></i> Nueva Cita
                         </button>

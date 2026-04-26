@@ -264,7 +264,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],
                 ]
             ],
-            /*
+           
             'administracion' => [
                 'label' => 'Administración',
                 'icon' => 'ri-money-dollar-circle-line',
@@ -333,7 +333,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],
                 ]
             ],
-            */
+            
             'configuracion' => [
                 'label' => 'Configuración',
                 'icon' => 'ri-settings-3-line',

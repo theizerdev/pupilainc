@@ -17,10 +17,15 @@ class ConsultaEvaluacion extends Model
         'examen_fisico',
         'conclusion',
         'observaciones_adicionales',
+        'datos_dinamicos',
         'empresa_id',
         'sucursal_id',
         'created_by',
         'updated_by',
+    ];
+
+    protected $casts = [
+        'datos_dinamicos' => 'array',
     ];
 
     public function consulta()

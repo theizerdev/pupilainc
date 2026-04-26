@@ -40,6 +40,7 @@ Route::prefix('consulta')->name('consulta.')->group(function () {
     Route::get('/{id}/informe', [\App\Http\Controllers\Admin\InformeMedicoController::class, 'generar'])->name('informe')->middleware('checkAdminPermission:access consultas');
     Route::get('/{id}/justificativo', [\App\Http\Controllers\Admin\JustificativoController::class, 'generar'])->name('justificativo')->middleware('checkAdminPermission:access consultas');
     Route::get('/{id}/reposo', [\App\Http\Controllers\Admin\ReposoController::class, 'generar'])->name('reposo')->middleware('checkAdminPermission:access consultas');
+    Route::get('/{id}/constancia', [\App\Http\Controllers\Admin\ConstanciaAsistenciaController::class, 'generar'])->name('constancia')->middleware('checkAdminPermission:access consultas');
 });
 
 // Consultorios
@@ -62,6 +63,8 @@ Route::middleware(['checkAdminPermission:access especialidades'])->group(functio
     Route::get('/especialidades/crear', \App\Livewire\Admin\Especialidades\Create::class)->name('especialidades.create');
     Route::get('/especialidades/{especialidad}/editar', \App\Livewire\Admin\Especialidades\Edit::class)->name('especialidades.edit');
     Route::get('/especialidades/{especialidad}', \App\Livewire\Admin\Especialidades\Show::class)->name('especialidades.show');
+    Route::get('/especialidades/{especialidad}/plantilla', \App\Livewire\Admin\Especialidades\PlantillaConsulta::class)->name('especialidades.plantilla');
+    Route::get('/especialidades/{especialidad}/cuestionario', \App\Livewire\Admin\Especialidades\CuestionarioConsulta::class)->name('especialidades.cuestionario');
 });
 
 // Tipos de Consulta
@@ -367,7 +370,7 @@ Route::prefix('inventario')->name('inventario.')->group(function () {
         Route::get('/proveedores/{proveedor}/editar', \App\Livewire\Admin\Inventario\Proveedores\Form::class)->name('proveedores.edit');
     });
 
-    Route::middleware(['checkAdminPermission:access productos'])->group(function () {
+      Route::middleware(['checkAdminPermission:access productos'])->group(function () {
         Route::get('/productos', \App\Livewire\Admin\Inventario\Productos\Index::class)->name('productos.index');
         Route::get('/productos/crear', \App\Livewire\Admin\Inventario\Productos\Form::class)->name('productos.create');
         Route::get('/productos/{producto}/editar', \App\Livewire\Admin\Inventario\Productos\Form::class)->name('productos.edit');

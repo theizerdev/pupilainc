@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Consulta;
+use App\Models\EspecialidadPlantilla;
 use Codedge\Fpdf\Fpdf\Fpdf;
 
 class InformeMedicoController extends Controller
 {
-    private $fpdf;
+    private Fpdf $pdf;
     private $consulta;
     private $empresa;
 
@@ -16,21 +17,29 @@ class InformeMedicoController extends Controller
     {
         $this->consulta = Consulta::with([
             'paciente',
-            'medico',
+            'medico.especialidades',
+            'especialidad',
             'signosVitales',
             'evaluacion',
-            'diagnosticos',
             'tratamientos',
             'estudios',
-            'cita'
+            'reposo',
         ])->findOrFail($id);
 
-        $this->empresa = auth()->user()->empresa;
-        $this->fpdf = new Fpdf('P', 'mm', 'A4');
-        $this->fpdf->SetAutoPageBreak(true, 25);
+        // Cargar diagnósticos explícitamente para evitar conflicto con cast
+        $this->consulta->setRelation(
+            'diagnosticos',
+            $this->consulta->diagnosticos()->get()
+        );
 
-        // Informe completo
-        $this->fpdf->AddPage();
+        $this->empresa = auth()->user()->empresa;
+
+        $this->pdf = new Fpdf('P', 'mm', 'A4');
+        $this->pdf->SetMargins(20, 15, 20);
+        $this->pdf->SetAutoPageBreak(true, 28);
+
+        // ── Página 1: Informe completo ────────────────────────────────────────
+        $this->pdf->AddPage();
         $this->encabezado('INFORME MÉDICO');
         $this->datosPaciente();
         $this->datosConsulta();
@@ -39,429 +48,592 @@ class InformeMedicoController extends Controller
         $this->diagnosticos();
         $this->estudios();
         $this->tratamientos();
-        //$this->firma();
+        $this->firma();
+        $this->piePagina();
 
-        // Orden de estudios (página separada)
-        if ($this->consulta->estudios && $this->consulta->estudios->count() > 0) {
-            $this->fpdf->AddPage();
+        // ── Página 2: Orden de estudios (si aplica) ───────────────────────────
+        if ($this->consulta->estudios->count() > 0) {
+            $this->pdf->AddPage();
             $this->encabezado('ORDEN DE ESTUDIOS');
             $this->datosPacienteResumido();
             $this->estudiosDetallado();
-            //$this->firmaSimple();
+            $this->firma();
+            $this->piePagina();
         }
 
-        // Recipe médico (página separada)
-        if ($this->consulta->tratamientos && $this->consulta->tratamientos->count() > 0) {
-            $this->fpdf->AddPage();
+        // ── Página 3: Recipe médico (si aplica) ───────────────────────────────
+        if ($this->consulta->tratamientos->count() > 0) {
+            $this->pdf->AddPage();
             $this->encabezado('RECIPE MÉDICO');
             $this->datosPacienteResumido();
             $this->tratamientosDetallado();
-            //$this->firmaSimple();
+            $this->firma();
+            $this->piePagina();
         }
 
-        return response($this->fpdf->Output('S'), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="Informe_Medico_' . $this->consulta->id . '.pdf"'
+        return response($this->pdf->Output('S'), 200, [
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="Informe_Medico_' . $this->consulta->codigo . '.pdf"',
         ]);
     }
 
-    private function encabezado($titulo = 'INFORME MÉDICO')
-    {
-        $logoPath = public_path('logo/app.png');
+    // ── ENCABEZADO ────────────────────────────────────────────────────────────
 
-        if (file_exists($logoPath)) {
-            $this->fpdf->Image($logoPath, 12, 5, 50, 30);
+    private function encabezado(string $titulo): void
+    {
+        $logoPath  = public_path('logo/app.png');
+        $tieneLogo = file_exists($logoPath);
+
+        if ($tieneLogo) {
+            $this->pdf->Image($logoPath, 20, 12, 35);
         }
 
-        $this->fpdf->SetFont('Arial', 'B', 16);
-        $this->fpdf->SetTextColor(0, 0, 0);
-        $this->fpdf->Cell(0, 8, utf8_decode($titulo), 0, 1, 'C');
+        // Datos empresa a la derecha del logo
+        $xTexto = $tieneLogo ? 60 : 20;
+        $this->pdf->SetXY($xTexto, 12);
+        $this->pdf->SetFont('Arial', 'B', 13);
+        $this->pdf->SetTextColor(41, 128, 185);
+        $nombre = $this->empresa->razon_social ?? $this->empresa->nombre ?? '';
+        $this->pdf->Cell(0, 7, utf8_decode($nombre), 0, 1, 'L');
 
-        $this->fpdf->SetFont('Arial', 'B', 11);
-        $this->fpdf->SetTextColor(0, 0, 0);
-        $this->fpdf->Cell(0, 6, utf8_decode($this->empresa->nombre), 0, 1, 'C');
+        $this->pdf->SetXY($xTexto, $this->pdf->GetY());
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->SetTextColor(100, 100, 100);
 
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->SetTextColor(100, 100, 100);
-        $this->fpdf->Cell(0, 5, utf8_decode('RIF: ' . $this->empresa->rif), 0, 1, 'C');
-
+        if (!empty($this->empresa->rif)) {
+            $this->pdf->Cell(0, 5, utf8_decode('RIF: ' . $this->empresa->rif), 0, 1, 'L');
+            $this->pdf->SetX($xTexto);
+        }
         if ($this->empresa->telefono) {
-            $this->fpdf->Cell(0, 5, utf8_decode('Tel: ' . $this->empresa->telefono), 0, 1, 'C');
+            $this->pdf->Cell(0, 5, utf8_decode('Tel: ' . $this->empresa->telefono), 0, 1, 'L');
+            $this->pdf->SetX($xTexto);
         }
-
         if ($this->empresa->direccion) {
-            $this->fpdf->SetFont('Arial', '', 8);
-            $this->fpdf->MultiCell(0, 4, utf8_decode($this->empresa->direccion), 0, 'C');
+            $this->pdf->SetFont('Arial', '', 8);
+            $this->pdf->MultiCell(130, 4, utf8_decode($this->empresa->direccion), 0, 'L');
         }
 
-        $this->fpdf->SetTextColor(0, 0, 0);
-        $this->fpdf->Ln(3);
+        // Número y fecha alineados a la derecha
+        $this->pdf->SetXY(130, 12);
+        $this->pdf->SetFont('Arial', '', 8);
+        $this->pdf->SetTextColor(130, 130, 130);
+        $this->pdf->Cell(70, 5, utf8_decode('N°: ' . str_pad($this->consulta->codigo, 8, '0', STR_PAD_LEFT)), 0, 1, 'R');
+        $this->pdf->SetX(130);
+        $this->pdf->Cell(70, 5, utf8_decode('Generado: ' . now()->format('d/m/Y H:i')), 0, 1, 'R');
 
-        // Número de informe y fecha
-        $this->fpdf->SetFont('Arial', '', 8);
-        $this->fpdf->SetTextColor(100, 100, 100);
-        $this->fpdf->Cell(95, 4, utf8_decode('Informe N°: INF - ' . str_pad($this->consulta->codigo, 6, '0', STR_PAD_LEFT)), 0, 0, 'L');
-        $this->fpdf->Cell(95, 4, utf8_decode('Generado: ' . now()->format('d/m/Y H:i')), 0, 1, 'R');
-        $this->fpdf->SetTextColor(0, 0, 0);
+        // Línea separadora
+        $yLinea = max($this->pdf->GetY(), 48) + 3;
+        $this->pdf->SetDrawColor(41, 128, 185);
+        $this->pdf->SetLineWidth(0.8);
+        $this->pdf->Line(20, $yLinea, 190, $yLinea);
+        $this->pdf->SetLineWidth(0.2);
+        $this->pdf->SetDrawColor(0, 0, 0);
+        $this->pdf->SetY($yLinea + 4);
 
-        $this->fpdf->Ln(2);
-        $this->fpdf->SetDrawColor(41, 128, 185);
-        $this->fpdf->SetLineWidth(0.5);
-        $this->fpdf->Line(15, $this->fpdf->GetY(), 195, $this->fpdf->GetY());
-        $this->fpdf->SetDrawColor(0, 0, 0);
-        $this->fpdf->SetLineWidth(0.2);
-        $this->fpdf->Ln(5);
+        // Barra de título
+        $this->pdf->SetFillColor(41, 128, 185);
+        $this->pdf->SetTextColor(255, 255, 255);
+        $this->pdf->SetFont('Arial', 'B', 12);
+        $this->pdf->Cell(0, 9, utf8_decode($titulo), 0, 1, 'C', true);
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->Ln(5);
     }
 
-    private function datosPaciente()
-    {
-        $this->seccionTitulo('DATOS DEL PACIENTE');
+    // ── DATOS PACIENTE ────────────────────────────────────────────────────────
 
+    private function datosPaciente(): void
+    {
+        $this->seccion('DATOS DEL PACIENTE');
         $paciente = $this->consulta->paciente;
-        $this->fpdf->SetFont('Arial', '', 9);
 
-        $this->campoValor('Nombre Completo:', $paciente->nombre_completo);
-        $this->campoValor('Documento:',  $paciente->documento_identidad);
-
-        // Calcular edad con años y meses
         $fechaNac = \Carbon\Carbon::parse($paciente->fecha_nacimiento);
-        $hoy = \Carbon\Carbon::now();
-        $años = (int) $fechaNac->diffInYears($hoy);
-        $meses = (int) $fechaNac->copy()->addYears($años)->diffInMonths($hoy);
-        $edadTexto = $años . ' años' . ($meses > 0 ? ' y ' . $meses . ' meses' : '');
+        $años     = (int) $fechaNac->diffInYears(now());
+        $meses    = (int) $fechaNac->copy()->addYears($años)->diffInMonths(now());
+        $edad     = $años . ' años' . ($meses > 0 ? ' y ' . $meses . ' meses' : '');
 
-        $this->campoValor('Fecha de Nacimiento:', $fechaNac->format('d/m/Y') . ' (' . $edadTexto . ')');
-        $this->campoValor('Sexo:', ucfirst($paciente->genero ?? 'No especificado'));
-
+        // Fila 1: nombre y documento
+        $this->fila2col('Nombre completo', $paciente->nombre_completo, 'Documento', $paciente->documento_identidad ?? 'N/A');
+        // Fila 2: fecha nacimiento y sexo
+        $this->fila2col('Fecha de nacimiento', $fechaNac->format('d/m/Y') . ' (' . $edad . ')', 'Sexo', ucfirst($paciente->genero ?? 'No especificado'));
+        // Fila 3: teléfono
         if ($paciente->telefono) {
-            $this->campoValor('Teléfono:', $paciente->telefono);
+            $this->fila1col('Teléfono', $paciente->telefono);
         }
 
-        // Alergias (crítico)
-        if ($paciente->alergias) {
-            $this->fpdf->SetFillColor(234, 231, 230);
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->Cell(60, 6, utf8_decode('⚠ ALERGIAS:'), 1, 0, 'L', true);
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->SetTextColor(204, 0, 0);
-            $this->fpdf->Cell(130, 6, utf8_decode(strtoupper($paciente->alergias)), 1, 1, 'L', true);
-            $this->fpdf->SetTextColor(0, 0, 0);
+        // Alergias — bloque rojo si existe
+        if (!empty($paciente->alergias)) {
+            $this->pdf->SetFillColor(255, 235, 235);
+            $this->pdf->SetDrawColor(220, 53, 69);
+            $this->pdf->SetLineWidth(0.4);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->SetTextColor(220, 53, 69);
+            $this->pdf->Cell(40, 7, utf8_decode('ALERGIAS:'), 1, 0, 'L', true);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->Cell(130, 7, utf8_decode(strtoupper($paciente->alergias)), 1, 1, 'L', true);
+            $this->pdf->SetLineWidth(0.2);
+            $this->pdf->SetDrawColor(0, 0, 0);
+            $this->pdf->SetTextColor(0, 0, 0);
         }
 
-        // Antecedentes médicos
-        if ($paciente->antecedentes_medicos) {
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->Cell(60, 6, utf8_decode('Antecedentes Médicos:'), 1, 0);
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->MultiCell(130, 6, utf8_decode($paciente->antecedentes_medicos), 1);
-        }
-
-        $this->fpdf->Ln(3);
+        $this->pdf->Ln(4);
     }
 
-    private function datosConsulta()
+    // ── DATOS CONSULTA ────────────────────────────────────────────────────────
+
+    private function datosConsulta(): void
     {
-        $this->seccionTitulo('DATOS DE LA CONSULTA');
+        $this->seccion('DATOS DE LA CONSULTA');
 
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->campoValor('Fecha y Hora:', $this->consulta->created_at->format('d/m/Y H:i'));
-        $this->campoValor('Médico Tratante:', 'Dr(a). ' . $this->consulta->medico->nombre_completo);
+        $especialidad = $this->consulta->especialidad->nombre
+            ?? $this->consulta->medico->especialidades()->take(1)->pluck('nombre')->first()
+            ?? 'No especificada';
 
+        $this->fila2col(
+            'Fecha y hora',
+            $this->consulta->fecha_consulta->format('d/m/Y H:i'),
+            'Especialidad',
+            $especialidad
+        );
+        $this->fila1col('Médico tratante', 'Dr(a). ' . $this->consulta->medico->nombre_completo);
 
-        $this->campoValor('Especialidad:', $this->consulta->medico->especialidades()->take(1)->pluck('nombre')->first() ?? 'No especificada');
+        if ($this->consulta->motivo_consulta) {
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->SetFillColor(245, 248, 252);
+            $this->pdf->Cell(40, 6, utf8_decode('Motivo de consulta:'), 1, 0, 'L', true);
+            $this->pdf->SetFont('Arial', '', 9);
+            $this->pdf->MultiCell(130, 6, utf8_decode($this->consulta->motivo_consulta), 1);
+        }
 
-
-
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->Cell(60, 6, utf8_decode('Motivo de Consulta:'), 1, 0);
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->MultiCell(130, 6, utf8_decode($this->consulta->motivo_consulta), 1);
-
-
-        $this->fpdf->Ln(3);
+        $this->pdf->Ln(4);
     }
 
-    private function signosVitales()
+    // ── SIGNOS VITALES ────────────────────────────────────────────────────────
+
+    private function signosVitales(): void
     {
         $sv = $this->consulta->signosVitales()->latest()->first();
         if (!$sv) return;
 
-        $this->seccionTitulo('SIGNOS VITALES');
+        $this->seccion('SIGNOS VITALES');
 
-        $this->fpdf->SetFont('Arial', '', 9);
+        // 4 tarjetas en una fila
+        $tarjetas = [
+            ['P.A.', ($sv->presion_arterial_sistolica ?? '--') . '/' . ($sv->presion_arterial_diastolica ?? '--'), 'mmHg'],
+            ['F.C.', $sv->frecuencia_cardiaca ?? '--', 'lpm'],
+            ['Temp.', $sv->temperatura ?? '--', '°C'],
+            ['Sat. O₂', $sv->saturacion_oxigeno ?? '--', '%'],
+        ];
 
-        // Presión Arterial
-        $pas = $sv->presion_arterial_sistolica ?? null;
-        $pad = $sv->presion_arterial_diastolica ?? null;
-        $paValor = $pas && $pad ? "$pas/$pad" : '--';
+        $xInicio = 20;
+        $yInicio = $this->pdf->GetY();
+        $ancho   = 42;
+        $alto    = 18;
 
-        $this->fpdf->Cell(45, 6, utf8_decode('P.A. (mmHg):'), 1, 0);
-        $this->fpdf->Cell(40, 6, $paValor, 1, 0);
+        foreach ($tarjetas as $i => $t) {
+            $x = $xInicio + ($i * ($ancho + 2));
+            $this->pdf->SetFillColor(245, 248, 252);
+            $this->pdf->SetDrawColor(41, 128, 185);
+            $this->pdf->SetLineWidth(0.3);
+            $this->pdf->Rect($x, $yInicio, $ancho, $alto, 'DF');
 
-        // Frecuencia Cardíaca
-        $fc = $sv->frecuencia_cardiaca ?? null;
-        $this->fpdf->Cell(45, 6, utf8_decode('F.C. (lpm):'), 1, 0);
-        $this->fpdf->Cell(60, 6, $fc ?? '--', 1, 1);
+            $this->pdf->SetXY($x, $yInicio + 1);
+            $this->pdf->SetFont('Arial', '', 7);
+            $this->pdf->SetTextColor(100, 100, 100);
+            $this->pdf->Cell($ancho, 5, utf8_decode($t[0]), 0, 1, 'C');
 
-        // Temperatura
-        $temp = $sv->temperatura ?? null;
-        $this->fpdf->Cell(45, 6, utf8_decode('Temperatura (°C):'), 1, 0);
-        $this->fpdf->Cell(40, 6, $temp ?? '--', 1, 0);
+            $this->pdf->SetX($x);
+            $this->pdf->SetFont('Arial', 'B', 12);
+            $this->pdf->SetTextColor(41, 128, 185);
+            $this->pdf->Cell($ancho, 7, utf8_decode((string)$t[1]), 0, 1, 'C');
 
-        // Frecuencia Respiratoria
-        $fr = $sv->frecuencia_respiratoria ?? null;
-        $this->fpdf->Cell(45, 6, utf8_decode('F.R. (rpm):'), 1, 0);
-        $this->fpdf->Cell(60, 6, $fr ?? '--', 1, 1);
-
-        // Peso y Talla
-        $peso = $sv->peso ?? null;
-        $talla = $sv->talla ?? null;
-        $this->fpdf->Cell(45, 6, utf8_decode('Peso (kg):'), 1, 0);
-        $this->fpdf->Cell(40, 6, $peso ?? '--', 1, 0);
-        $this->fpdf->Cell(45, 6, utf8_decode('Talla (cm):'), 1, 0);
-        $this->fpdf->Cell(60, 6, $talla ?? '--', 1, 1);
-
-        // IMC
-        $imc = $sv->imc ?? null;
-        $imcClasif = $this->clasificacionIMC($imc);
-        $this->fpdf->Cell(45, 6, utf8_decode('IMC:'), 1, 0);
-        $this->fpdf->Cell(40, 6, $imc ?? '--', 1, 0);
-        $this->fpdf->Cell(45, 6, utf8_decode('Clasificación:'), 1, 0);
-        $this->fpdf->Cell(60, 6, utf8_decode($imcClasif), 1, 1);
-
-        if ($sv->saturacion_oxigeno) {
-            $this->fpdf->Cell(45, 6, utf8_decode('Sat. O₂ (%):'), 1, 0);
-            $this->fpdf->Cell(145, 6, $sv->saturacion_oxigeno, 1, 1);
+            $this->pdf->SetX($x);
+            $this->pdf->SetFont('Arial', '', 7);
+            $this->pdf->SetTextColor(130, 130, 130);
+            $this->pdf->Cell($ancho, 4, utf8_decode($t[2]), 0, 1, 'C');
         }
+
+        $this->pdf->SetLineWidth(0.2);
+        $this->pdf->SetDrawColor(0, 0, 0);
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->SetY($yInicio + $alto + 3);
+
+        // Segunda fila: peso, talla, IMC, FR
+        $imc      = $sv->imc ?? null;
+        $tarjetas2 = [
+            ['Peso', $sv->peso ?? '--', 'kg'],
+            ['Talla', $sv->talla ?? '--', 'cm'],
+            ['IMC', $imc ?? '--', $this->clasificacionIMC($imc)],
+            ['F.R.', $sv->frecuencia_respiratoria ?? '--', 'rpm'],
+        ];
+
+        $yInicio2 = $this->pdf->GetY();
+        foreach ($tarjetas2 as $i => $t) {
+            $x = $xInicio + ($i * ($ancho + 2));
+            $this->pdf->SetFillColor(250, 250, 250);
+            $this->pdf->SetDrawColor(200, 200, 200);
+            $this->pdf->SetLineWidth(0.2);
+            $this->pdf->Rect($x, $yInicio2, $ancho, $alto, 'DF');
+
+            $this->pdf->SetXY($x, $yInicio2 + 1);
+            $this->pdf->SetFont('Arial', '', 7);
+            $this->pdf->SetTextColor(100, 100, 100);
+            $this->pdf->Cell($ancho, 5, utf8_decode($t[0]), 0, 1, 'C');
+
+            $this->pdf->SetX($x);
+            $this->pdf->SetFont('Arial', 'B', 11);
+            $this->pdf->SetTextColor(50, 50, 50);
+            $this->pdf->Cell($ancho, 7, utf8_decode((string)$t[1]), 0, 1, 'C');
+
+            $this->pdf->SetX($x);
+            $this->pdf->SetFont('Arial', '', 7);
+            $this->pdf->SetTextColor(130, 130, 130);
+            $this->pdf->Cell($ancho, 4, utf8_decode($t[2]), 0, 1, 'C');
+        }
+
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->SetY($yInicio2 + $alto + 3);
 
         if ($sv->observaciones) {
-            $this->fpdf->SetFont('Arial', 'I', 8);
-            $this->fpdf->MultiCell(0, 5, utf8_decode('Observaciones: ' . $sv->observaciones), 1);
+            $this->pdf->SetFont('Arial', 'I', 8);
+            $this->pdf->SetTextColor(100, 100, 100);
+            $this->pdf->MultiCell(0, 5, utf8_decode('Obs: ' . $sv->observaciones), 0);
+            $this->pdf->SetTextColor(0, 0, 0);
         }
 
-        $this->fpdf->Ln(3);
+        $this->pdf->Ln(3);
     }
 
-    private function evaluacion()
+    // ── EVALUACIÓN DINÁMICA ───────────────────────────────────────────────────
+
+    private function evaluacion(): void
     {
         if (!$this->consulta->evaluacion) return;
 
-        $eval = $this->consulta->evaluacion;
+        $eval  = $this->consulta->evaluacion;
+        $datos = $eval->datos_dinamicos ?? [];
 
-        if ($eval->enfermedad_actual) {
-            $this->seccionTitulo('ENFERMEDAD ACTUAL');
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->MultiCell(0, 5, utf8_decode($eval->enfermedad_actual), 1);
-            $this->fpdf->Ln(2);
+        // Campos legacy
+        $legacy = [
+            'enfermedad_actual'        => 'ENFERMEDAD ACTUAL',
+            'examen_fisico'            => 'EXAMEN FÍSICO',
+            'conclusion'               => 'CONCLUSIÓN MÉDICA',
+            'observaciones_adicionales'=> 'OBSERVACIONES',
+        ];
+
+        foreach ($legacy as $campo => $titulo) {
+            $valor = $eval->$campo ?? ($datos[$campo] ?? null);
+            if ($valor) {
+                $this->seccion($titulo);
+                $this->pdf->SetFont('Arial', '', 9);
+                $this->pdf->SetTextColor(30, 30, 30);
+                $this->pdf->MultiCell(0, 5, utf8_decode($valor), 0);
+                $this->pdf->Ln(3);
+            }
         }
 
-        if ($eval->examen_fisico) {
-            $this->seccionTitulo('EXAMEN FÍSICO');
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->MultiCell(0, 5, utf8_decode($eval->examen_fisico), 1);
-            $this->fpdf->Ln(2);
+        // Campos dinámicos de plantilla
+        $excluidos      = array_keys($legacy);
+        $datosDinamicos = array_diff_key($datos, array_flip($excluidos));
+
+        if (empty($datosDinamicos)) return;
+
+        $plantilla = null;
+        if ($this->consulta->especialidad_id) {
+            $plantilla = EspecialidadPlantilla::with(['secciones.campos'])
+                ->where('especialidad_id', $this->consulta->especialidad_id)
+                ->where('activo', true)
+                ->latest()
+                ->first();
         }
 
-        if ($eval->conclusion) {
-            $this->seccionTitulo('CONCLUSIÓN MÉDICA');
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->MultiCell(0, 5, utf8_decode($eval->conclusion), 1);
-            $this->fpdf->Ln(2);
+        if ($plantilla) {
+            foreach ($plantilla->secciones as $seccion) {
+                $hayDatos = collect($seccion->campos)->contains(function ($campo) use ($datos) {
+                    $v = $datos[$campo->nombre_campo] ?? null;
+                    return $v !== null && $v !== '' && $v !== [];
+                });
+
+                if (!$hayDatos) continue;
+
+                $this->seccion(strtoupper($seccion->nombre));
+
+                foreach ($seccion->campos as $campo) {
+                    $valor = $datos[$campo->nombre_campo] ?? null;
+                    if ($valor === null || $valor === '' || $valor === []) continue;
+
+                    $valorTexto = is_array($valor) ? implode(', ', $valor) : (string) $valor;
+                    if ($campo->unidad) $valorTexto .= ' ' . $campo->unidad;
+
+                    $this->pdf->SetFillColor(248, 249, 250);
+                    $this->pdf->SetFont('Arial', 'B', 9);
+                    $this->pdf->Cell(65, 6, utf8_decode($campo->etiqueta . ':'), 0, 0, 'L');
+                    $this->pdf->SetFont('Arial', '', 9);
+                    $this->pdf->MultiCell(105, 6, utf8_decode($valorTexto), 0);
+                }
+                $this->pdf->Ln(2);
+            }
+        } else {
+            $this->seccion('EVALUACIÓN CLÍNICA');
+            foreach ($datosDinamicos as $clave => $valor) {
+                if ($valor === null || $valor === '' || $valor === []) continue;
+                $valorTexto = is_array($valor) ? implode(', ', $valor) : (string) $valor;
+                $this->pdf->SetFont('Arial', 'B', 9);
+                $this->pdf->Cell(65, 6, utf8_decode(ucwords(str_replace('_', ' ', $clave)) . ':'), 0, 0);
+                $this->pdf->SetFont('Arial', '', 9);
+                $this->pdf->MultiCell(105, 6, utf8_decode($valorTexto), 0);
+            }
+            $this->pdf->Ln(2);
         }
     }
 
-    private function diagnosticos()
+    // ── DIAGNÓSTICOS ─────────────────────────────────────────────────────────
+
+    private function diagnosticos(): void
     {
-        if (!$this->consulta->diagnosticos || $this->consulta->diagnosticos->count() == 0) return;
+        $diags = $this->consulta->getRelation('diagnosticos');
+        if (!$diags || $diags->count() === 0) return;
 
-        $this->seccionTitulo('DIAGNÓSTICOS CIE-10');
+        $this->seccion('DIAGNÓSTICOS CIE-10');
 
-        $this->fpdf->SetFont('Arial', '', 9);
-
-        foreach ($this->consulta->diagnosticos as $diag) {
-            $esPrincipal = $diag->pivot->tipo == 'principal';
+        foreach ($diags as $diag) {
+            $esPrincipal = $diag->pivot->tipo === 'principal';
 
             if ($esPrincipal) {
-                $this->fpdf->SetFillColor(234, 231, 230);
-                $this->fpdf->SetFont('Arial', 'B', 9);
-                $this->fpdf->Cell(35, 6, utf8_decode('★ PRINCIPAL'), 1, 0, 'C', true);
+                $this->pdf->SetFillColor(41, 128, 185);
+                $this->pdf->SetTextColor(255, 255, 255);
+                $this->pdf->SetFont('Arial', 'B', 8);
+                $this->pdf->Cell(28, 7, utf8_decode('PRINCIPAL'), 1, 0, 'C', true);
             } else {
-                $this->fpdf->SetFillColor(234, 231, 230);
-                $this->fpdf->SetFont('Arial', '', 9);
-                $this->fpdf->Cell(35, 6, utf8_decode('Secundario'), 1, 0, 'C', true);
+                $this->pdf->SetFillColor(245, 248, 252);
+                $this->pdf->SetTextColor(80, 80, 80);
+                $this->pdf->SetFont('Arial', '', 8);
+                $this->pdf->Cell(28, 7, utf8_decode('Secundario'), 1, 0, 'C', true);
             }
 
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->Cell(30, 6, utf8_decode($diag->codigo), 1, 0, 'C');
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->Cell(115, 6, utf8_decode($diag->nombre), 1, 1);
+            $this->pdf->SetFillColor(245, 248, 252);
+            $this->pdf->SetTextColor(0, 0, 0);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->Cell(25, 7, utf8_decode($diag->codigo), 1, 0, 'C', true);
+            $this->pdf->SetFont('Arial', '', 9);
+            $this->pdf->Cell(117, 7, utf8_decode($diag->nombre), 1, 1, 'L');
         }
 
-        $this->fpdf->Ln(3);
+        $this->pdf->Ln(3);
     }
 
-    private function estudios()
+    // ── ESTUDIOS ──────────────────────────────────────────────────────────────
+
+    private function estudios(): void
     {
-        if (!$this->consulta->estudios || $this->consulta->estudios->count() == 0) return;
+        if ($this->consulta->estudios->count() === 0) return;
 
-        $this->seccionTitulo('ESTUDIOS SOLICITADOS');
+        $this->seccion('ESTUDIOS SOLICITADOS');
 
-        $this->fpdf->SetFont('Arial', '', 9);
+        foreach ($this->consulta->estudios as $i => $est) {
+            $this->pdf->SetFillColor(245, 248, 252);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->Cell(8, 6, ($i + 1) . '.', 0, 0);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->Cell(30, 6, utf8_decode(ucfirst($est->tipo_estudio)), 1, 0, 'C', true);
+            $this->pdf->SetFont('Arial', '', 9);
+            $this->pdf->Cell(132, 6, utf8_decode($est->nombre_estudio), 1, 1);
 
-        foreach ($this->consulta->estudios as $index => $estudio) {
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->Cell(10, 6, ($index + 1) . '.', 1, 0);
-            $this->fpdf->Cell(40, 6, utf8_decode(ucfirst($estudio->tipo_estudio)), 1, 0);
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->Cell(140, 6, utf8_decode($estudio->nombre_estudio), 1, 1);
-
-            if ($estudio->indicaciones) {
-                $this->fpdf->Cell(10, 5, '', 0, 0);
-                $this->fpdf->SetFont('Arial', 'I', 8);
-                $this->fpdf->MultiCell(180, 5, utf8_decode('Indicaciones: ' . $estudio->indicaciones), 1);
+            if ($est->indicaciones) {
+                $this->pdf->SetX(28);
+                $this->pdf->SetFont('Arial', 'I', 8);
+                $this->pdf->SetTextColor(80, 80, 80);
+                $this->pdf->MultiCell(142, 5, utf8_decode('Indicaciones: ' . $est->indicaciones), 0);
+                $this->pdf->SetTextColor(0, 0, 0);
             }
         }
 
-        $this->fpdf->Ln(3);
+        $this->pdf->Ln(3);
     }
 
-    private function tratamientos()
+    // ── TRATAMIENTOS ──────────────────────────────────────────────────────────
+
+    private function tratamientos(): void
     {
-        if (!$this->consulta->tratamientos || $this->consulta->tratamientos->count() == 0) return;
+        if ($this->consulta->tratamientos->count() === 0) return;
 
-        $this->seccionTitulo('TRATAMIENTO PRESCRITO');
+        $this->seccion('TRATAMIENTO PRESCRITO');
 
-        foreach ($this->consulta->tratamientos as $index => $trat) {
-            $this->fpdf->SetFont('Arial', 'B', 9);
-            $this->fpdf->Cell(10, 6, ($index + 1) . '.', 1, 0);
-            $this->fpdf->Cell(180, 6, utf8_decode($trat->medicamento), 1, 1);
+        foreach ($this->consulta->tratamientos as $i => $trat) {
+            $this->pdf->SetFillColor(245, 248, 252);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->Cell(8, 6, ($i + 1) . '.', 0, 0);
+            $this->pdf->Cell(162, 6, utf8_decode($trat->medicamento), 1, 1, 'L', true);
 
-            $this->fpdf->Cell(10, 5, '', 0, 0);
-            $this->fpdf->SetFont('Arial', '', 9);
-            $this->fpdf->MultiCell(180, 5, utf8_decode($trat->indicaciones), 1);
+            $this->pdf->SetX(28);
+            $this->pdf->SetFont('Arial', '', 9);
+            $this->pdf->SetTextColor(50, 50, 50);
+            $this->pdf->MultiCell(152, 5, utf8_decode($trat->indicaciones), 0);
+            $this->pdf->SetTextColor(0, 0, 0);
+            $this->pdf->Ln(2);
         }
 
-        $this->fpdf->Ln(3);
+        $this->pdf->Ln(2);
     }
 
-    private function firma()
-    {
-        $this->fpdf->Ln(10);
-        $this->fpdf->SetFont('Arial', 'I', 8);
-        $this->fpdf->SetTextColor(150, 150, 150);
-        $this->fpdf->Cell(0, 5, utf8_decode('Documento confidencial - Uso exclusivo médico'), 0, 1, 'C');
-        $this->fpdf->SetTextColor(0, 0, 0);
+    // ── PÁGINAS SECUNDARIAS ───────────────────────────────────────────────────
 
-        $this->fpdf->Ln(5);
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(0, 6, utf8_decode('_________________________________'), 0, 1, 'C');
-        $this->fpdf->SetFont('Arial', 'B', 10);
-        $this->fpdf->Cell(0, 5, utf8_decode('Dr(a). ' . $this->consulta->medico->nombre_completo), 0, 1, 'C');
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(0, 5, utf8_decode('Reg. Médico: ' . ($this->consulta->medico->numero_colegiatura ?? 'N/A')), 0, 1, 'C');
+    private function datosPacienteResumido(): void
+    {
+        $p = $this->consulta->paciente;
+        $this->pdf->SetFillColor(245, 248, 252);
+        $this->pdf->SetDrawColor(41, 128, 185);
+        $this->pdf->SetLineWidth(0.3);
+        $this->pdf->Rect(20, $this->pdf->GetY(), 170, 14, 'DF');
+        $this->pdf->SetLineWidth(0.2);
+        $this->pdf->SetDrawColor(0, 0, 0);
+
+        $y = $this->pdf->GetY() + 2;
+        $this->pdf->SetXY(22, $y);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(30, 5, utf8_decode('Paciente:'), 0, 0);
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->Cell(80, 5, utf8_decode($p->nombre_completo), 0, 0);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(20, 5, utf8_decode('Documento:'), 0, 0);
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->Cell(0, 5, utf8_decode($p->documento_identidad ?? 'N/A'), 0, 1);
+
+        $this->pdf->SetX(22);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(30, 5, utf8_decode('Fecha:'), 0, 0);
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->Cell(0, 5, $this->consulta->fecha_consulta->format('d/m/Y H:i'), 0, 1);
+
+        $this->pdf->Ln(5);
     }
 
-    private function datosPacienteResumido()
+    private function estudiosDetallado(): void
     {
-        $paciente = $this->consulta->paciente;
-        $this->fpdf->SetFont('Arial', 'B', 9);
-        $this->fpdf->Cell(40, 6, utf8_decode('Paciente:'), 0, 0);
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(0, 6, utf8_decode($paciente->nombre_completo), 0, 1);
+        foreach ($this->consulta->estudios as $i => $est) {
+            $this->pdf->SetFillColor(41, 128, 185);
+            $this->pdf->SetTextColor(255, 255, 255);
+            $this->pdf->SetFont('Arial', 'B', 9);
+            $this->pdf->Cell(0, 7, utf8_decode(($i + 1) . '. ' . strtoupper($est->tipo_estudio) . ': ' . $est->nombre_estudio), 1, 1, 'L', true);
+            $this->pdf->SetTextColor(0, 0, 0);
 
-        $this->fpdf->SetFont('Arial', 'B', 9);
-        $this->fpdf->Cell(40, 6, utf8_decode('Documento:'), 0, 0);
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(60, 6, utf8_decode($paciente->documento_identidad), 0, 0);
-
-        $this->fpdf->SetFont('Arial', 'B', 9);
-        $this->fpdf->Cell(30, 6, utf8_decode('Fecha:'), 0, 0);
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(0, 6, $this->consulta->created_at->format('d/m/Y'), 0, 1);
-
-        $this->fpdf->Ln(3);
-    }
-
-    private function estudiosDetallado()
-    {
-        $this->fpdf->SetFont('Arial', 'B', 11);
-        $this->fpdf->Cell(0, 8, utf8_decode('ESTUDIOS SOLICITADOS'), 0, 1, 'L');
-        $this->fpdf->Ln(2);
-
-        foreach ($this->consulta->estudios as $index => $estudio) {
-            $this->fpdf->SetFont('Arial', 'B', 10);
-            $this->fpdf->Cell(0, 7, utf8_decode(($index + 1) . '. ' . strtoupper($estudio->tipo_estudio)), 0, 1);
-
-            $this->fpdf->SetFont('Arial', '', 10);
-            $this->fpdf->MultiCell(0, 6, utf8_decode($estudio->nombre_estudio), 0);
-
-            if ($estudio->indicaciones) {
-                $this->fpdf->SetFont('Arial', 'I', 9);
-                $this->fpdf->MultiCell(0, 5, utf8_decode('Indicaciones: ' . $estudio->indicaciones), 0);
+            if ($est->indicaciones) {
+                $this->pdf->SetFont('Arial', '', 9);
+                $this->pdf->SetX(22);
+                $this->pdf->MultiCell(0, 6, utf8_decode($est->indicaciones), 0);
             }
-
-            $this->fpdf->Ln(3);
+            $this->pdf->Ln(3);
         }
     }
 
-    private function tratamientosDetallado()
+    private function tratamientosDetallado(): void
     {
-        $this->fpdf->SetFont('Arial', 'B', 11);
-        $this->fpdf->Cell(0, 8, utf8_decode('TRATAMIENTO PRESCRITO'), 0, 1, 'L');
-        $this->fpdf->Ln(2);
+        foreach ($this->consulta->tratamientos as $i => $trat) {
+            $this->pdf->SetFillColor(41, 128, 185);
+            $this->pdf->SetTextColor(255, 255, 255);
+            $this->pdf->SetFont('Arial', 'B', 10);
+            $this->pdf->Cell(0, 8, utf8_decode(($i + 1) . '. ' . $trat->medicamento), 1, 1, 'L', true);
+            $this->pdf->SetTextColor(0, 0, 0);
 
-        foreach ($this->consulta->tratamientos as $index => $trat) {
-            $this->fpdf->SetFont('Arial', 'B', 10);
-            $this->fpdf->Cell(10, 7, ($index + 1) . '.', 0, 0);
-            $this->fpdf->Cell(0, 7, utf8_decode($trat->medicamento), 0, 1);
-
-            $this->fpdf->SetFont('Arial', '', 10);
-            $this->fpdf->SetX(25);
-            $this->fpdf->MultiCell(0, 6, utf8_decode($trat->indicaciones), 0);
-
-            $this->fpdf->Ln(3);
+            $this->pdf->SetFont('Arial', '', 9);
+            $this->pdf->SetX(22);
+            $this->pdf->MultiCell(0, 6, utf8_decode($trat->indicaciones), 0);
+            $this->pdf->Ln(4);
         }
     }
 
-    private function firmaSimple()
+    // ── FIRMA ─────────────────────────────────────────────────────────────────
+
+    private function firma(): void
     {
-        $this->fpdf->Ln(15);
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(0, 6, utf8_decode('_________________________________'), 0, 1, 'C');
-        $this->fpdf->SetFont('Arial', 'B', 10);
-        $this->fpdf->Cell(0, 5, utf8_decode('Dr(a). ' . $this->consulta->medico->nombre_completo), 0, 1, 'C');
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(0, 5, utf8_decode('Reg. Médico: ' . ($this->consulta->medico->numero_colegiatura ?? 'N/A')), 0, 1, 'C');
+        $this->pdf->Ln(12);
+        $xFirma = 72;
+        $this->pdf->SetDrawColor(80, 80, 80);
+        $this->pdf->SetLineWidth(0.4);
+        $this->pdf->Line($xFirma, $this->pdf->GetY(), $xFirma + 66, $this->pdf->GetY());
+        $this->pdf->SetLineWidth(0.2);
+        $this->pdf->SetDrawColor(0, 0, 0);
+        $this->pdf->Ln(2);
+
+        $this->pdf->SetFont('Arial', 'B', 10);
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->Cell(0, 6, utf8_decode('Dr(a). ' . $this->consulta->medico->nombre_completo), 0, 1, 'C');
+
+        $especialidad = $this->consulta->especialidad->nombre
+            ?? $this->consulta->medico->especialidades()->take(1)->pluck('nombre')->first()
+            ?? '';
+
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->SetTextColor(80, 80, 80);
+        $this->pdf->Cell(0, 5, utf8_decode($especialidad), 0, 1, 'C');
+
+        if (!empty($this->consulta->medico->numero_colegiatura)) {
+            $this->pdf->Cell(0, 5, utf8_decode('Reg. Médico: ' . $this->consulta->medico->numero_colegiatura), 0, 1, 'C');
+        }
+
+        $this->pdf->SetTextColor(0, 0, 0);
     }
 
-    // Métodos auxiliares
-    private function seccionTitulo($titulo)
+    // ── PIE DE PÁGINA ─────────────────────────────────────────────────────────
+
+    private function piePagina(): void
     {
-        $this->fpdf->SetFillColor(234, 231, 230);
-        $this->fpdf->SetTextColor(0, 0, 0);
-        $this->fpdf->SetFont('Arial', 'B', 10);
-        $this->fpdf->Cell(0, 7, utf8_decode($titulo), 1, 1, 'C', true);
-        $this->fpdf->SetTextColor(0, 0, 0);
+        $this->pdf->SetY(-18);
+        $this->pdf->SetDrawColor(200, 200, 200);
+        $this->pdf->SetLineWidth(0.3);
+        $this->pdf->Line(20, $this->pdf->GetY(), 190, $this->pdf->GetY());
+        $this->pdf->Ln(2);
+        $this->pdf->SetFont('Arial', 'I', 7);
+        $this->pdf->SetTextColor(150, 150, 150);
+        $this->pdf->Cell(0, 4,
+            utf8_decode('Documento confidencial — Uso exclusivo médico — ' .
+            ($this->empresa->razon_social ?? $this->empresa->nombre ?? '') .
+            ' — ' . now()->format('d/m/Y H:i')),
+            0, 0, 'C'
+        );
     }
 
-    private function campoValor($campo, $valor)
+    // ── HELPERS ───────────────────────────────────────────────────────────────
+
+    private function seccion(string $titulo): void
     {
-        $this->fpdf->SetFont('Arial', 'B', 9);
-        $this->fpdf->Cell(60, 6, utf8_decode($campo), 1, 0);
-        $this->fpdf->SetFont('Arial', '', 9);
-        $this->fpdf->Cell(130, 6, utf8_decode($valor), 1, 1);
+        $this->pdf->SetFillColor(41, 128, 185);
+        $this->pdf->SetTextColor(255, 255, 255);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(0, 7, utf8_decode(' ' . $titulo), 0, 1, 'L', true);
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->Ln(2);
     }
 
-
-
-    private function clasificacionIMC($imc)
+    private function fila2col(string $label1, string $val1, string $label2, string $val2): void
     {
-        if (!$imc) return 'No calculado';
+        $this->pdf->SetFillColor(245, 248, 252);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(30, 6, utf8_decode($label1 . ':'), 1, 0, 'L', true);
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->Cell(55, 6, utf8_decode($val1), 1, 0);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(30, 6, utf8_decode($label2 . ':'), 1, 0, 'L', true);
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->Cell(55, 6, utf8_decode($val2), 1, 1);
+    }
+
+    private function fila1col(string $label, string $val): void
+    {
+        $this->pdf->SetFillColor(245, 248, 252);
+        $this->pdf->SetFont('Arial', 'B', 9);
+        $this->pdf->Cell(30, 6, utf8_decode($label . ':'), 1, 0, 'L', true);
+        $this->pdf->SetFont('Arial', '', 9);
+        $this->pdf->Cell(140, 6, utf8_decode($val), 1, 1);
+    }
+
+    private function clasificacionIMC($imc): string
+    {
+        if (!$imc) return 'N/A';
         if ($imc < 18.5) return 'Bajo peso';
-        if ($imc < 25) return 'Normal';
-        if ($imc < 30) return 'Sobrepeso';
-        if ($imc < 35) return 'Obesidad I';
-        if ($imc < 40) return 'Obesidad II';
+        if ($imc < 25)   return 'Normal';
+        if ($imc < 30)   return 'Sobrepeso';
+        if ($imc < 35)   return 'Obesidad I';
+        if ($imc < 40)   return 'Obesidad II';
         return 'Obesidad III';
     }
 }

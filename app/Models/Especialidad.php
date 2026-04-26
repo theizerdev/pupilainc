@@ -70,6 +70,21 @@ class Especialidad extends Model
         return $this->hasMany(Subespecialidad::class);
     }
 
+    public function plantillas(): HasMany
+    {
+        return $this->hasMany(EspecialidadPlantilla::class);
+    }
+
+    public function plantillaActiva(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(EspecialidadPlantilla::class)->where('activo', true)->latestOfMany();
+    }
+
+    public function cuestionarios(): HasMany
+    {
+        return $this->hasMany(Cuestionario::class);
+    }
+
     public function scopeForUser($query)
     {
         if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {

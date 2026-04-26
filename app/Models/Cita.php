@@ -336,7 +336,7 @@ class Cita extends Model
             $yaTieneRespuestas = $this->respuestasPreconsulta()
                 ->where('completado', true)
                 ->exists();
-                
+
             if ($this->estado_preconsulta === 'pendiente' && !$yaTieneRespuestas) {
                 $this->crearPreconsultaYEnviarWhatsApp();
             }
@@ -355,7 +355,23 @@ class Cita extends Model
             $token = \Illuminate\Support\Str::random(32);
             $resultado['token'] = $token;
 
-            $cuestionario = \App\Models\Cuestionario::where('activo', true)->first();
+            // Buscar cuestionario: primero por especialidad, luego genérico
+            $cuestionario = null;
+            if ($this->especialidad_id) {
+                $cuestionario = \App\Models\Cuestionario::where('activo', true)
+                    ->where('empresa_id', $this->empresa_id)
+                    ->where('tipo', 'preconsulta')
+                    ->where('especialidad_id', $this->especialidad_id)
+                    ->first();
+            }
+            if (!$cuestionario) {
+                $cuestionario = \App\Models\Cuestionario::where('activo', true)
+                    ->where('empresa_id', $this->empresa_id)
+                    ->where('tipo', 'preconsulta')
+                    ->whereNull('especialidad_id')
+                    ->first();
+            }
+
             if ($cuestionario) {
                 foreach ($cuestionario->preguntas as $pregunta) {
                     \App\Models\RespuestaPreconsulta::create([
@@ -776,6 +792,15 @@ class Cita extends Model
         static::created(function ($cita) {
             \Log::info('Cita creada con estado: ' . $cita->estado, ['cita_id' => $cita->id]);
             \Log::info('Cita ' . $cita->id . ' creada - confirmación se enviará integrada en la notificación');
+
+            // Citas de alta prioridad o emergencia: enviar cuestionario inmediatamente
+            if (in_array($cita->prioridad, [self::PRIORIDAD_ALTA, self::PRIORIDAD_EMERGENCIA])) {
+                \Log::info('Cita de alta prioridad/emergencia: enviando cuestionario inmediatamente', [
+                    'cita_id'   => $cita->id,
+                    'prioridad' => $cita->prioridad,
+                ]);
+                $cita->crearPreconsultaYEnviarWhatsApp();
+            }
         });
     }
 }

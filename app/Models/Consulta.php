@@ -88,7 +88,6 @@ class Consulta extends Model
         'pio',
         'dilatacion_pupilar',
         'fondo_ojo',
-        'diagnosticos',
         'plan_tratamiento',
         'medicamentos',
         'observaciones',
@@ -111,7 +110,6 @@ class Consulta extends Model
         'pio' => 'array',
         'dilatacion_pupilar' => 'array',
         'fondo_ojo' => 'array',
-        'diagnosticos' => 'array',
         'medicamentos' => 'array',
     ];
 
