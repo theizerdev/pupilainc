@@ -176,6 +176,24 @@
                                             </span>
                                         </div>
                                     @endif
+                                    @php $datosEstado = $consulta->getDatosEstado($consulta->estado); @endphp
+                                    @if(!empty($datosEstado))
+                                        <div class="mt-1">
+                                            <a href="{{ route('admin.consulta.proceso', $consulta->id) }}" 
+                                               class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-decoration-none" 
+                                               style="font-size:0.65rem;">
+                                                <i class="ri ri-checkbox-circle-line me-1"></i>Ver formulario completado
+                                            </a>
+                                        </div>
+                                    @elseif($this->tieneFormularioEstado($consulta))
+                                        <div class="mt-1">
+                                            <a href="{{ route('admin.consulta.proceso', $consulta->id) }}" 
+                                               class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 text-decoration-none" 
+                                               style="font-size:0.65rem;">
+                                                <i class="ri ri-edit-line me-1"></i>{{ $this->getTituloFormularioEstado($consulta) ?? 'Completar formulario' }}
+                                            </a>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($consulta->estado_changed_at)
@@ -201,67 +219,101 @@
                                         </button>
                                         <ul class="dropdown-menu dropdown-menu-end">
 
+                                            {{-- Acción dinámica: formulario configurado para el estado actual --}}
+                                            @php
+                                                $tieneForm   = $this->tieneFormularioEstado($consulta);
+                                                $tituloForm  = $tieneForm ? $this->getTituloFormularioEstado($consulta) : null;
+                                                $estadoColor = \App\Models\Consulta::ESTADO_COLORES[$consulta->estado] ?? '#78909C';
+                                            @endphp
+
+                                            @if($tieneForm)
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center"
+                                                   href="{{ route('admin.consulta.proceso', $consulta->id) }}">
+                                                    <span class="badge me-2" style="background-color:{{ $estadoColor }};width:10px;height:10px;padding:0;border-radius:50%;display:inline-block;"></span>
+                                                    {{ $tituloForm ?? 'Formulario del Estado' }}
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            @endif
+
+                                            {{-- Signos vitales (enfermería) --}}
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                       data-bs-toggle="modal" data-bs-target="#registrarSignosVitalesModal{{ $consulta->id }}">
-                                                        <i class="ri ri-heart-pulse-line me-2"></i>
-                                                        Registrar Signos Vitales
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center" href="#"
+                                                   data-bs-toggle="modal" data-bs-target="#registrarSignosVitalesModal{{ $consulta->id }}">
+                                                    <i class="ri ri-heart-pulse-line me-2 text-danger"></i>
+                                                    Signos Vitales
+                                                </a>
+                                            </li>
                                             @endif
 
-                                            @if(in_array($consulta->estado, [\App\Models\Consulta::ESTADO_EN_CONSULTORIO]))
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center"
-                                                       href="{{ route('admin.consulta.proceso', $consulta->id) }}">
-                                                        <i class="ri ri-stethoscope-line me-2"></i>
-                                                        Procesar Consulta
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
+                                            {{-- Proceso de consulta (consultorio) --}}
+                                            @if(in_array($consulta->estado, [\App\Models\Consulta::ESTADO_EN_CONSULTORIO, \App\Models\Consulta::ESTADO_EN_CONSULTORIO_OPTOMETRISTA]))
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center"
+                                                   href="{{ route('admin.consulta.proceso', $consulta->id) }}">
+                                                    <i class="ri ri-stethoscope-line me-2 text-primary"></i>
+                                                    Procesar Consulta
+                                                </a>
+                                            </li>
                                             @endif
 
+                                            {{-- Gotas (oftalmología) --}}
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_GOTAS)
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                       data-bs-toggle="modal" data-bs-target="#registrarGotasModal{{ $consulta->id }}">
-                                                        <i class="ri ri-drop-line me-2"></i>
-                                                        Registrar Aplicación de Gotas
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center" href="#"
+                                                   data-bs-toggle="modal" data-bs-target="#registrarGotasModal{{ $consulta->id }}">
+                                                    <i class="ri ri-drop-line me-2 text-info"></i>
+                                                    Registrar Gotas
+                                                </a>
+                                            </li>
                                             @endif
 
-                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
-                                                <li><h6 class="dropdown-header">Imprimir</h6></li>
+                                            {{-- Cambiar estado --}}
+                                            @if(count($estadosDisponibles) > 1)
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><h6 class="dropdown-header">Cambiar Estado</h6></li>
+                                            @foreach($estadosDisponibles as $eKey)
+                                                @if($eKey !== $consulta->estado)
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center"
-                                                       href="{{ route('admin.consulta.informe', $consulta->id) }}"
-                                                       target="_blank">
-                                                        <i class="ri ri-file-text-line me-2 text-primary"></i>
-                                                        Informe Médico
-                                                    </a>
-                                                </li>
-                                                @if($consulta->reposo)
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center"
-                                                       href="{{ route('admin.consulta.reposo', $consulta->id) }}"
-                                                       target="_blank">
-                                                        <i class="ri ri-hotel-bed-line me-2 text-success"></i>
-                                                        Reposo Médico
-                                                    </a>
+                                                    <button class="dropdown-item d-flex align-items-center"
+                                                            wire:click="cambiarEstado({{ $consulta->id }}, '{{ $eKey }}')">
+                                                        <span class="badge me-2" style="background-color:{{ $estadoColores[$eKey] ?? '#78909C' }};width:10px;height:10px;padding:0;border-radius:50%;display:inline-block;"></span>
+                                                        {{ $estadoLabels[$eKey] ?? ucfirst($eKey) }}
+                                                    </button>
                                                 </li>
                                                 @endif
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center" href="#"
-                                                       data-bs-toggle="modal"
-                                                       data-bs-target="#modalConstancia{{ $consulta->id }}">
-                                                        <i class="ri ri-award-line me-2 text-warning"></i>
-                                                        Constancia de Asistencia
-                                                    </a>
-                                                </li>
+                                            @endforeach
+                                            @endif
+
+                                            {{-- Documentos (finalizada) --}}
+                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><h6 class="dropdown-header">Documentos</h6></li>
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center"
+                                                   href="{{ route('admin.consulta.informe', $consulta->id) }}" target="_blank">
+                                                    <i class="ri ri-file-text-line me-2 text-primary"></i>
+                                                    Informe Médico
+                                                </a>
+                                            </li>
+                                            @if($consulta->reposo)
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center"
+                                                   href="{{ route('admin.consulta.reposo', $consulta->id) }}" target="_blank">
+                                                    <i class="ri ri-hotel-bed-line me-2 text-success"></i>
+                                                    Reposo Médico
+                                                </a>
+                                            </li>
+                                            @endif
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center" href="#"
+                                                   data-bs-toggle="modal" data-bs-target="#modalConstancia{{ $consulta->id }}">
+                                                    <i class="ri ri-award-line me-2 text-warning"></i>
+                                                    Constancia de Asistencia
+                                                </a>
+                                            </li>
                                             @endif
 
                                         </ul>

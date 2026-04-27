@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Gestion\Consultas;
 use App\Models\Consulta;
 use App\Models\Especialidad;
 use App\Models\EspecialidadPlantilla;
+use App\Models\PlantillaEstadoFormulario;
 use App\Models\Medico;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -32,6 +33,10 @@ class ListaPorEstado extends Component
     public $estadoLabels       = [];
     public $estadoColores      = [];
 
+    // Formularios configurados por estado: [especialidad_id => [estado => bool]]
+    // Indica si un estado tiene formulario configurado para mostrar botón de acción
+    protected $formulariosPorEspecialidad = [];
+
     protected $queryString = [
         'search'        => ['except' => ''],
         'sortField'     => ['except' => 'fecha_consulta'],
@@ -49,21 +54,32 @@ class ListaPorEstado extends Component
 
     public function mount(): void
     {
-        // Mapeo de ruta → estados base (sin especialidad)
         $routeMap = [
             'admin.gestion.consultas.sala-espera'   => ['estados' => ['sala_espera'],                                    'titulo' => 'Sala de Espera'],
             'admin.gestion.consultas.en-enfermeria' => ['estados' => ['en_enfermeria'],                                  'titulo' => 'En Enfermería'],
             'admin.gestion.consultas.en-consultorio'=> ['estados' => ['en_consultorio', 'en_consultorio_optometrista'],  'titulo' => 'En Consultorio'],
             'admin.gestion.consultas.en-gotas'      => ['estados' => ['en_gotas'],                                       'titulo' => 'En Gotas'],
+            'admin.gestion.consultas.dilatado'      => ['estados' => ['dilatado'],                                       'titulo' => 'Dilatado'],
             'admin.gestion.consultas.en-optica'     => ['estados' => ['en_optica'],                                      'titulo' => 'En Óptica'],
             'admin.gestion.consultas.en-estudio'    => ['estados' => ['en_estudio'],                                     'titulo' => 'En Estudio'],
             'admin.gestion.consultas.finalizadas'   => ['estados' => ['finalizada'],                                     'titulo' => 'Finalizadas'],
         ];
 
-        $routeName        = request()->route()->getName();
-        $config           = $routeMap[$routeName] ?? ['estados' => array_keys(EspecialidadPlantilla::ESTADOS_DISPONIBLES), 'titulo' => 'Consultas'];
-        $this->estadosFiltro = $config['estados'];
-        $this->titulo        = $config['titulo'];
+        $routeName = request()->route()->getName();
+
+        // Ruta dinámica por estado
+        if ($routeName === 'admin.gestion.consultas.por-estado') {
+            $estado = request()->route('estado');
+            $label  = \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estado]
+                   ?? \App\Models\Consulta::ESTADO_LABELS[$estado]
+                   ?? ucfirst(str_replace('_', ' ', $estado));
+            $this->estadosFiltro = [$estado];
+            $this->titulo        = $label;
+        } else {
+            $config              = $routeMap[$routeName] ?? ['estados' => array_keys(\App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES), 'titulo' => 'Consultas'];
+            $this->estadosFiltro = $config['estados'];
+            $this->titulo        = $config['titulo'];
+        }
 
         $this->resolverEstadosDisponibles();
     }
@@ -157,7 +173,7 @@ class ListaPorEstado extends Component
 
     public function getConsultasProperty()
     {
-        $query = Consulta::with(['paciente', 'medico', 'especialidad', 'gotasAplicadas', 'reposo'])
+        $query = Consulta::with(['paciente', 'medico', 'especialidad', 'gotasAplicadas', 'reposo', 'estadoDatos'])
             ->whereIn('estado', $this->estadosFiltro);
 
         if (auth()->user()->hasRole('Doctor')) {
@@ -222,6 +238,45 @@ class ListaPorEstado extends Component
     public function getEspecialidadesProperty()
     {
         return Especialidad::activas()->forUser()->orderBy('nombre')->get();
+    }
+
+    /**
+     * Devuelve true si el estado de la consulta tiene un formulario de estado configurado.
+     * Se usa en la vista para mostrar el botón de acción dinámica.
+     */
+    public function tieneFormularioEstado(Consulta $consulta): bool
+    {
+        if (!$consulta->especialidad_id) return false;
+
+        if (!isset($this->formulariosPorEspecialidad[$consulta->especialidad_id])) {
+            $plantilla = EspecialidadPlantilla::where('especialidad_id', $consulta->especialidad_id)
+                ->where('activo', true)->latest()->first();
+
+            $this->formulariosPorEspecialidad[$consulta->especialidad_id] = $plantilla
+                ? PlantillaEstadoFormulario::where('plantilla_id', $plantilla->id)
+                    ->where('activo', true)
+                    ->pluck('estado')
+                    ->flip()
+                    ->toArray()
+                : [];
+        }
+
+        return isset($this->formulariosPorEspecialidad[$consulta->especialidad_id][$consulta->estado]);
+    }
+
+    public function getTituloFormularioEstado(Consulta $consulta): ?string
+    {
+        if (!$consulta->especialidad_id) return null;
+
+        $plantilla = EspecialidadPlantilla::where('especialidad_id', $consulta->especialidad_id)
+            ->where('activo', true)->latest()->first();
+
+        if (!$plantilla) return null;
+
+        return PlantillaEstadoFormulario::where('plantilla_id', $plantilla->id)
+            ->where('estado', $consulta->estado)
+            ->where('activo', true)
+            ->value('titulo');
     }
 
     protected function getPageTitle(): string { return $this->titulo; }

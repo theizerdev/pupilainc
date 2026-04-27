@@ -8,6 +8,7 @@ use App\Models\Preconsulta;
 use App\Models\Medico;
 use App\Models\Paciente;
 use App\Models\Especialidad;
+use App\Models\EspecialidadPlantilla;
 use App\Models\Subespecialidad;
 use App\Models\MedicoHorario;
 use App\Models\TipoConsulta;
@@ -229,13 +230,16 @@ class Calendario extends Component
                 $q->where('medico_especialidad.status', true);
             })
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'duracion_consulta']);
+            ->get(['id', 'nombre', 'duracion_consulta', 'color']);
 
         return $especialidades->map(function ($e) {
+            $estadosFlujo = EspecialidadPlantilla::estadosFlujoParaEspecialidad($e->id);
             return [
-                'id' => $e->id,
-                'nombre' => $e->nombre,
-                'duracion_consulta' => $e->duracion_consulta,
+                'id'               => $e->id,
+                'nombre'           => $e->nombre,
+                'duracion_consulta'=> $e->duracion_consulta,
+                'color'            => $e->color,
+                'estados_flujo'    => $estadosFlujo,
             ];
         })->toArray();
     }
@@ -261,8 +265,7 @@ class Calendario extends Component
 
     public function fetchMedicos($especialidadId = null, $subespecialidadId = null)
     {
-        $query = Medico::activos()
-            ->forUser();
+        $query = Medico::activos()->forUser();
 
         if ($especialidadId) {
             $query->whereHas('especialidades', function ($q) use ($especialidadId) {
@@ -278,14 +281,27 @@ class Calendario extends Component
             });
         }
 
-        $medicos = $query->orderBy('nombres')->get();
+        return $query->orderBy('nombres')
+            ->with(['especialidades' => fn($q) => $q->where('medico_especialidad.status', true)])
+            ->get()
+            ->map(function ($m) {
+                $especialidades = $m->especialidades->map(function ($e) {
+                    return [
+                        'id'            => $e->id,
+                        'nombre'        => $e->nombre,
+                        'color'         => $e->color,
+                        'estados_flujo' => EspecialidadPlantilla::estadosFlujoParaEspecialidad($e->id),
+                    ];
+                })->values()->toArray();
 
-        return $medicos->map(function ($m) {
-            return [
-                'id' => $m->id,
-                'nombre' => $m->nombre_completo,
-            ];
-        })->toArray();
+                return [
+                    'id'            => $m->id,
+                    'nombre'        => $m->nombre_completo,
+                    'especialidades'=> $especialidades,
+                    // Si solo tiene una especialidad, la exponemos directamente para auto-selección
+                    'especialidad_id' => count($especialidades) === 1 ? $especialidades[0]['id'] : null,
+                ];
+            })->toArray();
     }
 
     public function fetchHorariosDisponibles($medicoId, $fecha)

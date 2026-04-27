@@ -24,6 +24,7 @@ class InformeMedicoController extends Controller
             'tratamientos',
             'estudios',
             'reposo',
+            'estadoDatos',
         ])->findOrFail($id);
 
         // Cargar diagnósticos explícitamente para evitar conflicto con cast
@@ -44,12 +45,13 @@ class InformeMedicoController extends Controller
         $this->datosPaciente();
         $this->datosConsulta();
         $this->signosVitales();
+        $this->datosEstados();
         $this->evaluacion();
         $this->diagnosticos();
         $this->estudios();
         $this->tratamientos();
-        $this->firma();
-        $this->piePagina();
+        //$this->firma();
+        //$this->piePagina();
 
         // ── Página 2: Orden de estudios (si aplica) ───────────────────────────
         if ($this->consulta->estudios->count() > 0) {
@@ -57,8 +59,8 @@ class InformeMedicoController extends Controller
             $this->encabezado('ORDEN DE ESTUDIOS');
             $this->datosPacienteResumido();
             $this->estudiosDetallado();
-            $this->firma();
-            $this->piePagina();
+            //$this->firma();
+            //$this->piePagina();
         }
 
         // ── Página 3: Recipe médico (si aplica) ───────────────────────────────
@@ -67,8 +69,8 @@ class InformeMedicoController extends Controller
             $this->encabezado('RECIPE MÉDICO');
             $this->datosPacienteResumido();
             $this->tratamientosDetallado();
-            $this->firma();
-            $this->piePagina();
+            //$this->firma();
+            //$this->piePagina();
         }
 
         return response($this->pdf->Output('S'), 200, [
@@ -154,7 +156,7 @@ class InformeMedicoController extends Controller
         // Fila 1: nombre y documento
         $this->fila2col('Nombre completo', $paciente->nombre_completo, 'Documento', $paciente->documento_identidad ?? 'N/A');
         // Fila 2: fecha nacimiento y sexo
-        $this->fila2col('Fecha de nacimiento', $fechaNac->format('d/m/Y') . ' (' . $edad . ')', 'Sexo', ucfirst($paciente->genero ?? 'No especificado'));
+        $this->fila2col('F. nacimiento', $fechaNac->format('d/m/Y') . ' (' . $edad . ')', 'Sexo', ucfirst($paciente->genero ?? 'No especificado'));
         // Fila 3: teléfono
         if ($paciente->telefono) {
             $this->fila1col('Teléfono', $paciente->telefono);
@@ -304,6 +306,82 @@ class InformeMedicoController extends Controller
     }
 
     // ── EVALUACIÓN DINÁMICA ───────────────────────────────────────────────────
+
+
+    private function datosEstados(): void
+    {
+        $estadoDatos = $this->consulta->estadoDatos;
+        if (!$estadoDatos || $estadoDatos->count() === 0) return;
+
+        $plantilla = null;
+        if ($this->consulta->especialidad_id) {
+            $plantilla = EspecialidadPlantilla::with(['estadoFormularios.secciones.campos'])
+                ->where('especialidad_id', $this->consulta->especialidad_id)
+                ->where('activo', true)
+                ->latest()
+                ->first();
+        }
+
+        foreach ($estadoDatos as $estadoDato) {
+            $datos = $estadoDato->datos ?? [];
+            if (empty($datos)) continue;
+
+            $tituloEstado = 'DATOS DEL ESTADO';
+            if ($plantilla) {
+                $ef = $plantilla->estadoFormularios->where('estado', $estadoDato->estado)->first();
+                if ($ef) {
+                    $tituloEstado = strtoupper($ef->titulo);
+                }
+            }
+
+            $this->seccion($tituloEstado);
+
+            if ($plantilla) {
+                $ef = $plantilla->estadoFormularios->where('estado', $estadoDato->estado)->first();
+                if ($ef) {
+                    foreach ($ef->secciones as $seccion) {
+                        $hayDatos = collect($seccion->campos)->contains(function ($campo) use ($datos) {
+                            $v = $datos[$campo->nombre_campo] ?? null;
+                            return $v !== null && $v !== '' && $v !== [];
+                        });
+
+                        if (!$hayDatos) continue;
+
+                        $this->pdf->SetFont('Arial', 'B', 9);
+                        $this->pdf->SetTextColor(41, 128, 185);
+                        $this->pdf->Cell(0, 6, utf8_decode($seccion->nombre), 0, 1);
+                        $this->pdf->SetTextColor(0, 0, 0);
+
+                        foreach ($seccion->campos as $campo) {
+                            $valor = $datos[$campo->nombre_campo] ?? null;
+                            if ($valor === null || $valor === '' || $valor === []) continue;
+
+                            $valorTexto = is_array($valor) ? implode(', ', $valor) : (string) $valor;
+                            if ($campo->unidad) $valorTexto .= ' ' . $campo->unidad;
+
+                            $this->pdf->SetFillColor(248, 249, 250);
+                            $this->pdf->SetFont('Arial', 'B', 9);
+                            $this->pdf->Cell(65, 6, utf8_decode($campo->etiqueta . ':'), 0, 0, 'L');
+                            $this->pdf->SetFont('Arial', '', 9);
+                            $this->pdf->MultiCell(105, 6, utf8_decode($valorTexto), 0);
+                        }
+                        $this->pdf->Ln(2);
+                    }
+                }
+            } else {
+                foreach ($datos as $clave => $valor) {
+                    if ($valor === null || $valor === '' || $valor === []) continue;
+                    $valorTexto = is_array($valor) ? implode(', ', $valor) : (string) $valor;
+                    $this->pdf->SetFont('Arial', 'B', 9);
+                    $this->pdf->Cell(65, 6, utf8_decode(ucwords(str_replace('_', ' ', $clave)) . ':'), 0, 0);
+                    $this->pdf->SetFont('Arial', '', 9);
+                    $this->pdf->MultiCell(105, 6, utf8_decode($valorTexto), 0);
+                }
+            }
+
+            $this->pdf->Ln(3);
+        }
+    }
 
     private function evaluacion(): void
     {

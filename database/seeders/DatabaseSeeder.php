@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             InventarioBaseSeeder::class, // Almacenes y proveedores base
             TipoVarianteSeeder::class, // Tipos y valores de variantes para productos
             PlantillasClinicasSeeder::class, // Especialidades y plantillas clínicas dinámicas
+            EstadoFormulariosSeeder::class
         ]);
     }
 }

@@ -6,6 +6,7 @@ use Livewire\Component;
 use App\Models\Consulta;
 use App\Models\ConsultaEstudio;
 use App\Models\ConsultaTratamiento;
+use App\Models\ConsultaEstadoDato;
 use App\Models\RespuestaPreconsulta;
 use App\Models\EspecialidadPlantilla;
 use App\Traits\HasDynamicLayout;
@@ -22,7 +23,12 @@ class ProcesoConsulta extends Component
     public $plantilla        = null;
     public $pasosHabilitados = [];
     public $estadosFlujo     = [];
-    public $secciones        = [];   // secciones con sus campos para la vista
+    public $secciones        = [];   // secciones de la evaluación clínica
+
+    // Formularios por estado: [estado => ['secciones' => [...]]]
+    public $formulariosPorEstado = [];
+    // Datos capturados en el estado actual
+    public $datos_estado_actual  = [];
 
     // Paso: Signos Vitales
     public $presion_sistolica;
@@ -76,7 +82,7 @@ class ProcesoConsulta extends Component
         $this->consulta = Consulta::with([
             'evaluacion', 'estudios', 'tratamientos',
             'paciente', 'medico', 'especialidad',
-            'signosVitales', 'reposo',
+            'signosVitales', 'reposo', 'estadoDatos',
         ])->findOrFail($consultaId);
 
         $this->cargarPlantilla();
@@ -86,6 +92,7 @@ class ProcesoConsulta extends Component
         $this->cargarDiagnosticos();
         $this->cargarEstudiosYTratamientos();
         $this->cargarReposo();
+        $this->cargarDatosEstadoActual();
     }
 
     // ── Carga de plantilla ────────────────────────────────────────────────────
@@ -95,7 +102,7 @@ class ProcesoConsulta extends Component
         $plantilla = null;
 
         if ($this->consulta->especialidad_id) {
-            $plantilla = EspecialidadPlantilla::with(['secciones.campos'])
+            $plantilla = EspecialidadPlantilla::with(['secciones.campos', 'estadoFormularios.secciones.campos'])
                 ->where('especialidad_id', $this->consulta->especialidad_id)
                 ->where('activo', true)
                 ->latest()
@@ -106,31 +113,40 @@ class ProcesoConsulta extends Component
             $this->plantilla        = $plantilla->toArray();
             $this->pasosHabilitados = $plantilla->getPasosEfectivos();
             $this->estadosFlujo     = $plantilla->getEstadosEfectivos();
-            $this->secciones        = $plantilla->secciones->map(fn($s) => [
-                'id'     => $s->id,
-                'nombre' => $s->nombre,
-                'icono'  => $s->icono,
-                'color'  => $s->color,
-                'campos' => $s->campos->map(fn($c) => [
-                    'id'             => $c->id,
-                    'nombre_campo'   => $c->nombre_campo,
-                    'etiqueta'       => $c->etiqueta,
-                    'tipo'           => $c->tipo,
-                    'opciones'       => $c->opciones ?? [],
-                    'obligatorio'    => $c->obligatorio,
-                    'valor_defecto'  => $c->valor_defecto,
-                    'placeholder'    => $c->placeholder,
-                    'unidad'         => $c->unidad,
-                    'min'            => $c->min,
-                    'max'            => $c->max,
-                    'ancho_columnas' => $c->ancho_columnas,
-                ])->toArray(),
-            ])->toArray();
+            $this->secciones        = [];
+
+            // Cargar formularios por estado
+            $this->formulariosPorEstado = [];
+            foreach ($plantilla->estadoFormularios as $ef) {
+                $this->formulariosPorEstado[$ef->estado] = [
+                    'secciones' => $ef->secciones->map(fn($s) => [
+                        'id'     => $s->id,
+                        'nombre' => $s->nombre,
+                        'icono'  => $s->icono,
+                        'color'  => $s->color,
+                        'campos' => $s->campos->map(fn($c) => [
+                            'id'             => $c->id,
+                            'nombre_campo'   => $c->nombre_campo,
+                            'etiqueta'       => $c->etiqueta,
+                            'tipo'           => $c->tipo,
+                            'opciones'       => $c->opciones ?? [],
+                            'obligatorio'    => $c->obligatorio,
+                            'valor_defecto'  => $c->valor_defecto,
+                            'placeholder'    => $c->placeholder,
+                            'unidad'         => $c->unidad,
+                            'min'            => $c->min,
+                            'max'            => $c->max,
+                            'ancho_columnas' => $c->ancho_columnas,
+                        ])->toArray(),
+                    ])->toArray(),
+                ];
+            }
         } else {
             // Sin plantilla: pasos y estados genéricos
-            $this->pasosHabilitados = array_keys(EspecialidadPlantilla::PASOS_DISPONIBLES);
-            $this->estadosFlujo     = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
-            $this->secciones        = [];
+            $this->pasosHabilitados      = array_keys(EspecialidadPlantilla::PASOS_DISPONIBLES);
+            $this->estadosFlujo          = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
+            $this->secciones             = [];
+            $this->formulariosPorEstado  = [];
         }
 
         // Inicializar datos_dinamicos con valores por defecto
@@ -321,6 +337,38 @@ class ProcesoConsulta extends Component
 
         $this->ultima_respuesta_pregunta = $preguntaId;
         $this->dispatch('notify', ['message' => 'Respuesta guardada', 'type' => 'success']);
+    }
+
+    public function toggleRespuestaMultiple($preguntaId, $opcion): void
+    {
+        $respuesta = RespuestaPreconsulta::where('consulta_id', $this->consulta->id)
+            ->where('pregunta_id', $preguntaId)
+            ->first();
+
+        $seleccionadas = $respuesta?->respuesta_multiple ?? [];
+
+        if (in_array($opcion, $seleccionadas)) {
+            $seleccionadas = array_values(array_diff($seleccionadas, [$opcion]));
+        } else {
+            $seleccionadas[] = $opcion;
+        }
+
+        RespuestaPreconsulta::updateOrCreate(
+            ['consulta_id' => $this->consulta->id, 'pregunta_id' => $preguntaId],
+            [
+                'paciente_id'       => $this->consulta->paciente_id,
+                'cita_id'           => $this->consulta->cita_id,
+                'respuesta'         => null,
+                'respuesta_multiple'=> $seleccionadas,
+                'completado'        => true,
+                'fecha_completado'  => now(),
+                'token_unico'       => uniqid('cuest_', true),
+                'empresa_id'        => auth()->user()->empresa_id,
+                'sucursal_id'       => auth()->user()->sucursal_id,
+            ]
+        );
+
+        $this->dispatch('notify', ['message' => 'Respuesta actualizada', 'type' => 'success']);
     }
 
     // ── Evaluación Dinámica ───────────────────────────────────────────────────
@@ -537,6 +585,44 @@ class ProcesoConsulta extends Component
         $this->dispatch('notify', ['message' => 'Reposo guardado', 'type' => 'success']);
     }
 
+    // ── Datos por estado ─────────────────────────────────────────────────────
+
+    private function cargarDatosEstadoActual(): void
+    {
+        $estado = $this->consulta->estado;
+        $this->datos_estado_actual = $this->consulta->getDatosEstado($estado);
+
+        // Inicializar valores por defecto para campos sin valor
+        $secciones = $this->formulariosPorEstado[$estado]['secciones'] ?? [];
+        foreach ($secciones as $seccion) {
+            foreach ($seccion['campos'] as $campo) {
+                if (!isset($this->datos_estado_actual[$campo['nombre_campo']])) {
+                    $this->datos_estado_actual[$campo['nombre_campo']] = $campo['valor_defecto'] ?? (
+                        $campo['tipo'] === 'checkbox' ? [] : null
+                    );
+                }
+            }
+        }
+    }
+
+    public function guardarDatosEstado(): void
+    {
+        $estado = $this->consulta->estado;
+
+        ConsultaEstadoDato::updateOrCreate(
+            ['consulta_id' => $this->consulta->id, 'estado' => $estado],
+            [
+                'datos'       => $this->datos_estado_actual,
+                'empresa_id'  => auth()->user()->empresa_id,
+                'sucursal_id' => auth()->user()->sucursal_id,
+                'created_by'  => auth()->id(),
+                'updated_by'  => auth()->id(),
+            ]
+        );
+
+        $this->dispatch('notify', ['message' => 'Datos guardados', 'type' => 'success']);
+    }
+
     // ── Estado de la consulta ─────────────────────────────────────────────────
 
     public function cambiarEstadoConsulta(): void
@@ -559,6 +645,9 @@ class ProcesoConsulta extends Component
         ]);
         $this->consulta->refresh();
 
+        // Cargar datos del nuevo estado
+        $this->cargarDatosEstadoActual();
+
         $label = EspecialidadPlantilla::ESTADOS_DISPONIBLES[$this->nuevoEstado] ?? $this->nuevoEstado;
         $this->dispatch('show-toast', ['type' => 'success', 'message' => "Estado actualizado a {$label}"]);
         $this->nuevoEstado = '';
@@ -568,7 +657,7 @@ class ProcesoConsulta extends Component
     {
         $this->consulta->cambiarEstado(Consulta::ESTADO_FINALIZADA);
         session()->flash('success', 'Consulta finalizada exitosamente');
-        return redirect()->route('admin.gestion.consultas.index');
+        return redirect()->to('/admin/gestion/consultas/finalizadas');
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -587,11 +676,12 @@ class ProcesoConsulta extends Component
         $totalPasos = count($this->pasosHabilitados);
 
         return view('livewire.admin.consulta.proceso-consulta', [
-            'respuestasPreconsulta' => $respuestasPreconsulta,
-            'cuestionarioCompleto'  => $cuestionarioCompleto,
-            'totalPasos'            => $totalPasos,
-            'pasoKey'               => $this->pasosHabilitados[$this->pasoActual] ?? null,
-            'estadosDisponibles'    => EspecialidadPlantilla::ESTADOS_DISPONIBLES,
+            'respuestasPreconsulta'  => $respuestasPreconsulta,
+            'cuestionarioCompleto'   => $cuestionarioCompleto,
+            'totalPasos'             => $totalPasos,
+            'pasoKey'                => $this->pasosHabilitados[$this->pasoActual] ?? null,
+            'estadosDisponibles'     => EspecialidadPlantilla::ESTADOS_DISPONIBLES,
+            'formularioEstadoActual' => $this->formulariosPorEstado[$this->consulta->estado] ?? null,
         ])->layout($this->getLayout());
     }
 }

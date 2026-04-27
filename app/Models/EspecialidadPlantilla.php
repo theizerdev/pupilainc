@@ -73,13 +73,32 @@ class EspecialidadPlantilla extends Model
     public function secciones(): HasMany
     {
         return $this->hasMany(PlantillaSeccion::class, 'plantilla_id')
+            ->whereNull('estado_formulario_id')
             ->where('activo', true)
             ->orderBy('orden');
     }
 
     public function todasLasSecciones(): HasMany
     {
-        return $this->hasMany(PlantillaSeccion::class, 'plantilla_id')->orderBy('orden');
+        return $this->hasMany(PlantillaSeccion::class, 'plantilla_id')
+            ->whereNull('estado_formulario_id')
+            ->orderBy('orden');
+    }
+
+    public function estadoFormularios(): HasMany
+    {
+        return $this->hasMany(PlantillaEstadoFormulario::class, 'plantilla_id')
+            ->where('activo', true);
+    }
+
+    public function todosLosEstadoFormularios(): HasMany
+    {
+        return $this->hasMany(PlantillaEstadoFormulario::class, 'plantilla_id');
+    }
+
+    public function getFormularioParaEstado(string $estado): ?PlantillaEstadoFormulario
+    {
+        return $this->estadoFormularios()->where('estado', $estado)->first();
     }
 
     // Devuelve los pasos habilitados o todos por defecto
@@ -102,5 +121,34 @@ class EspecialidadPlantilla extends Model
     public function scopeActivas($query)
     {
         return $query->where('activo', true);
+    }
+
+    /**
+     * Devuelve los estados del flujo para una especialidad dada.
+     * Usa caché estático para no repetir queries en el mismo request.
+     */
+    public static function estadosFlujoParaEspecialidad(?int $especialidadId): array
+    {
+        static $cache = [];
+
+        if (!$especialidadId) {
+            return ['programada', 'confirmada', 'sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
+        }
+
+        if (!isset($cache[$especialidadId])) {
+            $plantilla = static::where('especialidad_id', $especialidadId)
+                ->where('activo', true)
+                ->latest()
+                ->first();
+
+            $cache[$especialidadId] = $plantilla
+                ? array_merge(
+                    ['programada', 'confirmada', 'cancelada', 'no_asistio'],
+                    $plantilla->getEstadosEfectivos()
+                  )
+                : array_keys(self::ESTADOS_DISPONIBLES);
+        }
+
+        return $cache[$especialidadId];
     }
 }

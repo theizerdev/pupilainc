@@ -702,6 +702,17 @@ class Cita extends Model
         $inicioLocal = $this->fecha_inicio->tz($timezone);
         $finLocal = $this->fecha_fin->tz($timezone);
 
+        // Estados dinámicos según la especialidad de la cita
+        $estadosFlujo = \App\Models\EspecialidadPlantilla::estadosFlujoParaEspecialidad($this->especialidad_id);
+        $estadosLabels = array_intersect_key(
+            array_merge(self::ESTADO_LABELS, \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES),
+            array_flip($estadosFlujo)
+        );
+        $estadosColores = array_intersect_key(
+            self::ESTADO_COLORES,
+            array_flip($estadosFlujo)
+        );
+
         return [
             'id' => $this->id,
             'title' => $nombrePaciente,
@@ -734,12 +745,16 @@ class Cita extends Model
                 'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal',
                 'tiene_consulta' => $tieneConsulta,
                 'consulta_id' => $this->consulta?->id,
-                'consulta_estado_label' => $consultaEstadoLabel, // Etiqueta del estado de la consulta asociada
-                'tiempo_gotas_formateado' => $tiempoGotasFormateado, // Tiempo en gotas si aplica
+                'consulta_estado_label' => $consultaEstadoLabel,
+                'tiempo_gotas_formateado' => $tiempoGotasFormateado,
                 'gotas_count' => $gotasCount,
                 'gotas_od_total' => $gotasOdTotal,
                 'gotas_oi_total' => $gotasOiTotal,
                 'tiempo_ultima_gota' => $tiempoUltimaGota,
+                // Estados dinámicos según especialidad
+                'estados_flujo'   => $estadosFlujo,
+                'estados_labels'  => $estadosLabels,
+                'estados_colores' => $estadosColores,
             ],
         ];
     }

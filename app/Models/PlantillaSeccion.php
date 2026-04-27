@@ -29,6 +29,11 @@ class PlantillaSeccion extends Model
         return $this->belongsTo(EspecialidadPlantilla::class, 'plantilla_id');
     }
 
+    public function estadoFormulario(): BelongsTo
+    {
+        return $this->belongsTo(PlantillaEstadoFormulario::class, 'estado_formulario_id');
+    }
+
     public function campos(): HasMany
     {
         return $this->hasMany(PlantillaCampo::class, 'seccion_id')

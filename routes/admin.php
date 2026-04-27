@@ -297,17 +297,21 @@ Route::middleware(['checkAdminPermission:access citas'])->group(function () {
     // Gestión de Consultas
     Route::prefix('gestion')->as('gestion.')->group(function () {
         Route::get('/consultas', function () {
-        return redirect()->to('admin/calendario');
-    })->name('consultas.index')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/sala-espera', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-enfermeria', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-gotas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-gotas')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/dilatado', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.dilatado')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-optica', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-estudio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/finalizadas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware('checkAdminPermission:access consultas');
-});
+            return redirect()->to('admin/calendario');
+        })->name('consultas.index')->middleware('checkAdminPermission:access consultas');
+
+        $middleware = 'checkAdminPermission:access consultas';
+        Route::get('/consultas/sala-espera',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware($middleware);
+        Route::get('/consultas/en-enfermeria',  \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware($middleware);
+        Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware($middleware);
+        Route::get('/consultas/en-gotas',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-gotas')->middleware($middleware);
+        Route::get('/consultas/dilatado',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.dilatado')->middleware($middleware);
+        Route::get('/consultas/en-optica',      \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware($middleware);
+        Route::get('/consultas/en-estudio',     \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware($middleware);
+        Route::get('/consultas/finalizadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware($middleware);
+        // Ruta dinámica por estado — para estados específicos de especialidades (en_consultorio_optometrista, etc.)
+        Route::get('/consultas/estado/{estado}', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.por-estado')->middleware($middleware);
+    });
 
 // Contabilidad
 Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermission:access contabilidad'])->group(function () {

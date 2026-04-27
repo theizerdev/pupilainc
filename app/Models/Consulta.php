@@ -306,6 +306,16 @@ class Consulta extends Model
         return $this->hasMany(ConsultaGota::class);
     }
 
+    public function estadoDatos()
+    {
+        return $this->hasMany(ConsultaEstadoDato::class);
+    }
+
+    public function getDatosEstado(string $estado): array
+    {
+        return $this->estadoDatos()->where('estado', $estado)->first()?->datos ?? [];
+    }
+
     public function scopePorEstado($query, $estado)
     {
         return $query->where('estado', $estado);

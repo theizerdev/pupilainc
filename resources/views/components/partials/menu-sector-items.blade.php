@@ -74,7 +74,7 @@
                                 @endphp
                                 @if($childCanAccess)
                                     <li class="menu-item {{ $childActive ? 'active' : '' }}">
-                                        <a href="{{ route($child['route']) }}" class="menu-link">
+                                        <a href="{{ route($child['route'], $child['params'] ?? []) }}" class="menu-link">
                                             <div>{{ $child['label'] }}</div>
                                         </a>
                                     </li>
@@ -88,7 +88,7 @@
                         $routeName = ($isHorizontal && isset($item['route_horizontal'])) ? $item['route_horizontal'] : $item['route'];
                     @endphp
                     <li class="menu-item {{ $itemActive ? 'active' : '' }}">
-                        <a href="{{ route($routeName) }}" class="menu-link">
+                        <a href="{{ route($routeName, $item['params'] ?? []) }}" class="menu-link">
                             @if(!$isHorizontal)
                                 <i class="menu-icon tf-icons ri {{ $item['icon'] }}"></i>
                             @else

@@ -305,14 +305,72 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
     if (eventMedico.length) {
         eventMedico.select2({ placeholder: 'Buscar médico...', dropdownParent: eventMedico.parent(), allowClear: true, language: { noResults: function() { return 'No se encontraron médicos'; }, searching: function() { return 'Buscando...'; } } });
     }
-    if (eventEstado.length) {
-        function renderEstadoBadge(option) {
-            if (!option.id) return option.text;
-            var color = $(option.element).data('color') || 'secondary';
-            return "<span class='badge badge-dot bg-" + color + " me-2'></span>" + option.text;
-        }
-        eventEstado.select2({ placeholder: 'Seleccionar estado', dropdownParent: eventEstado.parent(), templateResult: renderEstadoBadge, templateSelection: renderEstadoBadge, minimumResultsForSearch: -1, escapeMarkup: function(es) { return es; } });
+    // Colores de estados (todos los posibles)
+    var todosEstadosColores = {
+        programada: '#ffc107', confirmada: '#0d6efd', cancelada: '#dc3545', no_asistio: '#6c757d',
+        por_llegar: '#9E9E9E', sala_espera: '#FFA726', en_enfermeria: '#EF5350',
+        en_consultorio: '#42A5F5', en_consultorio_optometrista: '#7E57C2',
+        en_gotas: '#26C6DA', dilatado: '#00BCD4', en_optica: '#AB47BC',
+        en_estudio: '#EC407A', finalizada: '#66BB6A', pagada: '#4CAF50'
+    };
+    var todosEstadosLabels = {
+        programada: 'Programada', confirmada: 'Confirmada', cancelada: 'Cancelada', no_asistio: 'No Asistió',
+        por_llegar: 'Por Llegar', sala_espera: 'Sala de Espera', en_enfermeria: 'En Enfermería',
+        en_consultorio: 'En Consultorio', en_consultorio_optometrista: 'En Consultorio Optometrista',
+        en_gotas: 'En Gotas', dilatado: 'Dilatado', en_optica: 'En Óptica',
+        en_estudio: 'En Estudio', finalizada: 'Finalizada', pagada: 'Pagada'
+    };
+
+    function renderEstadoBadge(option) {
+        if (!option.id) return option.text;
+        var color = $(option.element).data('color') || '#78909C';
+        return "<span style='display:inline-block;width:10px;height:10px;border-radius:50%;background:" + color + ";margin-right:6px;'></span>" + option.text;
     }
+
+    function actualizarEstadosOffcanvas(estadosFlujo) {
+        if (!eventEstado || !eventEstado.length) return;
+
+        var valorActual = eventEstado.val() || 'programada';
+
+        if (eventEstado.hasClass('select2-hidden-accessible')) {
+            eventEstado.select2('destroy');
+        }
+
+        eventEstado.empty();
+
+        var estadosBase = ['programada', 'confirmada', 'cancelada', 'no_asistio'];
+        var estadosMostrar = estadosBase.slice();
+
+        if (estadosFlujo && estadosFlujo.length) {
+            estadosFlujo.forEach(function(e) {
+                if (estadosBase.indexOf(e) === -1) estadosMostrar.push(e);
+            });
+        }
+
+        estadosMostrar.forEach(function(key) {
+            var label = todosEstadosLabels[key] || key;
+            var color = todosEstadosColores[key] || '#78909C';
+            var opt = new Option(label, key, false, key === valorActual);
+            $(opt).attr('data-color', color);
+            eventEstado.append(opt);
+        });
+
+        eventEstado.select2({
+            placeholder: 'Seleccionar estado',
+            dropdownParent: eventEstado.parent(),
+            templateResult: renderEstadoBadge,
+            templateSelection: renderEstadoBadge,
+            minimumResultsForSearch: -1,
+            escapeMarkup: function(es) { return es; }
+        });
+
+        var nuevoValor = estadosMostrar.indexOf(valorActual) !== -1 ? valorActual : 'programada';
+        eventEstado.val(nuevoValor).trigger('change.select2');
+    }
+    if (eventEstado.length) {
+        actualizarEstadosOffcanvas([]);
+    }
+
     if (eventTipoConsulta.length) {
         function renderTipoConsultaOption(option) {
             if (!option.id) return option.text;
@@ -842,6 +900,9 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         });
     }
 
+    // Mapa de especialidades por médico (cargado dinámicamente)
+    var especialidadesPorMedico = {};
+
     // Paciente -> Especialidades
     if (eventPaciente.length) {
         eventPaciente.on('change', function() {
@@ -849,8 +910,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(3);
             showEspecialidadField(false);
             comp.call('fetchMedicos', null, null).then(function(medicos) {
+                especialidadesPorMedico = {};
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                medicos.forEach(function(m){
+                    eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                    especialidadesPorMedico[m.id] = m.especialidades || [];
+                });
                 eventMedico.prop('disabled', false);
                 eventMedico.trigger('change.select2');
             });
@@ -861,6 +926,13 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         eventEspecialidad.on('change', function() {
             var espId = eventEspecialidad.val(); selectedEspecialidadId = espId||null; if(!espId){resetCascadeFrom(3);return;}
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(4);
+
+            // Buscar estados_flujo de la especialidad seleccionada en el mapa del médico actual
+            var medicoId = eventMedico.val();
+            var especialidadesMedico = medicoId ? (especialidadesPorMedico[medicoId] || []) : [];
+            var espData = especialidadesMedico.find(function(e) { return String(e.id) === String(espId); });
+            if (espData) actualizarEstadosOffcanvas(espData.estados_flujo || []);
+
             comp.call('fetchSubespecialidades', parseInt(espId)).then(function(subs) {
                 if(subs&&subs.length>0){
                     eventSubespecialidad.empty().append('<option value="">Opcional - Seleccionar subespecialidad</option>');
@@ -872,11 +944,14 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 }
             });
             comp.call('fetchMedicos', parseInt(espId), null).then(function(medicos) {
+                especialidadesPorMedico = {};
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                medicos.forEach(function(m){
+                    eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                    especialidadesPorMedico[m.id] = m.especialidades || [];
+                });
                 eventMedico.prop('disabled',false);
                 if (medicos.length === 1) {
-                    // Auto-seleccionar si solo hay un médico
                     eventMedico.val(medicos[0].id).trigger('change');
                 } else {
                     eventMedico.trigger('change.select2');
@@ -890,15 +965,50 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var subId = eventSubespecialidad.val(); selectedSubespecialidadId = subId||null; if(!selectedEspecialidadId) return;
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(5); eventMedico.prop('disabled',true);
             comp.call('fetchMedicos', parseInt(selectedEspecialidadId), subId?parseInt(subId):null).then(function(medicos) {
+                especialidadesPorMedico = {};
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                medicos.forEach(function(m){
+                    eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                    especialidadesPorMedico[m.id] = m.especialidades || [];
+                });
                 eventMedico.prop('disabled',false); eventMedico.trigger('change.select2');
             });
         });
     }
-    // Medico -> load slots if date set
+    // Medico -> auto-seleccionar especialidad si tiene una sola, o mostrar selector si tiene varias
     if (eventMedico.length) {
-        eventMedico.on('change', function() { var medicoId=eventMedico.val(); resetCascadeFrom(5); var currentDate=eventFecha?eventFecha.value:null; if(currentDate&&medicoId) loadSlots(medicoId,currentDate); });
+        eventMedico.on('change', function() {
+            var medicoId = eventMedico.val();
+            resetCascadeFrom(5);
+            if (!medicoId) return;
+
+            var especialidades = especialidadesPorMedico[medicoId] || [];
+
+            if (especialidades.length === 1) {
+                // Auto-seleccionar la única especialidad
+                selectedEspecialidadId = String(especialidades[0].id);
+                eventEspecialidad.val(especialidades[0].id).trigger('change.select2');
+                showEspecialidadField(false);
+                actualizarEstadosOffcanvas(especialidades[0].estados_flujo || []);
+            } else if (especialidades.length > 1) {
+                // Mostrar selector con las especialidades del médico
+                eventEspecialidad.empty().append('<option value="">Seleccionar especialidad</option>');
+                especialidades.forEach(function(e) {
+                    eventEspecialidad.append('<option value="'+e.id+'">'+e.nombre+'</option>');
+                });
+                eventEspecialidad.prop('disabled', false);
+                showEspecialidadField(true);
+                eventEspecialidad.trigger('change.select2');
+                selectedEspecialidadId = null;
+            } else {
+                // Sin especialidades registradas
+                selectedEspecialidadId = null;
+                showEspecialidadField(false);
+            }
+
+            var currentDate = eventFecha ? eventFecha.value : null;
+            if (currentDate) loadSlots(medicoId, currentDate);
+        });
     }
     // Fecha flatpickr
     if (eventFecha) {
@@ -1181,6 +1291,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         if(eventFecha) eventFecha.value=''; if(fechaFlatpickr) fechaFlatpickr.clear();
         if(eventPaciente.length) eventPaciente.val('').trigger('change.select2');
         if(eventEstado.length) eventEstado.val('programada').trigger('change');
+        actualizarEstadosOffcanvas([]);
         if(eventPrioridad) eventPrioridad.value = 'normal';
         updatePriorityMode();
         horarioLaboralMedico = null;
@@ -1299,8 +1410,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                         selectedSubespecialidadId = String(ep.subespecialidad_id);
                     }
                     comp.call('fetchMedicos', parseInt(espIdToUse), subIdForMedicos).then(function(medicos) {
+                        especialidadesPorMedico = {};
                         eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                        medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                        medicos.forEach(function(m){
+                            eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                            especialidadesPorMedico[m.id] = m.especialidades || [];
+                        });
                         eventMedico.prop('disabled',false);
                         if(ep.medico_id){eventMedico.val(ep.medico_id).trigger('change.select2');if(dateOnly) loadSlots(parseInt(ep.medico_id),dateOnly,eventStartDate?eventStartDate.value:null);}
                     });
@@ -2112,8 +2227,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
 
         var ep = event.extendedProps || {};
         var currentState = ep.estado || 'programada';
-        var isConfirmed = confirmedStates.indexOf(currentState) !== -1;
-        var availableStates = isConfirmed ? postConfirmStates : preConfirmStates;
+
+        // Estados dinámicos según la especialidad de la cita
+        var estadosFlujo   = ep.estados_flujo   || Object.keys(preConfirmStates).concat(Object.keys(postConfirmStates));
+        var estadosLabels  = ep.estados_labels  || Object.assign({}, preConfirmStates, postConfirmStates);
+        var estadosColores = ep.estados_colores || citaCalendarColors;
 
         // Configurar el modal
         var selectEl = document.getElementById('estadoSelect');
@@ -2122,15 +2240,15 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         var actualEl = document.getElementById('estadoCitaActual');
 
         if (selectEl && idEl && actualEl) {
-            // Limpiar select
             selectEl.innerHTML = '<option value="">Seleccione un estado...</option>';
 
-            // Llenar opciones
-            Object.keys(availableStates).forEach(function(key) {
+            estadosFlujo.forEach(function(key) {
+                if (!estadosLabels[key]) return;
                 var option = document.createElement('option');
                 option.value = key;
-                option.textContent = availableStates[key];
-                if (key === '---') option.disabled = true;
+                option.textContent = estadosLabels[key];
+                var color = estadosColores[key] || '#78909C';
+                option.setAttribute('data-color', color);
                 if (key === currentState) option.selected = true;
                 selectEl.appendChild(option);
             });
@@ -2141,18 +2259,25 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             }
             if (window.jQuery) {
                 $(selectEl).select2({
-                    dropdownParent: $('#modalCambiarEstado')
+                    dropdownParent: $('#modalCambiarEstado'),
+                    templateResult: function(option) {
+                        if (!option.id) return option.text;
+                        var color = $(option.element).data('color') || '#78909C';
+                        return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + color + ';margin-right:6px;"></span>' + option.text + '</span>');
+                    },
+                    templateSelection: function(option) {
+                        if (!option.id) return option.text;
+                        var color = $(option.element).data('color') || '#78909C';
+                        return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + color + ';margin-right:6px;"></span>' + option.text + '</span>');
+                    },
+                    escapeMarkup: function(m) { return m; }
                 });
             }
 
-            // Setear datos ocultos
             idEl.value = eventId;
             actualEl.value = currentState;
-
-            // Limpiar nota
             if (notaEl) notaEl.value = '';
 
-            // Mostrar modal
             if (modalCambiarEstado) {
                 modalCambiarEstado.show();
             } else {

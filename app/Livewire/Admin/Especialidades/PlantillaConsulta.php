@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Especialidades;
 
 use App\Models\Especialidad;
 use App\Models\EspecialidadPlantilla;
+use App\Models\PlantillaEstadoFormulario;
 use App\Models\PlantillaSeccion;
 use App\Models\PlantillaCampo;
 use App\Traits\HasDynamicLayout;
@@ -30,10 +31,16 @@ class PlantillaConsulta extends Component
     public string $seccionIcono    = 'fa-stethoscope';
     public string $seccionColor    = '#3B82F6';
 
+    // Formularios por estado
+    public string $estadoFormularioActivo = '';  // estado seleccionado para editar su formulario
+    public array  $estadoFormularios      = [];  // [estado => ['id', 'titulo', 'activo', 'secciones']]
+
     // Modal campo
     public bool   $modalCampo      = false;
     public ?int   $campoEditId     = null;
     public ?int   $campoSeccionId  = null;
+    // Indica si el campo pertenece a un formulario de estado (no a la evaluación principal)
+    public ?int   $campoEstadoFormularioId = null;
     public string $campoNombre     = '';
     public string $campoEtiqueta   = '';
     public string $campoTipo       = 'text';
@@ -67,11 +74,163 @@ class PlantillaConsulta extends Component
             $this->estadosFlujo = $this->plantilla->estados_flujo
                 ?? $this->plantilla->getEstadosEfectivos();
             $this->sincronizarSecciones();
+            $this->sincronizarEstadoFormularios();
         } else {
             $this->pasosHabilitados = array_keys(EspecialidadPlantilla::PASOS_DISPONIBLES);
             $this->estadosFlujo     = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
             $this->secciones        = [];
+            $this->estadoFormularios = [];
         }
+    }
+
+    private function sincronizarEstadoFormularios(): void
+    {
+        $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+
+        $this->estadoFormularios = [];
+        foreach ($this->plantilla->todosLosEstadoFormularios as $ef) {
+            $this->estadoFormularios[$ef->estado] = [
+                'id'       => $ef->id,
+                'titulo'   => $ef->titulo,
+                'activo'   => $ef->activo,
+                'secciones'=> $ef->todasLasSecciones->map(fn($s) => [
+                    'id'     => $s->id,
+                    'nombre' => $s->nombre,
+                    'icono'  => $s->icono,
+                    'color'  => $s->color,
+                    'activo' => $s->activo,
+                    'orden'  => $s->orden,
+                    'campos' => $s->todosLosCampos->map(fn($c) => [
+                        'id'             => $c->id,
+                        'nombre_campo'   => $c->nombre_campo,
+                        'etiqueta'       => $c->etiqueta,
+                        'tipo'           => $c->tipo,
+                        'opciones'       => $c->opciones ?? [],
+                        'obligatorio'    => $c->obligatorio,
+                        'unidad'         => $c->unidad,
+                        'placeholder'    => $c->placeholder,
+                        'valor_defecto'  => $c->valor_defecto,
+                        'ancho_columnas' => $c->ancho_columnas,
+                        'min'            => $c->min,
+                        'max'            => $c->max,
+                        'activo'         => $c->activo,
+                        'orden'          => $c->orden,
+                    ])->toArray(),
+                ])->toArray(),
+            ];
+        }
+    }
+
+    // ── Formularios por estado ────────────────────────────────────────────────
+
+    public function seleccionarEstadoFormulario(string $estado): void
+    {
+        $this->estadoFormularioActivo = $this->estadoFormularioActivo === $estado ? '' : $estado;
+    }
+
+    public function crearOAbrirFormularioEstado(string $estado): void
+    {
+        if (!$this->plantilla) $this->crearPlantilla();
+
+        PlantillaEstadoFormulario::firstOrCreate(
+            ['plantilla_id' => $this->plantilla->id, 'estado' => $estado],
+            ['titulo' => EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estado] ?? ucfirst($estado), 'activo' => true]
+        );
+
+        $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+        $this->sincronizarEstadoFormularios();
+        $this->estadoFormularioActivo = $estado;
+    }
+
+    public function toggleEstadoFormulario(string $estado): void
+    {
+        $ef = PlantillaEstadoFormulario::where('plantilla_id', $this->plantilla->id)
+            ->where('estado', $estado)->first();
+        if ($ef) {
+            $ef->update(['activo' => !$ef->activo]);
+            $this->sincronizarEstadoFormularios();
+        }
+    }
+
+    public function abrirModalSeccionEstado(string $estado, ?int $seccionId = null): void
+    {
+        // Asegura que el formulario de estado existe
+        $this->crearOAbrirFormularioEstado($estado);
+        $ef = PlantillaEstadoFormulario::where('plantilla_id', $this->plantilla->id)
+            ->where('estado', $estado)->firstOrFail();
+
+        $this->resetModalSeccion();
+        $this->campoEstadoFormularioId = $ef->id; // reutilizamos para saber el contexto
+
+        if ($seccionId) {
+            $seccion = PlantillaSeccion::findOrFail($seccionId);
+            $this->seccionEditId = $seccionId;
+            $this->seccionNombre = $seccion->nombre;
+            $this->seccionIcono  = $seccion->icono ?? 'fa-stethoscope';
+            $this->seccionColor  = $seccion->color ?? '#3B82F6';
+        }
+
+        $this->modalSeccion = true;
+    }
+
+    public function guardarSeccionEstado(): void
+    {
+        $this->validate([
+            'seccionNombre' => 'required|string|max:100',
+            'seccionColor'  => 'required|string|max:7',
+        ]);
+
+        $efId = $this->campoEstadoFormularioId;
+
+        if ($this->seccionEditId) {
+            PlantillaSeccion::findOrFail($this->seccionEditId)->update([
+                'nombre' => $this->seccionNombre,
+                'icono'  => $this->seccionIcono,
+                'color'  => $this->seccionColor,
+            ]);
+        } else {
+            $orden = PlantillaSeccion::where('estado_formulario_id', $efId)->count() + 1;
+            PlantillaSeccion::create([
+                'plantilla_id'          => $this->plantilla->id,
+                'estado_formulario_id'  => $efId,
+                'nombre'                => $this->seccionNombre,
+                'icono'                 => $this->seccionIcono,
+                'color'                 => $this->seccionColor,
+                'orden'                 => $orden,
+                'activo'                => true,
+            ]);
+        }
+
+        $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+        $this->sincronizarEstadoFormularios();
+        $this->resetModalSeccion();
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Sección guardada.']);
+    }
+
+    public function abrirModalCampoEstado(int $seccionId, ?int $campoId = null): void
+    {
+        $seccion = PlantillaSeccion::findOrFail($seccionId);
+        $this->resetModalCampo();
+        $this->campoSeccionId          = $seccionId;
+        $this->campoEstadoFormularioId = $seccion->estado_formulario_id;
+
+        if ($campoId) {
+            $campo = PlantillaCampo::findOrFail($campoId);
+            $this->campoEditId      = $campoId;
+            $this->campoNombre      = $campo->nombre_campo;
+            $this->campoEtiqueta    = $campo->etiqueta;
+            $this->campoTipo        = $campo->tipo;
+            $this->campoOpciones    = $campo->opciones ? implode("\n", $campo->opciones) : '';
+            $this->campoObligatorio = $campo->obligatorio;
+            $this->campoUnidad      = $campo->unidad ?? '';
+            $this->campoPlaceholder = $campo->placeholder ?? '';
+            $this->campoDefecto     = $campo->valor_defecto ?? '';
+            $this->campoAncho       = $campo->ancho_columnas;
+            $this->campoMin         = $campo->min;
+            $this->campoMax         = $campo->max;
+        }
+
+        $this->modalCampo = true;
     }
 
     private function sincronizarSecciones(): void
@@ -281,12 +440,10 @@ class PlantillaConsulta extends Component
             'campoAncho'    => 'required|integer|min:1|max:12',
         ]);
 
-        // Generar nombre_campo automático desde etiqueta si es nuevo
         $nombreCampo = $this->campoEditId
             ? $this->campoNombre
             : \Illuminate\Support\Str::snake(\Illuminate\Support\Str::ascii($this->campoEtiqueta));
 
-        // Parsear opciones (una por línea)
         $opciones = null;
         if (in_array($this->campoTipo, ['select', 'radio', 'checkbox']) && !empty($this->campoOpciones)) {
             $opciones = array_values(array_filter(
@@ -320,8 +477,15 @@ class PlantillaConsulta extends Component
             $msg = 'Campo agregado.';
         }
 
-        $this->plantilla->load('todasLasSecciones.todosLosCampos');
-        $this->sincronizarSecciones();
+        // Recargar según contexto (evaluación principal o formulario de estado)
+        if ($this->campoEstadoFormularioId) {
+            $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+            $this->sincronizarEstadoFormularios();
+        } else {
+            $this->plantilla->load('todasLasSecciones.todosLosCampos');
+            $this->sincronizarSecciones();
+        }
+
         $this->resetModalCampo();
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
     }
@@ -374,20 +538,21 @@ class PlantillaConsulta extends Component
 
     private function resetModalCampo(): void
     {
-        $this->modalCampo       = false;
-        $this->campoEditId      = null;
-        $this->campoSeccionId   = null;
-        $this->campoNombre      = '';
-        $this->campoEtiqueta    = '';
-        $this->campoTipo        = 'text';
-        $this->campoOpciones    = '';
-        $this->campoObligatorio = false;
-        $this->campoUnidad      = '';
-        $this->campoPlaceholder = '';
-        $this->campoDefecto     = '';
-        $this->campoAncho       = 6;
-        $this->campoMin         = null;
-        $this->campoMax         = null;
+        $this->modalCampo              = false;
+        $this->campoEditId             = null;
+        $this->campoSeccionId          = null;
+        $this->campoEstadoFormularioId = null;
+        $this->campoNombre             = '';
+        $this->campoEtiqueta           = '';
+        $this->campoTipo               = 'text';
+        $this->campoOpciones           = '';
+        $this->campoObligatorio        = false;
+        $this->campoUnidad             = '';
+        $this->campoPlaceholder        = '';
+        $this->campoDefecto            = '';
+        $this->campoAncho              = 6;
+        $this->campoMin                = null;
+        $this->campoMax                = null;
     }
 
     protected function getPageTitle(): string { return 'Plantilla: ' . $this->especialidad->nombre; }

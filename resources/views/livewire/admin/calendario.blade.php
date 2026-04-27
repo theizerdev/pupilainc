@@ -373,11 +373,10 @@
                             <!-- Estado -->
                             <div class="form-floating form-floating-outline mb-5" id="estadoContainer">
                                 <select class="select2 form-select" id="eventEstado" name="eventEstado">
-                                    @foreach($estadoLabels as $value => $label)
-                                        <option value="{{ $value }}" data-color="{{ $estadoColores[$value] }}" {{ $value === 'programada' ? 'selected' : '' }}>
-                                            {{ $label }}
-                                        </option>
-                                    @endforeach
+                                    <option value="programada" data-color="#ffc107" selected>Programada</option>
+                                    <option value="confirmada" data-color="#0d6efd">Confirmada</option>
+                                    <option value="cancelada" data-color="#dc3545">Cancelada</option>
+                                    <option value="no_asistio" data-color="#6c757d">No Asistió</option>
                                 </select>
                                 <label for="eventEstado">Estado</label>
                             </div>

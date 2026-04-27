@@ -46,13 +46,6 @@ if (!function_exists('getPermissionSectors')) {
                 'icon' => 'ri-whatsapp-line',
                 'modules' => ['whatsapp', 'whatsapp templates', 'whatsapp messages', 'chat interno']
             ],
-             'medico' => [
-                'name' => '🏥 Médico',
-                'description' => 'Gestión de pacientes, médicos, citas y especialidades',
-                'color' => 'blue',
-                'icon' => 'ri-heart-pulse-line',
-                'modules' => ['tipo-consultas', 'pacientes', 'medicos', 'citas', 'especialidades', 'subespecialidades']
-            ],
             'sistema' => [
                 'name' => '🔧 Sistema',
                 'description' => 'Configuraciones del sistema y API',
@@ -243,17 +236,18 @@ if (!function_exists('getSectorMenuItems')) {
                         'icon' => 'ri-stethoscope-line',
                         'permission' => 'access consultas',
                         'active' => 'admin.gestion.consultas.*',
-                        'children' => [
-                            ['label' => 'Calendario', 'route' => 'admin.gestion.consultas.index', 'active' => 'admin.gestion.consultas.index', 'permission' => 'access consultas calendario'],
-                            ['label' => 'Sala de Espera', 'route' => 'admin.gestion.consultas.sala-espera', 'active' => 'admin.gestion.consultas.sala-espera', 'permission' => 'access consultas en espera'],
-                            ['label' => 'En Enfermería', 'route' => 'admin.gestion.consultas.en-enfermeria', 'active' => 'admin.gestion.consultas.en-enfermeria', 'permission' => 'access consultas en enfermeria'],
-                            ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio', 'permission' => 'access consultas en consultorio'],
-                            ['label' => 'En Gotas', 'route' => 'admin.gestion.consultas.en-gotas', 'active' => 'admin.gestion.consultas.en-gotas', 'permission' => 'access consultas en gotas'],
-                            ['label' => 'Dilatado', 'route' => 'admin.gestion.consultas.dilatado', 'active' => 'admin.gestion.consultas.dilatado', 'permission' => 'access consultas en gotas'],
-                            ['label' => 'En Óptica', 'route' => 'admin.gestion.consultas.en-optica', 'active' => 'admin.gestion.consultas.en-optica', 'permission' => 'access consultas en optica'],
-                            ['label' => 'En Estudio', 'route' => 'admin.gestion.consultas.en-estudio', 'active' => 'admin.gestion.consultas.en-estudio', 'permission' => 'access consultas en estudio'],
-                            ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas', 'permission' => 'access consultas finalizadas'],
-                        ]
+                        'children' => array_merge(
+                            [
+                                ['label' => 'Sala de Espera',  'route' => 'admin.gestion.consultas.sala-espera',   'active' => 'admin.gestion.consultas.sala-espera'],
+                                ['label' => 'En Enfermería',  'route' => 'admin.gestion.consultas.en-enfermeria',  'active' => 'admin.gestion.consultas.en-enfermeria'],
+                                ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio'],
+                            ],
+                            getEstadosConsultaMenuItems(),
+                            [
+                                ['label' => 'En Estudio',  'route' => 'admin.gestion.consultas.en-estudio',  'active' => 'admin.gestion.consultas.en-estudio'],
+                                ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas'],
+                            ]
+                        )
                     ],
                     [
                         'label' => 'Tipos de Atención',
@@ -498,5 +492,61 @@ if (!function_exists('isSectorActive')) {
             }
         }
         return false;
+    }
+}
+
+if (!function_exists('getEstadosConsultaMenuItems')) {
+    /**
+     * Devuelve los ítems de menú para los estados del flujo que son exclusivos
+     * de especialidades (no los estados base comunes a todas).
+     * Se basa en los estados_flujo configurados en las plantillas activas.
+     */
+    function getEstadosConsultaMenuItems(): array
+    {
+        // Estados base que ya tienen ruta fija en el menú
+        $estadosBase = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_estudio', 'finalizada', 'pagada', 'por_llegar', 'borrador'];
+
+        // Rutas fijas existentes para algunos estados especiales
+        $rutasFijas = [
+            'en_gotas'  => 'admin.gestion.consultas.en-gotas',
+            'dilatado'  => 'admin.gestion.consultas.dilatado',
+            'en_optica' => 'admin.gestion.consultas.en-optica',
+        ];
+
+        try {
+            $estadosExtra = \App\Models\EspecialidadPlantilla::where('activo', true)
+                ->pluck('estados_flujo')
+                ->filter()
+                ->flatMap(fn($flujo) => $flujo)
+                ->unique()
+                ->diff($estadosBase)
+                ->values();
+
+            $items = [];
+            foreach ($estadosExtra as $estado) {
+                $label = \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estado]
+                      ?? \App\Models\Consulta::ESTADO_LABELS[$estado]
+                      ?? ucfirst(str_replace('_', ' ', $estado));
+
+                if (isset($rutasFijas[$estado])) {
+                    $items[] = [
+                        'label'  => $label,
+                        'route'  => $rutasFijas[$estado],
+                        'active' => $rutasFijas[$estado],
+                    ];
+                } else {
+                    $items[] = [
+                        'label'  => $label,
+                        'route'  => 'admin.gestion.consultas.por-estado',
+                        'params' => ['estado' => $estado],
+                        'active' => 'admin.gestion.consultas.por-estado',
+                    ];
+                }
+            }
+
+            return $items;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 }

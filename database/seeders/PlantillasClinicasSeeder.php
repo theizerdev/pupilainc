@@ -29,6 +29,9 @@ class PlantillasClinicasSeeder extends Seeder
             PlantillaMastologiaSeeder::class,
         ]);
 
+        $this->command->info('── Creando formularios por estado ──');
+        $this->call(EstadoFormulariosSeeder::class);
+
         $this->command->info('✓ Todas las plantillas clínicas creadas exitosamente.');
     }
 }

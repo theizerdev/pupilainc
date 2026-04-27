@@ -82,7 +82,284 @@
             </div>
         </div>
 
-        {{-- ── STEPPER DINÁMICO ─────────────────────────────────────────────── --}}
+        {{-- ── FORMULARIO DEL ESTADO ACTUAL ─────────────────────────────────── --}}
+        @if($formularioEstadoActual && count($formularioEstadoActual['secciones']) > 0 && !in_array($consulta->estado, ['en_consultorio', 'en_consultorio_optometrista']))
+        <div class="card border-0 shadow-sm mb-4 border-start border-4"
+             style="border-color: {{ \App\Models\Consulta::ESTADO_COLORES[$consulta->estado] ?? '#3B82F6' }} !important">
+            <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between">
+                <h6 class="mb-0">
+                    <span class="badge me-2" style="background-color: {{ \App\Models\Consulta::ESTADO_COLORES[$consulta->estado] ?? '#3B82F6' }}">
+                        {{ $consulta->estado_label }}
+                    </span>
+                    Formulario del Estado Actual
+                </h6>
+                <button class="btn btn-sm btn-primary" wire:click="guardarDatosEstado">
+                    <i class="ri ri-save-line me-1"></i>Guardar
+                </button>
+            </div>
+            <div class="card-body">
+                @foreach($formularioEstadoActual['secciones'] as $seccion)
+                <div class="mb-4">
+                    <div class="seccion-header" style="--seccion-color: {{ $seccion['color'] ?? '#3B82F6' }}">
+                        <h6 class="mb-0">
+                            @if($seccion['icono'])
+                                <i class="fas {{ $seccion['icono'] }} me-2" style="color:{{ $seccion['color'] ?? '#3B82F6' }}"></i>
+                            @endif
+                            {{ $seccion['nombre'] }}
+                        </h6>
+                    </div>
+                    <div class="row g-3">
+                        @foreach($seccion['campos'] as $campo)
+                        <div class="col-md-{{ $campo['ancho_columnas'] }}" wire:key="est-campo-{{ $campo['id'] }}">
+                            @php $fieldName = "datos_estado_actual.{$campo['nombre_campo']}"; @endphp
+
+                            @if($campo['tipo'] === 'text')
+                            <div class="form-floating form-floating-outline">
+                                <input type="text" class="form-control" id="ec_{{ $campo['id'] }}"
+                                    wire:model.blur="{{ $fieldName }}"
+                                    placeholder="{{ $campo['placeholder'] ?? $campo['etiqueta'] }}">
+                                <label for="ec_{{ $campo['id'] }}">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['unidad']) <small class="text-muted">({{ $campo['unidad'] }})</small> @endif
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                            </div>
+
+                            @elseif($campo['tipo'] === 'number')
+                            <div class="form-floating form-floating-outline">
+                                <input type="number" class="form-control" id="ec_{{ $campo['id'] }}"
+                                    wire:model.blur="{{ $fieldName }}"
+                                    @if($campo['min'] !== null) min="{{ $campo['min'] }}" @endif
+                                    @if($campo['max'] !== null) max="{{ $campo['max'] }}" @endif>
+                                <label for="ec_{{ $campo['id'] }}">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['unidad']) <small class="text-muted">({{ $campo['unidad'] }})</small> @endif
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                            </div>
+
+                            @elseif($campo['tipo'] === 'textarea')
+                            <div class="form-floating form-floating-outline">
+                                <textarea class="form-control" id="ec_{{ $campo['id'] }}"
+                                    wire:model.blur="{{ $fieldName }}"
+                                    style="height:100px"
+                                    placeholder="{{ $campo['placeholder'] ?? '' }}"></textarea>
+                                <label for="ec_{{ $campo['id'] }}">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                            </div>
+
+                            @elseif($campo['tipo'] === 'select')
+                            <div class="form-floating form-floating-outline">
+                                <select class="form-select" id="ec_{{ $campo['id'] }}"
+                                    wire:model="{{ $fieldName }}">
+                                    <option value="">— Seleccionar —</option>
+                                    @foreach($campo['opciones'] as $op)
+                                        <option value="{{ $op }}">{{ $op }}</option>
+                                    @endforeach
+                                </select>
+                                <label for="ec_{{ $campo['id'] }}">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                            </div>
+
+                            @elseif($campo['tipo'] === 'radio')
+                            <div>
+                                <label class="form-label small fw-semibold">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                                @foreach($campo['opciones'] as $op)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                        name="ec_radio_{{ $campo['id'] }}"
+                                        value="{{ $op }}"
+                                        wire:model="{{ $fieldName }}">
+                                    <label class="form-check-label">{{ $op }}</label>
+                                </div>
+                                @endforeach
+                            </div>
+
+                            @elseif($campo['tipo'] === 'checkbox')
+                            <div>
+                                <label class="form-label small fw-semibold">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                                @foreach($campo['opciones'] as $op)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                        value="{{ $op }}"
+                                        wire:model="{{ $fieldName }}">
+                                    <label class="form-check-label">{{ $op }}</label>
+                                </div>
+                                @endforeach
+                            </div>
+
+                            @elseif($campo['tipo'] === 'range')
+                            <div>
+                                <label class="form-label small fw-semibold">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                    <span class="badge bg-label-primary ms-2">
+                                        {{ $datos_estado_actual[$campo['nombre_campo']] ?? ($campo['min'] ?? 0) }}
+                                    </span>
+                                </label>
+                                <input type="range" class="form-range"
+                                    min="{{ $campo['min'] ?? 0 }}"
+                                    max="{{ $campo['max'] ?? 10 }}"
+                                    wire:model="{{ $fieldName }}">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">{{ $campo['min'] ?? 0 }}</small>
+                                    <small class="text-muted">{{ $campo['max'] ?? 10 }}</small>
+                                </div>
+                            </div>
+
+                            @elseif($campo['tipo'] === 'date')
+                            <div class="form-floating form-floating-outline">
+                                <input type="date" class="form-control" id="ec_{{ $campo['id'] }}"
+                                    wire:model="{{ $fieldName }}">
+                                <label for="ec_{{ $campo['id'] }}">
+                                    {{ $campo['etiqueta'] }}
+                                    @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                </label>
+                            </div>
+                            @endif
+
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @else
+        <div class="alert alert-info mb-4">
+            <i class="ri ri-information-line me-2"></i>
+            No hay formulario específico configurado para el estado <strong>{{ $consulta->estado_label }}</strong>.
+            Puede continuar con el proceso de consulta usando los pasos disponibles.
+        </div>
+        @endif
+
+        {{-- ── HISTORIAL DE GOTAS APLICADAS ──────────────────────────────────── --}}
+        @if($consulta->gotasAplicadas->count() > 0)
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="mb-0">
+                    <i class="ri ri-drop-line me-2 text-info"></i>Historial de Gotas Aplicadas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tipo de Gota</th>
+                                <th class="text-center">OD</th>
+                                <th class="text-center">OI</th>
+                                <th>Hora Aplicación</th>
+                                <th>Tiempo Espera</th>
+                                <th>Aplicado por</th>
+                                <th>Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($consulta->gotasAplicadas as $gota)
+                            <tr>
+                                <td><span class="badge bg-label-info">{{ $gota->tipo_gota }}</span></td>
+                                <td class="text-center"><strong>{{ $gota->gotas_od }}</strong></td>
+                                <td class="text-center"><strong>{{ $gota->gotas_oi }}</strong></td>
+                                <td><small>{{ $gota->hora_aplicacion }}</small></td>
+                                <td><small>{{ $gota->tiempo_espera }} min</small></td>
+                                <td><small>{{ $gota->aplicadoPor?->name ?? '-' }}</small></td>
+                                <td><small class="text-muted">{{ $gota->observaciones ?? '-' }}</small></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ── HISTORIAL DE ESTADOS ANTERIORES ────────────────────────────────── --}}
+        @php
+            $estadosAnteriores = $consulta->estadoDatos()->orderBy('created_at', 'desc')->get();
+        @endphp
+        @if($estadosAnteriores->count() > 0)
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0">
+                <h6 class="mb-0">
+                    <i class="ri ri-history-line me-2 text-info"></i>Historial de Estados
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="accordionEstados">
+                    @foreach($estadosAnteriores as $index => $estadoDato)
+                    @php
+                        $estadoLabel = \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estadoDato->estado] 
+                                    ?? \App\Models\Consulta::ESTADO_LABELS[$estadoDato->estado] 
+                                    ?? ucfirst($estadoDato->estado);
+                        $estadoColor = \App\Models\Consulta::ESTADO_COLORES[$estadoDato->estado] ?? '#78909C';
+                        $tituloFormulario = null;
+                        if($consulta->especialidad_id) {
+                            $plantilla = \App\Models\EspecialidadPlantilla::where('especialidad_id', $consulta->especialidad_id)
+                                ->where('activo', true)->latest()->first();
+                            if($plantilla) {
+                                $ef = \App\Models\PlantillaEstadoFormulario::where('plantilla_id', $plantilla->id)
+                                    ->where('estado', $estadoDato->estado)->first();
+                                $tituloFormulario = $ef?->titulo;
+                            }
+                        }
+                    @endphp
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ $index }}">
+                            <button class="accordion-button {{ $index > 0 ? 'collapsed' : '' }}" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#collapse{{ $index }}" 
+                                    aria-expanded="{{ $index === 0 ? 'true' : 'false' }}">
+                                <span class="badge me-2" style="background-color:{{ $estadoColor }}">{{ $estadoLabel }}</span>
+                                {{ $tituloFormulario ?? 'Datos del Estado' }}
+                                <small class="text-muted ms-2">{{ $estadoDato->created_at->format('d/m/Y H:i') }}</small>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ $index }}" class="accordion-collapse collapse {{ $index === 0 ? 'show' : '' }}" 
+                             data-bs-parent="#accordionEstados">
+                            <div class="accordion-body">
+                                @if(!empty($estadoDato->datos))
+                                    <div class="row g-3">
+                                        @foreach($estadoDato->datos as $campo => $valor)
+                                            @if(!empty($valor))
+                                            <div class="col-md-6">
+                                                <div class="border-start border-3 border-primary ps-3">
+                                                    <small class="text-muted d-block">{{ ucfirst(str_replace('_', ' ', $campo)) }}</small>
+                                                    <strong>
+                                                        @if(is_array($valor))
+                                                            {{ implode(', ', $valor) }}
+                                                        @else
+                                                            {{ $valor }}
+                                                        @endif
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-muted mb-0">No hay datos registrados</p>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ── STEPPER DINÁMICO (solo en consultorio) ─────────────────────────── --}}
+        @if(in_array($consulta->estado, ['en_consultorio', 'en_consultorio_optometrista']))
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-4">
                 <div class="progress mb-4" style="height:8px;">
@@ -94,18 +371,18 @@
                 <div class="row g-3">
                     @php
                         $pasoLabels = [
-                            'signos_vitales' => ['label' => 'Signos Vitales',  'hint' => 'Enfermería',   'icon' => 'ri-heart-pulse-line'],
-                            'cuestionario'   => ['label' => 'Cuestionario',    'hint' => 'Preconsulta',  'icon' => 'ri-questionnaire-line'],
-                            'evaluacion'     => ['label' => 'Evaluación',      'hint' => 'Diagnóstico',  'icon' => 'ri-file-text-line'],
-                            'estudios'       => ['label' => 'Estudios',        'hint' => 'Lab/Imágenes', 'icon' => 'ri-test-tube-line'],
-                            'tratamientos'   => ['label' => 'Tratamiento',     'hint' => 'Medicamentos', 'icon' => 'ri-capsule-line'],
-                            'reposo'         => ['label' => 'Reposo',          'hint' => 'Médico',       'icon' => 'ri-hotel-bed-line'],
+                            'signos_vitales' => ['label' => 'Signos Vitales',  'hint' => 'Enfermería',   'icon' => 'ri ri-heart-pulse-line'],
+                            'cuestionario'   => ['label' => 'Cuestionario',    'hint' => 'Preconsulta',  'icon' => 'ri ri-questionnaire-line'],
+                            'evaluacion'     => ['label' => 'Evaluación',      'hint' => 'Diagnóstico',  'icon' => 'ri ri-file-text-line'],
+                            'estudios'       => ['label' => 'Estudios',        'hint' => 'Lab/Imágenes', 'icon' => 'ri ri-test-tube-line'],
+                            'tratamientos'   => ['label' => 'Tratamiento',     'hint' => 'Medicamentos', 'icon' => 'ri ri-capsule-line'],
+                            'reposo'         => ['label' => 'Reposo',          'hint' => 'Médico',       'icon' => 'ri ri-hotel-bed-line'],
                         ];
                         $colSize = max(2, intval(12 / count($pasosHabilitados)));
                     @endphp
 
                     @foreach($pasosHabilitados as $i => $key)
-                        @php $meta = $pasoLabels[$key] ?? ['label' => ucfirst($key), 'hint' => '', 'icon' => 'ri-circle-line']; @endphp
+                        @php $meta = $pasoLabels[$key] ?? ['label' => ucfirst($key), 'hint' => '', 'icon' => 'ri ri-circle-line']; @endphp
                         <div class="col-6 col-md-{{ $colSize }}">
                             <div class="d-flex align-items-start gap-2">
                                 <div class="proceso-step {{ $pasoActual === $i ? 'is-current' : ($pasoActual > $i ? 'is-done' : '') }}"
@@ -128,8 +405,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
-        {{-- ── CONTENIDO POR PASO ───────────────────────────────────────────── --}}
+        {{-- ── CONTENIDO POR PASO (solo en consultorio) ───────────────────────────────────────────── --}}
+        @if(in_array($consulta->estado, ['en_consultorio', 'en_consultorio_optometrista']))
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
 
@@ -314,10 +593,16 @@
                                     @endforeach
 
                                 @elseif($pregunta['tipo'] === 'multiple' && $pregunta['opciones'])
+                                    @php
+                                        $respuestaExistente = $respuestasPreconsulta->where('pregunta_id', $pregunta['id'])->first();
+                                        $seleccionadas = $respuestaExistente?->respuesta_multiple ?? [];
+                                    @endphp
                                     @foreach($pregunta['opciones'] as $op)
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox"
-                                            wire:click="guardarRespuestaCuestionario({{ $pregunta['id'] }}, '{{ $op }}')">
+                                            value="{{ $op }}"
+                                            {{ in_array($op, $seleccionadas) ? 'checked' : '' }}
+                                            wire:click="toggleRespuestaMultiple({{ $pregunta['id'] }}, '{{ $op }}')">
                                         <label class="form-check-label">{{ $op }}</label>
                                     </div>
                                     @endforeach
@@ -344,13 +629,132 @@
                         <h5 class="mb-0"><i class="ri ri-file-text-line me-2 text-primary"></i>Evaluación Clínica</h5>
                         <div class="d-flex gap-2">
                             <span class="badge bg-label-success"><i class="ri ri-save-line me-1"></i>Autoguardado</span>
-                            <button class="btn btn-sm btn-primary" wire:click="guardarEvaluacion">
+                            <button class="btn btn-sm btn-primary" wire:click="guardarDatosEstado">
                                 <i class="ri ri-save-line me-1"></i>Guardar
                             </button>
                         </div>
                     </div>
 
-                    @if(count($secciones) > 0)
+                    @if($formularioEstadoActual && count($formularioEstadoActual['secciones']) > 0)
+                        {{-- Formulario del estado en_consultorio --}}
+                        @foreach($formularioEstadoActual['secciones'] as $seccion)
+                        <div class="mb-4">
+                            <div class="seccion-header" style="--seccion-color: {{ $seccion['color'] ?? '#3B82F6' }}">
+                                <h6 class="mb-0">
+                                    @if($seccion['icono'])
+                                        <i class="fas {{ $seccion['icono'] }} me-2" style="color:{{ $seccion['color'] ?? '#3B82F6' }}"></i>
+                                    @endif
+                                    {{ $seccion['nombre'] }}
+                                </h6>
+                            </div>
+                            <div class="row g-3">
+                                @foreach($seccion['campos'] as $campo)
+                                <div class="col-md-{{ $campo['ancho_columnas'] }}" wire:key="est-campo-{{ $campo['id'] }}">
+                                    @php $fieldName = "datos_estado_actual.{$campo['nombre_campo']}"; @endphp
+
+                                    @if($campo['tipo'] === 'text')
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="text" class="form-control" id="ec_{{ $campo['id'] }}"
+                                            wire:model.blur="{{ $fieldName }}"
+                                            placeholder="{{ $campo['placeholder'] ?? $campo['etiqueta'] }}">
+                                        <label for="ec_{{ $campo['id'] }}">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['unidad']) <small class="text-muted">({{ $campo['unidad'] }})</small> @endif
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                    </div>
+
+                                    @elseif($campo['tipo'] === 'number')
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="number" class="form-control" id="ec_{{ $campo['id'] }}"
+                                            wire:model.blur="{{ $fieldName }}"
+                                            @if($campo['min'] !== null) min="{{ $campo['min'] }}" @endif
+                                            @if($campo['max'] !== null) max="{{ $campo['max'] }}" @endif>
+                                        <label for="ec_{{ $campo['id'] }}">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['unidad']) <small class="text-muted">({{ $campo['unidad'] }})</small> @endif
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                    </div>
+
+                                    @elseif($campo['tipo'] === 'textarea')
+                                    <div class="form-floating form-floating-outline">
+                                        <textarea class="form-control" id="ec_{{ $campo['id'] }}"
+                                            wire:model.blur="{{ $fieldName }}"
+                                            style="height:100px"
+                                            placeholder="{{ $campo['placeholder'] ?? '' }}"></textarea>
+                                        <label for="ec_{{ $campo['id'] }}">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                    </div>
+
+                                    @elseif($campo['tipo'] === 'select')
+                                    <div class="form-floating form-floating-outline">
+                                        <select class="form-select" id="ec_{{ $campo['id'] }}"
+                                            wire:model="{{ $fieldName }}">
+                                            <option value="">— Seleccionar —</option>
+                                            @foreach($campo['opciones'] as $op)
+                                                <option value="{{ $op }}">{{ $op }}</option>
+                                            @endforeach
+                                        </select>
+                                        <label for="ec_{{ $campo['id'] }}">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                    </div>
+
+                                    @elseif($campo['tipo'] === 'radio')
+                                    <div>
+                                        <label class="form-label small fw-semibold">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                        @foreach($campo['opciones'] as $op)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio"
+                                                name="ec_radio_{{ $campo['id'] }}"
+                                                value="{{ $op }}"
+                                                wire:model="{{ $fieldName }}">
+                                            <label class="form-check-label">{{ $op }}</label>
+                                        </div>
+                                        @endforeach
+                                    </div>
+
+                                    @elseif($campo['tipo'] === 'checkbox')
+                                    <div>
+                                        <label class="form-label small fw-semibold">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                        @foreach($campo['opciones'] as $op)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                value="{{ $op }}"
+                                                wire:model="{{ $fieldName }}">
+                                            <label class="form-check-label">{{ $op }}</label>
+                                        </div>
+                                        @endforeach
+                                    </div>
+
+                                    @elseif($campo['tipo'] === 'date')
+                                    <div class="form-floating form-floating-outline">
+                                        <input type="date" class="form-control" id="ec_{{ $campo['id'] }}"
+                                            wire:model="{{ $fieldName }}">
+                                        <label for="ec_{{ $campo['id'] }}">
+                                            {{ $campo['etiqueta'] }}
+                                            @if($campo['obligatorio']) <span class="text-danger">*</span> @endif
+                                        </label>
+                                    </div>
+                                    @endif
+
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
+
+                    @elseif(count($secciones) > 0)
                         {{-- Secciones dinámicas de la plantilla --}}
                         @foreach($secciones as $seccion)
                         <div class="mb-4">
@@ -817,6 +1221,7 @@
                 </div>
             </div>
         </div>{{-- /card --}}
+        @endif
     </div>{{-- /proceso-shell --}}
 
     @push('scripts')
