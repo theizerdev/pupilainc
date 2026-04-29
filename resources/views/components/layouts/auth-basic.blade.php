@@ -1,13 +1,14 @@
 @props(['title' => 'Auth'])
 
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-  class="layout-wide customizer-hide"
-  dir="ltr"
-  data-skin="default"
-  data-bs-theme="light"
-  data-assets-path="/materialize/assets/"
-  data-template="vertical-menu-template">
+<html
+  lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+  class="layout-menu-fixed layout-navbar-fixed {{ isset($templateSettings) ? ($templateSettings->content_layout === 'wide' ? 'layout-wide' : 'layout-compact') : 'layout-compact' }}{{ isset($templateSettings) && $templateSettings->footer_fixed ? ' layout-footer-fixed' : '' }}"
+  dir="{{ isset($templateSettings) ? $templateSettings->text_direction : 'ltr' }}"
+  data-skin="{{ isset($templateSettings) ? ($templateSettings->skin == 1 ? 'bordered' : 'default') : 'default' }}"
+  data-bs-theme="{{ isset($templateSettings) ? $templateSettings->theme : 'light' }}"
+  data-assets-path="{{ asset('materialize/assets/') }}/"
+  data-template="horizontal-menu-template">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,7 +16,8 @@
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}">
     <meta name="keywords" content="admin dashboard, admin template, administration, analytics, bootstrap, bootstrap 5, bootstrap admin template, charts, crm, laravel, laravel admin panel, laravel template, performance, php, responsive, saas, sass">
     <meta name="author" content="ThemeSelection">
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content="noindex, nofollow" /> 
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/logo/1719430882.png" />
@@ -63,7 +65,7 @@
 
     <!--? Config: Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file. -->
 
-    <script src="/materialize/assets/js/config.js"></script>
+   
   </head>
 
   <body>

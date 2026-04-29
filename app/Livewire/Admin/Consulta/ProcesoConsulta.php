@@ -657,7 +657,7 @@ class ProcesoConsulta extends Component
     {
         $this->consulta->cambiarEstado(Consulta::ESTADO_FINALIZADA);
         session()->flash('success', 'Consulta finalizada exitosamente');
-        return redirect()->to('/admin/gestion/consultas/finalizadas');
+        return redirect()->to('/admin/gestion/consultas/en-consultorio');
     }
 
     // ── Render ────────────────────────────────────────────────────────────────

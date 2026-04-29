@@ -382,6 +382,68 @@
 
             <!-- Panel Derecho - Resumen y Empresa/Sucursal -->
             <div class="col-md-4">
+                <!-- Firma y Sello Digital -->
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-signature me-2"></i>Firma y Sello Digital</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="fw-bold"><i class="fas fa-pen-nib me-1"></i>Firma Digital</label>
+                            <input type="file" class="form-control form-control-sm @error('nueva_firma') is-invalid @enderror"
+                                   wire:model="nueva_firma" accept="image/*">
+                            <small class="text-muted">PNG con fondo transparente recomendado. Máx 2MB.</small>
+                            @error('nueva_firma')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold"><i class="fas fa-stamp me-1"></i>Sello Digital</label>
+                            <input type="file" class="form-control form-control-sm @error('nuevo_sello') is-invalid @enderror"
+                                   wire:model="nuevo_sello" accept="image/*">
+                            <small class="text-muted">PNG con fondo transparente recomendado. Máx 2MB.</small>
+                            @error('nuevo_sello')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                        </div>
+                        <hr>
+                        <label class="fw-bold"><i class="fas fa-sliders-h me-1"></i>Configuración en Informes</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="mostrar_firma" wire:model="config_firma.mostrar_firma">
+                            <label class="form-check-label" for="mostrar_firma">Mostrar firma</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar_sello" wire:model="config_firma.mostrar_sello">
+                            <label class="form-check-label" for="mostrar_sello">Mostrar sello</label>
+                        </div>
+                        <div class="mt-3">
+                            <label class="small fw-bold">Posición</label>
+                            <select class="form-select form-select-sm" wire:model="config_firma.posicion">
+                                <option value="izquierda">Izquierda</option>
+                                <option value="centro">Centro</option>
+                                <option value="derecha">Derecha</option>
+                            </select>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <label class="small fw-bold">Ancho firma (mm)</label>
+                                <input type="number" class="form-control form-control-sm" wire:model="config_firma.ancho_firma" min="20" max="100">
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold">Ancho sello (mm)</label>
+                                <input type="number" class="form-control form-control-sm" wire:model="config_firma.ancho_sello" min="15" max="80">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <label class="small fw-bold">Mostrar en:</label>
+                            @foreach(['informe' => 'Informe Médico', 'recipe' => 'Recipe Médico', 'orden_estudios' => 'Orden de Estudios'] as $key => $label)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="mostrar_en_{{ $key }}"
+                                           value="{{ $key }}"
+                                           wire:model="config_firma.mostrar_en">
+                                    <label class="form-check-label small" for="mostrar_en_{{ $key }}">{{ $label }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
                 <!-- Empresa y Sucursal -->
                 @if(auth()->user()->hasRole('Super Administrador'))
                     <div class="card mb-4">

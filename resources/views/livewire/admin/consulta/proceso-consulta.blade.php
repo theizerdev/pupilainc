@@ -46,7 +46,7 @@
                     <i class="ri ri-stethoscope-line me-2 text-primary"></i>Proceso de Consulta
                 </h4>
                 <div class="text-muted small">
-                    <strong>Paciente:</strong> {{ $consulta->paciente->nombre_completo }} |
+                    <strong>Paciente:</strong> {{ $consulta->paciente->nombre_completo }} Edad: {{ $consulta->paciente->edad_formateada ?? 'N/A' }} |
                     <strong>Médico:</strong> Dr(a). {{ $consulta->medico->nombre_completo }}
                     @if($consulta->especialidad)
                         | <strong>Especialidad:</strong> {{ $consulta->especialidad->nombre }}
@@ -236,11 +236,7 @@
             </div>
         </div>
         @else
-        <div class="alert alert-info mb-4">
-            <i class="ri ri-information-line me-2"></i>
-            No hay formulario específico configurado para el estado <strong>{{ $consulta->estado_label }}</strong>.
-            Puede continuar con el proceso de consulta usando los pasos disponibles.
-        </div>
+        
         @endif
 
         {{-- ── HISTORIAL DE GOTAS APLICADAS ──────────────────────────────────── --}}
@@ -284,79 +280,6 @@
         </div>
         @endif
 
-        {{-- ── HISTORIAL DE ESTADOS ANTERIORES ────────────────────────────────── --}}
-        @php
-            $estadosAnteriores = $consulta->estadoDatos()->orderBy('created_at', 'desc')->get();
-        @endphp
-        @if($estadosAnteriores->count() > 0)
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0">
-                <h6 class="mb-0">
-                    <i class="ri ri-history-line me-2 text-info"></i>Historial de Estados
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="accordion" id="accordionEstados">
-                    @foreach($estadosAnteriores as $index => $estadoDato)
-                    @php
-                        $estadoLabel = \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estadoDato->estado] 
-                                    ?? \App\Models\Consulta::ESTADO_LABELS[$estadoDato->estado] 
-                                    ?? ucfirst($estadoDato->estado);
-                        $estadoColor = \App\Models\Consulta::ESTADO_COLORES[$estadoDato->estado] ?? '#78909C';
-                        $tituloFormulario = null;
-                        if($consulta->especialidad_id) {
-                            $plantilla = \App\Models\EspecialidadPlantilla::where('especialidad_id', $consulta->especialidad_id)
-                                ->where('activo', true)->latest()->first();
-                            if($plantilla) {
-                                $ef = \App\Models\PlantillaEstadoFormulario::where('plantilla_id', $plantilla->id)
-                                    ->where('estado', $estadoDato->estado)->first();
-                                $tituloFormulario = $ef?->titulo;
-                            }
-                        }
-                    @endphp
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="heading{{ $index }}">
-                            <button class="accordion-button {{ $index > 0 ? 'collapsed' : '' }}" type="button" 
-                                    data-bs-toggle="collapse" data-bs-target="#collapse{{ $index }}" 
-                                    aria-expanded="{{ $index === 0 ? 'true' : 'false' }}">
-                                <span class="badge me-2" style="background-color:{{ $estadoColor }}">{{ $estadoLabel }}</span>
-                                {{ $tituloFormulario ?? 'Datos del Estado' }}
-                                <small class="text-muted ms-2">{{ $estadoDato->created_at->format('d/m/Y H:i') }}</small>
-                            </button>
-                        </h2>
-                        <div id="collapse{{ $index }}" class="accordion-collapse collapse {{ $index === 0 ? 'show' : '' }}" 
-                             data-bs-parent="#accordionEstados">
-                            <div class="accordion-body">
-                                @if(!empty($estadoDato->datos))
-                                    <div class="row g-3">
-                                        @foreach($estadoDato->datos as $campo => $valor)
-                                            @if(!empty($valor))
-                                            <div class="col-md-6">
-                                                <div class="border-start border-3 border-primary ps-3">
-                                                    <small class="text-muted d-block">{{ ucfirst(str_replace('_', ' ', $campo)) }}</small>
-                                                    <strong>
-                                                        @if(is_array($valor))
-                                                            {{ implode(', ', $valor) }}
-                                                        @else
-                                                            {{ $valor }}
-                                                        @endif
-                                                    </strong>
-                                                </div>
-                                            </div>
-                                            @endif
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <p class="text-muted mb-0">No hay datos registrados</p>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-        @endif
 
         {{-- ── STEPPER DINÁMICO (solo en consultorio) ─────────────────────────── --}}
         @if(in_array($consulta->estado, ['en_consultorio', 'en_consultorio_optometrista']))

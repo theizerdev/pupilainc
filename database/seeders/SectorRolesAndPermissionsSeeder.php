@@ -58,7 +58,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'edit medicos schedule',
                     ]
                 ],
-               /* 'enfermeros' => [
+                'enfermeros' => [
                     'name' => 'Enfermería',
                     'permissions' => [
                         'access enfermeros',
@@ -71,7 +71,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'view enfermeros schedule',
                         'edit enfermeros schedule',
                     ]
-                ],*/
+                ],
                 'citas' => [
                     'name' => 'Citas',
                     'permissions' => [
@@ -127,7 +127,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
 
             // 💰 SECTOR ADMINISTRACIÓN
 
-            /*'administracion' => [
+            'administracion' => [
                 'cajas' => [
                     'name' => 'Cajas',
                     'permissions' => [
@@ -180,7 +180,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'activate conceptos pago',
                         'deactivate conceptos pago',
                     ]
-                ],
+                ],*/
 
                 'series' => [
                     'name' => 'Series de Documentos',
@@ -192,7 +192,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'assign series',
                         'manage series',
                     ]
-                ],
+                ],/*
                 'reglas_mora' => [
                     'name' => 'Reglas de Mora',
                     'permissions' => [
@@ -202,7 +202,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete reglas mora',
                         'apply reglas mora',
                     ]
-                ],
+                ],*/
 
                  'categorias' => [
                     'name' => 'Categorías',
@@ -226,7 +226,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage baremos',
                     ]
                 ],
-
+                /*
                 'clientes_fiscales' => [
                     'name' => 'Clientes Fiscales',
                     'permissions' => [
@@ -236,7 +236,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete clientes-fiscales',
                         'view clientes-fiscales',
                     ]
-                ],
+                ],*/
                 'notas_credito' => [
                     'name' => 'Notas de Crédito',
                     'permissions' => [
@@ -271,7 +271,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'view anulacion-talonarios',
                     ]
                 ],
-            ],*/
+            ],
 
 
             // ⚙️ SECTOR CONFIGURACIÓN
@@ -291,7 +291,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export empresas',
                     ]
                 ],
-                /*'consultorios' => [
+                'consultorios' => [
                     'name' => 'Consultorios',
                     'permissions' => [
                         'access consultorios',
@@ -300,7 +300,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete consultorios',
                         'view consultorios',
                     ]
-                ],*/
+                ],
                 'sucursales' => [
                     'name' => 'Sucursales',
                     'permissions' => [
@@ -379,7 +379,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 📊 SECTOR MONITOREO
-            /*'monitoreo' => [
+            'monitoreo' => [
                 'sesiones' => [
                     'name' => 'Sesiones Activas',
                     'permissions' => [
@@ -436,7 +436,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                     ]
                 ],
 
-            ],*/
+            ],
 
             // 📦 SECTOR INVENTARIO
             'inventario' => [
@@ -537,7 +537,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 🛎️ SECTOR RECEPCIÓN
-           /* 'recepcion' => [
+            'recepcion' => [
                 'dashboard' => [
                     'name' => 'Dashboard Recepción',
                     'permissions' => [
@@ -554,7 +554,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'ver respuestas preconsulta',
                     ]
                 ],
-            ],*/
+            ],
         ];
 
         // Crear permisos organizados por sectores y módulos

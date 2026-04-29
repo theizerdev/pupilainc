@@ -66,8 +66,12 @@ class ExchangeRates extends Component
 
             if ($success) {
                 $todayRate = ExchangeRate::getTodayRate($this->paisId);
-                $paisNombre = $todayRate?->pais?->nombre ?? 'N/A';
-                session()->flash('success', "Tasa actualizada: USD = {$todayRate->usd_rate} Bs. (País: {$paisNombre}, Fuente: {$todayRate->source})");
+                if ($todayRate) {
+                    $paisNombre = $todayRate->pais?->nombre ?? 'N/A';
+                    session()->flash('success', "Tasa actualizada: USD = {$todayRate->usd_rate} Bs. (País: {$paisNombre}, Fuente: {$todayRate->source})");
+                } else {
+                    session()->flash('error', 'No se pudo obtener la tasa del día.');
+                }
             } else {
                 session()->flash('error', 'No se pudo obtener la tasa. Verifique la conexión a internet.');
             }
@@ -90,12 +94,16 @@ class ExchangeRates extends Component
         if ($rateId) {
             $this->editingRate = ExchangeRate::findOrFail($rateId);
         } else {
-            $this->editingRate = ExchangeRate::getTodayRate();
+            $this->editingRate = ExchangeRate::getTodayRate($this->paisId);
         }
 
         if ($this->editingRate) {
             $this->usd_rate = $this->editingRate->usd_rate;
             $this->eur_rate = $this->editingRate->eur_rate;
+        } else {
+            // Si no existe tasa para hoy, inicializar valores vacíos
+            $this->usd_rate = null;
+            $this->eur_rate = null;
         }
 
         $this->edit_reason = '';
@@ -139,6 +147,7 @@ class ExchangeRates extends Component
                 'eur_rate' => $this->eur_rate,
                 'source' => 'Manual',
                 'fetch_time' => now(),
+                'pais_id' => $this->paisId,
                 'raw_data' => [
                     'created_by' => auth()->user()->name,
                     'creation_reason' => $this->edit_reason,
@@ -383,16 +392,22 @@ class ExchangeRates extends Component
 
     public function render()
     {
-        $todayRate = ExchangeRate::getTodayRate();
-        $rates = ExchangeRate::orderBy('created_at', 'desc')->take(7)->get();
-        $chartData = ExchangeRate::orderBy('created_at', 'desc')->take(30)->get();
+        $todayRate = ExchangeRate::getTodayRate($this->paisId);
+        $rates = ExchangeRate::where('pais_id', $this->paisId)
+            ->orderBy('created_at', 'desc')
+            ->take(7)
+            ->get();
+        $chartData = ExchangeRate::where('pais_id', $this->paisId)
+            ->orderBy('created_at', 'desc')
+            ->take(30)
+            ->get();
 
         // Calcular estadísticas para la vista
         $stats = [
             'usd_rate' => $todayRate ? $todayRate->usd_rate : 0,
             'eur_rate' => $todayRate ? $todayRate->eur_rate : 0,
             'date' => $todayRate ? $todayRate->date->format('d/m/Y') : 'N/A',
-            'last_fetch' => $todayRate ? $todayRate->fetch_time->format('H:i') : 'N/A',
+            'last_fetch' => $todayRate && $todayRate->fetch_time ? $todayRate->fetch_time->format('H:i') : 'N/A',
             'source' => $todayRate ? $todayRate->source : 'N/A'
         ];
 

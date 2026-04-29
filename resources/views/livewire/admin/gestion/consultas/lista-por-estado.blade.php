@@ -270,22 +270,8 @@
                                             </li>
                                             @endif
 
-                                            {{-- Cambiar estado --}}
-                                            @if(count($estadosDisponibles) > 1)
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><h6 class="dropdown-header">Cambiar Estado</h6></li>
-                                            @foreach($estadosDisponibles as $eKey)
-                                                @if($eKey !== $consulta->estado)
-                                                <li>
-                                                    <button class="dropdown-item d-flex align-items-center"
-                                                            wire:click="cambiarEstado({{ $consulta->id }}, '{{ $eKey }}')">
-                                                        <span class="badge me-2" style="background-color:{{ $estadoColores[$eKey] ?? '#78909C' }};width:10px;height:10px;padding:0;border-radius:50%;display:inline-block;"></span>
-                                                        {{ $estadoLabels[$eKey] ?? ucfirst($eKey) }}
-                                                    </button>
-                                                </li>
-                                                @endif
-                                            @endforeach
-                                            @endif
+                                        
+                                           
 
                                             {{-- Documentos (finalizada) --}}
                                             @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)

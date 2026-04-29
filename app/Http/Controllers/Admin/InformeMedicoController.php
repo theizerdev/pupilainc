@@ -50,8 +50,8 @@ class InformeMedicoController extends Controller
         $this->diagnosticos();
         $this->estudios();
         $this->tratamientos();
-        //$this->firma();
-        //$this->piePagina();
+        $this->firma('informe');
+        $this->piePagina();
 
         // ── Página 2: Orden de estudios (si aplica) ───────────────────────────
         if ($this->consulta->estudios->count() > 0) {
@@ -59,8 +59,8 @@ class InformeMedicoController extends Controller
             $this->encabezado('ORDEN DE ESTUDIOS');
             $this->datosPacienteResumido();
             $this->estudiosDetallado();
-            //$this->firma();
-            //$this->piePagina();
+            $this->firma('orden_estudios');
+            $this->piePagina();
         }
 
         // ── Página 3: Recipe médico (si aplica) ───────────────────────────────
@@ -69,8 +69,8 @@ class InformeMedicoController extends Controller
             $this->encabezado('RECIPE MÉDICO');
             $this->datosPacienteResumido();
             $this->tratamientosDetallado();
-            //$this->firma();
-            //$this->piePagina();
+            $this->firma('recipe');
+            $this->piePagina();
         }
 
         return response($this->pdf->Output('S'), 200, [
@@ -104,6 +104,10 @@ class InformeMedicoController extends Controller
 
         if (!empty($this->empresa->rif)) {
             $this->pdf->Cell(0, 5, utf8_decode('RIF: ' . $this->empresa->rif), 0, 1, 'L');
+            $this->pdf->SetX($xTexto);
+        }
+        if (!empty($this->empresa->documento)) {
+            $this->pdf->Cell(0, 5, utf8_decode('Doc: ' . $this->empresa->documento), 0, 1, 'L');
             $this->pdf->SetX($xTexto);
         }
         if ($this->empresa->telefono) {
@@ -401,7 +405,7 @@ class InformeMedicoController extends Controller
         foreach ($legacy as $campo => $titulo) {
             $valor = $eval->$campo ?? ($datos[$campo] ?? null);
             if ($valor) {
-                $this->seccion($titulo);
+                 $this->seccion(strtoupper('EVALUACION CLINICA'));
                 $this->pdf->SetFont('Arial', '', 9);
                 $this->pdf->SetTextColor(30, 30, 30);
                 $this->pdf->MultiCell(0, 5, utf8_decode($valor), 0);
@@ -433,7 +437,7 @@ class InformeMedicoController extends Controller
 
                 if (!$hayDatos) continue;
 
-                $this->seccion(strtoupper($seccion->nombre));
+                $this->seccion(strtoupper('EVALUACION CLINICA'));
 
                 foreach ($seccion->campos as $campo) {
                     $valor = $datos[$campo->nombre_campo] ?? null;
@@ -621,31 +625,83 @@ class InformeMedicoController extends Controller
 
     // ── FIRMA ─────────────────────────────────────────────────────────────────
 
-    private function firma(): void
+    private function firma(string $contexto = 'informe'): void
     {
-        $this->pdf->Ln(12);
-        $xFirma = 72;
+        $medico       = $this->consulta->medico;
+        $config       = $medico->config_firma ?? [];
+        $mostrarEn    = $config['mostrar_en'] ?? ['informe', 'recipe', 'orden_estudios'];
+        $mostrarFirma = ($config['mostrar_firma'] ?? true) && in_array($contexto, $mostrarEn);
+        $mostrarSello = ($config['mostrar_sello'] ?? true) && in_array($contexto, $mostrarEn);
+        $posicion     = $config['posicion'] ?? 'centro';
+        $anchoFirma   = (int)($config['ancho_firma'] ?? 50);
+        $anchoSello   = (int)($config['ancho_sello'] ?? 30);
+
+        $alineacion = match($posicion) {
+            'izquierda' => 'L',
+            'derecha'   => 'R',
+            default     => 'C',
+        };
+
+        $this->pdf->Ln(8);
+        $yActual = $this->pdf->GetY();
+
+        // Renderizar firma
+        if ($mostrarFirma && $medico->firma_digital) {
+            $firmaPath = storage_path('app/public/' . $medico->firma_digital);
+            if (file_exists($firmaPath)) {
+                $alto   = 18;
+                $xFirma = match($posicion) {
+                    'izquierda' => 20,
+                    'derecha'   => 190 - $anchoFirma,
+                    default     => (210 - $anchoFirma) / 2,
+                };
+                $this->pdf->Image($firmaPath, $xFirma, $yActual, $anchoFirma, $alto);
+                $yActual += $alto + 1;
+                $this->pdf->SetY($yActual);
+            }
+        }
+
+        // Renderizar sello al lado de la firma
+        if ($mostrarSello && $medico->sello_digital) {
+            $selloPath = storage_path('app/public/' . $medico->sello_digital);
+            if (file_exists($selloPath)) {
+                $alto   = 18;
+                $ySello = $this->pdf->GetY() - ($mostrarFirma && $medico->firma_digital ? $alto + 1 : 0);
+                $xSello = match($posicion) {
+                    'izquierda' => 20 + $anchoFirma + 4,
+                    'derecha'   => 190 - $anchoFirma - $anchoSello - 4,
+                    default     => (210 + $anchoFirma) / 2 + 3,
+                };
+                $this->pdf->Image($selloPath, $xSello, $ySello, $anchoSello, $alto);
+            }
+        }
+
+        // Línea de firma
+        $xLinea = match($posicion) {
+            'izquierda' => 20,
+            'derecha'   => 190 - $anchoFirma,
+            default     => (210 - $anchoFirma) / 2,
+        };
         $this->pdf->SetDrawColor(80, 80, 80);
         $this->pdf->SetLineWidth(0.4);
-        $this->pdf->Line($xFirma, $this->pdf->GetY(), $xFirma + 66, $this->pdf->GetY());
+        $this->pdf->Line($xLinea, $this->pdf->GetY(), $xLinea + $anchoFirma, $this->pdf->GetY());
         $this->pdf->SetLineWidth(0.2);
         $this->pdf->SetDrawColor(0, 0, 0);
         $this->pdf->Ln(2);
 
-        $this->pdf->SetFont('Arial', 'B', 10);
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->Cell(0, 6, utf8_decode('Dr(a). ' . $this->consulta->medico->nombre_completo), 0, 1, 'C');
-
         $especialidad = $this->consulta->especialidad->nombre
-            ?? $this->consulta->medico->especialidades()->take(1)->pluck('nombre')->first()
+            ?? $medico->especialidades()->take(1)->pluck('nombre')->first()
             ?? '';
 
+        $this->pdf->SetFont('Arial', 'B', 10);
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->Cell(0, 6, utf8_decode('Dr(a). ' . $medico->nombre_completo), 0, 1, $alineacion);
         $this->pdf->SetFont('Arial', '', 9);
         $this->pdf->SetTextColor(80, 80, 80);
-        $this->pdf->Cell(0, 5, utf8_decode($especialidad), 0, 1, 'C');
+        $this->pdf->Cell(0, 5, utf8_decode($especialidad), 0, 1, $alineacion);
 
-        if (!empty($this->consulta->medico->numero_colegiatura)) {
-            $this->pdf->Cell(0, 5, utf8_decode('Reg. Médico: ' . $this->consulta->medico->numero_colegiatura), 0, 1, 'C');
+        if (!empty($medico->numero_colegiatura)) {
+            $this->pdf->Cell(0, 5, utf8_decode('Reg. Médico: ' . $medico->numero_colegiatura), 0, 1, $alineacion);
         }
 
         $this->pdf->SetTextColor(0, 0, 0);

@@ -208,6 +208,8 @@
                 .then(data => {
                     if (data.display_name) {
                         @this.set('direccion', data.display_name);
+                        @this.set('address', data.display_name);
+                        document.querySelector('textarea[wire\\:model="direccion"]').value = data.display_name;
                     }
                 });
         }
