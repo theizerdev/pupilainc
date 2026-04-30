@@ -28,7 +28,7 @@
                             </small>
                             @endif
                         </div>
-                        <span class="badge bg-info">Tasa BCV: $1 =  {{ format_money($tasa_usd, 2) }}</span>
+                        <span class="badge bg-info">Tasa BCV: $1 = {{ format_money($tasa_usd) }}</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -82,12 +82,10 @@
                                 <strong>Consulta Asociada:</strong> {{ $consulta_seleccionada->codigo }}
                                 | Paciente: {{ $consulta_seleccionada->paciente->nombre_completo }}
                                 @if($consulta_seleccionada->medico)
-                                | Médico: Dr(a). {{ $consulta_seleccionada->medico->nombre }} {{ $consulta_seleccionada->medico->apellido }}
+                                | Médico: Dr(a). {{ $consulta_seleccionada->medico->nombres }} {{ $consulta_seleccionada->medico->apellidos }}
                                 @endif
                             </div>
-                            <button type="button" wire:click="$set('consulta_seleccionada', null)" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i> Cambiar
-                            </button>
+                          
                         </div>
                     </div>
                     @endif
@@ -281,20 +279,21 @@
                                         <div class="alert alert-info py-2 mb-2">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <strong>Total a Pagar:</strong> Bs. {{ number_format($total, 2, ',', '.') }}
+                                                    <strong>Total a Pagar:</strong> {{ format_money($es_venezuela ? $total * $tasa_usd : $total) }}
                                                 </div>
                                                 <div>
                                                     @php
                                                         $totalPagado = collect($pagos_mixtos)->sum(function($p) use ($tasa_usd) {
                                                             return (floatval($p['monto_bs'] ?? 0)) + (floatval($p['monto_usd'] ?? 0) * floatval($tasa_usd));
                                                         });
-                                                        $balance = floatval($total) - $totalPagado;
+                                                        $totalLocal  = $es_venezuela ? $total * $tasa_usd : $total;
+                                                        $balance     = $totalLocal - $totalPagado;
                                                     @endphp
-                                                    <strong>Total Pagado:</strong> Bs. {{ number_format($totalPagado, 2, ',', '.') }}
+                                                    <strong>Total Pagado:</strong> {{ format_money($totalPagado) }}
                                                 </div>
                                                 <div>
                                                     <strong class="{{ $balance > 0 ? 'text-danger' : ($balance < 0 ? 'text-warning' : 'text-success') }}">
-                                                        Balance: Bs. {{ number_format($balance, 2, ',', '.') }}
+                                                        Balance: {{ format_money($balance) }}
                                                     </strong>
                                                 </div>
                                             </div>
@@ -346,8 +345,8 @@
                                                                     @endif
                                                                 </div>
                                                                 <div class="text-end">
-                                                                    <strong class="text-success">{{ format_money($baremo['costo_usd'], 2) }}</strong>
-                                                                    <br><small class="text-muted">Bs. {{ number_format($baremo['costo_usd'] * $tasa_usd, 2, ',', '.') }}</small>
+                                                                    <strong class="text-success">{{ format_money($es_venezuela ? $baremo['costo_usd'] * $tasa_usd : $baremo['costo_usd']) }}</strong>
+                                                                    @if($es_venezuela)<br><small class="text-muted">${{ number_format($baremo['costo_usd'], 2) }}</small>@endif
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -371,6 +370,9 @@
                                                     <span class="input-group-text">$</span>
                                                     <input wire:model="precio_unitario" type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
                                                 </div>
+                                                @if($es_venezuela && $precio_unitario > 0)
+                                                <small class="text-muted">= {{ format_money($precio_unitario * $tasa_usd) }}</small>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="row">
@@ -383,30 +385,217 @@
                                     </div>
                                 </div>
 
+                                {{-- Formulario agregar productos --}}
+                                <div class="card border-success mb-3">
+                                   
+                                    <div class="card-body py-2">
+                                        <div class="row align-items-end">
+                                            <div class="col-md-8 mb-2">
+                                                <label class="form-label text-xs fw-bold mb-1">Buscar Producto</label>
+                                                <div class="position-relative">
+                                                    <input wire:model.live.debounce.300ms="search_producto" type="text" class="form-control form-control-sm" placeholder="Buscar por nombre, código o SKU..." autocomplete="off">
+                                                    @if($search_producto)
+                                                    <button type="button" wire:click="limpiarBusquedaProducto" class="btn btn-sm btn-link position-absolute end-0 top-0 text-danger">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                    @endif
+
+                                                    {{-- Dropdown de resultados productos --}}
+                                                    @if(count($productos_filtrados) > 0)
+                                                    <div class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; max-height: 300px; overflow-y: auto;">
+                                                        @foreach($productos_filtrados as $producto)
+                                                        <div wire:click="agregarProducto({{ $producto['id'] }})" class="p-2 border-bottom cursor-pointer hover-bg-light" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                                            <div class="d-flex justify-content-between align-items-start">
+                                                                <div>
+                                                                    <strong class="text-success">{{ $producto['nombre'] }}</strong>
+                                                                    <br><small class="text-muted">Código: {{ $producto['codigo'] }} | SKU: {{ $producto['sku'] ?? 'N/A' }}</small>
+                                                                    @if($producto['categoria'])
+                                                                    <br><small class="text-info">{{ $producto['categoria']['nombre'] ?? '' }}</small>
+                                                                    @endif
+                                                                    @if($producto['exento_iva'])
+                                                                    <span class="badge badge-sm bg-warning text-dark ms-1">Exento IVA</span>
+                                                                    @endif
+                                                                    @if($producto['es_medicamento'])
+                                                                    <span class="badge badge-sm bg-info ms-1">Medicamento</span>
+                                                                    @endif
+                                                                </div>
+                                                                <div class="text-end">
+                                                                    <strong class="text-success">{{ format_money($es_venezuela ? $producto['precio_venta'] * $tasa_usd : $producto['precio_venta']) }}</strong>
+                                                                    @if($es_venezuela)<br><small class="text-muted">${{ number_format($producto['precio_venta'], 2) }}</small>@endif
+                                                                    @php
+                                                                        $stockTotal = \App\Models\Producto::find($producto['id'])->stockTotal();
+                                                                    @endphp
+                                                                    <br><small class="text-{{ $stockTotal > 0 ? 'success' : 'danger' }}">Stock: {{ $stockTotal }}</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        @endforeach
+                                                    </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2 text-end">
+                                                <small class="text-muted d-block">Haga clic en un producto para agregarlo al carrito</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Formulario agregar productos --}}
+                                <div class="card border-success mb-3">
+                                    <div class="card-header py-2 bg-success bg-opacity-10">
+                                        <small class="fw-bold text-success"><i class="fas fa-pills me-1"></i>Buscar y Agregar Productos</small>
+                                    </div>
+                                    <div class="card-body py-2">
+                                        <div class="row align-items-end">
+                                            <div class="col-md-8 mb-2">
+                                                <label class="form-label text-xs fw-bold mb-1">Buscar Producto</label>
+                                                <div class="position-relative">
+                                                    <input wire:model.live.debounce.300ms="search_producto" type="text" class="form-control form-control-sm" placeholder="Buscar por nombre, código o SKU..." autocomplete="off">
+                                                    @if($search_producto)
+                                                    <button type="button" wire:click="limpiarBusquedaProducto" class="btn btn-sm btn-link position-absolute end-0 top-0 text-danger">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                    @endif
+
+                                                    {{-- Dropdown de resultados productos --}}
+                                                    @if(count($productos_filtrados) > 0)
+                                                    <div class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; max-height: 300px; overflow-y: auto;">
+                                                        @foreach($productos_filtrados as $producto)
+                                                        <div wire:click="agregarProducto({{ $producto['id'] }})" class="p-2 border-bottom cursor-pointer hover-bg-light" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                                            <div class="d-flex justify-content-between align-items-start">
+                                                                <div>
+                                                                    <strong class="text-success">{{ $producto['nombre'] }}</strong>
+                                                                    <br><small class="text-muted">Código: {{ $producto['codigo'] }} | SKU: {{ $producto['sku'] ?? 'N/A' }}</small>
+                                                                    @if($producto['categoria'])
+                                                                    <br><small class="text-info">{{ $producto['categoria']['nombre'] ?? '' }}</small>
+                                                                    @endif
+                                                                    @if($producto['exento_iva'])
+                                                                    <span class="badge badge-sm bg-warning text-dark ms-1">Exento IVA</span>
+                                                                    @endif
+                                                                    @if($producto['es_medicamento'])
+                                                                    <span class="badge badge-sm bg-info ms-1">Medicamento</span>
+                                                                    @endif
+                                                                </div>
+                                                                <div class="text-end">
+                                                                    <strong class="text-success">{{ format_money($es_venezuela ? $producto['precio_venta'] * $tasa_usd : $producto['precio_venta']) }}</strong>
+                                                                    @if($es_venezuela)<br><small class="text-muted">${{ number_format($producto['precio_venta'], 2) }}</small>@endif
+                                                                    <br><small class="text-warning">Stock: {{ \App\Models\Producto::find($producto['id'])->stockTotal() }}</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        @endforeach
+                                                    </div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2 text-end">
+                                                <small class="text-muted d-block">Haga clic en un producto para agregarlo al carrito</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 @error('detalles') <div class="alert alert-danger py-2 mb-3"><small><i class="fas fa-exclamation-triangle me-1"></i>{{ $message }}</small></div> @enderror
 
-                                {{-- Tabla de items --}}
-                                @if(count($detalles) > 0)
+                                {{-- Carrito de Servicios y Productos --}}
+                                @if(count($carrito) > 0 || count($detalles) > 0)
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover align-items-center mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="text-center">#</th>
+                                                <th>Tipo</th>
                                                 <th>Descripción</th>
                                                 <th class="text-center">Cant.</th>
-                                                <th class="text-end">P/U USD</th>
-                                                <th class="text-end">P/U Bs.</th>
-                                                <th class="text-end">Subtotal USD</th>
-                                                <th class="text-end">Subtotal Bs.</th>
+                                                <th class="text-end">P/U</th>
+                                                <th class="text-end">Subtotal</th>
                                                 <th class="text-center">IVA</th>
+                                                <th class="text-center">Stock</th>
                                                 <th class="text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($detalles as $index => $detalle)
+                                            {{-- Items del carrito (productos y servicios) --}}
+                                            @php $itemIndex = 0; @endphp
+                                            @foreach($carrito as $key => $item)
+                                            @php $itemIndex++; @endphp
                                             <tr>
                                                 <td class="text-center">
-                                                    <span class="badge bg-secondary">{{ $index + 1 }}</span>
+                                                    <span class="badge bg-secondary">{{ $itemIndex }}</span>
+                                                </td>
+                                                <td>
+                                                    @if($item['tipo'] === 'producto')
+                                                        <span class="badge bg-success"><i class="fas fa-pills me-1"></i>Producto</span>
+                                                        @if($item['es_medicamento'] ?? false)
+                                                            <br><span class="badge bg-info badge-sm">Medicamento</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="badge bg-primary"><i class="fas fa-stethoscope me-1"></i>Servicio</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <strong>{{ $item['descripcion'] }}</strong>
+                                                    <br><small class="text-muted">Código: {{ $item['codigo'] }}</small>
+                                                    @if(isset($item['categoria']) && $item['categoria'])
+                                                        <br><small class="text-info">{{ $item['categoria'] }}</small>
+                                                    @endif
+                                                    @if(isset($item['marca']) && $item['marca'])
+                                                        <br><small class="text-muted">Marca: {{ $item['marca'] }}</small>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <input type="number" wire:change="actualizarCantidad('{{ $key }}', $event.target.value)" 
+                                                           value="{{ $item['cantidad'] }}" min="1" 
+                                                           @if($item['tipo'] === 'producto') max="{{ $item['stock_disponible'] ?? 999 }}" @endif
+                                                           class="form-control form-control-sm text-center" style="width: 60px;">
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong>{{ format_money($es_venezuela ? $item['precio_unitario'] * $tasa_usd : $item['precio_unitario']) }}</strong>
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong class="text-success">{{ format_money($es_venezuela ? $item['cantidad'] * $item['precio_unitario'] * $tasa_usd : $item['cantidad'] * $item['precio_unitario']) }}</strong>
+                                                </td>
+                                                <td class="text-center">
+                                                    @if($item['exento_iva'] ?? false)
+                                                        <span class="badge badge-sm bg-warning text-dark">Exento</span>
+                                                    @elseif(!($item['aplica_iva'] ?? true))
+                                                        <span class="badge badge-sm bg-secondary">No aplica</span>
+                                                    @else
+                                                        <span class="badge badge-sm bg-success">{{ $item['iva_alicuota'] ?? 16 }}%</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    @if($item['tipo'] === 'producto')
+                                                        @php $stockDisponible = $item['stock_disponible'] ?? 0; @endphp
+                                                        @if($stockDisponible > 10)
+                                                            <span class="badge bg-success">{{ $stockDisponible }}</span>
+                                                        @elseif($stockDisponible > 0)
+                                                            <span class="badge bg-warning">{{ $stockDisponible }}</span>
+                                                        @else
+                                                            <span class="badge bg-danger">Sin stock</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" wire:click="eliminarItem('{{ $key }}')" class="btn btn-sm btn-danger p-1" title="Eliminar">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+
+                                            {{-- Items de detalles (servicios manuales) --}}
+                                            @foreach($detalles as $index => $detalle)
+                                            @php $itemIndex++; @endphp
+                                            <tr>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary">{{ $itemIndex }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary"><i class="fas fa-stethoscope me-1"></i>Servicio</span>
                                                 </td>
                                                 <td>
                                                     <strong>{{ $detalle['descripcion'] }}</strong>
@@ -417,26 +606,23 @@
                                                 <td class="text-center">
                                                     <span class="badge bg-info">{{ $detalle['cantidad'] }}</span>
                                                 </td>
-                                                <td class="text-end text-muted">
-                                                    <small>{{ format_money($detalle['precio_unitario'], 2) }}</small>
+                                                <td class="text-end">
+                                                    <strong>{{ format_money($es_venezuela ? $detalle['precio_unitario'] * $tasa_usd : $detalle['precio_unitario']) }}</strong>
                                                 </td>
                                                 <td class="text-end">
-                                                    <strong>Bs. {{ number_format($detalle['precio_unitario'] * $tasa_usd, 2, ',', '.') }}</strong>
-                                                </td>
-                                                <td class="text-end text-muted">
-                                                    <small>{{ format_money($detalle['subtotal'], 2) }}</small>
-                                                </td>
-                                                <td class="text-end">
-                                                    <strong class="text-success">Bs. {{ number_format($detalle['subtotal'] * $tasa_usd, 2, ',', '.') }}</strong>
+                                                    <strong class="text-success">{{ format_money($es_venezuela ? $detalle['subtotal'] * $tasa_usd : $detalle['subtotal']) }}</strong>
                                                 </td>
                                                 <td class="text-center">
                                                     @if($detalle['exento_iva'] ?? false)
                                                     <span class="badge badge-sm bg-warning text-dark">Exento</span>
-                                                    @elseif($detalle['aplica_iva'] ?? true)
-                                                    <span class="badge badge-sm bg-success">{{ $detalle['iva_alicuota'] ?? 16 }}%</span>
+                                                    @elseif(!($detalle['aplica_iva'] ?? true))
+                                                    <span class="badge badge-sm bg-secondary">No aplica</span>
                                                     @else
-                                                    <span class="badge badge-sm bg-secondary">N/A</span>
+                                                    <span class="badge badge-sm bg-success">{{ $detalle['iva_alicuota'] ?? 16 }}%</span>
                                                     @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="text-muted">-</span>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" wire:click="eliminarDetalle({{ $index }})" class="btn btn-sm btn-danger p-1" title="Eliminar">
@@ -448,10 +634,9 @@
                                         </tbody>
                                         <tfoot class="table-light">
                                             <tr>
-                                                <td colspan="5" class="text-end fw-bold">Subtotal Items:</td>
-                                                <td class="text-end fw-bold">{{ format_money(collect($detalles)->sum('subtotal'), 2) }}</td>
-                                                <td class="text-end fw-bold text-success">Bs. {{ number_format(collect($detalles)->sum('subtotal') * $tasa_usd, 2, ',', '.') }}</td>
-                                                <td colspan="2"></td>
+                                                <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                                                <td class="text-end fw-bold">{{ format_money($es_venezuela ? $subtotal * $tasa_usd : $subtotal) }}</td>
+                                                <td colspan="3"></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -500,7 +685,7 @@
                                             <tbody>
                                                 <tr>
                                                     <td>Subtotal:</td>
-                                                    <td class="text-end fw-bold">{{ format_money(collect($detalles)->sum('subtotal'), 2) }}</td>
+                                                    <td class="text-end fw-bold">{{ format_money($es_venezuela ? $subtotal * $tasa_usd : $subtotal) }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td>Descuento:</td>
@@ -518,16 +703,16 @@
                                                 </tr>
                                                 <tr>
                                                     <td><small>Base Imponible (16%):</small></td>
-                                                    <td class="text-end"><small>{{ money($base_imponible, 2) }}</small></td>
+                                                    <td class="text-end"><small>{{ format_money($es_venezuela ? $base_imponible * $tasa_usd : $base_imponible) }}</small></td>
                                                 </tr>
                                                 <tr>
                                                     <td><small class="fw-bold">IVA (16%):</small></td>
-                                                    <td class="text-end"><small class="fw-bold">{{ money($iva_monto, 2) }}</small></td>
+                                                    <td class="text-end"><small class="fw-bold">{{ format_money($es_venezuela ? $iva_monto * $tasa_usd : $iva_monto) }}</small></td>
                                                 </tr>
                                                 @if($igtf_monto > 0)
                                                 <tr class="table-warning">
                                                     <td><small class="fw-bold">IGTF (3%) - Divisas:</small></td>
-                                                    <td class="text-end"><small class="fw-bold">{{ money($igtf_monto, 2) }}</small></td>
+                                                    <td class="text-end"><small class="fw-bold">{{ format_money($es_venezuela ? $igtf_monto * $tasa_usd : $igtf_monto) }}</small></td>
                                                 </tr>
                                                 @endif
                                                 <tr>
@@ -539,17 +724,25 @@
                                                 <tr>
                                                     <td colspan="2"><hr class="my-1"></td>
                                                 </tr>
+                                                @if($es_venezuela)
                                                 <tr class="table-primary">
-                                                    <td class="fw-bold fs-6">Total USD:</td>
-                                                    <td class="text-end fw-bold fs-6">{{ format_money(collect($detalles)->sum('subtotal') - $descuento + ($es_factura_fiscal ? ($iva_monto + $igtf_monto) / $tasa_usd : 0), 2) }}</td>
+                                                    <td class="fw-bold">Total USD:</td>
+                                                    <td class="text-end fw-bold">${{ number_format($total, 2) }}</td>
                                                 </tr>
                                                 <tr class="table-success">
-                                                    <td class="fw-bold">Total Bs:</td>
-                                                    <td class="text-end fw-bold">{{ money($total, 2) }}</td>
+                                                    <td class="fw-bold fs-6">Total Bs.:</td>
+                                                    <td class="text-end fw-bold fs-6">{{ format_money($total * $tasa_usd) }}</td>
                                                 </tr>
+                                                
+                                                @else
+                                                <tr class="table-success">
+                                                    <td class="fw-bold fs-6">Total:</td>
+                                                    <td class="text-end fw-bold fs-6">{{ format_money($total) }}</td>
+                                                </tr>
+                                                @endif
                                                 <tr>
                                                     <td colspan="2" class="text-end">
-                                                        <small class="text-muted">Tasa BCV: $1 =  {{ money($tasa_usd, 2) }}</small>
+                                                        <small class="text-muted">Tasa BCV: $1 = Bs. {{ number_format($tasa_usd, 2, ',', '.') }}</small>
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -564,7 +757,7 @@
                             <a href="{{ route('admin.pagos.index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary btn-lg" @if(count($detalles) === 0) disabled @endif>
+                            <button type="submit" class="btn btn-primary btn-lg" @if(count($detalles) === 0 && count($carrito) === 0) disabled @endif>
                                 <i class="fas fa-save me-1"></i>
                                 @if($es_factura_fiscal)
                                     Emitir Factura Fiscal

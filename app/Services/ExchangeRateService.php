@@ -14,13 +14,13 @@ class ExchangeRateService
     private const DOLARVZLA_API = 'https://api.dolarvzla.com/public/exchange-rate';
     private const BACKUP_API = 'https://api.exchangerate-api.com/v4/latest/USD';
 
-    public function fetchAndStoreRates(): bool
+    public function fetchAndStoreRates($paisId = null): bool
     {
         try {
             $rates = $this->fetchFromDolarVzla() ?? $this->fetchFromBackupAPI();
 
             if ($rates) {
-                return $this->storeRates($rates);
+                return $this->storeRates($rates, $paisId);
             }
 
             return false;
@@ -64,7 +64,7 @@ class ExchangeRateService
         return null;
     }
 
-    public function backfillMonthBCV(int $year, int $month): int
+    public function backfillMonthBCV(int $year, int $month, $paisId = null): int
     {
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
@@ -110,7 +110,7 @@ class ExchangeRateService
                 $usd = (float)$byDate[$dateStr]['usd'];
                 $eur = array_key_exists('eur', $byDate[$dateStr]) && $byDate[$dateStr]['eur'] !== null ? (float)$byDate[$dateStr]['eur'] : null;
                 ExchangeRate::updateOrCreate(
-                    ['date' => $dateStr, 'fetch_time' => '10:00:00'],
+                    ['date' => $dateStr, 'pais_id' => $paisId, 'fetch_time' => '10:00:00'],
                     [
                         'usd_rate' => $usd,
                         'eur_rate' => $eur,
@@ -125,7 +125,7 @@ class ExchangeRateService
             } else {
                 if ($lastKnownUsd !== null) {
                     ExchangeRate::updateOrCreate(
-                        ['date' => $dateStr, 'fetch_time' => '10:00:00'],
+                        ['date' => $dateStr, 'pais_id' => $paisId, 'fetch_time' => '10:00:00'],
                         [
                             'usd_rate' => $lastKnownUsd,
                             'eur_rate' => $lastKnownEur,
@@ -205,12 +205,13 @@ class ExchangeRateService
         return null;
     }
 
-    public function ensureMonthlyHistory(int $year, int $month): ?\App\Models\ExchangeRateMonthlyHistory
+    public function ensureMonthlyHistory(int $year, int $month, $paisId = null): ?\App\Models\ExchangeRateMonthlyHistory
     {
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = Carbon::create($year, $month, 1)->endOfMonth();
-        $this->backfillMonthBCV((int)$start->year, (int)$start->month);
+        $this->backfillMonthBCV((int)$start->year, (int)$start->month, $paisId);
         $rates = ExchangeRate::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('pais_id', $paisId)
             ->orderBy('date')
             ->get();
         $count = $rates->count();
@@ -237,7 +238,7 @@ class ExchangeRateService
             ];
         }
         $monthly = ExchangeRateMonthlyHistory::updateOrCreate(
-            ['year' => (int)$start->year, 'month' => (int)$start->month],
+            ['year' => (int)$start->year, 'month' => (int)$start->month, 'pais_id' => $paisId],
             [
                 'usd_avg' => $usdAvg,
                 'usd_min' => $usdMin,
@@ -285,12 +286,12 @@ class ExchangeRateService
         $rate = ExchangeRate::whereDate('date', $date->toDateString())->first();
         return $rate ? (float)$rate->usd_rate : null;
     }
-    private function storeRates(array $rates): bool
+    private function storeRates(array $rates, $paisId = null): bool
     {
         try {
-            // Actualizar o crear la tasa del día (solo una por día)
+            // Actualizar o crear la tasa del día (solo una por día por país)
             ExchangeRate::updateOrCreate(
-                ['date' => today()],
+                ['date' => today(), 'pais_id' => $paisId],
                 [
                     'usd_rate' => $rates['usd_rate'],
                     'eur_rate' => $rates['eur_rate'],
@@ -300,7 +301,7 @@ class ExchangeRateService
                 ]
             );
 
-            Log::info('Exchange rates stored successfully', $rates);
+            Log::info('Exchange rates stored successfully', array_merge($rates, ['pais_id' => $paisId]));
             return true;
         } catch (\Exception $e) {
             Log::error('Error storing exchange rates: ' . $e->getMessage());

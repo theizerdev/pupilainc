@@ -231,6 +231,80 @@
                             </div>
 
                             <hr class="my-4">
+                            <h6 class="mb-3"><i class="fas fa-handshake me-2"></i>Distribución de Honorarios</h6>
+                            <div class="row">
+                                <div class="col-md-6 mt-2">
+                                    <div class="form-group">
+                                        <label for="porcentaje_medico" class="fw-bold">
+                                            <i class="fas fa-user-md me-1"></i>Porcentaje Médico *
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" 
+                                                   step="0.01" 
+                                                   min="0" 
+                                                   max="100"
+                                                   class="form-control @error('porcentaje_medico') is-invalid @enderror" 
+                                                   id="porcentaje_medico" 
+                                                   wire:model.live="porcentaje_medico" 
+                                                   placeholder="60.00">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                        @error('porcentaje_medico')
+                                            <span class="invalid-feedback">{{ $message }}</span>
+                                        @enderror
+                                        @if($costo_usd && $porcentaje_medico)
+                                        <small class="form-text text-success">
+                                            <i class="fas fa-calculator me-1"></i>
+                                            Honorario: ${{ number_format($costo_usd * ($porcentaje_medico / 100), 2) }}
+                                        </small>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mt-2">
+                                    <div class="form-group">
+                                        <label for="porcentaje_clinica" class="fw-bold">
+                                            <i class="fas fa-hospital me-1"></i>Porcentaje Clínica *
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" 
+                                                   step="0.01" 
+                                                   min="0" 
+                                                   max="100"
+                                                   class="form-control @error('porcentaje_clinica') is-invalid @enderror" 
+                                                   id="porcentaje_clinica" 
+                                                   wire:model.live="porcentaje_clinica" 
+                                                   placeholder="40.00">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                        @error('porcentaje_clinica')
+                                            <span class="invalid-feedback">{{ $message }}</span>
+                                        @enderror
+                                        @if($costo_usd && $porcentaje_clinica)
+                                        <small class="form-text text-info">
+                                            <i class="fas fa-calculator me-1"></i>
+                                            Ingreso: ${{ number_format($costo_usd * ($porcentaje_clinica / 100), 2) }}
+                                        </small>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            @if($porcentaje_medico && $porcentaje_clinica)
+                            <div class="alert alert-{{ abs(($porcentaje_medico + $porcentaje_clinica) - 100) < 0.01 ? 'success' : 'warning' }} d-flex align-items-center" role="alert">
+                                <i class="fas fa-{{ abs(($porcentaje_medico + $porcentaje_clinica) - 100) < 0.01 ? 'check-circle' : 'exclamation-triangle' }} me-2"></i>
+                                <div>
+                                    <strong>Total: {{ $porcentaje_medico + $porcentaje_clinica }}%</strong>
+                                    @if(abs(($porcentaje_medico + $porcentaje_clinica) - 100) < 0.01)
+                                        - Distribución correcta ✓
+                                    @else
+                                        - Los porcentajes deben sumar exactamente 100%
+                                    @endif
+                                </div>
+                            </div>
+                            @endif
+
+                            <hr class="my-4">
                             <h6 class="mb-3"><i class="fas fa-align-left me-2"></i>Descripción</h6>
                             <div class="form-group">
                                 <label for="descripcion" class="fw-bold">Descripción del Servicio</label>

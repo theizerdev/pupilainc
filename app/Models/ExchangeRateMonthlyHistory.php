@@ -15,6 +15,7 @@ class ExchangeRateMonthlyHistory extends Model
     protected $fillable = [
         'year',
         'month',
+        'pais_id',
         'usd_avg',
         'usd_min',
         'usd_max',

@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\PagoCreated;
 use App\Services\ContabilidadService;
 use App\Models\Pago;
+use App\Models\ConsultaHonorario;
 
 class GenerarAsientoContable
 {
@@ -18,6 +19,18 @@ class GenerarAsientoContable
     public function handle(PagoCreated $event)
     {
         $pago = $event->pago;
+
+        // Calcular honorarios si es una consulta
+        if ($pago->consulta_id && $pago->estado === Pago::ESTADO_APROBADO) {
+            try {
+                ConsultaHonorario::calcularPorPago($pago);
+            } catch (\Exception $e) {
+                \Log::error('Error al calcular honorarios: ' . $e->getMessage(), [
+                    'pago_id' => $pago->id,
+                    'consulta_id' => $pago->consulta_id
+                ]);
+            }
+        }
 
         // Verificar si ya existe un asiento contable para este pago
         $asientoExistente = \App\Models\AsientoContable::where('referencia_tipo', $this->getReferenciaTipo($pago->tipo_pago))

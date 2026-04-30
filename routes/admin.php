@@ -322,6 +322,7 @@ Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermi
     Route::get('/estado-resultados', \App\Livewire\Admin\Contabilidad\EstadoResultados::class)->name('estado-resultados');
     Route::get('/libro-mayor', \App\Livewire\Admin\Contabilidad\LibroMayor::class)->name('libro-mayor');
     Route::get('/libro-diario', \App\Livewire\Admin\Contabilidad\LibroDiario::class)->name('libro-diario');
+    Route::get('/conciliacion-bancaria', \App\Livewire\Admin\Contabilidad\ConciliacionBancaria::class)->name('conciliacion-bancaria');
 
     Route::get('/balance-comprobacion/pdf', [\App\Http\Controllers\Admin\ContabilidadPdfController::class, 'balanceComprobacion'])->name('balance-comprobacion.pdf');
     Route::get('/balance-general/pdf', [\App\Http\Controllers\Admin\ContabilidadPdfController::class, 'balanceGeneral'])->name('balance-general.pdf');
@@ -332,13 +333,16 @@ Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermi
     Route::get('/libro-mayor/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroMayor'])->name('libro-mayor.excel');
     Route::get('/balance-comprobacion/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'balanceComprobacion'])->name('balance-comprobacion.excel');
     Route::get('/cierre-contable', \App\Livewire\Admin\Contabilidad\CierreContable::class)->name('cierre-contable');
+    Route::get('/honorarios-medicos', \App\Livewire\Admin\Contabilidad\HonorariosMedicos::class)->name('honorarios-medicos');
 });
 
 // Libro de Ventas SENIAT
 Route::prefix('seniat')->as('seniat.')->middleware(['checkAdminPermission:access pagos'])->group(function () {
-    Route::get('/libro-ventas', [\App\Http\Controllers\Admin\LibroVentasController::class, 'index'])->name('libro-ventas');
+    Route::get('/libro-ventas', \App\Livewire\Admin\Seniat\LibroVentas::class)->name('libro-ventas');
+    Route::get('/libro-compras', \App\Livewire\Admin\Seniat\LibroCompras::class)->name('libro-compras');
     Route::get('/libro-ventas/txt', [\App\Http\Controllers\Admin\LibroVentasController::class, 'exportTxt'])->name('libro-ventas.export-txt');
     Route::get('/libro-ventas/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroVentas'])->name('libro-ventas.excel');
+    Route::get('/libro-compras/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroCompras'])->name('libro-compras.excel');
 });
 Route::get('/impuestos', \App\Livewire\Admin\Impuestos\Index::class)->name('impuestos.index');
 

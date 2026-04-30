@@ -56,6 +56,11 @@ class Form extends Component
     public $es_medicamento = false;
     public $status = true;
 
+    // ─── Fiscal ───────────────────────────────────────────────────
+    public $aplica_iva = true;
+    public $exento_iva = false;
+    public $iva_alicuota = 16.00;
+
     // ─── Imagen principal (legacy) ───────────────────────────────
     public $imagen;
     public $imagen_actual = null;
@@ -96,6 +101,9 @@ class Form extends Component
             'unidad_medida'        => 'required|string|max:30',
             'precio_costo'         => 'required|numeric|min:0',
             'precio_venta'         => 'required|numeric|min:0|gte:precio_costo',
+            'aplica_iva'           => 'boolean',
+            'exento_iva'           => 'boolean',
+            'iva_alicuota'         => 'required|numeric|in:0,8,16',
             'stock_minimo'         => 'required|integer|min:0',
             'stock_maximo'         => 'nullable|integer|min:0|gte:stock_minimo',
             'punto_reorden'        => 'required|integer|min:0',
@@ -147,6 +155,7 @@ class Form extends Component
                 'nombre', 'codigo', 'sku', 'codigo_barras', 'descripcion',
                 'categoria_producto_id', 'marca_id', 'proveedor_id',
                 'unidad_medida', 'precio_costo', 'precio_venta',
+                'aplica_iva', 'exento_iva', 'iva_alicuota',
                 'stock_minimo', 'stock_maximo', 'punto_reorden',
                 'ubicacion_fisica', 'requiere_receta', 'es_medicamento', 'status',
                 'peso', 'dimensiones'
@@ -202,6 +211,27 @@ class Form extends Component
     }
 
     // ─── Margen en tiempo real ────────────────────────────────────
+    public function updatedExentoIva($value)
+    {
+        if ($value) {
+            $this->aplica_iva   = false;
+            $this->iva_alicuota = 0;
+        } else {
+            $this->aplica_iva   = true;
+            $this->iva_alicuota = 16.00;
+        }
+    }
+
+    public function updatedAplicaIva($value)
+    {
+        if (!$value) {
+            $this->iva_alicuota = 0;
+        } else {
+            $this->exento_iva   = false;
+            $this->iva_alicuota = 16.00;
+        }
+    }
+
     public function getMargen(): float
     {
         $costo = (float) $this->precio_costo;

@@ -141,6 +141,7 @@
                                 <th>Servicio</th>
                                 <th>Categoría</th>
                                 <th>Costo (USD)</th>
+                                <th>Honorarios</th>
                                 <th>
                                     <a wire:click.prevent="sortBy('created_at')" href="#" class="text-decoration-none">
                                         Creado
@@ -182,6 +183,34 @@
                                             <br><small class="text-muted">+ IVA</small>
                                         @endif
                                     </td>
+                                    <td>
+                                        @if($baremo->porcentaje_medico && $baremo->porcentaje_clinica)
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2">
+                                                    <small class="text-success fw-bold">
+                                                        <i class="fas fa-user-md me-1"></i>{{ $baremo->porcentaje_medico }}%
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-info fw-bold">
+                                                        <i class="fas fa-hospital me-1"></i>{{ $baremo->porcentaje_clinica }}%
+                                                    </small>
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted">
+                                                        ${{ number_format($baremo->honorario_medico_usd, 2) }}
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        ${{ number_format($baremo->ingreso_clinica_usd, 2) }}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Sin configurar
+                                            </span>
+                                        @endif
+                                    </td>
                                     <td>{{ $baremo->created_at->format('d/m/Y H:i') }}</td>
                                     <td>
                                         <div class="form-check form-switch">
@@ -221,7 +250,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center">No se encontraron servicios</td>
+                                    <td colspan="8" class="text-center">No se encontraron servicios</td>
                                 </tr>
                             @endforelse
                         </tbody>

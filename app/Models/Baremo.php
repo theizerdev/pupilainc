@@ -22,6 +22,8 @@ class Baremo extends Model
         'aplica_iva',
         'exento_iva',
         'duracion_minutos',
+        'porcentaje_medico',
+        'porcentaje_clinica',
         'activo'
     ];
 
@@ -30,6 +32,8 @@ class Baremo extends Model
         'costo_bs' => 'decimal:2',
         'aplica_iva' => 'boolean',
         'exento_iva' => 'boolean',
+        'porcentaje_medico' => 'decimal:2',
+        'porcentaje_clinica' => 'decimal:2',
         'activo' => 'boolean'
     ];
 
@@ -40,6 +44,22 @@ class Baremo extends Model
             if ($baremo->costo_usd) {
                 $tasa = ExchangeRate::getLatestRate('USD') ?? 1;
                 $baremo->costo_bs = $baremo->costo_usd * $tasa;
+            }
+            
+            // Validar que los porcentajes sumen 100% si están definidos
+            if ($baremo->porcentaje_medico !== null && $baremo->porcentaje_clinica !== null) {
+                $total = $baremo->porcentaje_medico + $baremo->porcentaje_clinica;
+                if (abs($total - 100) > 0.01) {
+                    throw new \Exception("Los porcentajes deben sumar 100%. Actual: {$total}%");
+                }
+            }
+            
+            // Si solo se define uno, calcular el otro automáticamente
+            if ($baremo->porcentaje_medico !== null && $baremo->porcentaje_clinica === null) {
+                $baremo->porcentaje_clinica = 100 - $baremo->porcentaje_medico;
+            }
+            if ($baremo->porcentaje_clinica !== null && $baremo->porcentaje_medico === null) {
+                $baremo->porcentaje_medico = 100 - $baremo->porcentaje_clinica;
             }
         });
     }
@@ -106,5 +126,37 @@ class Baremo extends Model
         }
 
         return $this->costo_usd;
+    }
+
+    public function getHonorarioMedicoUsdAttribute()
+    {
+        if ($this->porcentaje_medico) {
+            return $this->costo_usd * ($this->porcentaje_medico / 100);
+        }
+        return 0;
+    }
+
+    public function getHonorarioMedicoBsAttribute()
+    {
+        if ($this->porcentaje_medico) {
+            return $this->costo_bs * ($this->porcentaje_medico / 100);
+        }
+        return 0;
+    }
+
+    public function getIngresoClinicaUsdAttribute()
+    {
+        if ($this->porcentaje_clinica) {
+            return $this->costo_usd * ($this->porcentaje_clinica / 100);
+        }
+        return $this->costo_usd;
+    }
+
+    public function getIngresoClinicaBsAttribute()
+    {
+        if ($this->porcentaje_clinica) {
+            return $this->costo_bs * ($this->porcentaje_clinica / 100);
+        }
+        return $this->costo_bs;
     }
 }

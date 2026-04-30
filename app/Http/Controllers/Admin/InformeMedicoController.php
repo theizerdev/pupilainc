@@ -643,23 +643,8 @@ class InformeMedicoController extends Controller
         };
 
         $this->pdf->Ln(8);
-        $yActual = $this->pdf->GetY();
-
-        // Renderizar firma
-        if ($mostrarFirma && $medico->firma_digital) {
-            $firmaPath = storage_path('app/public/' . $medico->firma_digital);
-            if (file_exists($firmaPath)) {
-                $alto   = 18;
-                $xFirma = match($posicion) {
-                    'izquierda' => 20,
-                    'derecha'   => 190 - $anchoFirma,
-                    default     => (210 - $anchoFirma) / 2,
-                };
-                $this->pdf->Image($firmaPath, $xFirma, $yActual, $anchoFirma, $alto);
-                $yActual += $alto + 1;
-                $this->pdf->SetY($yActual);
-            }
-        }
+        $yActual = 200;
+     
 
         // Renderizar sello al lado de la firma
         if ($mostrarSello && $medico->sello_digital) {
@@ -672,37 +657,13 @@ class InformeMedicoController extends Controller
                     'derecha'   => 190 - $anchoFirma - $anchoSello - 4,
                     default     => (210 + $anchoFirma) / 2 + 3,
                 };
-                $this->pdf->Image($selloPath, $xSello, $ySello, $anchoSello, $alto);
+                $this->pdf->Image($selloPath, 80, $ySello, $anchoSello, $alto);
             }
         }
 
-        // Línea de firma
-        $xLinea = match($posicion) {
-            'izquierda' => 20,
-            'derecha'   => 190 - $anchoFirma,
-            default     => (210 - $anchoFirma) / 2,
-        };
-        $this->pdf->SetDrawColor(80, 80, 80);
-        $this->pdf->SetLineWidth(0.4);
-        $this->pdf->Line($xLinea, $this->pdf->GetY(), $xLinea + $anchoFirma, $this->pdf->GetY());
-        $this->pdf->SetLineWidth(0.2);
-        $this->pdf->SetDrawColor(0, 0, 0);
-        $this->pdf->Ln(2);
-
-        $especialidad = $this->consulta->especialidad->nombre
-            ?? $medico->especialidades()->take(1)->pluck('nombre')->first()
-            ?? '';
-
-        $this->pdf->SetFont('Arial', 'B', 10);
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->Cell(0, 6, utf8_decode('Dr(a). ' . $medico->nombre_completo), 0, 1, $alineacion);
-        $this->pdf->SetFont('Arial', '', 9);
-        $this->pdf->SetTextColor(80, 80, 80);
-        $this->pdf->Cell(0, 5, utf8_decode($especialidad), 0, 1, $alineacion);
-
-        if (!empty($medico->numero_colegiatura)) {
-            $this->pdf->Cell(0, 5, utf8_decode('Reg. Médico: ' . $medico->numero_colegiatura), 0, 1, $alineacion);
-        }
+       
+        
+    
 
         $this->pdf->SetTextColor(0, 0, 0);
     }
@@ -711,19 +672,7 @@ class InformeMedicoController extends Controller
 
     private function piePagina(): void
     {
-        $this->pdf->SetY(-18);
-        $this->pdf->SetDrawColor(200, 200, 200);
-        $this->pdf->SetLineWidth(0.3);
-        $this->pdf->Line(20, $this->pdf->GetY(), 190, $this->pdf->GetY());
-        $this->pdf->Ln(2);
-        $this->pdf->SetFont('Arial', 'I', 7);
-        $this->pdf->SetTextColor(150, 150, 150);
-        $this->pdf->Cell(0, 4,
-            utf8_decode('Documento confidencial — Uso exclusivo médico — ' .
-            ($this->empresa->razon_social ?? $this->empresa->nombre ?? '') .
-            ' — ' . now()->format('d/m/Y H:i')),
-            0, 0, 'C'
-        );
+       
     }
 
     // ── HELPERS ───────────────────────────────────────────────────────────────

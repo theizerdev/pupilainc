@@ -33,6 +33,11 @@ class CrearNotaCredito extends Component
     // Tasa de cambio BCV
     public $tasa_usd;
 
+    // Porcentajes fiscales configurables (dinámicos por país)
+    public $iva_pct = 16;
+    public $iva_reducida_pct = 8;
+    public $igtf_pct = 0;
+
     // Totales en Bolívares
     public $subtotal_bs = 0;
     public $base_imponible_bs = 0;
@@ -59,6 +64,31 @@ class CrearNotaCredito extends Component
         $this->tasa_usd = ExchangeRate::getLatestRate('USD')
             ?: ExchangeRate::latest()->value('usd_rate')
             ?: 1;
+
+        $this->cargarConfigImpuestos();
+    }
+
+    private function cargarConfigImpuestos(): void
+    {
+        $empresaId = auth()->user()->empresa_id;
+
+        $ivaConfig = ImpuestoConfiguracion::where('codigo', 'IVA')
+            ->where('empresa_id', $empresaId)
+            ->where('activo', true)
+            ->first();
+        $this->iva_pct = $ivaConfig ? (float) $ivaConfig->porcentaje : 16;
+
+        $ivaRedConfig = ImpuestoConfiguracion::where('codigo', 'IVA_REDUCIDA')
+            ->where('empresa_id', $empresaId)
+            ->where('activo', true)
+            ->first();
+        $this->iva_reducida_pct = $ivaRedConfig ? (float) $ivaRedConfig->porcentaje : 8;
+
+        $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
+            ->where('empresa_id', $empresaId)
+            ->where('activo', true)
+            ->first();
+        $this->igtf_pct = $igtfConfig ? (float) $igtfConfig->porcentaje : 0;
     }
 
     /**
@@ -125,7 +155,7 @@ class CrearNotaCredito extends Component
                 'subtotal_bs' => $subtotalBs,
                 'aplica_iva' => $detalle->aplica_iva ?? true,
                 'exento_iva' => $detalle->exento_iva ?? false,
-                'iva_alicuota' => $detalle->iva_alicuota ?? 16.00,
+                'iva_alicuota' => $detalle->iva_alicuota ?? $this->iva_pct,
             ];
         }
 
@@ -198,7 +228,7 @@ class CrearNotaCredito extends Component
             'subtotal_bs' => $subtotalBs,
             'aplica_iva' => true,
             'exento_iva' => false,
-            'iva_alicuota' => 16.00,
+            'iva_alicuota' => $this->iva_pct,
         ];
 
         $this->items_seleccionados[$newIndex] = true;
@@ -230,7 +260,7 @@ class CrearNotaCredito extends Component
     }
 
     /**
-     * Calcula todos los totales fiscales en Bolívares.
+     * Calcula todos los totales fiscales en Bolívares según configuración por país.
      */
     public function calcularTotales()
     {
@@ -245,14 +275,15 @@ class CrearNotaCredito extends Component
 
             $subtotalBs = (float) ($detalle['subtotal_bs'] ?? 0);
 
-            if ($detalle['exento_iva'] ?? false) {
+            // Si el servicio NO aplica IVA o es exento, va a exentos (no grava)
+            if (!($detalle['aplica_iva'] ?? true) || ($detalle['exento_iva'] ?? false)) {
                 $montoExentoBs += $subtotalBs;
                 continue;
             }
 
-            $alicuota = (float) ($detalle['iva_alicuota'] ?? 16);
+            $alicuota = (float) ($detalle['iva_alicuota'] ?? $this->iva_pct);
 
-            if ($alicuota == 8) {
+            if ($alicuota == $this->iva_reducida_pct) {
                 $baseImponibleReducidaBs += $subtotalBs;
             } else {
                 $baseImponibleGeneralBs += $subtotalBs;
@@ -264,46 +295,35 @@ class CrearNotaCredito extends Component
         $this->subtotal_bs = round($this->base_imponible_bs + $this->monto_exento_bs, 2);
 
         // IVA en Bs
-        $ivaConfig = ImpuestoConfiguracion::where('codigo', 'IVA')
-            ->where('empresa_id', auth()->user()->empresa_id)
-            ->where('activo', true)
-            ->first();
-
-        $ivaPctGeneral = $ivaConfig ? (float) $ivaConfig->porcentaje : 16;
-        $ivaMontoGeneralBs = $baseImponibleGeneralBs * ($ivaPctGeneral / 100);
-        $ivaMontoReducidaBs = $baseImponibleReducidaBs * (8 / 100);
+        $ivaMontoGeneralBs = $baseImponibleGeneralBs * ($this->iva_pct / 100);
+        $ivaMontoReducidaBs = $baseImponibleReducidaBs * ($this->iva_reducida_pct / 100);
         $this->iva_monto_bs = round($ivaMontoGeneralBs + $ivaMontoReducidaBs, 2);
 
         // IGTF en Bs (aplica si el pago original fue en divisas)
         $this->igtf_monto_bs = 0;
-        if ($this->pago_origen && ($this->pago_origen->aplica_igtf ?? false)) {
-            // Verificar si el método de pago original era en divisas
+        if ($this->pago_origen && ($this->pago_origen->aplica_igtf ?? false) && $this->igtf_pct > 0) {
             $metodoPagoOriginal = $this->pago_origen->metodo_pago;
             $pagoEnDivisas = false;
-            
+
+            $metodosDivisas = ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'];
+
             if ($metodoPagoOriginal === 'mixto') {
-                $pagosMixtos = $this->pago_origen->detalles_pago_mixto ?? json_decode($this->pago_origen->pagos_mixtos, true) ?? [];
+                $pagosMixtos = $this->pago_origen->detalles_pago_mixto
+                    ?? json_decode($this->pago_origen->pagos_mixtos, true) ?? [];
                 foreach ($pagosMixtos as $pm) {
-                    if (in_array($pm['metodo'] ?? '', ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                    if (in_array($pm['metodo'] ?? '', $metodosDivisas)) {
                         $pagoEnDivisas = true;
                         break;
                     }
                 }
-            } elseif (in_array($metodoPagoOriginal, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+            } elseif (in_array($metodoPagoOriginal, $metodosDivisas)) {
                 $pagoEnDivisas = true;
             }
-            
-            if ($pagoEnDivisas) {
-                $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
-                    ->where('empresa_id', auth()->user()->empresa_id)
-                    ->where('activo', true)
-                    ->first();
 
-                if ($igtfConfig) {
-                    // IGTF = 3% sobre la base imponible (monto en divisas = subtotal + IVA)
-                    $baseImponibleIGTF = $this->subtotal_bs + $this->iva_monto_bs;
-                    $this->igtf_monto_bs = round($baseImponibleIGTF * ((float) $igtfConfig->porcentaje / 100), 2);
-                }
+            if ($pagoEnDivisas) {
+                // IGTF aplica sobre el total de la transacción (base + exento + IVA)
+                $baseIGTF = $this->subtotal_bs + $this->iva_monto_bs;
+                $this->igtf_monto_bs = round($baseIGTF * ($this->igtf_pct / 100), 2);
             }
         }
 
@@ -389,37 +409,27 @@ class CrearNotaCredito extends Component
         $subtotalUsd = $this->tasa_usd > 0 ? round($this->subtotal_bs / $this->tasa_usd, 2) : 0;
         $totalUsd = $this->tasa_usd > 0 ? round($this->total_bs / $this->tasa_usd, 2) : 0;
 
-        // IVA config
-        $ivaConfig = ImpuestoConfiguracion::where('codigo', 'IVA')
-            ->where('empresa_id', $empresaId)
-            ->where('activo', true)
-            ->first();
-        $ivaPorcentaje = $ivaConfig ? (float) $ivaConfig->porcentaje : 16;
-
-        $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
-            ->where('empresa_id', $empresaId)
-            ->where('activo', true)
-            ->first();
-        $igtfPorcentaje = $igtfConfig ? (float) $igtfConfig->porcentaje : 0;
-
-        // Separar bases para almacenar
+        // Totales ya calculados en Bs
+        $ivaMontoGeneralBs = 0;
+        $ivaMontoReducidaBs = 0;
         $baseGeneralBs = 0;
         $baseReducidaBs = 0;
         $montoExentoBs = 0;
 
         foreach ($detallesSeleccionados as $d) {
             $sub = (float) ($d['subtotal_bs'] ?? 0);
-            if ($d['exento_iva'] ?? false) {
+            // Si el servicio NO aplica IVA o es exento, va a exentos (no grava)
+            if (!($d['aplica_iva'] ?? true) || ($d['exento_iva'] ?? false)) {
                 $montoExentoBs += $sub;
-            } elseif (($d['iva_alicuota'] ?? 16) == 8) {
+            } elseif (($d['iva_alicuota'] ?? $this->iva_pct) == $this->iva_reducida_pct) {
                 $baseReducidaBs += $sub;
             } else {
                 $baseGeneralBs += $sub;
             }
         }
 
-        $ivaMontoGeneralBs = round($baseGeneralBs * ($ivaPorcentaje / 100), 2);
-        $ivaMontoReducidaBs = round($baseReducidaBs * (8 / 100), 2);
+        $ivaMontoGeneralBs = round($baseGeneralBs * ($this->iva_pct / 100), 2);
+        $ivaMontoReducidaBs = round($baseReducidaBs * ($this->iva_reducida_pct / 100), 2);
 
         $nota = Pago::create([
             'pago_origen_id' => $pagoOrigen->id,
@@ -470,7 +480,7 @@ class CrearNotaCredito extends Component
                 'subtotal' => $detalle['subtotal_bs'],
                 'aplica_iva' => $detalle['aplica_iva'] ?? true,
                 'exento_iva' => $detalle['exento_iva'] ?? false,
-                'iva_alicuota' => $detalle['iva_alicuota'] ?? 16.00,
+                'iva_alicuota' => $detalle['iva_alicuota'] ?? $this->iva_pct,
             ]);
         }
 
@@ -489,5 +499,29 @@ class CrearNotaCredito extends Component
         $tipos = TipoNotaCredito::activos()->get();
 
         return view('livewire.admin.nota-credito.crear-nota-credito', compact('tipos'));
+    }
+
+    /**
+     * Porcentaje IVA configurado (general).
+     */
+    public function getIvaPorcentajeProperty(): float
+    {
+        return $this->iva_pct;
+    }
+
+    /**
+     * Porcentaje IVA reducido configurado.
+     */
+    public function getIvaReducidaPorcentajeProperty(): float
+    {
+        return $this->iva_reducida_pct;
+    }
+
+    /**
+     * Porcentaje IGTF configurado.
+     */
+    public function getIgtfPorcentajeProperty(): float
+    {
+        return $this->igtf_pct;
     }
 }

@@ -13,6 +13,46 @@ class FiscalCalculator
     {
         $detalles = $pago->detalles;
 
+        // Si no hay detalles, usar el total del pago como base imponible
+        if ($detalles->isEmpty()) {
+            // Sin detalles no se puede determinar si aplica IVA, no calcular
+            $subtotal = (float) $pago->total;
+
+            // Calcular IGTF
+            $igtfConfig = ImpuestoConfiguracion::where('codigo', 'IGTF')
+                ->where('empresa_id', $pago->empresa_id)
+                ->where('activo', true)
+                ->first();
+
+            $igtfPorcentaje = $igtfConfig ? (float) $igtfConfig->porcentaje : 0;
+            $igtfMonto = 0;
+            $aplicaIgtf = false;
+
+            if ($igtfConfig) {
+                $montoDivisas = self::calcularMontoDivisas($pago);
+                if ($montoDivisas > 0) {
+                    $aplicaIgtf = true;
+                    $igtfMonto = $montoDivisas * ($igtfPorcentaje / 100);
+                }
+            }
+
+            return [
+                'subtotal'               => round($subtotal, 2),
+                'base_imponible'         => round($pago->base_imponible ?? 0, 2),
+                'base_imponible_general' => round($pago->base_imponible_general ?? 0, 2),
+                'iva_monto_general'      => round($pago->iva_monto_general ?? 0, 2),
+                'base_imponible_reducida'=> round($pago->base_imponible_reducida ?? 0, 2),
+                'iva_monto_reducida'     => round($pago->iva_monto_reducida ?? 0, 2),
+                'monto_exento'           => round($pago->monto_exento ?? 0, 2),
+                'iva_porcentaje'         => $pago->iva_porcentaje ?? 0,
+                'iva_monto'              => round($pago->iva_monto ?? 0, 2),
+                'igtf_porcentaje'        => $igtfPorcentaje,
+                'igtf_monto'             => round($igtfMonto, 2),
+                'aplica_igtf'            => $aplicaIgtf,
+                'total_con_impuestos'    => round($subtotal + ($pago->iva_monto ?? 0) + $igtfMonto, 2),
+            ];
+        }
+
         // Obtener configuración de IVA
         $ivaConfig = ImpuestoConfiguracion::where('codigo', 'IVA')
             ->where('empresa_id', $pago->empresa_id)

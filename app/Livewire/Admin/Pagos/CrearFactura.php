@@ -19,8 +19,10 @@ class CrearFactura extends Component
 
     public $search_consulta = '';
     public $search_servicio = '';
+    public $search_producto = '';
     public $buscar_baremo = '';
     public $baremos_filtrados = [];
+    public $productos_filtrados = [];
 
     public $consulta_id;
     public $consulta_seleccionada;
@@ -59,10 +61,20 @@ class CrearFactura extends Component
     public $total = 0;
     public $tasa_usd;
     public $proximo_control_fiscal = '';
+    public $es_venezuela = false;
 
     public function mount()
     {
-        $this->tasa_usd = ExchangeRate::getLatestRate('USD') ?? 1;
+        // Cargar tasa directamente por pais_id de la empresa del usuario
+        $paisId = auth()->user()->empresa?->pais_id;
+        $this->tasa_usd = \App\Models\ExchangeRate::getLatestRate('USD', $paisId) ?? 1;
+        $this->es_venezuela = is_venezuela_company();
+        
+        // Si la sesión aún no tiene la config regional, forzar detección por moneda
+        if (!$this->es_venezuela && $paisId) {
+            $pais = \App\Models\Pais::find($paisId);
+            $this->es_venezuela = $pais && $pais->moneda_principal === 'VES';
+        }
         $this->obtenerProximoNumero();
         $this->pagos_mixtos = [];
         if ($this->tipo_pago === 'factura') {
@@ -125,6 +137,25 @@ class CrearFactura extends Component
         }
     }
 
+    public function updatedSearchProducto($value)
+    {
+        if (strlen($value) >= 2) {
+            $this->productos_filtrados = \App\Models\Producto::where('status', true)
+                ->where('empresa_id', auth()->user()->empresa_id)
+                ->where(function($q) use ($value) {
+                    $q->where('nombre', 'like', "%{$value}%")
+                      ->orWhere('codigo', 'like', "%{$value}%")
+                      ->orWhere('sku', 'like', "%{$value}%");
+                })
+                ->with(['categoria', 'marca'])
+                ->limit(10)
+                ->get()
+                ->toArray();
+        } else {
+            $this->productos_filtrados = [];
+        }
+    }
+
     public function seleccionarBaremo($baremoId)
     {
         $baremo = Baremo::find($baremoId);
@@ -141,6 +172,60 @@ class CrearFactura extends Component
     {
         $this->reset(['buscar_baremo', 'baremos_filtrados', 'baremo_id', 'descripcion', 'precio_unitario']);
         $this->cantidad = 1;
+    }
+
+    public function limpiarBusquedaProducto()
+    {
+        $this->reset(['search_producto', 'productos_filtrados']);
+    }
+
+    public function agregarProducto($productoId)
+    {
+        $producto = \App\Models\Producto::with(['categoria', 'marca'])->find($productoId);
+        
+        if (!$producto) {
+            $this->dispatch('notify', type: 'error', message: 'Producto no encontrado');
+            return;
+        }
+
+        // Verificar stock disponible
+        $stockDisponible = $producto->stockTotal();
+        if ($stockDisponible <= 0) {
+            $this->dispatch('notify', type: 'error', message: 'Producto sin stock disponible');
+            return;
+        }
+
+        $key = 'producto_' . $productoId;
+
+        if (isset($this->carrito[$key])) {
+            if ($this->carrito[$key]['cantidad'] < $stockDisponible) {
+                $this->carrito[$key]['cantidad']++;
+            } else {
+                $this->dispatch('notify', type: 'warning', message: 'Stock insuficiente');
+                return;
+            }
+        } else {
+            $this->carrito[$key] = [
+                'tipo' => 'producto',
+                'id' => $productoId,
+                'codigo' => $producto->codigo,
+                'descripcion' => $producto->nombre,
+                'categoria' => $producto->categoria->nombre ?? '',
+                'marca' => $producto->marca->nombre ?? '',
+                'cantidad' => 1,
+                'precio_unitario' => $producto->precio_venta,
+                'stock_disponible' => $stockDisponible,
+                'aplica_iva' => $producto->aplica_iva,
+                'exento_iva' => $producto->exento_iva,
+                'iva_alicuota' => $producto->iva_alicuota,
+                'costo_unitario' => $producto->precio_costo,
+                'es_medicamento' => $producto->es_medicamento,
+            ];
+        }
+
+        $this->calcularTotales();
+        $this->search_producto = '';
+        $this->productos_filtrados = [];
     }
 
     public function buscarConsulta()
@@ -203,14 +288,14 @@ class CrearFactura extends Component
         $baremo = $this->baremo_id ? Baremo::find($this->baremo_id) : null;
 
         $this->detalles[] = [
-            'baremo_id' => $this->baremo_id,
-            'descripcion' => $this->descripcion,
-            'cantidad' => $this->cantidad,
+            'baremo_id'       => $this->baremo_id,
+            'descripcion'     => $this->descripcion,
+            'cantidad'        => $this->cantidad,
             'precio_unitario' => $this->precio_unitario,
-            'subtotal' => $this->cantidad * $this->precio_unitario,
-            'aplica_iva' => $baremo ? $baremo->aplica_iva : true,
-            'exento_iva' => $baremo ? $baremo->exento_iva : false,
-            'iva_alicuota' => ($baremo && $baremo->exento_iva) ? 0 : 16.00,
+            'subtotal'        => $this->cantidad * $this->precio_unitario,
+            'aplica_iva'      => $baremo ? (bool) $baremo->aplica_iva : true,
+            'exento_iva'      => $baremo ? (bool) $baremo->exento_iva : false,
+            'iva_alicuota'    => ($baremo && ($baremo->exento_iva || !$baremo->aplica_iva)) ? 0 : 16.00,
         ];
 
         $this->reset(['baremo_id', 'descripcion', 'precio_unitario', 'buscar_baremo', 'baremos_filtrados']);
@@ -235,15 +320,16 @@ class CrearFactura extends Component
             $this->carrito[$key]['cantidad']++;
         } else {
             $this->carrito[$key] = [
-                'tipo' => 'baremo',
-                'id' => $baremoId,
-                'codigo' => $baremo->codigo,
-                'descripcion' => $baremo->nombre_servicio,
-                'especialidad' => $baremo->especialidad->nombre ?? '',
-                'cantidad' => 1,
+                'tipo'            => 'baremo',
+                'id'              => $baremoId,
+                'codigo'          => $baremo->codigo,
+                'descripcion'     => $baremo->nombre_servicio,
+                'especialidad'    => $baremo->especialidad->nombre ?? '',
+                'cantidad'        => 1,
                 'precio_unitario' => $baremo->costo_usd,
-                'aplica_iva' => $baremo->aplica_iva,
-                'exento_iva' => $baremo->exento_iva,
+                'aplica_iva'      => (bool) $baremo->aplica_iva,
+                'exento_iva'      => (bool) $baremo->exento_iva,
+                'iva_alicuota'    => ($baremo->exento_iva || !$baremo->aplica_iva) ? 0 : 16.00,
             ];
         }
 
@@ -254,6 +340,14 @@ class CrearFactura extends Component
     public function actualizarCantidad($key, $cantidad)
     {
         if ($cantidad > 0) {
+            // Verificar stock si es producto
+            if (isset($this->carrito[$key]) && $this->carrito[$key]['tipo'] === 'producto') {
+                $stockDisponible = $this->carrito[$key]['stock_disponible'] ?? 0;
+                if ($cantidad > $stockDisponible) {
+                    $this->dispatch('notify', type: 'warning', message: 'Cantidad excede el stock disponible');
+                    return;
+                }
+            }
             $this->carrito[$key]['cantidad'] = $cantidad;
         } else {
             unset($this->carrito[$key]);
@@ -269,45 +363,55 @@ class CrearFactura extends Component
 
     public function calcularTotales()
     {
-        $this->subtotal = 0;
-        $baseImponible = 0;
-        $montoExento = 0;
+        // Todos los montos se manejan en USD internamente
+        $subtotalUsd      = 0;
+        $baseImponibleUsd = 0;
+        $montoExentoUsd   = 0;
+        $ivaMonto         = 0;
 
-        foreach ($this->detalles as $item) {
-            $subtotalItem = $item['cantidad'] * $item['precio_unitario'];
-            $this->subtotal += $subtotalItem;
+        $ivaConfig     = ImpuestoConfiguracion::where('codigo', 'IVA')->where('activo', true)->first();
+        $ivaPorcentaje = $ivaConfig ? (float) $ivaConfig->porcentaje : 16;
 
-            if ($item['exento_iva']) {
-                $montoExento += $subtotalItem;
-            } elseif ($item['aplica_iva']) {
-                $baseImponible += $subtotalItem;
+        $todosLosItems = array_merge(
+            array_values($this->detalles),
+            array_values($this->carrito)
+        );
+
+        foreach ($todosLosItems as $item) {
+            $subtotalItem = (float) $item['cantidad'] * (float) $item['precio_unitario'];
+            $subtotalUsd += $subtotalItem;
+
+            $esExento   = (bool) ($item['exento_iva'] ?? false);
+            $aplicaIva  = (bool) ($item['aplica_iva'] ?? true);
+            $alicuota   = (float) ($item['iva_alicuota'] ?? $ivaPorcentaje);
+
+            if ($esExento || !$aplicaIva) {
+                // Exento o no aplica IVA → va a monto exento
+                $montoExentoUsd += $subtotalItem;
             } else {
-                $montoExento += $subtotalItem;
+                // Gravado → usar la alícuota del item (puede ser 16%, 8%, etc.)
+                $baseImponibleUsd += $subtotalItem;
+                $ivaMonto         += $subtotalItem * ($alicuota / 100);
             }
         }
 
-        $this->subtotal -= $this->descuento;
-        $this->monto_exento = $montoExento * $this->tasa_usd;
-        $this->base_imponible = $baseImponible * $this->tasa_usd;
+        $subtotalUsd -= (float) $this->descuento;
 
-        if ($this->es_factura_fiscal) {
-            $ivaConfig = ImpuestoConfiguracion::where('codigo', 'IVA')->where('activo', true)->first();
-            $ivaPorcentaje = $ivaConfig ? $ivaConfig->porcentaje : 16;
-            $this->iva_monto = $this->base_imponible * ($ivaPorcentaje / 100);
-        } else {
-            $this->iva_monto = 0;
-        }
+        $this->subtotal       = $subtotalUsd;
+        $this->base_imponible = $baseImponibleUsd;
+        $this->monto_exento   = $montoExentoUsd;
+        $this->iva_monto      = $this->es_factura_fiscal ? $ivaMonto : 0;
 
         $fiscalIgtf = FiscalCalculator::calcularIgtfDesdeDatos(
             auth()->user()->empresa_id,
             $this->metodo_pago,
             $this->metodo_pago === 'mixto',
             $this->pagos_mixtos,
-            $this->subtotal
+            $subtotalUsd
         );
-        $this->igtf_monto = ($fiscalIgtf['aplica_igtf'] ?? false) ? ($fiscalIgtf['igtf_monto'] * $this->tasa_usd) : 0;
+        $this->igtf_monto = ($fiscalIgtf['aplica_igtf'] ?? false) ? $fiscalIgtf['igtf_monto'] : 0;
 
-        $this->total = ($this->subtotal * $this->tasa_usd) + $this->iva_monto + $this->igtf_monto;
+        $this->total = $subtotalUsd + $this->iva_monto + $this->igtf_monto;
     }
 
     public function agregarPagoMixto()
@@ -337,12 +441,15 @@ class CrearFactura extends Component
             'consulta_id' => 'required',
             'tipo_pago' => 'required',
             'metodo_pago' => 'required',
-            'detalles' => 'required|array|min:1'
         ], [
             'consulta_id.required' => 'Debe seleccionar una consulta',
-            'detalles.required' => 'Debe agregar al menos un servicio',
-            'detalles.min' => 'Debe agregar al menos un servicio'
         ]);
+
+        // Validar que haya al menos un item (detalles o carrito)
+        if (empty($this->detalles) && empty($this->carrito)) {
+            session()->flash('error', 'Debe agregar al menos un servicio o producto');
+            return;
+        }
 
         // Validar que el total no sea cero
         if ($this->total <= 0) {
@@ -404,10 +511,10 @@ class CrearFactura extends Component
                 'user_id' => auth()->id(),
                 'subtotal' => $this->subtotal,
                 'descuento' => $this->descuento,
-                'total' => $this->total / $this->tasa_usd,
+                'total' => $this->total,
                 'tasa_cambio_usd' => $this->tasa_usd,
-                'total_usd' => $this->total / $this->tasa_usd,
-                'total_bs' => $this->total,
+                'total_usd' => $this->total,
+                'total_bs' => $this->total * $this->tasa_usd,
                 'metodo_pago' => $this->metodo_pago,
                 'estado' => Pago::ESTADO_APROBADO,
                 'observaciones' => $this->observaciones,
@@ -422,6 +529,7 @@ class CrearFactura extends Component
                 'condicion_pago' => $this->condicion_pago,
                 'pagos_mixtos' => $this->metodo_pago === 'mixto' ? json_encode($this->pagos_mixtos) : null,
                 'detalles_pago_mixto' => $this->metodo_pago === 'mixto' ? $this->pagos_mixtos : null,
+                'total_con_impuestos' => $this->total,
             ]);
 
             foreach ($this->detalles as $item) {
@@ -429,12 +537,39 @@ class CrearFactura extends Component
                     'baremo_id' => $item['baremo_id'] ?? null,
                     'descripcion' => $item['descripcion'],
                     'cantidad' => $item['cantidad'],
-                    'precio_unitario' => $item['precio_unitario'] * $this->tasa_usd,
-                    'subtotal' => $item['subtotal'] * $this->tasa_usd,
+                    'precio_unitario' => $item['precio_unitario'],
+                    'subtotal' => $item['subtotal'],
                     'aplica_iva' => $item['aplica_iva'],
                     'exento_iva' => $item['exento_iva'],
                     'iva_alicuota' => $item['iva_alicuota'] ?? 16,
                 ]);
+            }
+
+            // Guardar productos del carrito
+            foreach ($this->carrito as $item) {
+                if ($item['tipo'] === 'producto') {
+                    \App\Models\VentaProducto::create([
+                        'pago_id' => $pago->id,
+                        'producto_id' => $item['id'],
+                        'cantidad' => $item['cantidad'],
+                        'precio_unitario' => $item['precio_unitario'],
+                        'aplica_iva' => $item['aplica_iva'],
+                        'exento_iva' => $item['exento_iva'],
+                        'iva_alicuota' => $item['iva_alicuota'] ?? 16,
+                        'costo_unitario' => $item['costo_unitario'] ?? 0,
+                    ]);
+                } elseif ($item['tipo'] === 'baremo') {
+                    $pago->detalles()->create([
+                        'baremo_id' => $item['id'],
+                        'descripcion' => $item['descripcion'],
+                        'cantidad' => $item['cantidad'],
+                        'precio_unitario' => $item['precio_unitario'],
+                        'subtotal' => $item['cantidad'] * $item['precio_unitario'],
+                        'aplica_iva' => $item['aplica_iva'],
+                        'exento_iva' => $item['exento_iva'],
+                        'iva_alicuota' => $item['iva_alicuota'] ?? 16,
+                    ]);
+                }
             }
 
             \DB::commit();

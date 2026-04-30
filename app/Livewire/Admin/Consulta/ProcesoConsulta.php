@@ -656,6 +656,12 @@ class ProcesoConsulta extends Component
     public function finalizarConsulta()
     {
         $this->consulta->cambiarEstado(Consulta::ESTADO_FINALIZADA);
+        
+        // Si la consulta tiene una cita asociada, finalizarla también
+        if ($this->consulta->cita_id && $this->consulta->cita) {
+            $this->consulta->cita->cambiarEstado(\App\Models\Cita::ESTADO_FINALIZADA);
+        }
+        
         session()->flash('success', 'Consulta finalizada exitosamente');
         return redirect()->to('/admin/gestion/consultas/en-consultorio');
     }

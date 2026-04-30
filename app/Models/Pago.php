@@ -11,6 +11,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use App\Traits\HasSpanishActivityLog;
 use App\Traits\FiscalAuditable;
+use Illuminate\Support\Facades\DB;
 
 class Pago extends Model
 {
@@ -149,6 +150,11 @@ class Pago extends Model
         return $this->hasMany(PagoDetalle::class);
     }
 
+    public function ventasProductos()
+    {
+        return $this->hasMany(VentaProducto::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -234,47 +240,74 @@ class Pago extends Model
 
     public static function generarNumero($tipo, $empresaId, $sucursalId, $serieId = null)
     {
-        if ($serieId) {
-            $serieModel = Serie::find($serieId);
-        } else {
-            $serieModel = Serie::where('tipo_documento', $tipo)
-                ->where('empresa_id', $empresaId)
-                ->where('sucursal_id', $sucursalId)
-                ->where('activo', true)
-                ->first();
-        }
+        return DB::transaction(function () use ($tipo, $empresaId, $sucursalId, $serieId) {
+            if ($serieId) {
+                $serieModel = Serie::lockForUpdate()->find($serieId);
+                if (!$serieModel) {
+                    throw new \Exception("Serie con ID {$serieId} no encontrada");
+                }
+            } else {
+                // Buscar serie existente para este tipo de documento
+                $serieModel = Serie::lockForUpdate()
+                    ->where('tipo_documento', $tipo)
+                    ->where('empresa_id', $empresaId)
+                    ->where('sucursal_id', $sucursalId)
+                    ->where('activo', true)
+                    ->first();
 
-        if (!$serieModel) {
-            $prefijos = [
-                'factura' => 'F001',
-                'boleta' => 'B001',
-                'nota_credito' => 'NC01',
-                'nota_debito' => 'ND01',
-                'recibo' => 'R001'
+                if (!$serieModel) {
+                    $prefijos = [
+                        'factura' => 'F001',
+                        'boleta' => 'B001',
+                        'nota_credito' => 'NC01',
+                        'nota_debito' => 'ND01',
+                        'recibo' => 'R001'
+                    ];
+
+                    $seriePrefijo = $prefijos[$tipo] ?? 'DOC1';
+                    
+                    // Intentar crear la serie usando firstOrCreate para evitar duplicados
+                    try {
+                        $serieModel = Serie::firstOrCreate(
+                            [
+                                'tipo_documento' => $tipo,
+                                'empresa_id' => $empresaId,
+                                'sucursal_id' => $sucursalId,
+                                'activo' => true
+                            ],
+                            [
+                                'serie' => $seriePrefijo,
+                                'correlativo_actual' => 0,
+                                'control_fiscal_actual' => '00000000',
+                                'longitud_correlativo' => 8,
+                                'longitud_control_fiscal' => 8,
+                            ]
+                        );
+                    } catch (\Exception $e) {
+                        // Si falla, buscar cualquier serie existente para este tipo
+                        $serieModel = Serie::where('tipo_documento', $tipo)
+                            ->where('empresa_id', $empresaId)
+                            ->where('sucursal_id', $sucursalId)
+                            ->where('activo', true)
+                            ->first();
+                            
+                        if (!$serieModel) {
+                            throw new \Exception("No se pudo crear o encontrar una serie para {$tipo}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            $numero = $serieModel->obtenerSiguienteNumero();
+            $controlFiscal = $serieModel->numero_control_fiscal;
+
+            return [
+                'serie_id' => $serieModel->id,
+                'serie' => $serieModel->serie,
+                'numero' => $numero,
+                'control_fiscal' => $controlFiscal
             ];
-
-            $serieModel = Serie::create([
-                'tipo_documento' => $tipo,
-                'serie' => $prefijos[$tipo] ?? 'DOC1',
-                'correlativo_actual' => 0,
-                'control_fiscal_actual' => '00000000',
-                'longitud_correlativo' => 8,
-                'longitud_control_fiscal' => 8,
-                'activo' => true,
-                'empresa_id' => $empresaId,
-                'sucursal_id' => $sucursalId
-            ]);
-        }
-
-        $numero = $serieModel->obtenerSiguienteNumero();
-        $controlFiscal = $serieModel->numero_control_fiscal;
-
-        return [
-            'serie_id' => $serieModel->id,
-            'serie' => $serieModel->serie,
-            'numero' => $numero,
-            'control_fiscal' => $controlFiscal
-        ];
+        });
     }
 
     protected static function boot()
@@ -421,33 +454,58 @@ class Pago extends Model
             'aplica_igtf' => $aplicaIGTF,
         ];
 
-        $fiscal = FiscalCalculator::calcular($this);
-        $updateData = array_merge($updateData, [
-            'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
-            'igtf_monto' => $fiscal['igtf_monto'],
-            'aplica_igtf' => $fiscal['aplica_igtf'],
-        ]);
-
+        // Calcular datos fiscales si es factura fiscal
         if ($this->es_factura_fiscal) {
-
-            $baseImponible16 = $total * $tasaUSD;
-
+            $fiscal = FiscalCalculator::calcular($this);
+            
             $updateData = array_merge($updateData, [
-                'base_imponible' => $baseImponible16,
+                'base_imponible' => $fiscal['base_imponible'],
                 'monto_exento' => $fiscal['monto_exento'],
                 'base_imponible_general' => $fiscal['base_imponible_general'],
                 'iva_monto_general' => $fiscal['iva_monto_general'],
                 'base_imponible_reducida' => $fiscal['base_imponible_reducida'],
                 'iva_monto_reducida' => $fiscal['iva_monto_reducida'],
-                'iva_porcentaje' => $fiscal['iva_porcentaje'] ?? $this->iva_porcentaje,
+                'iva_porcentaje' => $fiscal['iva_porcentaje'],
                 'iva_monto' => $fiscal['iva_monto'],
+                'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
+                'igtf_monto' => $fiscal['igtf_monto'],
+                'aplica_igtf' => $fiscal['aplica_igtf'],
                 'total_con_impuestos' => $fiscal['total_con_impuestos'],
                 'seniat_tipo_documento' => $fiscal['seniat_tipo_documento'] ?? $this->getSeniatTipoDocumentoCode(),
             ]);
 
+            // Actualizar totales en USD y BS con impuestos incluidos
             $totalConImpuestos = $fiscal['total_con_impuestos'];
-            $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
-            $updateData['total_usd'] = $totalConImpuestos;
+            if ($this->es_pago_mixto && $this->detalles_pago_mixto) {
+                // Para pagos mixtos, mantener la distribución original pero ajustar proporcionalmente
+                $factor = $totalConImpuestos / $total;
+                $updateData['total_usd'] = $totalUSD * $factor;
+                $updateData['total_bs'] = $totalBS * $factor;
+            } else {
+                switch ($this->metodo_pago) {
+                    case 'efectivo_bs':
+                    case 'transferencia_bs':
+                    case 'pago_movil':
+                        $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
+                        $updateData['total_usd'] = $totalConImpuestos;
+                        break;
+                    case 'efectivo_usd':
+                    case 'transferencia_usd':
+                    case 'zelle':
+                    case 'paypal':
+                        $updateData['total_usd'] = $totalConImpuestos;
+                        $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
+                        break;
+                }
+            }
+        } else {
+            // Para documentos no fiscales, solo calcular IGTF si aplica
+            $fiscal = FiscalCalculator::calcular($this);
+            $updateData = array_merge($updateData, [
+                'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
+                'igtf_monto' => $fiscal['igtf_monto'],
+                'aplica_igtf' => $fiscal['aplica_igtf'],
+            ]);
         }
 
         $this->updateQuietly($updateData);

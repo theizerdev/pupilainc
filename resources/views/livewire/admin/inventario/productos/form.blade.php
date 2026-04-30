@@ -232,6 +232,52 @@
                     </div>
 
                     <div class="card mb-4">
+                        <div class="card-header"><h5 class="mb-0">Configuración Fiscal (IVA)</h5></div>
+                        <div class="card-body">
+                            <div class="row align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Estado IVA</label>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" wire:model.live="aplica_iva" id="aplica_iva">
+                                            <label class="form-check-label" for="aplica_iva">Aplica IVA</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" wire:model.live="exento_iva" id="exento_iva">
+                                            <label class="form-check-label" for="exento_iva">Exento de IVA</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Alícuota IVA</label>
+                                    <select class="form-select @error('iva_alicuota') is-invalid @enderror"
+                                            wire:model="iva_alicuota"
+                                            @if(!$aplica_iva || $exento_iva) disabled @endif>
+                                        <option value="0">0% - No aplica / Exento</option>
+                                        <option value="8">8% - Alícuota reducida</option>
+                                        <option value="16">16% - Alícuota general</option>
+                                    </select>
+                                    @error('iva_alicuota')<span class="text-danger small">{{ $message }}</span>@enderror
+                                </div>
+                                <div class="col-md-4">
+                                    @if($exento_iva || !$aplica_iva)
+                                        <div class="alert alert-warning py-2 mb-0">
+                                            <i class="ri-information-line me-1"></i>
+                                            <strong>Exento:</strong> Este producto no genera IVA en la factura.
+                                        </div>
+                                    @elseif($aplica_iva)
+                                        <div class="alert alert-success py-2 mb-0">
+                                            <i class="ri-percent-line me-1"></i>
+                                            <strong>Gravado al {{ $iva_alicuota }}%:</strong>
+                                            Precio con IVA: <strong>${{ number_format((float)$precio_venta * (1 + $iva_alicuota / 100), 2) }}</strong>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
                         <div class="card-header"><h5 class="mb-0">Detalles Adicionales</h5></div>
                         <div class="card-body">
                             <div class="row">

@@ -26,13 +26,13 @@
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover">
-                                <thead class="table-dark">
+                            <table class="table table-bordered table-hover align-middle">
+                                <thead class="bg-primary text-white">
                                     <tr>
                                         <th rowspan="2" class="align-middle">Código</th>
                                         <th rowspan="2" class="align-middle">Cuenta</th>
-                                        <th colspan="2" class="text-center">Movimientos</th>
-                                        <th colspan="2" class="text-center">Saldos</th>
+                                        <th colspan="2" class="text-center">Movimientos del período</th>
+                                        <th colspan="2" class="text-center">Saldos finales</th>
                                     </tr>
                                     <tr>
                                         <th class="text-end">Debe</th>
@@ -46,8 +46,8 @@
                                         <tr>
                                             <td><strong>{{ $cuenta->codigo }}</strong></td>
                                             <td>{{ $cuenta->nombre }}</td>
-                                            <td class="text-end">{{ format_money($cuenta->debe, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ format_money($cuenta->haber, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($cuenta->debe_periodo, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($cuenta->haber_periodo, 2, ',', '.') }}</td>
                                             <td class="text-end">
                                                 @if($cuenta->saldo_deudor > 0)
                                                     {{ format_money($cuenta->saldo_deudor, 2, ',', '.') }}
@@ -61,18 +61,18 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted">No hay movimientos en el período seleccionado</td>
+                                            <td colspan="6" class="text-center text-muted py-4">No hay movimientos en el período seleccionado</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                                 @if($cuentas->count() > 0)
-                                    <tfoot class="table-dark fw-bold">
+                                    <tfoot class="bg-primary text-white fw-bold">
                                         <tr>
                                             <td colspan="2" class="text-end">TOTALES</td>
-                                            <td class="text-end">{{ format_money($totales->debe, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ format_money($totales->haber, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ format_money($totales->saldo_deudor, 2, ',', '.') }}</td>
-                                            <td class="text-end">{{ format_money($totales->saldo_acreedor, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->debe_periodo, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->haber_periodo, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->saldo_final_deudor, 2, ',', '.') }}</td>
+                                            <td class="text-end">{{ format_money($totales->saldo_final_acreedor, 2, ',', '.') }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif
