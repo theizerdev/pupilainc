@@ -12,6 +12,7 @@ class PlantillaSeccion extends Model
 
     protected $fillable = [
         'plantilla_id',
+        'estado_formulario_id',
         'nombre',
         'icono',
         'color',

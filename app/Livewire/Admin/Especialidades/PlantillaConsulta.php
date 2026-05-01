@@ -21,6 +21,23 @@ class PlantillaConsulta extends Component
     public array $pasosHabilitados = [];
     public array $estadosFlujo     = [];
 
+    // Modal paso
+    public bool   $modalPaso      = false;
+    public ?int   $pasoEditIndex  = null;
+    public string $pasoKey        = '';
+    public string $pasoNombre     = '';
+    public string $pasoIcono      = 'ri-stethoscope-line';
+    public bool   $pasoActivo     = true;
+    public string $pasoTipo       = 'predefinido'; // predefinido | formulario
+
+    // Modal estado
+    public bool   $modalEstado      = false;
+    public ?int   $estadoEditIndex  = null;
+    public string $estadoKey        = '';
+    public string $estadoNombre     = '';
+    public string $estadoColor      = '#6B7280';
+    public bool   $estadoActivo     = true;
+
     // Secciones cargadas para la UI
     public array $secciones = [];
 
@@ -69,18 +86,38 @@ class PlantillaConsulta extends Component
             ->first();
 
         if ($this->plantilla) {
-            $this->pasosHabilitados = $this->plantilla->pasos_habilitados
-                ?? array_keys(EspecialidadPlantilla::PASOS_DISPONIBLES);
-            $this->estadosFlujo = $this->plantilla->estados_flujo
-                ?? $this->plantilla->getEstadosEfectivos();
+            $this->pasosHabilitados = $this->plantilla->getPasosEfectivos();
+            $this->estadosFlujo = $this->plantilla->getEstadosEfectivos();
             $this->sincronizarSecciones();
             $this->sincronizarEstadoFormularios();
         } else {
-            $this->pasosHabilitados = array_keys(EspecialidadPlantilla::PASOS_DISPONIBLES);
-            $this->estadosFlujo     = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
+            $this->pasosHabilitados = $this->getPasosDefecto();
+            $this->estadosFlujo     = $this->getEstadosDefecto();
             $this->secciones        = [];
             $this->estadoFormularios = [];
         }
+    }
+
+    private function getPasosDefecto(): array
+    {
+        return [
+            ['key' => 'signos_vitales', 'nombre' => 'Signos Vitales', 'icono' => 'ri-heart-pulse-line', 'activo' => true, 'tipo' => 'predefinido', 'orden' => 1],
+            ['key' => 'cuestionario', 'nombre' => 'Cuestionario', 'icono' => 'ri-questionnaire-line', 'activo' => true, 'tipo' => 'predefinido', 'orden' => 2],
+            ['key' => 'evaluacion', 'nombre' => 'Evaluación', 'icono' => 'ri-file-list-3-line', 'activo' => true, 'tipo' => 'predefinido', 'orden' => 3],
+            ['key' => 'estudios', 'nombre' => 'Estudios', 'icono' => 'ri-microscope-line', 'activo' => true, 'tipo' => 'predefinido', 'orden' => 4],
+            ['key' => 'tratamiento', 'nombre' => 'Tratamiento', 'icono' => 'ri-medicine-bottle-line', 'activo' => true, 'tipo' => 'predefinido', 'orden' => 5],
+            ['key' => 'reposo', 'nombre' => 'Reposo', 'icono' => 'ri-hotel-bed-line', 'activo' => true, 'tipo' => 'predefinido', 'orden' => 6],
+        ];
+    }
+
+    private function getEstadosDefecto(): array
+    {
+        return [
+            ['key' => 'sala_espera', 'nombre' => 'Sala de Espera', 'color' => '#6B7280', 'activo' => true, 'orden' => 1],
+            ['key' => 'en_enfermeria', 'nombre' => 'En Enfermería', 'color' => '#3B82F6', 'activo' => true, 'orden' => 2],
+            ['key' => 'en_consultorio', 'nombre' => 'En Consultorio', 'color' => '#10B981', 'activo' => true, 'orden' => 3],
+            ['key' => 'finalizada', 'nombre' => 'Finalizada', 'color' => '#8B5CF6', 'activo' => true, 'orden' => 4],
+        ];
     }
 
     private function sincronizarEstadoFormularios(): void
@@ -154,13 +191,16 @@ class PlantillaConsulta extends Component
 
     public function abrirModalSeccionEstado(string $estado, ?int $seccionId = null): void
     {
+        if (!$this->plantilla) $this->crearPlantilla();
+        
         // Asegura que el formulario de estado existe
-        $this->crearOAbrirFormularioEstado($estado);
-        $ef = PlantillaEstadoFormulario::where('plantilla_id', $this->plantilla->id)
-            ->where('estado', $estado)->firstOrFail();
+        $ef = PlantillaEstadoFormulario::firstOrCreate(
+            ['plantilla_id' => $this->plantilla->id, 'estado' => $estado],
+            ['titulo' => EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estado] ?? ucfirst($estado), 'activo' => true]
+        );
 
         $this->resetModalSeccion();
-        $this->campoEstadoFormularioId = $ef->id; // reutilizamos para saber el contexto
+        $this->campoEstadoFormularioId = $ef->id;
 
         if ($seccionId) {
             $seccion = PlantillaSeccion::findOrFail($seccionId);
@@ -181,6 +221,7 @@ class PlantillaConsulta extends Component
         ]);
 
         $efId = $this->campoEstadoFormularioId;
+        $ef = PlantillaEstadoFormulario::findOrFail($efId);
 
         if ($this->seccionEditId) {
             PlantillaSeccion::findOrFail($this->seccionEditId)->update([
@@ -201,8 +242,14 @@ class PlantillaConsulta extends Component
             ]);
         }
 
-        $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+        // Recargar plantilla completa desde la base de datos
+        $this->plantilla = EspecialidadPlantilla::with(['todosLosEstadoFormularios.todasLasSecciones.todosLosCampos'])
+            ->findOrFail($this->plantilla->id);
         $this->sincronizarEstadoFormularios();
+        
+        // Mantener el estado abierto después de guardar
+        $this->estadoFormularioActivo = $ef->estado;
+        
         $this->resetModalSeccion();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Sección guardada.']);
     }
@@ -270,8 +317,8 @@ class PlantillaConsulta extends Component
             'especialidad_id'   => $this->especialidad->id,
             'nombre'            => 'Consulta de ' . $this->especialidad->nombre,
             'activo'            => true,
-            'pasos_habilitados' => $this->pasosHabilitados,
-            'estados_flujo'     => $this->estadosFlujo,
+            'pasos_config'      => $this->pasosHabilitados,
+            'estados_config'    => $this->estadosFlujo,
             'empresa_id'        => auth()->user()->empresa_id,
             'sucursal_id'       => auth()->user()->sucursal_id,
         ]);
@@ -287,35 +334,201 @@ class PlantillaConsulta extends Component
         }
 
         $this->plantilla->update([
-            'pasos_habilitados' => $this->pasosHabilitados,
-            'estados_flujo'     => $this->estadosFlujo,
+            'pasos_config'   => $this->pasosHabilitados,
+            'estados_config' => $this->estadosFlujo,
         ]);
 
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Configuración guardada.']);
     }
 
-    // ── Pasos y estados ───────────────────────────────────────────────────────
+    // ── Pasos ─────────────────────────────────────────────────────────────────
 
-    public function togglePaso(string $paso): void
+    public function abrirModalPaso(?int $index = null): void
     {
-        if (in_array($paso, $this->pasosHabilitados)) {
-            $this->pasosHabilitados = array_values(
-                array_filter($this->pasosHabilitados, fn($p) => $p !== $paso)
-            );
+        $this->resetModalPaso();
+
+        if ($index !== null && isset($this->pasosHabilitados[$index])) {
+            $paso = $this->pasosHabilitados[$index];
+            $this->pasoEditIndex = $index;
+            $this->pasoKey       = $paso['key'];
+            $this->pasoNombre    = $paso['nombre'];
+            $this->pasoIcono     = $paso['icono'] ?? 'ri-stethoscope-line';
+            $this->pasoActivo    = $paso['activo'] ?? true;
+            $this->pasoTipo      = $paso['tipo'] ?? 'predefinido';
+        }
+
+        $this->modalPaso = true;
+    }
+
+    public function guardarPaso(): void
+    {
+        $this->validate([
+            'pasoNombre' => 'required|string|max:100',
+            'pasoIcono'  => 'required|string|max:50',
+            'pasoTipo'   => 'required|in:predefinido,formulario',
+        ]);
+
+        if ($this->pasoEditIndex !== null) {
+            // Editar paso existente
+            $this->pasosHabilitados[$this->pasoEditIndex] = [
+                'key'    => $this->pasoKey,
+                'nombre' => $this->pasoNombre,
+                'icono'  => $this->pasoIcono,
+                'activo' => $this->pasoActivo,
+                'tipo'   => $this->pasoTipo,
+                'orden'  => $this->pasosHabilitados[$this->pasoEditIndex]['orden'],
+            ];
+            $msg = 'Paso actualizado.';
         } else {
-            $this->pasosHabilitados[] = $paso;
+            // Crear nuevo paso
+            $key = \Illuminate\Support\Str::snake(\Illuminate\Support\Str::ascii($this->pasoNombre));
+            $orden = count($this->pasosHabilitados) + 1;
+            $this->pasosHabilitados[] = [
+                'key'    => $key,
+                'nombre' => $this->pasoNombre,
+                'icono'  => $this->pasoIcono,
+                'activo' => true,
+                'tipo'   => $this->pasoTipo,
+                'orden'  => $orden,
+            ];
+            $msg = 'Paso agregado.';
+        }
+
+        // Guardar automáticamente en la base de datos
+        $this->guardarConfiguracion();
+        
+        $this->resetModalPaso();
+        $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
+    }
+
+    public function togglePaso(int $index): void
+    {
+        if (isset($this->pasosHabilitados[$index])) {
+            $this->pasosHabilitados[$index]['activo'] = !$this->pasosHabilitados[$index]['activo'];
+            $this->guardarConfiguracion();
         }
     }
 
-    public function toggleEstado(string $estado): void
+    public function eliminarPaso(int $index): void
     {
-        if (in_array($estado, $this->estadosFlujo)) {
-            $this->estadosFlujo = array_values(
-                array_filter($this->estadosFlujo, fn($e) => $e !== $estado)
-            );
-        } else {
-            $this->estadosFlujo[] = $estado;
+        if (isset($this->pasosHabilitados[$index])) {
+            array_splice($this->pasosHabilitados, $index, 1);
+            // Reordenar
+            foreach ($this->pasosHabilitados as $i => &$paso) {
+                $paso['orden'] = $i + 1;
+            }
+            $this->guardarConfiguracion();
+            $this->dispatch('notify', ['type' => 'success', 'message' => 'Paso eliminado.']);
         }
+    }
+
+    public function moverPaso(int $index, string $direccion): void
+    {
+        $swap = $direccion === 'up' ? $index - 1 : $index + 1;
+        if ($swap < 0 || $swap >= count($this->pasosHabilitados)) return;
+
+        $temp = $this->pasosHabilitados[$index];
+        $this->pasosHabilitados[$index] = $this->pasosHabilitados[$swap];
+        $this->pasosHabilitados[$swap] = $temp;
+
+        // Actualizar orden
+        $this->pasosHabilitados[$index]['orden'] = $index + 1;
+        $this->pasosHabilitados[$swap]['orden'] = $swap + 1;
+        
+        $this->guardarConfiguracion();
+    }
+
+    // ── Estados ───────────────────────────────────────────────────────────────
+
+    public function abrirModalEstado(?int $index = null): void
+    {
+        $this->resetModalEstado();
+
+        if ($index !== null && isset($this->estadosFlujo[$index])) {
+            $estado = $this->estadosFlujo[$index];
+            $this->estadoEditIndex = $index;
+            $this->estadoKey       = $estado['key'];
+            $this->estadoNombre    = $estado['nombre'];
+            $this->estadoColor     = $estado['color'] ?? '#6B7280';
+            $this->estadoActivo    = $estado['activo'] ?? true;
+        }
+
+        $this->modalEstado = true;
+    }
+
+    public function guardarEstado(): void
+    {
+        $this->validate([
+            'estadoNombre' => 'required|string|max:100',
+            'estadoColor'  => 'required|string|max:7',
+        ]);
+
+        if ($this->estadoEditIndex !== null) {
+            // Editar estado existente
+            $this->estadosFlujo[$this->estadoEditIndex] = [
+                'key'    => $this->estadoKey,
+                'nombre' => $this->estadoNombre,
+                'color'  => $this->estadoColor,
+                'activo' => $this->estadoActivo,
+                'orden'  => $this->estadosFlujo[$this->estadoEditIndex]['orden'],
+            ];
+            $msg = 'Estado actualizado.';
+        } else {
+            // Crear nuevo estado
+            $key = \Illuminate\Support\Str::snake(\Illuminate\Support\Str::ascii($this->estadoNombre));
+            $orden = count($this->estadosFlujo) + 1;
+            $this->estadosFlujo[] = [
+                'key'    => $key,
+                'nombre' => $this->estadoNombre,
+                'color'  => $this->estadoColor,
+                'activo' => true,
+                'orden'  => $orden,
+            ];
+            $msg = 'Estado agregado.';
+        }
+
+        // Guardar automáticamente en la base de datos
+        $this->guardarConfiguracion();
+        
+        $this->resetModalEstado();
+        $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
+    }
+
+    public function toggleEstado(int $index): void
+    {
+        if (isset($this->estadosFlujo[$index])) {
+            $this->estadosFlujo[$index]['activo'] = !$this->estadosFlujo[$index]['activo'];
+            $this->guardarConfiguracion();
+        }
+    }
+
+    public function eliminarEstado(int $index): void
+    {
+        if (isset($this->estadosFlujo[$index])) {
+            array_splice($this->estadosFlujo, $index, 1);
+            // Reordenar
+            foreach ($this->estadosFlujo as $i => &$estado) {
+                $estado['orden'] = $i + 1;
+            }
+            $this->guardarConfiguracion();
+            $this->dispatch('notify', ['type' => 'success', 'message' => 'Estado eliminado.']);
+        }
+    }
+
+    public function moverEstado(int $index, string $direccion): void
+    {
+        $swap = $direccion === 'up' ? $index - 1 : $index + 1;
+        if ($swap < 0 || $swap >= count($this->estadosFlujo)) return;
+
+        $temp = $this->estadosFlujo[$index];
+        $this->estadosFlujo[$index] = $this->estadosFlujo[$swap];
+        $this->estadosFlujo[$swap] = $temp;
+
+        // Actualizar orden
+        $this->estadosFlujo[$index]['orden'] = $index + 1;
+        $this->estadosFlujo[$swap]['orden'] = $swap + 1;
+        
+        $this->guardarConfiguracion();
     }
 
     // ── Secciones ─────────────────────────────────────────────────────────────
@@ -374,15 +587,32 @@ class PlantillaConsulta extends Component
     {
         $seccion = PlantillaSeccion::findOrFail($seccionId);
         $seccion->update(['activo' => !$seccion->activo]);
-        $this->plantilla->load('todasLasSecciones.todosLosCampos');
-        $this->sincronizarSecciones();
+        
+        // Recargar según contexto
+        if ($seccion->estado_formulario_id) {
+            $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+            $this->sincronizarEstadoFormularios();
+        } else {
+            $this->plantilla->load('todasLasSecciones.todosLosCampos');
+            $this->sincronizarSecciones();
+        }
     }
 
     public function eliminarSeccion(int $seccionId): void
     {
-        PlantillaSeccion::findOrFail($seccionId)->delete();
-        $this->plantilla->load('todasLasSecciones.todosLosCampos');
-        $this->sincronizarSecciones();
+        $seccion = PlantillaSeccion::findOrFail($seccionId);
+        $esEstadoFormulario = $seccion->estado_formulario_id !== null;
+        $seccion->delete();
+        
+        // Recargar según contexto
+        if ($esEstadoFormulario) {
+            $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+            $this->sincronizarEstadoFormularios();
+        } else {
+            $this->plantilla->load('todasLasSecciones.todosLosCampos');
+            $this->sincronizarSecciones();
+        }
+        
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Sección eliminada.']);
     }
 
@@ -494,15 +724,34 @@ class PlantillaConsulta extends Component
     {
         $campo = PlantillaCampo::findOrFail($campoId);
         $campo->update(['activo' => !$campo->activo]);
-        $this->plantilla->load('todasLasSecciones.todosLosCampos');
-        $this->sincronizarSecciones();
+        
+        // Recargar según contexto
+        $seccion = $campo->seccion;
+        if ($seccion && $seccion->estado_formulario_id) {
+            $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+            $this->sincronizarEstadoFormularios();
+        } else {
+            $this->plantilla->load('todasLasSecciones.todosLosCampos');
+            $this->sincronizarSecciones();
+        }
     }
 
     public function eliminarCampo(int $campoId): void
     {
-        PlantillaCampo::findOrFail($campoId)->delete();
-        $this->plantilla->load('todasLasSecciones.todosLosCampos');
-        $this->sincronizarSecciones();
+        $campo = PlantillaCampo::findOrFail($campoId);
+        $seccion = $campo->seccion;
+        $esEstadoFormulario = $seccion && $seccion->estado_formulario_id !== null;
+        $campo->delete();
+        
+        // Recargar según contexto
+        if ($esEstadoFormulario) {
+            $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+            $this->sincronizarEstadoFormularios();
+        } else {
+            $this->plantilla->load('todasLasSecciones.todosLosCampos');
+            $this->sincronizarSecciones();
+        }
+        
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Campo eliminado.']);
     }
 
@@ -527,13 +776,35 @@ class PlantillaConsulta extends Component
 
     // ── Reset modales ─────────────────────────────────────────────────────────
 
+    private function resetModalPaso(): void
+    {
+        $this->modalPaso     = false;
+        $this->pasoEditIndex = null;
+        $this->pasoKey       = '';
+        $this->pasoNombre    = '';
+        $this->pasoIcono     = 'ri-stethoscope-line';
+        $this->pasoActivo    = true;
+        $this->pasoTipo      = 'predefinido';
+    }
+
+    private function resetModalEstado(): void
+    {
+        $this->modalEstado     = false;
+        $this->estadoEditIndex = null;
+        $this->estadoKey       = '';
+        $this->estadoNombre    = '';
+        $this->estadoColor     = '#6B7280';
+        $this->estadoActivo    = true;
+    }
+
     private function resetModalSeccion(): void
     {
-        $this->modalSeccion  = false;
-        $this->seccionEditId = null;
-        $this->seccionNombre = '';
-        $this->seccionIcono  = 'fa-stethoscope';
-        $this->seccionColor  = '#3B82F6';
+        $this->modalSeccion            = false;
+        $this->seccionEditId           = null;
+        $this->campoEstadoFormularioId = null;
+        $this->seccionNombre           = '';
+        $this->seccionIcono            = 'fa-stethoscope';
+        $this->seccionColor            = '#3B82F6';
     }
 
     private function resetModalCampo(): void
@@ -570,11 +841,35 @@ class PlantillaConsulta extends Component
     public function render()
     {
         return view('livewire.admin.especialidades.plantilla-consulta', [
-            'pasosDisponibles'  => EspecialidadPlantilla::PASOS_DISPONIBLES,
-            'estadosDisponibles'=> EspecialidadPlantilla::ESTADOS_DISPONIBLES,
             'tiposCampo'        => PlantillaCampo::TIPOS,
             'iconosDisponibles' => $this->iconosDisponibles(),
+            'iconosPasos'       => $this->iconosPasos(),
+            'anchoOpciones'     => $this->anchoOpciones(),
         ])->layout($this->getLayout());
+    }
+
+    private function anchoOpciones(): array
+    {
+        return [
+            12 => ['Completo', '12/12'],
+            6  => ['Mitad', '6/12'],
+            4  => ['Tercio', '4/12'],
+            3  => ['Cuarto', '3/12'],
+            8  => ['2/3', '8/12'],
+            9  => ['3/4', '9/12'],
+        ];
+    }
+
+    private function iconosPasos(): array
+    {
+        return [
+            'ri-stethoscope-line', 'ri-heart-pulse-line', 'ri-questionnaire-line',
+            'ri-file-list-3-line', 'ri-microscope-line', 'ri-medicine-bottle-line',
+            'ri-hotel-bed-line', 'ri-eye-line', 'ri-ear-line', 'ri-tooth-line',
+            'ri-lungs-line', 'ri-brain-line', 'ri-heart-line', 'ri-pulse-line',
+            'ri-syringe-line', 'ri-capsule-line', 'ri-test-tube-line',
+            'ri-flask-line', 'ri-thermometer-line', 'ri-mental-health-line',
+        ];
     }
 
     private function iconosDisponibles(): array

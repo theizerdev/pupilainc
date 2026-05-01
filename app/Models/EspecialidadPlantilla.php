@@ -20,6 +20,8 @@ class EspecialidadPlantilla extends Model
         'activo',
         'pasos_habilitados',
         'estados_flujo',
+        'pasos_config',
+        'estados_config',
         'empresa_id',
         'sucursal_id',
     ];
@@ -28,9 +30,11 @@ class EspecialidadPlantilla extends Model
         'activo'            => 'boolean',
         'pasos_habilitados' => 'array',
         'estados_flujo'     => 'array',
+        'pasos_config'      => 'array',
+        'estados_config'    => 'array',
     ];
 
-    // Pasos disponibles en el sistema
+    // Pasos predefinidos del sistema (no se pueden eliminar, solo editar nombre/icono)
     const PASOS_DISPONIBLES = [
         'signos_vitales' => 'Signos Vitales',
         'cuestionario'   => 'Cuestionario',
@@ -39,6 +43,87 @@ class EspecialidadPlantilla extends Model
         'tratamientos'   => 'Tratamientos',
         'reposo'         => 'Reposo Médico',
     ];
+
+    const PASOS_ICONOS_DEFAULT = [
+        'signos_vitales' => 'ri-heart-pulse-line',
+        'cuestionario'   => 'ri-questionnaire-line',
+        'evaluacion'     => 'ri-file-text-line',
+        'estudios'       => 'ri-test-tube-line',
+        'tratamientos'   => 'ri-capsule-line',
+        'reposo'         => 'ri-hotel-bed-line',
+    ];
+
+    // Devuelve la config completa de pasos ordenada
+    public function getPasosEfectivos(): array
+    {
+        if (!empty($this->pasos_config)) {
+            return collect($this->pasos_config)
+                ->sortBy('orden')
+                ->values()
+                ->toArray();
+        }
+
+        // Migrar desde pasos_habilitados legacy
+        $habilitados = $this->pasos_habilitados ?? array_keys(self::PASOS_DISPONIBLES);
+        $config = [];
+        foreach (array_keys(self::PASOS_DISPONIBLES) as $i => $key) {
+            $config[] = [
+                'key'    => $key,
+                'nombre' => self::PASOS_DISPONIBLES[$key],
+                'icono'  => self::PASOS_ICONOS_DEFAULT[$key] ?? 'ri-circle-line',
+                'orden'  => $i + 1,
+                'activo' => in_array($key, $habilitados),
+                'tipo'   => 'predefinido',
+            ];
+        }
+        return $config;
+    }
+
+    // Devuelve solo las keys de los pasos activos ordenados (para el stepper)
+    public function getPasosActivosKeys(): array
+    {
+        return collect($this->getPasosEfectivos())
+            ->where('activo', true)
+            ->pluck('key')
+            ->values()
+            ->toArray();
+    }
+
+    // Devuelve la config completa de estados ordenada
+    public function getEstadosEfectivos(): array
+    {
+        if (!empty($this->estados_config)) {
+            return collect($this->estados_config)
+                ->sortBy('orden')
+                ->values()
+                ->toArray();
+        }
+
+        // Migrar desde estados_flujo legacy
+        $flujo = $this->estados_flujo ?? ['sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
+        $config = [];
+        foreach ($flujo as $i => $key) {
+            $config[] = [
+                'key'    => $key,
+                'nombre' => self::ESTADOS_DISPONIBLES[$key] ?? ucfirst($key),
+                'color'  => \App\Models\Consulta::ESTADO_COLORES[$key] ?? '#78909C',
+                'orden'  => $i + 1,
+                'activo' => true,
+            ];
+        }
+        return $config;
+    }
+
+    // Devuelve solo las keys de los estados activos ordenados (para el kanban)
+    public function getEstadosActivosKeys(): array
+    {
+        return collect($this->getEstadosEfectivos())
+            ->where('activo', true)
+            ->sortBy('orden')
+            ->pluck('key')
+            ->values()
+            ->toArray();
+    }
 
     // Estados disponibles en el sistema
     const ESTADOS_DISPONIBLES = [
@@ -101,23 +186,6 @@ class EspecialidadPlantilla extends Model
         return $this->estadoFormularios()->where('estado', $estado)->first();
     }
 
-    // Devuelve los pasos habilitados o todos por defecto
-    public function getPasosEfectivos(): array
-    {
-        return $this->pasos_habilitados ?? array_keys(self::PASOS_DISPONIBLES);
-    }
-
-    // Devuelve los estados del flujo o el flujo genérico por defecto
-    public function getEstadosEfectivos(): array
-    {
-        return $this->estados_flujo ?? [
-            'sala_espera',
-            'en_enfermeria',
-            'en_consultorio',
-            'finalizada',
-        ];
-    }
-
     public function scopeActivas($query)
     {
         return $query->where('activo', true);
@@ -144,7 +212,7 @@ class EspecialidadPlantilla extends Model
             $cache[$especialidadId] = $plantilla
                 ? array_merge(
                     ['programada', 'confirmada', 'cancelada', 'no_asistio'],
-                    $plantilla->getEstadosEfectivos()
+                    $plantilla->getEstadosActivosKeys()
                   )
                 : array_keys(self::ESTADOS_DISPONIBLES);
         }

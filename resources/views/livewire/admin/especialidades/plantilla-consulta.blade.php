@@ -181,8 +181,9 @@
                 <div class="kpi-card bg-white">
                     <div class="kpi-icon bg-label-success"><i class="ri ri-list-check"></i></div>
                     <div>
-                        <div class="kpi-value">{{ count($pasosHabilitados) }}<small class="text-muted fw-normal" style="font-size:.85rem"> / {{ count($pasosDisponibles) }}</small></div>
-                        <div class="kpi-label">Pasos habilitados</div>
+                        @php $pasosActivos = collect($pasosHabilitados)->where('activo', true)->count(); @endphp
+                        <div class="kpi-value">{{ $pasosActivos }}<small class="text-muted fw-normal" style="font-size:.85rem"> / {{ count($pasosHabilitados) }}</small></div>
+                        <div class="kpi-label">Pasos activos</div>
                     </div>
                 </div>
             </div>
@@ -190,8 +191,9 @@
                 <div class="kpi-card bg-white">
                     <div class="kpi-icon bg-label-warning"><i class="ri ri-flow-chart"></i></div>
                     <div>
-                        <div class="kpi-value">{{ count($estadosFlujo) }}<small class="text-muted fw-normal" style="font-size:.85rem"> / {{ count($estadosDisponibles) }}</small></div>
-                        <div class="kpi-label">Estados del flujo</div>
+                        @php $estadosActivos = collect($estadosFlujo)->where('activo', true)->count(); @endphp
+                        <div class="kpi-value">{{ $estadosActivos }}<small class="text-muted fw-normal" style="font-size:.85rem"> / {{ count($estadosFlujo) }}</small></div>
+                        <div class="kpi-label">Estados activos</div>
                     </div>
                 </div>
             </div>
@@ -227,46 +229,70 @@
         <div class="tab-pane fade show active" id="tab-config" role="tabpanel">
 
             <div class="row g-4">
-                {{-- Pasos habilitados --}}
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-transparent border-0 pb-0">
-                            <h6 class="mb-0"><i class="ri ri-list-check me-2 text-primary"></i>Pasos del proceso</h6>
-                            <small class="text-muted">Haz clic en cada paso para activarlo o desactivarlo</small>
+               
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div>
+                                <h6 class="mb-0"><i class="ri ri-flow-chart me-2 text-primary"></i>Estados del flujo (Kanban)</h6>
+                                <small class="text-muted">Configura los estados del flujo de consultas</small>
+                            </div>
+                            <button class="btn btn-sm btn-primary" wire:click="abrirModalEstado()">
+                                <i class="ri ri-add-line me-1"></i>Nuevo estado
+                            </button>
                         </div>
                         <div class="card-body">
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach($pasosDisponibles as $key => $label)
-                                <span wire:click="togglePaso('{{ $key }}')"
-                                      class="badge rounded-pill paso-badge {{ in_array($key, $pasosHabilitados) ? 'bg-primary activo' : 'bg-secondary inactivo' }}"
-                                      style="font-size:.85rem; padding:.5rem .9rem;">
-                                    <i class="ri ri-{{ in_array($key, $pasosHabilitados) ? 'check' : 'close' }}-line me-1"></i>
-                                    {{ $label }}
-                                </span>
+                            @if(count($estadosFlujo) === 0)
+                                <p class="text-muted text-center mb-0">No hay estados configurados.</p>
+                            @else
+                            <div class="row g-2">
+                                @foreach($estadosFlujo as $ei => $estado)
+                                <div class="col-12" wire:key="estado-{{ $ei }}">
+                                    <div class="campo-row rounded p-2 {{ !$estado['activo'] ? 'inactivo' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <span class="badge" style="background-color:{{ $estado['color'] ?? '#78909C' }};font-size:.85rem;padding:.4rem .7rem">
+                                                    {{ $estado['nombre'] }}
+                                                </span>
+                                                <code class="small text-muted">{{ $estado['key'] }}</code>
+                                                @if(!$estado['activo'])
+                                                    <span class="badge bg-label-warning" style="font-size:.65rem">Inactivo</span>
+                                                @endif
+                                            </div>
+                                            <div class="d-flex gap-1 flex-wrap">
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                            wire:click="moverEstado({{ $ei }}, 'up')"
+                                                            @if($ei === 0) disabled @endif title="Subir">
+                                                        <i class="ri ri-arrow-up-s-line"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                            wire:click="moverEstado({{ $ei }}, 'down')"
+                                                            @if($ei === count($estadosFlujo) - 1) disabled @endif title="Bajar">
+                                                        <i class="ri ri-arrow-down-s-line"></i>
+                                                    </button>
+                                                </div>
+                                                <button class="btn btn-xs btn-icon btn-outline-primary"
+                                                        wire:click="abrirModalEstado({{ $ei }})" title="Editar">
+                                                    <i class="ri ri-edit-line"></i>
+                                                </button>
+                                                <button class="btn btn-xs btn-icon {{ $estado['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
+                                                        wire:click="toggleEstado({{ $ei }})"
+                                                        title="{{ $estado['activo'] ? 'Desactivar' : 'Activar' }}">
+                                                    <i class="ri ri-{{ $estado['activo'] ? 'eye-off' : 'eye' }}-line"></i>
+                                                </button>
+                                                <button class="btn btn-xs btn-icon btn-outline-danger"
+                                                        wire:click="eliminarEstado({{ $ei }})"
+                                                        wire:confirm="¿Eliminar este estado?" title="Eliminar">
+                                                    <i class="ri ri-delete-bin-line"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 @endforeach
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Estados del flujo --}}
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-header bg-transparent border-0 pb-0">
-                            <h6 class="mb-0"><i class="ri ri-flow-chart me-2 text-primary"></i>Estados del flujo (Kanban)</h6>
-                            <small class="text-muted">Haz clic para incluir o excluir cada estado del flujo</small>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex flex-wrap gap-2">
-                                @foreach($estadosDisponibles as $key => $label)
-                                @php $color = \App\Models\Consulta::ESTADO_COLORES[$key] ?? '#78909C'; @endphp
-                                <span wire:click="toggleEstado('{{ $key }}')"
-                                      class="badge estado-badge {{ in_array($key, $estadosFlujo) ? 'activo' : 'inactivo' }}"
-                                      style="background-color:{{ $color }};font-size:.8rem;padding:.45rem .8rem;">
-                                    {{ $label }}
-                                </span>
-                                @endforeach
-                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -476,10 +502,11 @@
                     </div>
                 @else
                 <div class="row g-3">
-                    @foreach($estadosFlujo as $estadoKey)
+                    @foreach($estadosFlujo as $ei => $estado)
                     @php
-                        $efColor  = \App\Models\Consulta::ESTADO_COLORES[$estadoKey] ?? '#78909C';
-                        $efLabel  = \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estadoKey] ?? ucfirst($estadoKey);
+                        $estadoKey = $estado['key'];
+                        $efColor  = $estado['color'] ?? '#78909C';
+                        $efLabel  = $estado['nombre'];
                         $efData   = $estadoFormularios[$estadoKey] ?? null;
                         $estaAbierto = $estadoFormularioActivo === $estadoKey;
                     @endphp
@@ -869,6 +896,164 @@
                             <i class="ri ri-save-line me-1"></i>Guardar campo
                         </span>
                         <span wire:loading wire:target="guardarCampo">
+                            <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ── MODAL ESTADO ──────────────────────────────────────────────────────── --}}
+    @if($modalEstado)
+    @php
+        $coloresPreset = ['#6B7280','#EF4444','#F59E0B','#10B981','#3B82F6','#6366F1','#8B5CF6','#EC4899','#14B8A6','#F97316'];
+    @endphp
+    <div class="modal fade show d-block custom-modal-backdrop" tabindex="-1"
+         wire:click.self="$set('modalEstado', false)"
+         wire:keydown.escape.window="$set('modalEstado', false)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:{{ $estadoColor }};color:#fff;border-bottom:0">
+                    <h5 class="modal-title text-white">
+                        <i class="ri ri-flow-chart me-2"></i>
+                        {{ $estadoEditIndex !== null ? 'Editar estado' : 'Nuevo estado' }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="$set('modalEstado', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nombre del estado <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" wire:model="estadoNombre"
+                                   placeholder="Ej: En Triaje, En Laboratorio" autofocus>
+                            @error('estadoNombre') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Color <span class="text-danger">*</span></label>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <input type="color" class="form-control form-control-color"
+                                       wire:model.live="estadoColor" style="width:50px;height:38px">
+                                <input type="text" class="form-control" wire:model.live="estadoColor"
+                                       placeholder="#6B7280" maxlength="7">
+                            </div>
+                            <div class="color-swatches">
+                                @foreach($coloresPreset as $c)
+                                    <span class="swatch {{ strtoupper($estadoColor) === strtoupper($c) ? 'selected' : '' }}"
+                                          style="background:{{ $c }}"
+                                          wire:click="$set('estadoColor', '{{ $c }}')"
+                                          title="{{ $c }}"></span>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       wire:model="estadoActivo" id="chkEstadoActivo">
+                                <label class="form-check-label" for="chkEstadoActivo">Estado activo</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-2">Vista previa</small>
+                                <span class="badge" style="background-color:{{ $estadoColor }};font-size:1rem;padding:.6rem 1rem">
+                                    {{ $estadoNombre ?: 'Nombre del estado' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" wire:click="$set('modalEstado', false)">Cancelar</button>
+                    <button class="btn btn-primary" wire:click="guardarEstado"
+                            wire:loading.attr="disabled" wire:target="guardarEstado">
+                        <span wire:loading.remove wire:target="guardarEstado">
+                            <i class="ri ri-save-line me-1"></i>Guardar
+                        </span>
+                        <span wire:loading wire:target="guardarEstado">
+                            <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ── MODAL PASO ──────────────────────────────────────────────────────── --}}
+    @if($modalPaso)
+    <div class="modal fade show d-block custom-modal-backdrop" tabindex="-1"
+         wire:click.self="$set('modalPaso', false)"
+         wire:keydown.escape.window="$set('modalPaso', false)">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="ri ri-list-check me-2 text-primary"></i>
+                        {{ $pasoEditIndex !== null ? 'Editar paso' : 'Nuevo paso' }}
+                    </h5>
+                    <button type="button" class="btn-close" wire:click="$set('modalPaso', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Nombre del paso <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" wire:model="pasoNombre"
+                                   placeholder="Ej: Agudeza Visual, Tonometría" autofocus>
+                            @error('pasoNombre') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                            <select class="form-select" wire:model="pasoTipo" @if($pasoEditIndex !== null) disabled @endif>
+                                <option value="predefinido">Predefinido (lógica fija)</option>
+                                <option value="formulario">Formulario (campos dinámicos)</option>
+                            </select>
+                            <small class="text-muted">Los pasos predefinidos tienen lógica especial (signos vitales, tratamientos, etc.)</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Ícono <span class="text-danger">*</span></label>
+                            <select class="form-select" wire:model="pasoIcono">
+                                @foreach($iconosPasos as $icono)
+                                    <option value="{{ $icono }}">
+                                        {{ str_replace(['ri-', '-line', '-'], ['', '', ' '], $icono) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       wire:model="pasoActivo" id="chkPasoActivo">
+                                <label class="form-check-label" for="chkPasoActivo">Paso activo</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="text-center p-3 bg-light rounded">
+                                <small class="text-muted d-block mb-2">Vista previa</small>
+                                <div class="d-inline-flex align-items-center gap-2 px-3 py-2 bg-white rounded border">
+                                    <i class="{{ $pasoIcono }} text-primary" style="font-size:1.2rem"></i>
+                                    <strong>{{ $pasoNombre ?: 'Nombre del paso' }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" wire:click="$set('modalPaso', false)">Cancelar</button>
+                    <button class="btn btn-primary" wire:click="guardarPaso"
+                            wire:loading.attr="disabled" wire:target="guardarPaso">
+                        <span wire:loading.remove wire:target="guardarPaso">
+                            <i class="ri ri-save-line me-1"></i>Guardar
+                        </span>
+                        <span wire:loading wire:target="guardarPaso">
                             <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
                         </span>
                     </button>
