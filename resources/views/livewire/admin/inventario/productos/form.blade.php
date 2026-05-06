@@ -32,7 +32,8 @@
                     @endif
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
+            {{-- Pestaña Variantes OCULTA --}}
+            {{-- <li class="nav-item" role="presentation">
                 <button type="button" class="nav-link {{ $activeTab === 'variantes' ? 'active' : '' }}"
                         wire:click="setTab('variantes')">
                     <i class="ri ri-stack-line me-1"></i>Variantes
@@ -40,7 +41,7 @@
                         <span class="badge bg-info ms-1">{{ count($variantes) }}</span>
                     @endif
                 </button>
-            </li>
+            </li> --}}
             <li class="nav-item" role="presentation">
                 <button type="button" class="nav-link {{ $activeTab === 'opciones' ? 'active' : '' }}"
                         wire:click="setTab('opciones')">
@@ -86,7 +87,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group mb-3">
-                                        <label>Unidad de Medida *</label>
+                                        <label>Presentación *</label>
                                         <select class="form-control @error('unidad_medida') is-invalid @enderror" wire:model="unidad_medida">
                                             <option value="">Seleccionar...</option>
                                             @foreach($unidades as $val => $label)
@@ -445,8 +446,8 @@
                         </div>
                     </div>
                 @endif
-                {{-- TAB: VARIANTES --}}
-                @if($activeTab === 'variantes')
+                {{-- TAB: VARIANTES OCULTO --}}
+                {{-- @if($activeTab === 'variantes')
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Variantes del Producto</h5>
                         <button type="button" class="btn btn-primary" wire:click="addVarianteManual">
@@ -619,7 +620,7 @@
                             </div>
                         @endforeach
                     @endif
-                @endif
+                @endif --}}
 
                 {{-- TAB: OPCIONES --}}
                 @if($activeTab === 'opciones')
@@ -745,32 +746,7 @@
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header"><h6 class="mb-0">Navegación</h6></div>
-                        <div class="list-group list-group-flush">
-                            <button type="button" class="list-group-item list-group-item-action {{ $activeTab === 'general' ? 'active' : '' }}" wire:click="setTab('general')">
-                                <i class="ri ri-information-line me-2"></i>Información General
-                            </button>
-                            <button type="button" class="list-group-item list-group-item-action {{ $activeTab === 'precios' ? 'active' : '' }}" wire:click="setTab('precios')">
-                                <i class="ri ri-price-tag-3-line me-2"></i>Precios y Stock
-                            </button>
-                            <button type="button" class="list-group-item list-group-item-action {{ $activeTab === 'imagenes' ? 'active' : '' }}" wire:click="setTab('imagenes')">
-                                <i class="ri ri-image-line me-2"></i>Imágenes
-                                @if(count($imagenes_existentes) + count($imagenes_nuevas) > 0)
-                                    <span class="badge bg-primary float-end">{{ count($imagenes_existentes) + count($imagenes_nuevas) }}</span>
-                                @endif
-                            </button>
-                            <button type="button" class="list-group-item list-group-item-action {{ $activeTab === 'variantes' ? 'active' : '' }}" wire:click="setTab('variantes')">
-                                <i class="ri ri-stack-line me-2"></i>Variantes
-                                @if(count($variantes) > 0)
-                                    <span class="badge bg-info float-end">{{ count($variantes) }}</span>
-                                @endif
-                            </button>
-                            <button type="button" class="list-group-item list-group-item-action {{ $activeTab === 'opciones' ? 'active' : '' }}" wire:click="setTab('opciones')">
-                                <i class="ri ri-settings-3-line me-2"></i>Opciones
-                            </button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
