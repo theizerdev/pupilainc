@@ -57,9 +57,9 @@ class Form extends Component
     public $status = true;
 
     // ─── Fiscal ───────────────────────────────────────────────────
-    public $aplica_iva = true;
+    public $aplica_iva = false;
     public $exento_iva = false;
-    public $iva_alicuota = 16.00;
+    public $iva_alicuota = 0;
 
     // ─── Imagen principal (legacy) ───────────────────────────────
     public $imagen;
@@ -382,9 +382,12 @@ class Form extends Component
                 'imagenes_nuevas', 'variantes', 'variantes_imagenes',
             ])
             ->merge([
-                'empresa_id'  => auth()->user()->empresa_id,
-                'sucursal_id' => auth()->user()->sucursal_id,
-                'imagen'      => $imagenPath,
+                'empresa_id'        => auth()->user()->empresa_id,
+                'sucursal_id'       => auth()->user()->sucursal_id,
+                'imagen'            => $imagenPath,
+                'fecha_vencimiento' => $this->es_medicamento && !empty($this->fecha_vencimiento)
+                                        ? $this->fecha_vencimiento
+                                        : null,
             ])
             ->toArray();
 

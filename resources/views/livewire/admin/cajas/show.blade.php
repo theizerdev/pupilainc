@@ -32,7 +32,7 @@
                         </div>
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-success" wire:click="exportarExcel">
-                                <i class="ri ri-file-excel-2-line"></i> Exportar Excel
+                                <i class="ri ri-file-excel-2-line"></i> Reporte Conglomerado
                             </button>
                             @if($caja->estado === 'abierta')
                                 @can('edit cajas')
@@ -100,7 +100,7 @@
                         <div>
                             <h6 class="text-muted mb-2">Monto Final</h6>
                             <h3 class="mb-0">
-                                <x-dual-currency :amount="$caja->monto_final" />
+                                <x-dual-currency :amount="$caja->monto_final_ajustado" />
                             </h3>
                         </div>
                         <div class="bg-info bg-opacity-10 p-3 rounded">
@@ -131,8 +131,11 @@
         <!-- Resumen por Método de Pago -->
         <div class="col-md-6 mb-4">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="card-title mb-0">Resumen por Método de Pago</h6>
+                    <button type="button" class="btn btn-sm btn-success" wire:click="exportarResumenPorMetodoExcel">
+                        <i class="ri ri-file-excel-2-line"></i> Exportar Excel
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -152,18 +155,66 @@
                                                 @php
                                                     $iconClass = match($metodo->metodo_pago) {
                                                         'efectivo' => 'ri ri-money-dollar-circle-line text-success',
+                                                        'efectivo_bs' => 'ri ri-money-dollar-circle-line text-success',
+                                                        'efectivo_usd' => 'ri ri-money-dollar-circle-line text-success',
                                                         'transferencia' => 'ri ri-bank-line text-info',
+                                                        'transferencia_bs' => 'ri ri-bank-line text-info',
+                                                        'transferencia_usd' => 'ri ri-bank-line text-info',
+                                                        'pago_movil' => 'ri ri-smartphone-line text-primary',
+                                                        'zelle' => 'ri ri-bank-card-line text-purple',
+                                                        'paypal' => 'ri ri-paypal-line text-info',
+                                                        'usdt' => 'ri ri-bitcoin-line text-warning',
                                                         'tarjeta' => 'ri ri-bank-card-line text-primary',
+                                                        'tarjeta_debito' => 'ri ri-bank-card-line text-primary',
+                                                        'tarjeta_credito' => 'ri ri-bank-card-line text-primary',
+                                                        'bbva_dr' => 'ri ri-bank-card-line text-primary',
+                                                        'bbva_cr' => 'ri ri-bank-card-line text-primary',
+                                                        'mercantil_dr' => 'ri ri-bank-card-line text-primary',
+                                                        'mercantil_cr' => 'ri ri-bank-card-line text-primary',
+                                                        'banesco_dr' => 'ri ri-bank-card-line text-primary',
+                                                        'banesco_cr' => 'ri ri-bank-card-line text-primary',
+                                                        'provincial_dr' => 'ri ri-bank-card-line text-primary',
+                                                        'provincial_cr' => 'ri ri-bank-card-line text-primary',
+                                                        'bod_dr' => 'ri ri-bank-card-line text-primary',
+                                                        'bod_cr' => 'ri ri-bank-card-line text-primary',
                                                         default => 'ri ri-question-line text-muted'
                                                     };
+
+                                                    $nombresAmigables = [
+                                                        'efectivo' => 'Efectivo',
+                                                        'efectivo_bs' => 'Efectivo Bs',
+                                                        'efectivo_usd' => 'Efectivo USD',
+                                                        'transferencia' => 'Transferencia',
+                                                        'transferencia_bs' => 'Transferencia Bs',
+                                                        'transferencia_usd' => 'Transferencia USD',
+                                                        'pago_movil' => 'Pago Móvil',
+                                                        'zelle' => 'Zelle',
+                                                        'paypal' => 'PayPal',
+                                                        'usdt' => 'USDT',
+                                                        'tarjeta' => 'Tarjeta',
+                                                        'tarjeta_debito' => 'Tarjeta Débito',
+                                                        'tarjeta_credito' => 'Tarjeta Crédito',
+                                                        'bbva_dr' => 'BBVA Débito',
+                                                        'bbva_cr' => 'BBVA Crédito',
+                                                        'mercantil_dr' => 'Mercantil Débito',
+                                                        'mercantil_cr' => 'Mercantil Crédito',
+                                                        'banesco_dr' => 'Banesco Débito',
+                                                        'banesco_cr' => 'Banesco Crédito',
+                                                        'provincial_dr' => 'Provincial Débito',
+                                                        'provincial_cr' => 'Provincial Crédito',
+                                                        'bod_dr' => 'BOD Débito',
+                                                        'bod_cr' => 'BOD Crédito',
+                                                    ];
+
+                                                    $nombreMostrar = $nombresAmigables[$metodo->metodo_pago] ?? ucfirst(str_replace('_', ' ', $metodo->metodo_pago));
                                                 @endphp
                                                 <i class="{{ $iconClass }} me-2"></i>
-                                                {{ ucfirst($metodo->metodo_pago) }}
+                                                {{ $nombreMostrar }}
                                             </div>
                                         </td>
                                         <td class="text-end">{{ $metodo->cantidad }}</td>
                                         <td class="text-end fw-semibold">
-                                            <x-dual-currency :amount="$metodo->total" class="fw-semibold" />
+                                            <x-dual-currency :amount="$metodo->total_usd" class="fw-semibold" />
                                         </td>
                                     </tr>
                                 @empty
@@ -181,8 +232,11 @@
         <!-- Resumen por Concepto -->
         <div class="col-md-6 mb-4">
             <div class="card h-100">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="card-title mb-0">Resumen por Concepto</h6>
+                    <button type="button" class="btn btn-sm btn-success" wire:click="exportarResumenConceptosExcel">
+                        <i class="ri ri-file-excel-2-line"></i> Exportar
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -332,7 +386,7 @@
                         <div class="row mb-3">
                             <div class="col-6">
                                 <label class="form-label">Monto Final Calculado:</label>
-                                <div class="fw-bold text-success"><x-dual-currency :amount="$caja->monto_final" /></div>
+                                <div class="fw-bold text-success"><x-dual-currency :amount="$caja->monto_final_ajustado" /></div>
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Total Ingresos:</label>
@@ -379,7 +433,7 @@
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Monto Actual:</label>
-                            <div class="fw-bold">$ {{ format_money($caja->monto_final, 2, '.', ',') }}</div>
+                            <div class="fw-bold">$ {{ format_money($caja->monto_final_ajustado, 2, '.', ',') }}</div>
                         </div>
                         <div class="col-6">
                             <label class="form-label">Total Ingresos:</label>

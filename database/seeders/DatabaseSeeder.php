@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             PlantillasClinicasSeeder::class, // Especialidades y plantillas clínicas dinámicas
             EstadoFormulariosSeeder::class,
             PlanCuentasSeeder::class,
+            BaremoSeeder::class, // Agregar servicios médicos
         ]);
     }
 }

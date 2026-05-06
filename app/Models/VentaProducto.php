@@ -96,9 +96,9 @@ class VentaProducto extends Model
 
     private function getAlmacenPrincipal(): ?int
     {
-        // Obtener el primer almacén de la empresa
         return Almacen::where('empresa_id', auth()->user()->empresa_id ?? 1)
-            ->where('activo', true)
+            ->where('status', true)
+            ->where('sucursal_id', auth()->user()->sucursal_id ?? 1)
             ->first()?->id;
     }
 

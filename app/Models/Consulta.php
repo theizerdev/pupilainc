@@ -311,6 +311,11 @@ class Consulta extends Model
         return $this->hasMany(ConsultaEstadoDato::class);
     }
 
+    public function notas()
+    {
+        return $this->hasMany(ConsultaNota::class)->orderBy('created_at', 'desc');
+    }
+
     public function getDatosEstado(string $estado): array
     {
         return $this->estadoDatos()->where('estado', $estado)->first()?->datos ?? [];

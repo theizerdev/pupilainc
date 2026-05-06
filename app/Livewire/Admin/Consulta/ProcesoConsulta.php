@@ -168,6 +168,15 @@ class ProcesoConsulta extends Component
                     ])->toArray(),
                 ];
             }
+
+            // Si el estado actual no tiene formulario específico, usar secciones principales como fallback
+            $estadoActual = $this->consulta->estado;
+            if (!isset($this->formulariosPorEstado[$estadoActual]) && count($this->secciones) > 0) {
+                $this->formulariosPorEstado[$estadoActual] = [
+                    'secciones' => $this->secciones,
+                    'es_fallback' => true, // Marcador para saber que es fallback
+                ];
+            }
         } else {
             // Sin plantilla: pasos y estados genéricos
             $this->pasosConfig = [
@@ -687,7 +696,7 @@ class ProcesoConsulta extends Component
         // Guardar en la tabla consulta_datos_pasos o similar
         // Por ahora lo guardamos en la evaluación como parte de datos_dinamicos
         $datos = $this->datos_pasos_custom[$pasoKey] ?? [];
-        
+
         $this->consulta->evaluacion()->updateOrCreate(
             ['consulta_id' => $this->consulta->id],
             [
@@ -720,13 +729,13 @@ class ProcesoConsulta extends Component
             $this->dispatch('show-toast', ['type' => 'error', 'message' => 'Estado no válido']);
             return;
         }
-        
+
         if ($this->consulta->cita != null) {
             $this->consulta->cita->update(['estado' => $this->nuevoEstado]);
         } else {
             # code...
         }
-        
+
 
         $this->consulta->update([
             'estado'            => $this->nuevoEstado,
@@ -746,12 +755,12 @@ class ProcesoConsulta extends Component
     public function finalizarConsulta()
     {
         $this->consulta->cambiarEstado(Consulta::ESTADO_FINALIZADA);
-        
+
         // Si la consulta tiene una cita asociada, finalizarla también
         if ($this->consulta->cita_id && $this->consulta->cita) {
             $this->consulta->cita->cambiarEstado(\App\Models\Cita::ESTADO_FINALIZADA);
         }
-        
+
         session()->flash('success', 'Consulta finalizada exitosamente');
         return redirect()->to('/admin/gestion/consultas/en-consultorio');
     }

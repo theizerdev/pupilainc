@@ -265,7 +265,7 @@ class Pago extends Model
                     ];
 
                     $seriePrefijo = $prefijos[$tipo] ?? 'DOC1';
-                    
+
                     // Intentar crear la serie usando firstOrCreate para evitar duplicados
                     try {
                         $serieModel = Serie::firstOrCreate(
@@ -290,7 +290,7 @@ class Pago extends Model
                             ->where('sucursal_id', $sucursalId)
                             ->where('activo', true)
                             ->first();
-                            
+
                         if (!$serieModel) {
                             throw new \Exception("No se pudo crear o encontrar una serie para {$tipo}: " . $e->getMessage());
                         }
@@ -328,7 +328,7 @@ class Pago extends Model
                         $pago->serie = $numeracion['serie'];
                         $pago->numero = $numeracion['numero'];
 
-                        if (!$pago->numero_control_fiscal && $pago->es_factura_fiscal 
+                        if (!$pago->numero_control_fiscal && $pago->es_factura_fiscal
                             && in_array($pago->tipo_pago, [self::TIPO_FACTURA, self::TIPO_NOTA_CREDITO, self::TIPO_NOTA_DEBITO])) {
                             $pago->numero_control_fiscal = $numeracion['control_fiscal'];
                         }
@@ -366,12 +366,12 @@ class Pago extends Model
                 $auditService = app(\App\Services\Audit\AuditService::class);
                 $oldAttributes = $pago->_oldAttributes ?? [];
                 $newAttributes = $pago->getAttributes();
-                
+
                 $action = 'pago.updated';
                 if (isset($oldAttributes['estado']) && $oldAttributes['estado'] !== $newAttributes['estado']) {
                     $action = "pago.estado.changed.{$oldAttributes['estado']}_to_{$newAttributes['estado']}";
                 }
-                
+
                 $auditService->logModelEvent($action, $pago, $oldAttributes, $newAttributes);
             } catch (\Exception $e) {
                 \Log::error('Error en auditoría de pago actualizado: ' . $e->getMessage());
@@ -388,10 +388,23 @@ class Pago extends Model
         });
 
         static::saved(function ($pago) {
+            // Actualizar estado de consulta si aplica
             if ($pago->consulta_id && $pago->estado === self::ESTADO_APROBADO) {
                 $consulta = $pago->consulta;
                 if ($consulta && $consulta->estado === Consulta::ESTADO_FINALIZADA) {
                     $consulta->cambiarEstado('pagada');
+                }
+            }
+
+            // Actualizar totales de la caja si el pago está aprobado y tiene caja asociada
+            if ($pago->estado === self::ESTADO_APROBADO && $pago->caja_id) {
+                try {
+                    $caja = \App\Models\Caja::find($pago->caja_id);
+                    if ($caja) {
+                        $caja->calcularTotales();
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Error al actualizar totales de caja después de guardar pago: ' . $e->getMessage());
                 }
             }
         });
@@ -399,7 +412,14 @@ class Pago extends Model
 
     public function calcularTotales()
     {
-        $subtotal = $this->detalles()->sum('subtotal');
+        // Sumar subtotales de servicios (detalles de pago)
+        $subtotalServicios = $this->detalles()->sum('subtotal');
+
+        // Sumar subtotales de productos (ventas de productos)
+        $subtotalProductos = $this->ventasProductos()->sum('subtotal');
+
+        // Subtotal total = servicios + productos
+        $subtotal = $subtotalServicios + $subtotalProductos;
         $total = $subtotal - $this->descuento;
 
         $tasaUSD = ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1;
@@ -412,36 +432,49 @@ class Pago extends Model
             foreach ($this->detalles_pago_mixto as $detalle) {
                 $metodo = $detalle['metodo'];
 
-                if (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal'])) {
+                // Pagos en USD (aplican IGTF)
+                if (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt',
+                                      'tarjeta', 'tarjeta_debito', 'tarjeta_credito',
+                                      'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr',
+                                      'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr',
+                                      'bod_dr', 'bod_cr'])) {
                     $montoUSD = $detalle['monto_usd'] ?? 0;
                     $totalUSD += $montoUSD;
                     $totalBS += $montoUSD * $tasaUSD;
                     $aplicaIGTF = true;
                 }
-
-                if (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
+                // Pagos en Bolívares
+                elseif (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
                     $montoBS = $detalle['monto_bs'] ?? 0;
                     $totalBS += $montoBS;
                     $totalUSD += $montoBS / $tasaUSD;
                 }
             }
         } else {
-            switch ($this->metodo_pago) {
-                case 'efectivo_bs':
-                case 'transferencia_bs':
-                case 'pago_movil':
-                    $totalBS = $total * $tasaUSD;
-                    $totalUSD = $total;
-                    break;
+            // Clasificar método de pago
+            $metodo = $this->metodo_pago;
 
-                case 'efectivo_usd':
-                case 'transferencia_usd':
-                case 'zelle':
-                case 'paypal':
-                    $totalUSD = $total;
-                    $totalBS = $total * $tasaUSD;
-                    $aplicaIGTF = true;
-                    break;
+            // Pagos en Bolívares
+            if (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
+                $totalBS = $total * $tasaUSD;
+                $totalUSD = $total;
+            }
+            // Pagos en USD (aplican IGTF)
+            elseif (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                $totalUSD = $total;
+                $totalBS = $total * $tasaUSD;
+                $aplicaIGTF = true;
+            }
+            // Tarjetas de débito/crédito y bancos (aplican IGTF)
+            elseif (in_array($metodo, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
+                $totalUSD = $total;
+                $totalBS = $total * $tasaUSD;
+                $aplicaIGTF = true;
+            }
+            // Default: tratar como USD
+            else {
+                $totalUSD = $total;
+                $totalBS = $total * $tasaUSD;
             }
         }
 
@@ -457,7 +490,7 @@ class Pago extends Model
         // Calcular datos fiscales si es factura fiscal
         if ($this->es_factura_fiscal) {
             $fiscal = FiscalCalculator::calcular($this);
-            
+
             $updateData = array_merge($updateData, [
                 'base_imponible' => $fiscal['base_imponible'],
                 'monto_exento' => $fiscal['monto_exento'],

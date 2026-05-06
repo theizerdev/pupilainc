@@ -31,18 +31,18 @@ class TemplateCustomization extends Model
     public static function getSettings()
     {
         return self::first() ?? self::create([
-            'primary_color' => '#7367F0',
+            'primary_color' => '#96dbe7ff',
             'skin' => 0,
             'theme' => 'light',
-            'semi_dark' => false,
-            'content_layout' => 'compact',
+            'semi_dark' => true,
+            'content_layout' => 'wide',
             'header_type' => 'static',
             'menu_collapsed' => false,
             'navbar_type' => 'sticky',
             'text_direction' => 'ltr',
             'footer_fixed' => false,
             'dropdown_on_hover' => false,
-            'layout_type' => 'vertical'
+            'layout_type' => 'horizontal'
         ]);
     }
 

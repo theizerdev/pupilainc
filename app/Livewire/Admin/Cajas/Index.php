@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Cajas;
 
 use App\Models\Caja;
+use App\Models\Pago;
 use App\Traits\Exportable;
 use App\Traits\HasDynamicLayout;
 use App\Traits\HasRegionalFormatting;
@@ -24,7 +25,7 @@ class Index extends Component
         'status' => ['except' => ''],
         'perPage' => ['except' => 10],
         'sortBy' => ['except' => 'fecha'],
-        'sortDirection' => ['except' => 'desc'],
+        'sortDirection' => ['except' => 'asc'],
     ];
 
     public function sortBy($field)
@@ -60,11 +61,19 @@ class Index extends Component
         $baseQuery = Caja::where('empresa_id', auth()->user()->empresa_id)
             ->where('sucursal_id', auth()->user()->sucursal_id);
 
+        // Calcular los ingresos de hoy basados en los pagos aprobados del día actual
+        // Se cuentan todos los pagos aprobados hoy, independientemente de la caja
+        $ingresosHoy = Pago::where('empresa_id', auth()->user()->empresa_id)
+            ->where('sucursal_id', auth()->user()->sucursal_id)
+            ->where('estado', 'aprobado')
+            ->whereDate('fecha', today()) // Filtrar por fecha del pago
+            ->sum('total_usd');
+
         return [
             'total' => (clone $baseQuery)->count() ?: 0,
             'abiertas' => (clone $baseQuery)->where('estado', 'abierta')->count() ?: 0,
             'cerradas' => (clone $baseQuery)->where('estado', 'cerrada')->count() ?: 0,
-            'ingresos_hoy' => (clone $baseQuery)->whereDate('fecha', today())->sum('total_ingresos') ?: 0,
+            'ingresos_hoy' => $ingresosHoy ?: 0,
         ];
     }
 
@@ -87,7 +96,7 @@ class Index extends Component
             $query->where('estado', $this->status);
         }
 
-        return $query->orderBy($this->sortBy, $this->sortDirection);
+        return $query->orderBy('created_at', 'desc');
     }
 
     public function getExportHeaders()

@@ -3,8 +3,8 @@
     <div class="authentication-inner py-6">
       <!-- Login -->
       <div class="card p-md-7 p-1">
+        @include('auth.header.logo')
         <!-- Logo -->
-         @include('auth.header.logo')
         <!-- /Logo -->
 
         <div class="card-body mt-1">

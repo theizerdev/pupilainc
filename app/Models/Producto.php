@@ -188,6 +188,14 @@ class Producto extends Model
             if (!$p->codigo) {
                 $p->codigo = 'PROD-' . str_pad(static::withoutGlobalScopes()->count() + 1, 5, '0', STR_PAD_LEFT);
             }
+            if (empty($p->fecha_vencimiento)) {
+                $p->fecha_vencimiento = null;
+            }
+        });
+        static::saving(function ($p) {
+            if (empty($p->fecha_vencimiento)) {
+                $p->fecha_vencimiento = null;
+            }
         });
     }
 }

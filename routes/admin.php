@@ -26,6 +26,7 @@ use App\Livewire\Dashboard;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Admin\ExchangeRates;
 use App\Livewire\Admin\ExchangeRateConfig\Index as ExchangeRateConfigIndex;
+use App\Livewire\Admin\POS\PuntoDeVenta;
 
 // Recepción
 Route::prefix('recepcion')->name('recepcion.')->group(function () {
@@ -64,6 +65,8 @@ Route::middleware(['checkAdminPermission:access especialidades'])->group(functio
     Route::get('/especialidades/{especialidad}/editar', \App\Livewire\Admin\Especialidades\Edit::class)->name('especialidades.edit');
     Route::get('/especialidades/{especialidad}', \App\Livewire\Admin\Especialidades\Show::class)->name('especialidades.show');
     Route::get('/especialidades/{especialidad}/plantilla', \App\Livewire\Admin\Especialidades\PlantillaConsulta::class)->name('especialidades.plantilla');
+
+
     Route::get('/especialidades/{especialidad}/cuestionario', \App\Livewire\Admin\Especialidades\CuestionarioConsulta::class)->name('especialidades.cuestionario');
 });
 
@@ -222,12 +225,16 @@ Route::middleware(['checkAdminPermission:access series'])->group(function () {
 // Registro de Actividad
 Route::get('/activity-log', \App\Livewire\Admin\ActivityLog::class)->name('activity-log')->middleware('checkAdminPermission:access activity log');
 
+// Punto de Venta
+Route::get('/pos', PuntoDeVenta::class)->name('pos.index')->middleware('checkAdminPermission:access cajas');
+
 // Cajas
 Route::middleware(['checkAdminPermission:access cajas'])->group(function () {
     Route::get('/cajas', \App\Livewire\Admin\Cajas\Index::class)->name('cajas.index');
     Route::get('/cajas/crear', \App\Livewire\Admin\Cajas\Create::class)->name('cajas.create');
     Route::get('/cajas/{caja}', \App\Livewire\Admin\Cajas\Show::class)->name('cajas.show');
     Route::get('/cajas/{caja}/export', [\App\Http\Controllers\Admin\CajaExportController::class, 'export'])->name('cajas.export');
+    Route::get('/cajas/egresos', \App\Livewire\Admin\Cajas\ListadoEgresos::class)->name('cajas.egresos');
 });
 
 // Reglas de Morosidad

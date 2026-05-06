@@ -99,7 +99,7 @@ class Pais extends Model
             'COP' => '$',
             'ARS' => '$',
             'BRL' => 'R$',
-            'MXN' => '$',
+            'MXN' => 'MXN$',
             'PEN' => 'S/.',
             'PYG' => '₲',
             'UYU' => '$U',

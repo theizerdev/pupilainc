@@ -65,6 +65,11 @@
 
     <!--? Config: Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file. -->
 
+    <!-- Livewire Styles -->
+    @livewireStyles
+
+    <!-- Page custom styles -->
+    @stack('styles')
    
   </head>
 

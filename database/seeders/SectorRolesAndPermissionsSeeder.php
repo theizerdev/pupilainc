@@ -142,7 +142,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export cajas',
                     ]
                 ],
-                 'tasas_cambio' => [
+                /* 'tasas_cambio' => [
                     'name' => 'Tasas de Cambio (BCV)',
                     'permissions' => [
                         'view exchange-rates',
@@ -152,7 +152,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'update exchange-rates',
                         'export exchange-rates',
                     ]
-                ],
+                ],*/
 
                 'pagos' => [
                     'name' => 'Pagos',
@@ -236,7 +236,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete clientes-fiscales',
                         'view clientes-fiscales',
                     ]
-                ],*/
+                ],
                 'notas_credito' => [
                     'name' => 'Notas de Crédito',
                     'permissions' => [
@@ -270,7 +270,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete anulacion-talonarios',
                         'view anulacion-talonarios',
                     ]
-                ],
+                ],*/
             ],
 
 
@@ -291,7 +291,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'export empresas',
                     ]
                 ],
-                'consultorios' => [
+                /*'consultorios' => [
                     'name' => 'Consultorios',
                     'permissions' => [
                         'access consultorios',
@@ -300,7 +300,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'delete consultorios',
                         'view consultorios',
                     ]
-                ],
+                ],*/
                 'sucursales' => [
                     'name' => 'Sucursales',
                     'permissions' => [
@@ -537,7 +537,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
             ],
 
             // 🛎️ SECTOR RECEPCIÓN
-            'recepcion' => [
+            /*'recepcion' => [
                 'dashboard' => [
                     'name' => 'Dashboard Recepción',
                     'permissions' => [
@@ -554,7 +554,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'ver respuestas preconsulta',
                     ]
                 ],
-            ],
+            ],*/
         ];
 
         // Crear permisos organizados por sectores y módulos

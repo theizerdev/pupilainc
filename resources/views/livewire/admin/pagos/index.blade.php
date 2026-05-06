@@ -163,17 +163,15 @@
                                 <th>Fecha</th>
                                 <th>Hora</th>
                                 <th>Tipo Doc.</th>
-                                <th>Serie</th>
                                 <th>Factura</th>
-                                <th>N° Control</th>
                                 <th>Cliente/Paciente</th>
                                 <th>Caja</th>
                                 <th>Método</th>
-                                <th>Tasa</th>
+
                                 <th>Creado por</th>
                                 <th class="text-end">Total </th>
                                 <th class="text-center">Estado</th>
-                                <th class="text-center">Acciones</th>
+
                             </tr>
                         </thead>
                         <tbody>
@@ -184,20 +182,14 @@
                                     <td>
                                         <span class="badge bg-secondary">{{ strtoupper(str_replace('_', ' ', $pago->tipo_pago)) }}</span>
                                     </td>
-                                    <td>{{ $pago->serie }}</td>
+
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <span class="fw-bold">{{ str_pad($pago->numero, 8, '0', STR_PAD_LEFT) }}</span>
                                         </div>
                                     </td>
-                                    <td>
-                                        @if($pago->numero_control_fiscal)
-                                            <span class="badge bg-info">{{ $pago->numero_control_fiscal }}</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                  
+
+
                                     <td>
                                         @if($pago->clienteFiscal)
                                             <div class="text-truncate" style="max-width: 200px;" title="{{ $pago->clienteFiscal->razon_social }}">
@@ -216,7 +208,7 @@
                                     <td>
                                         <span class="badge bg-info">{{ str_replace('_', ' ', ucwords($pago->metodo_pago)) }}</span>
                                     </td>
-                                    <td>{{ money($pago->tasa_cambio_usd) }}</td>
+
                                     <td>{{ $pago->user->name ?? 'N/A' }}</td>
                                     <td class="text-end">
                                         <div class="fw-bold text-primary"> {{ money($pago->total_bs) }}</div>
@@ -239,37 +231,7 @@
                                         <span class="badge bg-info ms-1">Con ND</span>
                                         @endif
                                     </td>
-                                    <td class="text-center">
-                                        <div class="dropdown">
-                                            <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                                <i class="ri ri-more-2-line"></i>
-                                            </button>
-                                            <div class="dropdown-menu">
-                                                <a class="dropdown-item" href="{{ route('admin.pagos.show', $pago->id) }}">
-                                                    <i class="ri ri-eye-line me-1"></i> Ver Detalle
-                                                </a>
-                                                <a class="dropdown-item" href="{{ route('admin.pagos.download', ['pago' => $pago->id, 'formato' => 'letter']) }}" target="_blank">
-                                                    <i class="ri ri-download-line me-1"></i> Descargar Media Carta
-                                                </a>
-                                                <a class="dropdown-item" href="{{ route('admin.pagos.download', ['pago' => $pago->id, 'formato' => 'a4']) }}" target="_blank">
-                                                    <i class="ri ri-file-pdf-line me-1"></i> Descargar A4
-                                                </a>
-                                                <button type="button" wire:click="printReceipt({{ $pago->id }})" class="dropdown-item">
-                                                    <i class="ri ri-printer-line me-1"></i> Imprimir
-                                                </button>
-                                                @if($pago->tipo_pago === 'factura' && $pago->estado === 'aprobado')
-                                                @if(!$tieneNC)
-                                                <a class="dropdown-item" href="{{ route('admin.notas-credito.create') }}">
-                                                    <i class="ri ri-file-reduce-line me-1"></i> Crear Nota Crédito
-                                                </a>
-                                                @endif
-                                                <a class="dropdown-item" href="{{ route('admin.notas-debito.create') }}">
-                                                    <i class="ri ri-file-add-line me-1"></i> Crear Nota Débito
-                                                </a>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
+
                                 </tr>
                             @empty
                                 <tr>

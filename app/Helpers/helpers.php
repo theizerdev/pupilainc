@@ -84,31 +84,28 @@ if (!function_exists('get_current_currency_symbol')) {
 
 if (!function_exists('format_money')) {
     /**
-     * Formatear una cantidad de dinero según la configuración regional
-     *
-     * @param float $amount Cantidad a formatear
-     * @param bool $includeSymbol Incluir símbolo de moneda
-     * @return string
+     * Formatear una cantidad de dinero.
+     * Firma 1: format_money($amount, $includeSymbol = true)  — uso normal
+     * Firma 2: format_money($amount, $decimals, $decSep, $thousandSep) — uso PDF (sin símbolo)
      */
-    function format_money($amount, $includeSymbol = true)
+    function format_money($amount, $decimalsOrSymbol = true, $decSep = null, $thousandSep = null)
     {
-        if (is_null($amount)) {
-            $amount = 0;
+        $amount = (float) ($amount ?? 0);
+
+        // Firma extendida: segundo arg es int → llamada directa con separadores
+        if (is_int($decimalsOrSymbol) && $decSep !== null) {
+            return number_format($amount, $decimalsOrSymbol, $decSep, $thousandSep ?? '');
         }
 
-        $amount = (float) $amount;
-        
-        // Obtener configuración regional
         $config = get_regional_config();
-        
-        $decimals = $config['decimals'] ?? 2;
-        $decimalSeparator = $config['decimal_separator'] ?? '.';
-        $thousandSeparator = $config['thousand_separator'] ?? ',';
-        $currencySymbol = $config['currency_symbol'] ?? '$';
-        
-        $formatted = number_format($amount, $decimals, $decimalSeparator, $thousandSeparator);
-        
-        return $includeSymbol ? $currencySymbol . ' ' . $formatted : $formatted;
+        $decimals        = $config['decimals'] ?? 2;
+        $decimalSep      = $config['decimal_separator'] ?? '.';
+        $thousandSep2    = $config['thousand_separator'] ?? ',';
+        $currencySymbol  = $config['currency_symbol'] ?? '$';
+
+        $formatted = number_format($amount, $decimals, $decimalSep, $thousandSep2);
+
+        return $decimalsOrSymbol ? $currencySymbol . ' ' . $formatted : $formatted;
     }
 }
 

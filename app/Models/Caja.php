@@ -23,7 +23,9 @@ class Caja extends Model
         'total_transferencias',
         'total_tarjetas',
         'total_ingresos',
+        'total_egresos',
         'monto_final',
+        'monto_final_ajustado',
         'estado',
         'fecha_apertura',
         'fecha_cierre',
@@ -40,7 +42,9 @@ class Caja extends Model
         'total_transferencias' => 'decimal:2',
         'total_tarjetas' => 'decimal:2',
         'total_ingresos' => 'decimal:2',
+        'total_egresos' => 'decimal:2',
         'monto_final' => 'decimal:2',
+        'monto_final_ajustado' => 'decimal:2',
     ];
 
     public function empresa(): BelongsTo
@@ -63,8 +67,21 @@ class Caja extends Model
         return $this->hasMany(Pago::class);
     }
 
+    public function gastos(): HasMany
+    {
+        return $this->hasMany(GastoCaja::class);
+    }
+
     public function calcularTotales(): void
     {
+        $pagos = $this->pagos()->where('estado', 'aprobado')->get();
+
+        // Recalcular los totales de cada pago para asegurar que incluyan productos
+        foreach ($pagos as $pago) {
+            $pago->calcularTotales();
+        }
+
+        // Recargar los pagos después de recalcular
         $pagos = $this->pagos()->where('estado', 'aprobado')->get();
 
         $totalEfectivo = 0;
@@ -78,27 +95,33 @@ class Caja extends Model
             }
 
             $montoUSD = $pago->total_usd ?? $pago->total;
-            
+
             if ($pago->es_pago_mixto && $pago->detalles_pago_mixto) {
                 // Procesar pago mixto
                 foreach ($pago->detalles_pago_mixto as $detalle) {
                     $monto = $detalle['monto_usd'] ?? $detalle['monto'] ?? 0;
-                    
-                    if (in_array($detalle['metodo'], ['efectivo_bs', 'efectivo_usd'])) {
+
+                    // Efectivo
+                    if (in_array($detalle['metodo'], ['efectivo_bs', 'efectivo_usd', 'efectivo'])) {
                         $totalEfectivo += $monto;
-                    } elseif (in_array($detalle['metodo'], ['transferencia_bs', 'transferencia_usd', 'pago_movil', 'zelle', 'paypal'])) {
+                    // Transferencias y pagos móviles
+                    } elseif (in_array($detalle['metodo'], ['transferencia_bs', 'transferencia_usd', 'transferencia', 'pago_movil', 'zelle', 'paypal', 'usdt'])) {
                         $totalTransferencias += $monto;
-                    } elseif (in_array($detalle['metodo'], ['tarjeta', 'tarjeta_debito', 'tarjeta_credito'])) {
+                    // Tarjetas de crédito/débito y bancos
+                    } elseif (in_array($detalle['metodo'], ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
                         $totalTarjetas += $monto;
                     }
                 }
             } else {
                 // Procesar pago tradicional
+                // Efectivo
                 if (in_array($pago->metodo_pago, ['efectivo_bs', 'efectivo_usd', 'efectivo'])) {
                     $totalEfectivo += $montoUSD;
-                } elseif (in_array($pago->metodo_pago, ['transferencia_bs', 'transferencia_usd', 'transferencia', 'pago_movil', 'zelle', 'paypal'])) {
+                // Transferencias y pagos móviles
+                } elseif (in_array($pago->metodo_pago, ['transferencia_bs', 'transferencia_usd', 'transferencia', 'pago_movil', 'zelle', 'paypal', 'usdt'])) {
                     $totalTransferencias += $montoUSD;
-                } elseif (in_array($pago->metodo_pago, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito'])) {
+                // Tarjetas de crédito/débito y bancos
+                } elseif (in_array($pago->metodo_pago, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
                     $totalTarjetas += $montoUSD;
                 }
             }
@@ -108,9 +131,50 @@ class Caja extends Model
         $this->total_transferencias = $totalTransferencias;
         $this->total_tarjetas = $totalTarjetas;
         $this->total_ingresos = $totalEfectivo + $totalTransferencias + $totalTarjetas;
-        $this->monto_final = $this->monto_inicial + $this->total_ingresos;
+
+        // Calcular egresos y monto final ajustado
+        $this->total_egresos = $this->gastos()
+            ->where('estado', 'aprobado')
+            ->sum('monto');
+
+        // Monto final ajustado = Inicial + Ingresos - Egresos
+        $this->monto_final_ajustado = $this->monto_inicial + $this->total_ingresos - $this->total_egresos;
 
         $this->save();
+    }
+
+    /**
+     * Actualizar totales de egresos
+     */
+    public function actualizarTotalesEgresos(): void
+    {
+        // Recargar el modelo para obtener los últimos valores de total_ingresos
+        $this->refresh();
+
+        $this->total_egresos = $this->gastos()
+            ->where('estado', 'aprobado')
+            ->sum('monto');
+
+        // Monto final ajustado = Inicial + Ingresos - Egresos
+        $this->monto_final_ajustado = $this->monto_inicial + $this->total_ingresos - $this->total_egresos;
+
+        $this->save();
+    }
+
+    /**
+     * Registrar un egreso/gasto
+     */
+    public function registrarEgreso(array $datos): GastoCaja
+    {
+        return $this->gastos()->create([
+            'concepto' => $datos['concepto'],
+            'observaciones' => $datos['observaciones'] ?? null,
+            'monto' => $datos['monto'],
+            'metodo_pago' => $datos['metodo_pago'] ?? 'efectivo',
+            'numero_referencia' => $datos['numero_referencia'] ?? null,
+            'categoria' => $datos['categoria'] ?? null,
+            'fecha_gasto' => $datos['fecha_gasto'] ?? now(),
+        ]);
     }
 
     public function cerrar(string $observaciones = null): bool

@@ -231,6 +231,7 @@
                         </div>
                     </div>
 
+                   @if(auth()->user()->empresa->pais->nombre === 'Venezuela')
                     <div class="card mb-4">
                         <div class="card-header"><h5 class="mb-0">Configuración Fiscal (IVA)</h5></div>
                         <div class="card-body">
@@ -276,7 +277,7 @@
                             </div>
                         </div>
                     </div>
-
+                   @endif
                     <div class="card mb-4">
                         <div class="card-header"><h5 class="mb-0">Detalles Adicionales</h5></div>
                         <div class="card-body">

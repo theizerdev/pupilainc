@@ -180,7 +180,7 @@
                                             E: @money($caja->total_efectivo) | T: @money($caja->total_transferencias) | TC: @money($caja->total_tarjetas)
                                         </small>
                                     </td>
-                                    <td>@money($caja->monto_final)</td>
+                                    <td>@money($caja->monto_final_ajustado)</td>
                                     <td>
                                         @if($caja->estado === 'abierta')
                                             <span class="badge bg-success">Abierta</span>
@@ -202,14 +202,6 @@
                                                     <i class="ri ri-eye-line me-1"></i> Ver Detalle
                                                 </a>
                                                 @endcan
-                                                @if($caja->estado === 'abierta')
-                                                    @can('edit cajas')
-                                                    <button type="button" class="dropdown-item"
-                                                            wire:click="cerrarCaja({{ $caja->id }})">
-                                                        <i class="ri ri-lock-line me-1"></i> Cerrar Caja
-                                                    </button>
-                                                    @endcan
-                                                @endif
                                             </div>
                                         </div>
                                     </td>

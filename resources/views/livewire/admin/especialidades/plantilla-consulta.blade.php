@@ -206,12 +206,7 @@
                     <i class="ri ri-settings-3-line me-1"></i>Configuración general
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-tab-target="#tab-secciones" type="button" role="tab">
-                    <i class="ri ri-layout-grid-line me-1"></i>Secciones clínicas
-                    <span class="badge bg-label-secondary ms-1">{{ count($secciones) }}</span>
-                </button>
-            </li>
+
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-tab-target="#tab-formularios" type="button" role="tab"
                         @if(!$plantilla) disabled title="Crea la plantilla primero" @endif>
@@ -229,7 +224,7 @@
         <div class="tab-pane fade show active" id="tab-config" role="tabpanel">
 
             <div class="row g-4">
-               
+
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
@@ -312,176 +307,7 @@
             </div>
         </div>
 
-        {{-- ════════════════════════════════════════════════════════════════ --}}
-        {{-- TAB 2 · SECCIONES CLÍNICAS                                       --}}
-        {{-- ════════════════════════════════════════════════════════════════ --}}
-        <div class="tab-pane fade" id="tab-secciones" role="tabpanel">
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div>
-                    <h6 class="mb-0"><i class="ri ri-layout-line me-2 text-primary"></i>Secciones clínicas</h6>
-                    <small class="text-muted">Define los bloques y campos clínicos de la plantilla base</small>
-                </div>
-                @if($plantilla)
-                <button class="btn btn-sm btn-primary" wire:click="abrirModalSeccion()">
-                    <i class="ri ri-add-line me-1"></i>Nueva sección
-                </button>
-                @endif
-            </div>
-            <div class="card-body">
 
-                @if(!$plantilla)
-                <div class="empty-hero">
-                    <div class="empty-icon"><i class="ri ri-file-add-line"></i></div>
-                    <h5 class="mb-2">Esta especialidad aún no tiene plantilla</h5>
-                    <p class="text-muted mb-4">
-                        Crea la plantilla base para empezar a configurar secciones clínicas, campos y formularios por estado.
-                    </p>
-                    <button class="btn btn-primary btn-lg" wire:click="crearPlantilla"
-                            wire:loading.attr="disabled" wire:target="crearPlantilla">
-                        <span wire:loading.remove wire:target="crearPlantilla">
-                            <i class="ri ri-add-line me-1"></i>Crear plantilla
-                        </span>
-                        <span wire:loading wire:target="crearPlantilla">
-                            <span class="spinner-border spinner-border-sm me-1"></span>Creando...
-                        </span>
-                    </button>
-                </div>
-
-                @elseif(count($secciones) === 0)
-                <div class="empty-hero">
-                    <div class="empty-icon"><i class="ri ri-layout-line"></i></div>
-                    <h5 class="mb-2">No hay secciones todavía</h5>
-                    <p class="text-muted mb-3">Agrega la primera sección clínica para esta plantilla.</p>
-                    <button class="btn btn-primary" wire:click="abrirModalSeccion()">
-                        <i class="ri ri-add-line me-1"></i>Agregar sección
-                    </button>
-                </div>
-
-                @else
-                <div class="row g-3">
-                    @foreach($secciones as $si => $seccion)
-                    <div class="col-12">
-                        <div class="card seccion-card {{ !$seccion['activo'] ? 'opacity-50' : '' }}"
-                             style="--seccion-color: {{ $seccion['color'] ?? '#3B82F6' }}">
-                            <div class="card-header bg-transparent d-flex align-items-center justify-content-between py-2 flex-wrap gap-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="fas {{ $seccion['icono'] ?? 'fa-stethoscope' }}"
-                                       style="color: {{ $seccion['color'] ?? '#3B82F6' }}"></i>
-                                    <strong>{{ $seccion['nombre'] }}</strong>
-                                    <span class="badge bg-label-secondary">{{ count($seccion['campos']) }} campos</span>
-                                    @if(!$seccion['activo'])
-                                        <span class="badge bg-label-warning">Inactiva</span>
-                                    @endif
-                                </div>
-                                <div class="d-flex gap-1 flex-wrap">
-                                    <div class="btn-group btn-group-sm" role="group" aria-label="Reordenar">
-                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
-                                                wire:click="moverSeccion({{ $seccion['id'] }}, 'up')"
-                                                @if($si === 0) disabled @endif title="Subir">
-                                            <i class="ri ri-arrow-up-s-line"></i>
-                                        </button>
-                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
-                                                wire:click="moverSeccion({{ $seccion['id'] }}, 'down')"
-                                                @if($si === count($secciones) - 1) disabled @endif title="Bajar">
-                                            <i class="ri ri-arrow-down-s-line"></i>
-                                        </button>
-                                    </div>
-                                    <button class="btn btn-xs btn-icon btn-outline-primary"
-                                            wire:click="abrirModalSeccion({{ $seccion['id'] }})" title="Editar">
-                                        <i class="ri ri-edit-line"></i>
-                                    </button>
-                                    <button class="btn btn-xs btn-icon {{ $seccion['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
-                                            wire:click="toggleSeccion({{ $seccion['id'] }})"
-                                            title="{{ $seccion['activo'] ? 'Desactivar' : 'Activar' }}">
-                                        <i class="ri ri-{{ $seccion['activo'] ? 'eye-off' : 'eye' }}-line"></i>
-                                    </button>
-                                    <button class="btn btn-xs btn-icon btn-outline-danger"
-                                            wire:click="eliminarSeccion({{ $seccion['id'] }})"
-                                            wire:confirm="¿Eliminar esta sección y todos sus campos?" title="Eliminar">
-                                        <i class="ri ri-delete-bin-line"></i>
-                                    </button>
-                                    <button class="btn btn-xs btn-sm btn-primary"
-                                            wire:click="abrirModalCampo({{ $seccion['id'] }})">
-                                        <i class="ri ri-add-line me-1"></i>Campo
-                                    </button>
-                                </div>
-                            </div>
-
-                            {{-- Campos de la sección --}}
-                            @if(count($seccion['campos']) > 0)
-                            <div class="card-body pt-2 pb-3">
-                                <div class="row g-2">
-                                    @foreach($seccion['campos'] as $ci => $campo)
-                                    <div class="col-12">
-                                        <div class="campo-row rounded p-2 {{ !$campo['activo'] ? 'inactivo' : '' }}">
-                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                    <span class="badge bg-label-primary tipo-badge">
-                                                        {{ $tiposCampo[$campo['tipo']] ?? $campo['tipo'] }}
-                                                    </span>
-                                                    <strong class="small">{{ $campo['etiqueta'] }}</strong>
-                                                    <code class="small text-muted">{{ $campo['nombre_campo'] }}</code>
-                                                    @if($campo['obligatorio'])
-                                                        <span class="badge bg-label-danger" style="font-size:.65rem">Obligatorio</span>
-                                                    @endif
-                                                    @if($campo['unidad'])
-                                                        <span class="badge bg-label-info" style="font-size:.65rem">{{ $campo['unidad'] }}</span>
-                                                    @endif
-                                                    <span class="width-indicator" title="Ancho {{ $campo['ancho_columnas'] }}/12">
-                                                        @for($w = 1; $w <= 12; $w++)
-                                                            <span class="wi-cell {{ $w <= $campo['ancho_columnas'] ? 'filled' : '' }}"></span>
-                                                        @endfor
-                                                    </span>
-                                                </div>
-                                                <div class="d-flex gap-1 flex-wrap">
-                                                    <div class="btn-group btn-group-sm" role="group">
-                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
-                                                                wire:click="moverCampo({{ $campo['id'] }}, 'up')"
-                                                                @if($ci === 0) disabled @endif title="Subir">
-                                                            <i class="ri ri-arrow-up-s-line"></i>
-                                                        </button>
-                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
-                                                                wire:click="moverCampo({{ $campo['id'] }}, 'down')"
-                                                                @if($ci === count($seccion['campos']) - 1) disabled @endif title="Bajar">
-                                                            <i class="ri ri-arrow-down-s-line"></i>
-                                                        </button>
-                                                    </div>
-                                                    <button class="btn btn-xs btn-icon btn-outline-primary"
-                                                            wire:click="abrirModalCampo({{ $seccion['id'] }}, {{ $campo['id'] }})" title="Editar">
-                                                        <i class="ri ri-edit-line"></i>
-                                                    </button>
-                                                    <button class="btn btn-xs btn-icon {{ $campo['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
-                                                            wire:click="toggleCampo({{ $campo['id'] }})"
-                                                            title="{{ $campo['activo'] ? 'Desactivar' : 'Activar' }}">
-                                                        <i class="ri ri-{{ $campo['activo'] ? 'eye-off' : 'eye' }}-line"></i>
-                                                    </button>
-                                                    <button class="btn btn-xs btn-icon btn-outline-danger"
-                                                            wire:click="eliminarCampo({{ $campo['id'] }})"
-                                                            wire:confirm="¿Eliminar este campo?" title="Eliminar">
-                                                        <i class="ri ri-delete-bin-line"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                            @else
-                            <div class="card-body py-2">
-                                <small class="text-muted fst-italic">Sin campos. Haz clic en "+ Campo" para agregar.</small>
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                @endif
-
-            </div>
-        </div>
-        </div>{{-- /tab-secciones --}}
 
         {{-- ════════════════════════════════════════════════════════════════ --}}
         {{-- TAB 3 · FORMULARIOS POR ESTADO                                    --}}

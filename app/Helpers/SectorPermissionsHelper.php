@@ -156,7 +156,7 @@ if (!function_exists('getSectorMenuItems')) {
                 'label' => 'Recepción',
                 'icon' => 'ri-service-line',
                 'items' => [
-                    [
+                   /* [
                         'label' => 'Panel Recepción',
                         'icon' => 'ri-dashboard-line',
                         'permission' => 'access recepcion dashboard',
@@ -171,7 +171,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.recepcion.control-consultorios',
                         'route_horizontal' => 'admin.recepcion.control-consultorios',
                         'active' => 'admin.recepcion.control-consultorios',
-                    ],
+                    ],*/
                      [
                         'label' => 'Calendario General',
                         'icon' => 'ri-calendar-2-line',
@@ -271,13 +271,14 @@ if (!function_exists('getSectorMenuItems')) {
                         'children' => [
                             ['label' => 'Categorías', 'permission' => 'access categorias', 'route' => 'admin.categorias.index', 'active' => 'admin.categorias.*'],
                             ['label' => 'Pagos', 'permission' => 'access pagos', 'route' => 'admin.pagos.index', 'active' => 'admin.pagos.*'],
-                            ['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
-                            ['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
+                            //['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
+                            //['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
                             ['label' => 'Servicios', 'permission' => 'access baremos', 'route' => 'admin.baremos.index', 'active' => 'admin.baremos.*'],
-                            ['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
-                            ['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
+                            //['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
+                            //['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
+                            //['label' => 'Punto de Venta', 'permission' => 'access cajas', 'route' => 'admin.pos.index', 'active' => 'admin.pos.*'],
                             ['label' => 'Caja Chica', 'permission' => 'access cajas', 'route' => 'admin.cajas.index', 'active' => 'admin.cajas.*'],
-                            ['label' => 'Anulación Talonarios', 'permission' => 'access series', 'route' => 'admin.anulacion-talonarios.index', 'active' => 'admin.anulacion-talonarios.*'],
+                            //['label' => 'Anulación Talonarios', 'permission' => 'access series', 'route' => 'admin.anulacion-talonarios.index', 'active' => 'admin.anulacion-talonarios.*'],
                         ]
                     ],
                     [
@@ -287,7 +288,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.series.index',
                         'active' => 'admin.series.*',
                     ],
-                    [
+                    /*[
                         'label' => 'Configuración Impuestos',
                         'icon' => 'ri-percent-line',
                         'permission' => 'access impuestos',
@@ -324,7 +325,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access anulacion-talonarios',
                         'route' => 'admin.anulacion-talonarios.index',
                         'active' => 'admin.anulacion-talonarios.*',
-                    ],
+                    ],*/
                 ]
             ],
             
