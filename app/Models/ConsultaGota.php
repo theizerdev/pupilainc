@@ -19,6 +19,8 @@ class ConsultaGota extends Model
         'gotas_oi',
         'observaciones',
         'tiempo_espera',
+        'estado',
+        'notificado',
     ];
 
     public function consulta()

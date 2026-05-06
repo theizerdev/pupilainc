@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.10s="$refresh">
     <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
        href="javascript:void(0);"
        data-bs-toggle="dropdown"
@@ -115,6 +115,110 @@
 </div>
 
 <script>
+// Sistema de sonido para notificaciones (Web Audio API)
+let notificationAudioContext = null;
+let notificationSoundBuffer = null;
+
+// Inicializar AudioContext en la primera interacción del usuario
+const initNotificationAudio = () => {
+    if (!notificationAudioContext) {
+        notificationAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        createNotificationSound();
+    }
+    document.body.removeEventListener('click', initNotificationAudio);
+    document.body.removeEventListener('keydown', initNotificationAudio);
+    document.body.removeEventListener('touchstart', initNotificationAudio);
+};
+
+// Crear sonido de notificación usando Web Audio API
+function createNotificationSound() {
+    if (!notificationAudioContext) return;
+
+    const sampleRate = notificationAudioContext.sampleRate;
+    const duration = 0.3; // 300ms
+    const buffer = notificationAudioContext.createBuffer(1, sampleRate * duration, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    // Generar un tono agradable (dos tonos: 800Hz y 1000Hz)
+    for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        const envelope = Math.exp(-3 * t); // Decay exponencial
+        data[i] = envelope * (Math.sin(2 * Math.PI * 800 * t) + Math.sin(2 * Math.PI * 1000 * t)) * 0.3;
+    }
+
+    notificationSoundBuffer = buffer;
+}
+
+// Reproducir sonido de notificación
+function playNotificationBeep() {
+    console.log('🔔 Intentando reproducir sonido de notificación...');
+
+    // Sonido habilitado por defecto
+    const soundEnabled = localStorage.getItem('notificationSoundEnabled') !== 'false';
+    if (!soundEnabled) {
+        console.log('❌ Sonido de notificación deshabilitado por usuario');
+        return;
+    }
+
+    try {
+        // Inicializar audio si aún no está listo
+        if (!notificationAudioContext) {
+            console.log('🎵 Inicializando AudioContext para notificaciones...');
+            notificationAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            createNotificationSound();
+        }
+
+        console.log('🎵 Estado del AudioContext:', notificationAudioContext.state);
+
+        // Reanudar el contexto si está suspendido
+        if (notificationAudioContext.state === 'suspended') {
+            console.log('⏸️ AudioContext suspendido, reanudando...');
+            notificationAudioContext.resume().then(() => {
+                console.log('▶️ AudioContext reanudado, reproduciendo beep...');
+                playBeepSound();
+            }).catch(err => {
+                console.error('❌ No se pudo reanudar el audio:', err);
+            });
+        } else {
+            console.log('▶️ Reproduciendo beep directamente...');
+            playBeepSound();
+        }
+    } catch (e) {
+        console.error('❌ Error en la reproducción de audio:', e);
+    }
+}
+
+// Función auxiliar para reproducir el sonido
+function playBeepSound() {
+    if (!notificationAudioContext || !notificationSoundBuffer) {
+        console.warn('⚠️ AudioContext o buffer no están listos');
+        return;
+    }
+
+    try {
+        const source = notificationAudioContext.createBufferSource();
+        source.buffer = notificationSoundBuffer;
+        source.connect(notificationAudioContext.destination);
+        source.start(0);
+        console.log('✅ Beep de notificación reproducido exitosamente');
+    } catch (e) {
+        console.error('❌ Error al reproducir beep:', e);
+    }
+}
+
+// Escuchar la primera interacción en el body
+document.body.addEventListener('click', initNotificationAudio, { once: true });
+document.body.addEventListener('keydown', initNotificationAudio, { once: true });
+document.body.addEventListener('touchstart', initNotificationAudio, { once: true });
+
+// Escuchar evento de nueva notificación desde Livewire y reproducir beep
+window.addEventListener('notification-created', () => {
+    console.log('🔔 Evento notification-created recibido - reproduciendo beep...');
+    setTimeout(() => {
+        playNotificationBeep();
+    }, 200);
+});
+
 function markNotificationAsRead(notificationId) {
     const notification = document.getElementById('notification-' + notificationId);
     const badge = document.querySelector('.badge.badge-dot.bg-danger');

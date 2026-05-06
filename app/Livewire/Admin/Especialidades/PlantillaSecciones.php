@@ -205,6 +205,9 @@ class PlantillaSecciones extends Component
         $this->cargarSecciones();
         $this->resetModalCampo();
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
+
+        // Disparar evento global para actualizar otros componentes
+        $this->dispatch('plantilla-actualizada');
     }
 
     public function toggleCampo(int $campoId): void

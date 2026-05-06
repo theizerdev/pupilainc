@@ -128,6 +128,12 @@ class Consulta extends Model
                 $consulta->codigo = $candidate ?? (string) random_int(10000000, 99999999);
             }
         });
+
+        static::updating(function (self $consulta) {
+            if ($consulta->isDirty('estado')) {
+                $consulta->estado_changed_at = now();
+            }
+        });
     }
 
     public function paciente()

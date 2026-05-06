@@ -72,6 +72,8 @@ abstract class BaseEstadoFormularioSeeder extends Seeder
                 'unidad'         => $c[6],
                 'placeholder'    => $c[7],
                 'ancho_columnas' => $c[8],
+                'min'            => $c[9] ?? null,
+                'max'            => $c[10] ?? null,
                 'orden'          => $orden + 1,
                 'activo'         => true,
             ]);

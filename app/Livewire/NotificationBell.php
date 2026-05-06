@@ -53,14 +53,13 @@ class NotificationBell extends Component
     public function render()
     {
         // Obtener las últimas 10 notificaciones (tanto leídas como no leídas)
-        $notifications = Notification::where('user_id', auth()->id())
-            ->orderBy('created_at', 'desc')
+        $notifications = Notification::orderBy('created_at', 'desc')
+            ->whereNull('read_at')
             ->take(10)
             ->get();
 
         // Contar solo las no leídas
-        $unreadCount = Notification::where('user_id', auth()->id())
-            ->whereNull('read_at')
+        $unreadCount = Notification::whereNull('read_at')
             ->count();
 
         return view('livewire.notification-bell', [

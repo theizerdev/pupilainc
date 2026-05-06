@@ -192,7 +192,7 @@ class PlantillaConsulta extends Component
     public function abrirModalSeccionEstado(string $estado, ?int $seccionId = null): void
     {
         if (!$this->plantilla) $this->crearPlantilla();
-        
+
         // Asegura que el formulario de estado existe
         $ef = PlantillaEstadoFormulario::firstOrCreate(
             ['plantilla_id' => $this->plantilla->id, 'estado' => $estado],
@@ -246,10 +246,10 @@ class PlantillaConsulta extends Component
         $this->plantilla = EspecialidadPlantilla::with(['todosLosEstadoFormularios.todasLasSecciones.todosLosCampos'])
             ->findOrFail($this->plantilla->id);
         $this->sincronizarEstadoFormularios();
-        
+
         // Mantener el estado abierto después de guardar
         $this->estadoFormularioActivo = $ef->estado;
-        
+
         $this->resetModalSeccion();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Sección guardada.']);
     }
@@ -396,7 +396,7 @@ class PlantillaConsulta extends Component
 
         // Guardar automáticamente en la base de datos
         $this->guardarConfiguracion();
-        
+
         $this->resetModalPaso();
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
     }
@@ -434,7 +434,7 @@ class PlantillaConsulta extends Component
         // Actualizar orden
         $this->pasosHabilitados[$index]['orden'] = $index + 1;
         $this->pasosHabilitados[$swap]['orden'] = $swap + 1;
-        
+
         $this->guardarConfiguracion();
     }
 
@@ -489,7 +489,7 @@ class PlantillaConsulta extends Component
 
         // Guardar automáticamente en la base de datos
         $this->guardarConfiguracion();
-        
+
         $this->resetModalEstado();
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
     }
@@ -527,7 +527,7 @@ class PlantillaConsulta extends Component
         // Actualizar orden
         $this->estadosFlujo[$index]['orden'] = $index + 1;
         $this->estadosFlujo[$swap]['orden'] = $swap + 1;
-        
+
         $this->guardarConfiguracion();
     }
 
@@ -587,7 +587,7 @@ class PlantillaConsulta extends Component
     {
         $seccion = PlantillaSeccion::findOrFail($seccionId);
         $seccion->update(['activo' => !$seccion->activo]);
-        
+
         // Recargar según contexto
         if ($seccion->estado_formulario_id) {
             $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
@@ -603,7 +603,7 @@ class PlantillaConsulta extends Component
         $seccion = PlantillaSeccion::findOrFail($seccionId);
         $esEstadoFormulario = $seccion->estado_formulario_id !== null;
         $seccion->delete();
-        
+
         // Recargar según contexto
         if ($esEstadoFormulario) {
             $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
@@ -612,7 +612,7 @@ class PlantillaConsulta extends Component
             $this->plantilla->load('todasLasSecciones.todosLosCampos');
             $this->sincronizarSecciones();
         }
-        
+
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Sección eliminada.']);
     }
 
@@ -718,13 +718,16 @@ class PlantillaConsulta extends Component
 
         $this->resetModalCampo();
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
+
+        // Disparar evento global para actualizar otros componentes
+        $this->dispatch('plantilla-actualizada');
     }
 
     public function toggleCampo(int $campoId): void
     {
         $campo = PlantillaCampo::findOrFail($campoId);
         $campo->update(['activo' => !$campo->activo]);
-        
+
         // Recargar según contexto
         $seccion = $campo->seccion;
         if ($seccion && $seccion->estado_formulario_id) {
@@ -742,7 +745,7 @@ class PlantillaConsulta extends Component
         $seccion = $campo->seccion;
         $esEstadoFormulario = $seccion && $seccion->estado_formulario_id !== null;
         $campo->delete();
-        
+
         // Recargar según contexto
         if ($esEstadoFormulario) {
             $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
@@ -751,7 +754,7 @@ class PlantillaConsulta extends Component
             $this->plantilla->load('todasLasSecciones.todosLosCampos');
             $this->sincronizarSecciones();
         }
-        
+
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Campo eliminado.']);
     }
 

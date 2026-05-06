@@ -157,9 +157,24 @@
     <!-- Toast Container -->
 
     @include('components.toast-container')
-    
+
     <!-- Widget de Chat Flotante Global -->
     @livewire('floating-chat-widget')
+
+    <!-- Timer Global de Dilatación -->
+    @livewire('dilatation-timer')
+
+    <!-- Script global para manejar eventos de notificaciones -->
+    <script>
+        // Escuchar eventos de Livewire y convertirlos a eventos DOM
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('notification-created', () => {
+                console.log('🔔 Livewire event notification-create recibido');
+                // Disparar evento DOM para que todos los componentes lo escuchen
+                window.dispatchEvent(new CustomEvent('notification-created'));
+            });
+        });
+    </script>
 
     @stack('scripts')
   </body>

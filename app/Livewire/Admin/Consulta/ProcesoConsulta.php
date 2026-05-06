@@ -7,13 +7,20 @@ use App\Models\Consulta;
 use App\Models\ConsultaEstudio;
 use App\Models\ConsultaTratamiento;
 use App\Models\ConsultaEstadoDato;
+use App\Models\ConsultaNota;
+use App\Models\ConsultaGota;
 use App\Models\RespuestaPreconsulta;
 use App\Models\EspecialidadPlantilla;
 use App\Traits\HasDynamicLayout;
+use App\Services\DilatacionService;
 
 class ProcesoConsulta extends Component
 {
     use HasDynamicLayout;
+
+    protected $listeners = [
+        'plantilla-actualizada' => 'recargarPlantilla',
+    ];
 
     public $consulta;
     public $pasoActual = 0;
@@ -80,6 +87,11 @@ class ProcesoConsulta extends Component
     public $fecha_fin_reposo;
     public $observaciones_reposo;
 
+    // Notas de consulta
+    public $mostrarModalNotas = false;
+    public $notaConsulta = '';
+    public $notasExistentes = [];
+
     public function mount($consultaId)
     {
         $this->consulta = Consulta::with([
@@ -96,6 +108,31 @@ class ProcesoConsulta extends Component
         $this->cargarEstudiosYTratamientos();
         $this->cargarReposo();
         $this->cargarDatosEstadoActual();
+        $this->cargarNotaConsulta();
+
+        // Verificar dilatación al cargar el componente
+        $this->verificarDilatacionExpirada();
+    }
+
+    /**
+     * Recargar plantilla desde la base de datos (útil después de cambios en configuración)
+     */
+    public function recargarPlantilla(): void
+    {
+        $this->cargarPlantilla();
+        $this->cargarDatosEstadoActual(); // Recargar datos del formulario actual
+        $this->dispatch('plantilla-recargada');
+    }
+
+    /**
+     * Se ejecuta en cada request de Livewire - mantiene la plantilla actualizada
+     * Solo recarga la estructura, NO los datos del formulario (para no perder datos del usuario)
+     */
+    public function hydrate(): void
+    {
+        // Recargar solo la estructura de la plantilla desde la base de datos
+        $this->cargarPlantilla();
+        // NO llamar a cargarDatosEstadoActual() aquí para no perder datos del usuario
     }
 
     // ── Carga de plantilla ────────────────────────────────────────────────────
@@ -105,7 +142,10 @@ class ProcesoConsulta extends Component
         $plantilla = null;
 
         if ($this->consulta->especialidad_id) {
-            $plantilla = EspecialidadPlantilla::with(['todasLasSecciones.todosLosCampos', 'todosLosEstadoFormularios.todasLasSecciones.todosLosCampos'])
+            $plantilla = EspecialidadPlantilla::with([
+                'secciones.campos',
+                'estadosFormularios.secciones.campos'
+            ])
                 ->where('especialidad_id', $this->consulta->especialidad_id)
                 ->where('activo', true)
                 ->latest()
@@ -119,13 +159,13 @@ class ProcesoConsulta extends Component
             $this->secciones      = [];
 
             // Cargar secciones de evaluación (paso predefinido)
-            foreach ($plantilla->todasLasSecciones as $seccion) {
+            foreach ($plantilla->secciones as $seccion) {
                 $this->secciones[] = [
                     'id'     => $seccion->id,
                     'nombre' => $seccion->nombre,
                     'icono'  => $seccion->icono,
                     'color'  => $seccion->color,
-                    'campos' => $seccion->todosLosCampos->map(fn($c) => [
+                    'campos' => $seccion->campos->map(fn($c) => [
                         'id'             => $c->id,
                         'nombre_campo'   => $c->nombre_campo,
                         'etiqueta'       => $c->etiqueta,
@@ -144,14 +184,14 @@ class ProcesoConsulta extends Component
 
             // Cargar formularios por estado
             $this->formulariosPorEstado = [];
-            foreach ($plantilla->todosLosEstadoFormularios as $ef) {
+            foreach ($plantilla->estadosFormularios as $ef) {
                 $this->formulariosPorEstado[$ef->estado] = [
-                    'secciones' => $ef->todasLasSecciones->map(fn($s) => [
+                    'secciones' => $ef->secciones->map(fn($s) => [
                         'id'     => $s->id,
                         'nombre' => $s->nombre,
                         'icono'  => $s->icono,
                         'color'  => $s->color,
-                        'campos' => $s->todosLosCampos->map(fn($c) => [
+                        'campos' => $s->campos->map(fn($c) => [
                             'id'             => $c->id,
                             'nombre_campo'   => $c->nombre_campo,
                             'etiqueta'       => $c->etiqueta,
@@ -686,7 +726,101 @@ class ProcesoConsulta extends Component
             ]
         );
 
+        // Si el estado es 'en_gotas', crear registro en consulta_gotas
+        if ($estado === \App\Models\Consulta::ESTADO_EN_GOTAS) {
+            $this->guardarGotaAplicada();
+        }
+
         $this->dispatch('notify', ['message' => 'Datos guardados', 'type' => 'success']);
+    }
+
+    private function guardarGotaAplicada(): void
+    {
+        // Extraer tiempo_espera del select (ej: "10 minutos" -> 10)
+        $tiempoEsperaTexto = $this->datos_estado_actual['tiempo_espera'] ?? '30 minutos';
+        $tiempoEspera = (int) filter_var($tiempoEsperaTexto, FILTER_SANITIZE_NUMBER_INT);
+
+        ConsultaGota::create([
+            'consulta_id'  => $this->consulta->id,
+            'user_id'      => auth()->id(),
+            'tipo_gota'    => $this->datos_estado_actual['tipo_gota'] ?? 'Tropicamida 1%',
+            'gotas_od'     => $this->datos_estado_actual['gotas_od'] ?? 1,
+            'gotas_oi'     => $this->datos_estado_actual['gotas_oi'] ?? 1,
+            'observaciones'=> $this->datos_estado_actual['observaciones_gotas'] ?? null,
+            'tiempo_espera'=> $tiempoEspera,
+            'estado'       => 'aplicada',
+            'notificado'   => false,
+        ]);
+    }
+
+    // ── Notas de Consulta ─────────────────────────────────────────────────────
+
+    /**
+     * Cargar nota de consulta existente
+     */
+    public function cargarNotaConsulta(): void
+    {
+        $nota = ConsultaNota::where('consulta_id', $this->consulta->id)
+            ->where('tipo', 'manual')
+            ->latest()
+            ->first();
+
+        if ($nota) {
+            $this->notaConsulta = $nota->nota;
+            $this->notasExistentes = ConsultaNota::where('consulta_id', $this->consulta->id)
+                ->where('tipo', 'manual')
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get()
+                ->map(fn($n) => [
+                    'nota' => $n->nota,
+                    'fecha' => $n->created_at->format('d/m/Y H:i'),
+                    'usuario' => $n->creadoPor->name ?? 'Sistema',
+                ])
+                ->toArray();
+        }
+    }
+
+    /**
+     * Abrir modal de notas
+     */
+    public function abrirModalNotas(): void
+    {
+        $this->cargarNotaConsulta();
+        $this->mostrarModalNotas = true;
+    }
+
+    /**
+     * Cerrar modal de notas
+     */
+    public function cerrarModalNotas(): void
+    {
+        $this->mostrarModalNotas = false;
+        $this->notaConsulta = '';
+    }
+
+    /**
+     * Guardar nota de consulta
+     */
+    public function guardarNotaConsulta(): void
+    {
+        $this->validate([
+            'notaConsulta' => 'required|string|max:2000',
+        ]);
+
+        ConsultaNota::create([
+            'consulta_id' => $this->consulta->id,
+            'cita_id' => $this->consulta->cita_id,
+            'nota' => $this->notaConsulta,
+            'tipo' => 'manual', // ENUM: 'manual' o 'sistema'
+            'estado_consulta' => $this->consulta->estado,
+            'created_by' => auth()->id(),
+            'empresa_id' => auth()->user()->empresa_id,
+            'sucursal_id' => auth()->user()->sucursal_id,
+        ]);
+
+        $this->dispatch('notify', ['message' => 'Nota guardada exitosamente', 'type' => 'success']);
+        $this->cerrarModalNotas();
     }
 
     // ── Pasos Custom (tipo formulario) ───────────────────────────────────────
@@ -750,6 +884,62 @@ class ProcesoConsulta extends Component
         $label = $estadoConfig['nombre'] ?? (EspecialidadPlantilla::ESTADOS_DISPONIBLES[$this->nuevoEstado] ?? $this->nuevoEstado);
         $this->dispatch('show-toast', ['type' => 'success', 'message' => "Estado actualizado a {$label}"]);
         $this->nuevoEstado = '';
+    }
+
+    /**
+     * Verificar si la dilatación ha expirado y procesar notificaciones
+     * Se ejecuta automáticamente cada 10 segundos cuando está en estado en_gotas
+     */
+    public function verificarDilatacionExpirada(): void
+    {
+        if ($this->consulta->estado !== Consulta::ESTADO_EN_GOTAS) {
+            return;
+        }
+
+        \Log::info('Verificando dilatación expirada', ['consulta_id' => $this->consulta->id]);
+
+        $gotaAplicada = $this->consulta->gotasAplicadas()
+            ->where('estado', 'aplicada')
+            ->latest('updated_at')
+            ->first();
+
+        if (!$gotaAplicada) {
+            \Log::info('No hay gota aplicada', ['consulta_id' => $this->consulta->id]);
+            return;
+        }
+
+        $fechaInicio = $gotaAplicada->updated_at ?? $gotaAplicada->created_at;
+        $segundosTotales = $gotaAplicada->tiempo_espera * 60;
+        $segundosTranscurridos = $fechaInicio ? $fechaInicio->diffInSeconds(now()) : 0;
+
+        \Log::info('Cálculo de tiempo', [
+            'consulta_id' => $this->consulta->id,
+            'fecha_inicio' => $fechaInicio,
+            'segundos_totales' => $segundosTotales,
+            'segundos_transcurridos' => $segundosTranscurridos,
+            'segundos_restantes' => max(0, $segundosTotales - $segundosTranscurridos)
+        ]);
+
+        if ($segundosTranscurridos >= $segundosTotales) {
+            \Log::info('Dilatación expirada, procesando', ['consulta_id' => $this->consulta->id]);
+            // Dilatación expirada, procesar notificación
+            $dilatacionService = new DilatacionService();
+            $dilatacionService->processConsultaDilatada($this->consulta);
+
+            // Recargar la consulta para reflejar cambios
+            $this->consulta->refresh();
+
+            // Mostrar notificación al usuario
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => '¡Dilatación completada! La consulta ha sido marcada como dilatada.'
+            ]);
+
+            // Recargar datos del estado actual
+            $this->cargarDatosEstadoActual();
+
+            \Log::info('Dilatación procesada exitosamente', ['consulta_id' => $this->consulta->id, 'nuevo_estado' => $this->consulta->estado]);
+        }
     }
 
     public function finalizarConsulta()

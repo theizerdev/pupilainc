@@ -181,6 +181,12 @@ class EspecialidadPlantilla extends Model
         return $this->hasMany(PlantillaEstadoFormulario::class, 'plantilla_id');
     }
 
+    public function estadosFormularios(): HasMany
+    {
+        return $this->hasMany(PlantillaEstadoFormulario::class, 'plantilla_id')
+            ->where('activo', true);
+    }
+
     public function getFormularioParaEstado(string $estado): ?PlantillaEstadoFormulario
     {
         return $this->estadoFormularios()->where('estado', $estado)->first();

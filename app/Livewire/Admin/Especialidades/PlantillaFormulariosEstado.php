@@ -200,6 +200,9 @@ class PlantillaFormulariosEstado extends Component
         $this->cargarFormularios();
         $this->resetModalCampo();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Campo guardado.']);
+
+        // Disparar evento global para actualizar otros componentes
+        $this->dispatch('plantilla-actualizada');
     }
 
     private function crearPlantilla(): void
