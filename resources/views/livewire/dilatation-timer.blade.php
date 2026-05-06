@@ -70,7 +70,7 @@
                     </div>
 
                     <div class="dilatation-timer-display">
-                        @if($dilatation['segundos_restantes'] > 0)
+                        @if($dilatation['segundos_restantes']  0)
                             @php
                                 $mins = floor($dilatation['segundos_restantes'] / 60);
                                 $secs = $dilatation['segundos_restantes'] % 60;

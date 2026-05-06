@@ -118,6 +118,11 @@ class DilatacionService
         $consulta->cambiarEstado(Consulta::ESTADO_DILATADO);
         $gota->update(['notificado' => true]);
 
+        $cita = $consulta->cita;
+        if ($cita) {
+            $cita->update(['estado' => 'dilatado']);
+        }
+
         return true;
     }
 

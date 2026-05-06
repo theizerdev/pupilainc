@@ -28,6 +28,7 @@ class DilatationTimer extends Component
     public $isExpanded = false;
     public $lastUpdate = 0; // Timestamp para forzar actualizaciones
     public $totalActive = 0;
+    public $aplicada = false;
 
     protected $listeners = [
         'notify-completed' => 'notifyCompleted',
@@ -71,16 +72,6 @@ class DilatationTimer extends Component
 
         $user = Auth::user();
 
-        \Log::info('loadActiveDilatations ejecutado', [
-            'user_id' => $user->id,
-            'timestamp' => now()->toDateTimeString(),
-            'config' => [
-                'filterByUser' => $this->filterByUser,
-                'filterByMedico' => $this->filterByMedico,
-                'maxItems' => $this->maxItems,
-            ]
-        ]);
-
         // Construir query base
         $query = Consulta::where('estado', Consulta::ESTADO_EN_GOTAS)
             ->where('empresa_id', $user->empresa_id)
@@ -101,6 +92,7 @@ class DilatationTimer extends Component
         }
 
         $dilatations = $query->latest()
+            
             ->limit($this->maxItems)
             ->get()
             ->map(function ($consulta) {
