@@ -13,7 +13,7 @@ class RecalcularCajasTotales extends Command
     public function handle()
     {
         $this->info('Recalculando totales de cajas...');
-        
+
         $cajas = Caja::all();
         $total = $cajas->count();
         $contador = 0;
@@ -33,9 +33,9 @@ class RecalcularCajasTotales extends Command
         if ($total > 0) {
             $this->output->progressFinish();
         }
-        
+
         $this->info("Se han recalculado {$contador} cajas exitosamente.");
-        
+
         return Command::SUCCESS;
     }
 }
