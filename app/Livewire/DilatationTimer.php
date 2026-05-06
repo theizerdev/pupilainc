@@ -92,7 +92,7 @@ class DilatationTimer extends Component
         }
 
         $dilatations = $query->latest()
-            
+
             ->limit($this->maxItems)
             ->get()
             ->map(function ($consulta) {
@@ -132,12 +132,18 @@ class DilatationTimer extends Component
             ->latest('updated_at')
             ->first();
 
-        $tiempoEspera = $gotaAplicada ? $gotaAplicada->tiempo_espera : 30;
-        $fechaInicio = $gotaAplicada ? ($gotaAplicada->updated_at ?? $gotaAplicada->created_at) : ($consulta->estado_changed_at ?? $consulta->updated_at);
+        // Si no hay gotas aplicadas, no debe mostrar timer
+        if (!$gotaAplicada || !$gotaAplicada->tiempo_espera) {
+            return null;
+        }
+
+        $fechaInicio = $gotaAplicada->updated_at ?? $gotaAplicada->created_at;
 
         if (!$fechaInicio) {
             return null;
         }
+
+        $tiempoEspera = $gotaAplicada->tiempo_espera;
 
         $segundosTotales = $tiempoEspera * 60;
         $segundosTranscurridos = 0;
@@ -163,7 +169,7 @@ class DilatationTimer extends Component
             'porcentaje' => $porcentaje,
             'ya_notificado' => $yaNotificado,
             'urgente' => $segundosRestantes <= 300,
-            'fecha_inicio' => $fechaInicio ? $fechaInicio->format('Y-m-d H:i:s') : null,
+            'fecha_inicio' => $fechaInicio->format('Y-m-d H:i:s'),
             'tiempo_espera_minutos' => $tiempoEspera,
         ];
     }

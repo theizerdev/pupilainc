@@ -213,37 +213,47 @@
                                 ->where('estado', 'aplicada')
                                 ->latest('updated_at')
                                 ->first();
-                            $tiempoEspera = $gotaAplicada ? $gotaAplicada->tiempo_espera : 30;
-                            $fechaInicio = $gotaAplicada ? ($gotaAplicada->updated_at ?? $gotaAplicada->created_at) : ($consulta->estado_changed_at ?? $consulta->updated_at);
-                            $segundosTotales = $tiempoEspera * 60;
-                            $segundosTranscurridos = 0;
-                            if ($fechaInicio) {
-                                $fechaInicioCarbon = \Carbon\Carbon::parse($fechaInicio);
-                                $segundosTranscurridos = $fechaInicioCarbon->gt(now())
-                                    ? 0
-                                    : $fechaInicioCarbon->diffInSeconds(now());
-                            }
-                            $segundosRestantes = max(0, $segundosTotales - $segundosTranscurridos);
-                            $minutosRestantes = floor($segundosRestantes / 60);
-                            $segundosFormato = $segundosRestantes % 60;
-                            $porcentaje = $segundosTotales > 0 ? min(100, ($segundosTranscurridos / $segundosTotales) * 100) : 100;
-                            $urgente = $segundosRestantes <= 300;
                         @endphp
 
-                        <div class="timer-gotas-container {{ $urgente ? 'timer-urgent' : '' }}"
-                             wire:poll.10s="verificarDilatacionExpirada">
-                            <i class="ri ri-timer-flash-line"></i>
-                            <span class="timer-label">Dilatación:</span>
-                            <span class="timer-value">
-                                {{ $minutosRestantes }}:{{ str_pad($segundosFormato, 2, '0', STR_PAD_LEFT) }}
-                            </span>
-                            <div class="timer-progress-mini">
-                                <div class="timer-progress-bar-mini"
-                                     style="width: {{ $porcentaje }}%;
-                                            background: {{ $urgente ? '#dc3545' : ($porcentaje > 75 ? '#ffc107' : '#28a745') }}">
+                        @if($gotaAplicada && $gotaAplicada->tiempo_espera)
+                            @php
+                                $tiempoEspera = $gotaAplicada->tiempo_espera;
+                                $fechaInicio = $gotaAplicada->updated_at ?? $gotaAplicada->created_at;
+                                $segundosTotales = $tiempoEspera * 60;
+                                $segundosTranscurridos = 0;
+                                if ($fechaInicio) {
+                                    $fechaInicioCarbon = \Carbon\Carbon::parse($fechaInicio);
+                                    $segundosTranscurridos = $fechaInicioCarbon->gt(now())
+                                        ? 0
+                                        : $fechaInicioCarbon->diffInSeconds(now());
+                                }
+                                $segundosRestantes = max(0, $segundosTotales - $segundosTranscurridos);
+                                $minutosRestantes = floor($segundosRestantes / 60);
+                                $segundosFormato = $segundosRestantes % 60;
+                                $porcentaje = $segundosTotales > 0 ? min(100, ($segundosTranscurridos / $segundosTotales) * 100) : 100;
+                                $urgente = $segundosRestantes <= 300;
+                            @endphp
+
+                            <div class="timer-gotas-container {{ $urgente ? 'timer-urgent' : '' }}"
+                                 wire:poll.10s="verificarDilatacionExpirada">
+                                <i class="ri ri-timer-flash-line"></i>
+                                <span class="timer-label">Dilatación:</span>
+                                <span class="timer-value">
+                                    {{ $minutosRestantes }}:{{ str_pad($segundosFormato, 2, '0', STR_PAD_LEFT) }}
+                                </span>
+                                <div class="timer-progress-mini">
+                                    <div class="timer-progress-bar-mini"
+                                         style="width: {{ $porcentaje }}%;
+                                                background: {{ $urgente ? '#dc3545' : ($porcentaje > 75 ? '#ffc107' : '#28a745') }}">
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="alert alert-info mb-0 py-2 px-3" style="font-size: 0.85rem;">
+                                <i class="ri ri-information-line me-1"></i>
+                                <strong>Sin gotas aplicadas:</strong> Seleccione el tipo de gota y tiempo de espera en el formulario y guarde para iniciar el timer.
+                            </div>
+                        @endif
                     @endif
 
                     <button class="btn btn-sm btn-primary" wire:click="guardarDatosEstado">

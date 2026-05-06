@@ -91,12 +91,12 @@ class DilatacionService
         $notificationTitle = 'Paciente dilatado';
         $notificationText = "El paciente {$pacienteNombre} ya finalizó el tiempo de dilatación y la consulta se marcó como dilatado.";
 
-        if ($senderId) {
+        if ($senderId && $doctorUserId) {
             ChatMessage::create([
                 'sender_id' => $senderId,
-                'receiver_id' => $consulta->doctor?->user_id ?? $senderId,
+                'receiver_id' => $doctorUserId,
                 'empresa_id' => $consulta->empresa_id,
-                'message' => $chatMessage,
+                'message' => $notificationText,
                 'is_read' => false,
             ]);
         }
@@ -131,7 +131,7 @@ class DilatacionService
         $sender = User::where('empresa_id', $consulta->empresa_id)
             ->where('sucursal_id', $consulta->sucursal_id)
             ->whereHas('roles', function ($query) {
-                $query->where('name', 'Recepción');
+                $query->where('name', 'Super Administrador');
             })
             ->first();
 
