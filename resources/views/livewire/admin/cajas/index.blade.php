@@ -177,7 +177,10 @@
                                     <td>
                                         <div class="fw-semibold">@money($caja->total_ingresos)</div>
                                         <small class="text-muted d-inline">
-                                            E: @money($caja->total_efectivo) | T: @money($caja->total_transferencias) | TC: @money($caja->total_tarjetas)
+                                            E: @money($caja->total_efectivo) | 
+                                            T: @money($caja->total_transferencias) | 
+                                            TC: @money($caja->total_tarjeta_credito) | 
+                                            TD: @money($caja->total_tarjeta_debito)
                                         </small>
                                     </td>
                                     <td>@money($caja->monto_final_ajustado)</td>

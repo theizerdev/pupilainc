@@ -22,6 +22,8 @@ class Caja extends Model
         'total_efectivo',
         'total_transferencias',
         'total_tarjetas',
+        'total_tarjeta_credito',
+        'total_tarjeta_debito',
         'total_ingresos',
         'total_egresos',
         'monto_final',
@@ -41,6 +43,8 @@ class Caja extends Model
         'total_efectivo' => 'decimal:2',
         'total_transferencias' => 'decimal:2',
         'total_tarjetas' => 'decimal:2',
+        'total_tarjeta_credito' => 'decimal:2',
+        'total_tarjeta_debito' => 'decimal:2',
         'total_ingresos' => 'decimal:2',
         'total_egresos' => 'decimal:2',
         'monto_final' => 'decimal:2',
@@ -87,6 +91,8 @@ class Caja extends Model
         $totalEfectivo = 0;
         $totalTransferencias = 0;
         $totalTarjetas = 0;
+        $totalTarjetaCredito = 0;
+        $totalTarjetaDebito = 0;
 
         foreach ($pagos as $pago) {
             // Excluir pagos anulados por nota de crédito
@@ -107,9 +113,15 @@ class Caja extends Model
                     // Transferencias y pagos móviles
                     } elseif (in_array($detalle['metodo'], ['transferencia_bs', 'transferencia_usd', 'transferencia', 'pago_movil', 'zelle', 'paypal', 'usdt'])) {
                         $totalTransferencias += $monto;
-                    // Tarjetas de crédito/débito y bancos
-                    } elseif (in_array($detalle['metodo'], ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
-                        $totalTarjetas += $monto;
+                    // Tarjeta de crédito
+                    } elseif (in_array($detalle['metodo'], ['tarjeta_credito', 'bbva_cr', 'mercantil_cr', 'banesco_cr', 'provincial_cr', 'bod_cr'])) {
+                        $totalTarjetaCredito += $monto;
+                    // Tarjeta de débito
+                    } elseif (in_array($detalle['metodo'], ['tarjeta_debito', 'bbva_dr', 'mercantil_dr', 'banesco_dr', 'provincial_dr', 'bod_dr'])) {
+                        $totalTarjetaDebito += $monto;
+                    // Legacy: tarjeta genérica
+                    } elseif ($detalle['metodo'] === 'tarjeta') {
+                        $totalTarjetaCredito += $monto;
                     }
                 }
             } else {
@@ -120,16 +132,26 @@ class Caja extends Model
                 // Transferencias y pagos móviles
                 } elseif (in_array($pago->metodo_pago, ['transferencia_bs', 'transferencia_usd', 'transferencia', 'pago_movil', 'zelle', 'paypal', 'usdt'])) {
                     $totalTransferencias += $montoUSD;
-                // Tarjetas de crédito/débito y bancos
-                } elseif (in_array($pago->metodo_pago, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
-                    $totalTarjetas += $montoUSD;
+                // Tarjeta de crédito
+                } elseif (in_array($pago->metodo_pago, ['tarjeta_credito', 'bbva_cr', 'mercantil_cr', 'banesco_cr', 'provincial_cr', 'bod_cr'])) {
+                    $totalTarjetaCredito += $montoUSD;
+                // Tarjeta de débito
+                } elseif (in_array($pago->metodo_pago, ['tarjeta_debito', 'bbva_dr', 'mercantil_dr', 'banesco_dr', 'provincial_dr', 'bod_dr'])) {
+                    $totalTarjetaDebito += $montoUSD;
+                // Legacy: tarjeta genérica
+                } elseif ($pago->metodo_pago === 'tarjeta') {
+                    $totalTarjetaCredito += $montoUSD;
                 }
             }
         }
 
+        $totalTarjetas = $totalTarjetaCredito + $totalTarjetaDebito;
+
         $this->total_efectivo = $totalEfectivo;
         $this->total_transferencias = $totalTransferencias;
         $this->total_tarjetas = $totalTarjetas;
+        $this->total_tarjeta_credito = $totalTarjetaCredito;
+        $this->total_tarjeta_debito = $totalTarjetaDebito;
         $this->total_ingresos = $totalEfectivo + $totalTransferencias + $totalTarjetas;
 
         // Calcular egresos y monto final ajustado

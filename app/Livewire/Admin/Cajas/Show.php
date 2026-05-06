@@ -481,13 +481,14 @@ class Show extends Component
     {
         $efectivo = ['efectivo', 'efectivo_bs', 'efectivo_usd'];
         $transferencias = ['transferencia', 'transferencia_bs', 'transferencia_usd', 'pago_movil', 'zelle', 'paypal', 'usdt'];
-        $tarjetas = ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr',
-                     'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr',
-                     'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'];
+        $tarjetaCredito = ['tarjeta_credito', 'bbva_cr', 'mercantil_cr', 'banesco_cr', 'provincial_cr', 'bod_cr'];
+        $tarjetaDebito = ['tarjeta_debito', 'bbva_dr', 'mercantil_dr', 'banesco_dr', 'provincial_dr', 'bod_dr'];
 
         if (in_array($metodo, $efectivo)) return 'EFECTIVO';
         if (in_array($metodo, $transferencias)) return 'TRANSFERENCIAS';
-        if (in_array($metodo, $tarjetas)) return 'TARJETAS/BANCOS';
+        if (in_array($metodo, $tarjetaCredito)) return 'TARJETA CRÉDITO';
+        if (in_array($metodo, $tarjetaDebito)) return 'TARJETA DÉBITO';
+        if ($metodo === 'tarjeta') return 'TARJETA CRÉDITO'; // Legacy
 
         return 'OTROS';
     }
@@ -500,7 +501,8 @@ class Show extends Component
         $categorias = [
             'EFECTIVO' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
             'TRANSFERENCIAS' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
-            'TARJETAS/BANCOS' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
+            'TARJETA CRÉDITO' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
+            'TARJETA DÉBITO' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
             'OTROS' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
         ];
 
