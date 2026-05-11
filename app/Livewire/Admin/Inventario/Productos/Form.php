@@ -35,6 +35,7 @@ class Form extends Component
     public $categoria_producto_id = '';
     public $marca_id = '';
     public $proveedor_id = '';
+    public $proveedor_search = ''; // Búsqueda de proveedores
     public $unidad_medida = 'unidad';
     public $codigo_barras = '';
     public $dimensiones = '';
@@ -76,8 +77,45 @@ class Form extends Component
     public $variantes = [];
     public $variantes_imagenes = [];
 
-    // Preview código
-    public $codigo_preview = '';
+    // Proveedores filtrados por búsqueda
+    public function getProveedoresFiltradosProperty()
+    {
+        $proveedores = $this->proveedores;
+
+        if (strlen($this->proveedor_search) > 0) {
+            $search = strtolower($this->proveedor_search);
+            $proveedores = $proveedores->filter(function ($prov) use ($search) {
+                return
+                    stripos(strtolower($prov->nombre), $search) !== false ||
+                    ($prov->rif && stripos(strtolower($prov->rif), $search) !== false) ||
+                    ($prov->telefono && stripos(strtolower($prov->telefono), $search) !== false);
+            });
+        }
+
+        return $proveedores->take(10); // Limitar a 10 resultados
+    }
+
+    // Proveedor seleccionado (modelo completo)
+    public function getProveedorSeleccionadoProperty()
+    {
+        if ($this->proveedor_id) {
+            return Proveedor::find($this->proveedor_id);
+        }
+        return null;
+    }
+
+    // Seleccionar proveedor
+    public function seleccionarProveedor($proveedorId)
+    {
+        $this->proveedor_id = $proveedorId;
+
+        if ($proveedorId) {
+            $proveedor = Proveedor::find($proveedorId);
+            $this->proveedor_search = $proveedor ? $proveedor->nombre : '';
+        } else {
+            $this->proveedor_search = '';
+        }
+    }
 
     const UNIDADES = [
         'unidad'  => 'Unidad',   'caja'    => 'Caja',          'frasco'  => 'Frasco',
@@ -87,6 +125,9 @@ class Form extends Component
         'rollo'   => 'Rollo',    'sobre'   => 'Sobre',          'vial'    => 'Vial',
     ];
 
+    // Preview código
+    public $codigo_preview = '';
+
     protected function rules()
     {
         return [
@@ -95,9 +136,9 @@ class Form extends Component
             'sku'                  => 'nullable|string|max:50',
             'codigo_barras'        => 'nullable|string|max:50',
             'descripcion'          => 'nullable|string|max:1000',
-            'categoria_producto_id'=> 'nullable|exists:categorias_producto,id',
-            'marca_id'             => 'nullable|exists:marcas,id',
-            'proveedor_id'         => 'nullable|exists:proveedores,id',
+            'categoria_producto_id'=> 'required|exists:categorias_producto,id',
+            'marca_id'             => 'required|exists:marcas,id',
+            'proveedor_id'         => 'required|exists:proveedores,id',
             'unidad_medida'        => 'required|string|max:30',
             'precio_costo'         => 'required|numeric|min:0',
             'precio_venta'         => 'required|numeric|min:0|gte:precio_costo',
@@ -271,6 +312,8 @@ class Form extends Component
     public function setTab(string $tab)
     {
         $this->activeTab = $tab;
+        // Disparar evento para reinicializar Select2 cuando cambia el tab
+        $this->dispatch('tab-changed');
     }
 
     // ─── Imágenes ───────────────────────────────────────────────────
@@ -396,6 +439,9 @@ class Form extends Component
             $producto = $this->producto;
             $msg = "Producto '{$this->nombre}' actualizado.";
         } else {
+
+             $data = $this->validate();
+
             $producto = Producto::create($payload);
             $msg      = "Producto '{$this->nombre}' creado.";
 
@@ -505,12 +551,14 @@ class Form extends Component
     public function render()
     {
         return view('livewire.admin.inventario.productos.form', [
-            'categorias'     => $this->categorias,
-            'marcas'         => $this->marcas,
-            'proveedores'    => $this->proveedores,
-            'almacenes'      => $this->almacenes,
-            'unidades'       => self::UNIDADES,
-            'tiposVariantes' => $this->tiposVariantes,
+            'categorias'           => $this->categorias,
+            'marcas'               => $this->marcas,
+            'proveedores'          => $this->proveedores,
+            'proveedores_filtrados'=> $this->proveedores_filtrados,
+            'proveedor_seleccionado' => $this->proveedor_seleccionado,
+            'almacenes'            => $this->almacenes,
+            'unidades'             => self::UNIDADES,
+            'tiposVariantes'       => $this->tiposVariantes,
         ])->layout($this->getLayout());
     }
 }

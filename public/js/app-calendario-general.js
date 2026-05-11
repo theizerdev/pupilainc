@@ -2728,8 +2728,14 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
 
             // Usar siempre los mismos campos de hora
             if (fecha && horaInicio && horaFin) {
-                startDate = fecha + ' ' + horaInicio + ':00';
-                endDate = fecha + ' ' + horaFin + ':00';
+                // Crear objetos Date para manejar correctamente la zona horaria
+                var startDateTime = new Date(fecha + 'T' + horaInicio + ':00');
+                var endDateTime = new Date(fecha + 'T' + horaFin + ':00');
+                
+                // Formatear como ISO 8601 con offset de zona horaria local
+                // Esto asegura que el backend reciba la hora correcta del navegador
+                startDate = startDateTime.toISOString();
+                endDate = endDateTime.toISOString();
             }
 
             var eventData = {

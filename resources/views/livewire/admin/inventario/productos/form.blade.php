@@ -103,34 +103,65 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Categoría</label>
-                                        <select class="form-control" wire:model="categoria_producto_id">
+                                        <select class="form-control  @error('categoria_producto_id') is-invalid @enderror" wire:model="categoria_producto_id">
                                             <option value="">Sin categoría</option>
                                             @foreach($categorias as $cat)
                                                 <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
                                             @endforeach
                                         </select>
+                                        @error('categoria_producto_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Marca</label>
-                                        <select class="form-control" wire:model="marca_id">
+                                        <select class="form-control  @error('marca_id') is-invalid @enderror" wire:model="marca_id">
                                             <option value="">Sin marca</option>
                                             @foreach($marcas as $marca)
                                                 <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
                                             @endforeach
                                         </select>
+                                        @error('marca_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Proveedor</label>
-                                        <select class="form-control" wire:model="proveedor_id">
-                                            <option value="">Sin proveedor</option>
-                                            @foreach($proveedores as $prov)
-                                                <option value="{{ $prov->id }}">{{ $prov->nombre }}</option>
-                                            @endforeach
-                                        </select>
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control @error('proveedor_id') is-invalid @enderror"
+                                                   wire:model.live="proveedor_search"
+                                                   placeholder="Buscar proveedor..."
+                                                   autocomplete="off"
+                                                   @if($proveedor_seleccionado) value="{{ $proveedor_seleccionado->nombre }}" @endif>
+
+                                                    @if(strlen($proveedor_search) > 0 && count($proveedores_filtrados) > 0)
+                                                    <div class="position-absolute w-100" style="z-index: 1000;">
+                                                        <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+
+                                                            @foreach($proveedores_filtrados as $prov)
+                                                            <button type="button" class="list-group-item list-group-item-action"
+                                                                    wire:click="seleccionarProveedor({{ $prov->id }})"
+                                                                    style="background-color: #ffffff; border-left: none; border-right: none; border-bottom: 1px solid #f8f9fa; padding: 0.75rem 1rem; transition: background-color 0.2s;">
+                                                                <strong style="color: #212529;">{{ $prov->nombre }}</strong><br>
+                                                                <small class="text-muted" style="color: #6c757d;">
+                                                                    @if($prov->rif) RIF: {{ $prov->rif }} | @endif
+                                                                    @if($prov->telefono) Tel: {{ $prov->telefono }} @endif
+                                                                </small>
+                                                            </button>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                    @endif
+
+                                            @if($proveedor_seleccionado)
+                                            <div class="mt-2">
+                                                <span class="badge bg-success">
+                                                    <i class="ri ri-check-line"></i> {{ $proveedor_seleccionado->nombre }}
+                                                </span>
+                                            </div>
+                                            @endif
+                                            @error('proveedor_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        </div>
                                     </div>
                                 </div>
                             </div>

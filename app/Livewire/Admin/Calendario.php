@@ -453,16 +453,17 @@ class Calendario extends Component
 
         $timezone = $this->getEmpresaTimezone();
 
-        // Parsear las fechas considerando la zona horaria del usuario y convertirlas a UTC para almacenamiento
-        // Usar formato correcto: Carbon::parse($input) según especificación
-        $inicio = Carbon::parse($this->fecha_inicio);
-        $fin = Carbon::parse($this->fecha_fin);
+        // Parsear las fechas ISO 8601 enviadas desde el frontend
+        // Las fechas vienen en formato ISO con zona horaria del navegador (UTC)
+        // Debemos convertirlas a la zona horaria de la empresa
+        $inicio = Carbon::parse($this->fecha_inicio)->timezone($timezone);
+        $fin = Carbon::parse($this->fecha_fin)->timezone($timezone);
 
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
         $ahora    = Carbon::now($timezone);
-        $inicioTz = Carbon::parse($this->fecha_inicio);
+        $inicioTz = Carbon::parse($this->fecha_inicio)->timezone($timezone);
 
         Log::info('Validando cita', [
             'fecha_inicio_raw' => $this->fecha_inicio,

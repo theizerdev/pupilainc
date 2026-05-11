@@ -729,27 +729,27 @@ class PlantillaConsulta extends Component
         if ($this->campoEditId) {
             $campo = PlantillaCampo::findOrFail($this->campoEditId);
             $seccionOriginal = $campo->seccion_id;
-            
+
             // Verificar si cambió de sección
             if ($seccionOriginal != $this->campoSeccionId) {
                 // Mover a nueva sección
                 $data['seccion_id'] = $this->campoSeccionId;
-                
+
                 // Calcular nuevo orden (al final de la nueva sección)
                 $nuevoOrden = PlantillaCampo::where('seccion_id', $this->campoSeccionId)
                     ->where('id', '!=', $this->campoEditId)  // Excluir el campo actual
                     ->count() + 1;
                 $data['orden'] = $nuevoOrden;
-                
+
                 // Recalcular órdenes en la sección original
                 $this->recalcularOrdenCampos($seccionOriginal);
-                
+
                 $msg = 'Campo movido a otra sección y actualizado.';
             } else {
                 // Solo actualizar datos, no cambia de sección
                 $msg = 'Campo actualizado.';
             }
-            
+
             $campo->update($data);
         } else {
             $seccion = PlantillaSeccion::findOrFail($this->campoSeccionId);
@@ -780,7 +780,7 @@ class PlantillaConsulta extends Component
         $campos = PlantillaCampo::where('seccion_id', $seccionId)
             ->orderBy('orden')
             ->get();
-        
+
         foreach ($campos as $index => $campo) {
             $campo->update(['orden' => $index + 1]);
         }

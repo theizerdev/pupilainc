@@ -411,6 +411,7 @@ Route::prefix('inventario')->name('inventario.')->group(function () {
     Route::middleware(['checkAdminPermission:access ordenes-compra'])->group(function () {
         Route::get('/ordenes-compra', \App\Livewire\Admin\Inventario\OrdenesCompra\Index::class)->name('ordenes-compra.index');
         Route::get('/ordenes-compra/crear', \App\Livewire\Admin\Inventario\OrdenesCompra\Form::class)->name('ordenes-compra.create');
+        Route::get('/ordenes-compra/{orden}/editar', \App\Livewire\Admin\Inventario\OrdenesCompra\Form::class)->name('ordenes-compra.edit');
     });
 
     Route::middleware(['checkAdminPermission:access alertas-inventario'])->group(function () {

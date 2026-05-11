@@ -105,7 +105,7 @@
                                 </td>
                                 <td>{{ $orden->fecha_emision->format('d/m/Y') }}</td>
                                 <td>{{ $orden->fecha_esperada?->format('d/m/Y') ?? '-' }}</td>
-                                <td class="text-end fw-bold">${{ number_format($orden->total, 2) }}</td>
+                                <td class="text-end fw-bold">{{ money($orden->total, 2) }}</td>
                                 <td>
                                     <div class="dropdown">
                                         <button class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
@@ -114,6 +114,9 @@
                                         <div class="dropdown-menu">
                                             @can('edit ordenes-compra')
                                                 @if(!in_array($orden->estado, ['recibida', 'cancelada']))
+                                                    <a href="{{ route('admin.inventario.ordenes-compra.edit', $orden) }}" class="dropdown-item">
+                                                        <i class="ri ri-edit-line me-1"></i> Editar
+                                                    </a>
                                                     <button class="dropdown-item text-success"
                                                             wire:click="recibirCompleta({{ $orden->id }})"
                                                             wire:confirm="¿Marcar como recibida completa? Esto actualizará el stock.">
@@ -123,6 +126,12 @@
                                                             wire:click="cancelar({{ $orden->id }})"
                                                             wire:confirm="¿Cancelar esta orden?">
                                                         <i class="ri ri-close-circle-line me-1"></i> Cancelar
+                                                    </button>
+                                                @else
+                                                    {{-- Para órdenes recibidas o canceladas, solo mostrar ver --}}
+                                                    <button class="dropdown-item"
+                                                            wire:click="$dispatch('abrirModal', { ordenId: {{ $orden->id }} })">
+                                                        <i class="ri ri-eye-line me-1"></i> Ver detalle
                                                     </button>
                                                 @endif
                                             @endcan
@@ -139,4 +148,7 @@
             {{ $ordenes->links('livewire.pagination') }}
         </div>
     </div>
+
+    <!-- Modal para ver detalle -->
+    @livewire('admin.inventario.ordenes-compra.ver-detalle')
 </div>

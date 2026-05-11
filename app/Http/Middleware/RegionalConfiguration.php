@@ -20,6 +20,7 @@ class RegionalConfiguration
         // Aplicar configuración regional si el usuario está autenticado
         if (auth()->check()) {
             RegionalConfigurationService::setRegionalConfiguration();
+
         }
 
         return $next($request);
