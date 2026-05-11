@@ -10,7 +10,7 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" wire:click="cerrarModal"></button>
                 </div>
-                
+
                 <div class="modal-body">
                     <!-- Información General -->
                     <div class="row mb-4">
@@ -41,7 +41,7 @@
                                 </tr>
                             </table>
                         </div>
-                        
+
                         <div class="col-md-6">
                             <h6 class="fw-bold text-primary mb-3">Fechas</h6>
                             <table class="table table-sm table-borderless">
@@ -66,20 +66,20 @@
                             </table>
                         </div>
                     </div>
-                    
+
                     @if($orden->observaciones)
                     <div class="alert alert-light border">
                         <h6 class="fw-bold mb-2"><i class="ri ri-information-line me-1"></i>Observaciones</h6>
                         <p class="mb-0">{{ $orden->observaciones }}</p>
                     </div>
                     @endif
-                    
+
                     <!-- Detalle de Productos -->
                     <h6 class="fw-bold text-primary mb-3 mt-4">
                         <i class="ri ri-shopping-bag-line me-1"></i>
                         Productos ({{ $orden->detalles->count() }})
                     </h6>
-                    
+
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead class="table-light">
@@ -117,7 +117,7 @@
                             </tfoot>
                         </table>
                     </div>
-                    
+
                     @if($orden->generada_automaticamente)
                     <div class="alert alert-info mt-3">
                         <i class="ri ri-robot-line me-1"></i>
@@ -125,7 +125,7 @@
                     </div>
                     @endif
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" wire:click="cerrarModal">
                         <i class="ri ri-close-line me-1"></i>Cerrar

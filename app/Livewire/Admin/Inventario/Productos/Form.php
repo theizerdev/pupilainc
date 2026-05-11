@@ -34,6 +34,7 @@ class Form extends Component
     public $descripcion = '';
     public $categoria_producto_id = '';
     public $marca_id = '';
+    public $marca_search = ''; // Búsqueda de marcas
     public $proveedor_id = '';
     public $proveedor_search = ''; // Búsqueda de proveedores
     public $unidad_medida = 'unidad';
@@ -114,6 +115,43 @@ class Form extends Component
             $this->proveedor_search = $proveedor ? $proveedor->nombre : '';
         } else {
             $this->proveedor_search = '';
+        }
+    }
+
+    // Marcas filtradas por búsqueda
+    public function getMarcasFiltradasProperty()
+    {
+        $marcas = $this->marcas;
+
+        if (strlen($this->marca_search) > 0) {
+            $search = strtolower($this->marca_search);
+            $marcas = $marcas->filter(function ($marca) use ($search) {
+                return stripos(strtolower($marca->nombre), $search) !== false;
+            });
+        }
+
+        return $marcas->take(10); // Limitar a 10 resultados
+    }
+
+    // Marca seleccionada (modelo completo)
+    public function getMarcaSeleccionadaProperty()
+    {
+        if ($this->marca_id) {
+            return Marca::find($this->marca_id);
+        }
+        return null;
+    }
+
+    // Seleccionar marca
+    public function seleccionarMarca($marcaId)
+    {
+        $this->marca_id = $marcaId;
+
+        if ($marcaId) {
+            $marca = Marca::find($marcaId);
+            $this->marca_search = $marca ? $marca->nombre : '';
+        } else {
+            $this->marca_search = '';
         }
     }
 
@@ -553,6 +591,8 @@ class Form extends Component
         return view('livewire.admin.inventario.productos.form', [
             'categorias'           => $this->categorias,
             'marcas'               => $this->marcas,
+            'marcas_filtradas'     => $this->marcas_filtradas,
+            'marca_seleccionada'   => $this->marca_seleccionada,
             'proveedores'          => $this->proveedores,
             'proveedores_filtrados'=> $this->proveedores_filtrados,
             'proveedor_seleccionado' => $this->proveedor_seleccionado,

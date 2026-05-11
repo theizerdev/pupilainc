@@ -2731,7 +2731,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 // Crear objetos Date para manejar correctamente la zona horaria
                 var startDateTime = new Date(fecha + 'T' + horaInicio + ':00');
                 var endDateTime = new Date(fecha + 'T' + horaFin + ':00');
-                
+
                 // Formatear como ISO 8601 con offset de zona horaria local
                 // Esto asegura que el backend reciba la hora correcta del navegador
                 startDate = startDateTime.toISOString();

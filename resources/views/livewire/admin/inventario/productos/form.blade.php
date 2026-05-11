@@ -115,13 +115,36 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Marca</label>
-                                        <select class="form-control  @error('marca_id') is-invalid @enderror" wire:model="marca_id">
-                                            <option value="">Sin marca</option>
-                                            @foreach($marcas as $marca)
-                                                <option value="{{ $marca->id }}">{{ $marca->nombre }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('marca_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        <div class="position-relative">
+                                            <input type="text" class="form-control @error('marca_id') is-invalid @enderror" 
+                                                   wire:model.live="marca_search" 
+                                                   placeholder="Buscar marca..."
+                                                   autocomplete="off"
+                                                   @if($marca_seleccionada) value="{{ $marca_seleccionada->nombre }}" @endif>
+                                        
+                                            @if(strlen($marca_search) > 0 && count($marcas_filtradas) > 0)
+                                            <div class="position-absolute w-100" style="z-index: 1000;">
+                                                <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+                                                    @foreach($marcas_filtradas as $marca)
+                                                    <button type="button" class="list-group-item list-group-item-action" 
+                                                            wire:click="seleccionarMarca({{ $marca->id }})"
+                                                            style="background-color: #ffffff; border-left: none; border-right: none; border-bottom: 1px solid #f8f9fa; padding: 0.75rem 1rem; transition: background-color 0.2s;">
+                                                        <strong style="color: #212529;">{{ $marca->nombre }}</strong>
+                                                    </button>
+                                                    @endforeach
+                                                </div>
+                                            </div>
+                                            @endif
+                                            
+                                            @if($marca_seleccionada)
+                                            <div class="mt-2">
+                                                <span class="badge bg-success">
+                                                    <i class="ri ri-check-line"></i> {{ $marca_seleccionada->nombre }}
+                                                </span>
+                                            </div>
+                                            @endif
+                                            @error('marca_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">

@@ -39,7 +39,7 @@ class VerDetalle extends Component
         if (!$this->ordenId) {
             return null;
         }
-        
+
         return OrdenCompra::with(['proveedor', 'almacen', 'detalles.producto'])
             ->findOrFail($this->ordenId);
     }
