@@ -5,7 +5,7 @@
     <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-6">
       <a href="{{ route('admin.dashboard') }}" class="app-brand-link gap-2">
         <span class="app-brand-logo demo">
-         <img src="/logo/logo-horizontal.webp" height="30px">
+         <img src="/logo/logo.png" height="80px">
         </span>
       </a>
 

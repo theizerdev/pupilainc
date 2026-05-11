@@ -83,7 +83,7 @@ class InformeMedicoController extends Controller
 
     private function encabezado(string $titulo): void
     {
-        $logoPath  = public_path('logo/logo-angeles.png');
+        $logoPath  = public_path('logo/logo.png');
         $tieneLogo = file_exists($logoPath);
 
         if ($tieneLogo) {
