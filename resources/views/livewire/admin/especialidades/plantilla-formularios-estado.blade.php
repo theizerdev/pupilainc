@@ -58,11 +58,20 @@
 
             @if($tieneEstados)
                 <div class="row g-3">
-                    @foreach($estadosFlujo as $index => $estado)
+                    @php
+                        // Crear un mapa único de estados (evitar duplicados)
+                        $estadosUnicos = collect($estadosFlujo)
+                            ->unique('key')
+                            ->sortBy('orden')
+                            ->values();
+                    @endphp
+
+                    @foreach($estadosUnicos as $index => $estado)
                         @php
                             $estadoKey = is_array($estado) ? ($estado['key'] ?? '') : $estado;
                             $estadoNombre = is_array($estado) ? ($estado['nombre'] ?? ucfirst($estadoKey)) : ucfirst($estadoKey);
                             $estadoColor = is_array($estado) ? ($estado['color'] ?? '#6B7280') : '#6B7280';
+                            $estadoTipo = is_array($estado) ? ($estado['tipo'] ?? 'base') : 'base';
 
                             // Buscar formulario para este estado
                             $formulario = collect($estadoFormularios)->firstWhere('estado', $estadoKey);
@@ -76,9 +85,16 @@
                                         <i class="ri-circle-fill" style="font-size: 0.6rem;"></i>
                                         {{ $estadoNombre }}
                                     </div>
-                                    @if($tieneCampos)
-                                        <span class="badge bg-success">{{ count($formulario['secciones']) }} secciones</span>
-                                    @endif
+                                    <div class="d-flex gap-2">
+                                        @if($estadoTipo === 'base')
+                                            <span class="badge bg-label-secondary" title="Estado base automático">
+                                                <i class="ri ri-lock-line me-1"></i>Base
+                                            </span>
+                                        @endif
+                                        @if($tieneCampos)
+                                            <span class="badge bg-success">{{ count($formulario['secciones']) }} secciones</span>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <div class="text-muted small">

@@ -8,6 +8,29 @@
         <!-- /Logo -->
 
         <div class="card-body mt-1">
+          <!-- Mensajes de sesión -->
+          @if(session('info'))
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+              {{ session('info') }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          @endif
+
+          @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ session('error') }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          @endif
+
+          @if(session('status'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              {{ session('status') }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          @endif
+          <!-- /Mensajes de sesión -->
+
           <h4 class="mb-1">¡{{ __('auth_ui.login_title') }}s! 👋</h4>
           <p class="mb-5">{{ __('auth_ui.login_subtitle') }}</p>
 
@@ -68,7 +91,7 @@
             </div>
           </form>
 
-          
+
 
           <div class="divider my-5">
             <div class="divider-text">or</div>

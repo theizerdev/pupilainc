@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Contabilidad;
 
 use App\Traits\HasDynamicLayout;
+use App\Traits\HasRegionalFormatting;
 use Livewire\Component;
 use App\Models\CuentaContable;
 use App\Models\AsientoDetalle;
@@ -10,7 +11,7 @@ use App\Models\AsientoContable;
 
 class BalanceComprobacion extends Component
 {
-    use HasDynamicLayout;
+    use HasDynamicLayout, HasRegionalFormatting;
 
     public $fecha_desde;
     public $fecha_hasta;
@@ -77,7 +78,7 @@ class BalanceComprobacion extends Component
                 $saldoInicialQuery = AsientoDetalle::where('cuenta_id', $cuenta->id)
                     ->whereHas('asiento', fn($q) => $q->where('estado', 'aprobado')
                         ->whereDate('fecha', '<', $this->fecha_desde));
-                
+
                 $debeInicial = (float) $saldoInicialQuery->sum('debe');
                 $haberInicial = (float) (clone $saldoInicialQuery)->sum('haber');
                 $saldoInicial = $cuenta->naturaleza === 'deudora' ? ($debeInicial - $haberInicial) : ($haberInicial - $debeInicial);
@@ -89,9 +90,20 @@ class BalanceComprobacion extends Component
 
                 $debePeriodo = (float) $movimientosQuery->sum('debe');
                 $haberPeriodo = (float) (clone $movimientosQuery)->sum('haber');
-                
+
                 // Calcular saldo final
                 $saldoFinal = $saldoInicial + ($cuenta->naturaleza === 'deudora' ? ($debePeriodo - $haberPeriodo) : ($haberPeriodo - $debePeriodo));
+
+                // Determinar saldos deudor y acreedor según la naturaleza de la cuenta
+                if ($cuenta->naturaleza === 'deudora') {
+                    // Cuentas deudoras (Activos, Gastos): saldo positivo = deudor
+                    $saldoDeudor = $saldoFinal > 0 ? $saldoFinal : 0;
+                    $saldoAcreedor = $saldoFinal < 0 ? abs($saldoFinal) : 0;
+                } else {
+                    // Cuentas acreedoras (Pasivos, Patrimonio, Ingresos): saldo positivo = acreedor
+                    $saldoDeudor = $saldoFinal < 0 ? abs($saldoFinal) : 0;
+                    $saldoAcreedor = $saldoFinal > 0 ? $saldoFinal : 0;
+                }
 
                 return (object) [
                     'id' => $cuenta->id,
@@ -104,8 +116,8 @@ class BalanceComprobacion extends Component
                     'debe_periodo' => $debePeriodo,
                     'haber_periodo' => $haberPeriodo,
                     'saldo_final' => $saldoFinal,
-                    'saldo_deudor' => $saldoFinal >= 0 ? $saldoFinal : 0,
-                    'saldo_acreedor' => $saldoFinal < 0 ? abs($saldoFinal) : 0,
+                    'saldo_deudor' => $saldoDeudor,
+                    'saldo_acreedor' => $saldoAcreedor,
                     'tiene_movimientos' => $debePeriodo > 0 || $haberPeriodo > 0 || abs($saldoInicial) > 0.01,
                 ];
             })
@@ -134,7 +146,7 @@ class BalanceComprobacion extends Component
     public function getStatsProperty()
     {
         $empresaId = auth()->user()->empresa_id;
-        
+
         return [
             'total_cuentas' => CuentaContable::where('empresa_id', $empresaId)
                 ->where('acepta_movimientos', true)
@@ -152,7 +164,7 @@ class BalanceComprobacion extends Component
     public function getResumenPorTipoProperty()
     {
         $cuentas = $this->cuentas;
-        
+
         return $cuentas->groupBy('tipo')->map(function($cuentasTipo, $tipo) {
             return (object) [
                 'tipo' => $tipo,
@@ -185,6 +197,7 @@ class BalanceComprobacion extends Component
             'totales' => $this->totales,
             'stats' => $this->stats,
             'resumenPorTipo' => $this->resumenPorTipo,
+            'regionalConfig' => $this->getRegionalConfig(),
         ])->layout($this->getLayout());
     }
 }

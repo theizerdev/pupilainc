@@ -9,8 +9,7 @@
     </style>
     @endpush
 
-    <div class="container-xxl flex-grow-1 container-p-y">
-        {{-- Breadcrumb --}}
+    <div class="container-p-y">
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb breadcrumb-style1 mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}"><i class="ri ri-home-line me-1"></i>Dashboard</a></li>
@@ -139,7 +138,7 @@
                                         <small class="text-muted">{{ \Carbon\Carbon::parse($fecha_comparativa)->format('d/m/Y') }} vs {{ \Carbon\Carbon::parse($fecha_corte)->format('d/m/Y') }}</small>
                                     @endif
                                 </div>
-                                
+
                                 @if($agrupar_por_categoria)
                                     @php
                                         $activosAgrupados = $activos->groupBy('categoria');
@@ -197,7 +196,7 @@
                                         </tbody>
                                     </table>
                                 @endif
-                                
+
                                 <div class="border-top pt-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong class="text-primary">TOTAL ACTIVOS</strong>
@@ -216,7 +215,7 @@
                             {{-- PASIVOS Y PATRIMONIO --}}
                             <div class="col-md-6">
                                 <h6 class="text-danger fw-bold mb-3">PASIVOS</h6>
-                                
+
                                 @if($agrupar_por_categoria)
                                     @php
                                         $pasivosAgrupados = $pasivos->groupBy('categoria');
@@ -274,7 +273,7 @@
                                         </tbody>
                                     </table>
                                 @endif
-                                
+
                                 <div class="border-top pt-2 mb-4">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong class="text-danger">TOTAL PASIVOS</strong>
@@ -324,7 +323,7 @@
                                         </tr>
                                     </tbody>
                                 </table>
-                                
+
                                 <div class="border-top pt-2">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong class="text-info">TOTAL PATRIMONIO</strong>
@@ -358,12 +357,12 @@
                         <div class="mt-4 text-center">
                             @if($totales['ecuacion_balanceada'])
                                 <span class="badge bg-success fs-6">
-                                    <i class="ri-check-line me-1"></i> 
+                                    <i class="ri-check-line me-1"></i>
                                     Ecuación Patrimonial Verificada: A = P + Pt
                                 </span>
                             @else
                                 <span class="badge bg-danger fs-6">
-                                    <i class="ri-error-warning-line me-1"></i> 
+                                    <i class="ri-error-warning-line me-1"></i>
                                     Descuadre: {{ format_money($totales['descuadre']) }}
                                 </span>
                             @endif

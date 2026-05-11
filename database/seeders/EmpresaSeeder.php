@@ -14,14 +14,12 @@ class EmpresaSeeder extends Seeder
     {
         $empresas = [
             [
-                'razon_social' => 'Pupila INC',
-                'direccion'    => 'Calle Baluarte 469, frente a Mercado San Juan, Col. Santa Selena, Lagos de Moreno, Jalisco',
+                'razon_social' => 'Devtechvnzla C.A',
+                'direccion'    => 'Av. Principal 123',
                 'documento'    => '1234567890',
-                'telefono'     => '3318039390',
-                'email'        => 'contacto@pupila.com',
-                'representante_legal' => 'Victor Medina',
-                'latitud' => '21.3526',
-                'longitud' => '-101.9286',
+                'telefono'     => '1234567890',
+                'email'        => '1234567890',
+                'representante_legal' => 'Theizer Gonzalez',
                 'pais_id'      => 20,
             ],
         ];

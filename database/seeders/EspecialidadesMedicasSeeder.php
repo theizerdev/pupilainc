@@ -111,14 +111,15 @@ class EspecialidadesMedicasSeeder extends Seeder
                 'descripcion'        => 'Diagnóstico y tratamiento de oído, nariz y garganta.',
             ],
             [
-                'nombre'             => 'Oftalmología',
-                'codigo'             => 'OFTAL',
-                'color'              => '#28a745',
-                'icono'              => 'fa-eye',
-                'costo_consulta'     => 50.00,
-                'duracion_consulta'  => 30,
-                'descripcion'        => 'Diagnóstico y tratamiento de enfermedades oculares.',
+                'nombre'             => 'Ortopedia Pediátrica',
+                'codigo'             => 'ORTO-PED',
+                'color'              => '#FF5722',
+                'icono'              => 'fa-bone',
+                'costo_consulta'     => 65.00,
+                'duracion_consulta'  => 35,
+                'descripcion'        => 'Diagnóstico y tratamiento de trastornos musculoesqueléticos en niños.',
             ],
+
         ];
 
         $creadas = 0;

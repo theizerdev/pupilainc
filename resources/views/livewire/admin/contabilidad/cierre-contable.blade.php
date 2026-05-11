@@ -9,8 +9,7 @@
     </style>
     @endpush
 
-    <div class="container-xxl flex-grow-1 container-p-y">
-        {{-- Breadcrumb --}}
+    <div class="container-p-y">
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb breadcrumb-style1 mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}"><i class="ri ri-home-line me-1"></i>Dashboard</a></li>

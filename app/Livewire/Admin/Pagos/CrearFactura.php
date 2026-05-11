@@ -778,6 +778,25 @@ public function seleccionarConsulta($id)
                 $this->caja_abierta->calcularTotales();
             }
 
+            // Si la consulta tiene una cita asociada, actualizar el estado de la cita a 'pagada'
+            if ($this->consulta_id) {
+                $consulta = Consulta::find($this->consulta_id);
+                if ($consulta && $consulta->cita_id) {
+                    $cita = \App\Models\Cita::find($consulta->cita_id);
+                    if ($cita) {
+                        $cita->update([
+                            'estado' => \App\Models\Cita::ESTADO_PAGADA,
+                        ]);
+
+                        Log::info('Estado de cita actualizado a pagada', [
+                            'cita_id' => $cita->id,
+                            'consulta_id' => $consulta->id,
+                            'pago_id' => $pago->id,
+                        ]);
+                    }
+                }
+            }
+
             \DB::commit();
 
             // Disparar evento para notificaciones WhatsApp

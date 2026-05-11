@@ -66,10 +66,10 @@ class InformeMedicoController extends Controller
         // ── Página 3: Recipe médico (si aplica) ───────────────────────────────
         if ($this->consulta->tratamientos->count() > 0) {
             $this->pdf->AddPage();
-            $this->encabezado('RECIPE MÉDICO');
+            $this->encabezado('RECETA MÉDICA');
             $this->datosPacienteResumido();
             $this->tratamientosDetallado();
-            $this->firma('recipe');
+            //$this->firma('recipe');
             $this->piePagina();
         }
 
@@ -83,20 +83,21 @@ class InformeMedicoController extends Controller
 
     private function encabezado(string $titulo): void
     {
-        $logoPath  = public_path('logo/app.png');
+        $logoPath  = public_path('logo/logo-angeles.png');
         $tieneLogo = file_exists($logoPath);
 
         if ($tieneLogo) {
-            $this->pdf->Image($logoPath, 20, 12, 35);
+            $this->pdf->Image($logoPath, 20, 12, 80);
         }
 
         // Datos empresa a la derecha del logo
-        $xTexto = $tieneLogo ? 60 : 20;
-        $this->pdf->SetXY($xTexto, 12);
+        $xTexto = $tieneLogo ? 20 : 60;
+        $this->pdf->SetXY(90, 20);
+        $this->pdf->Ln(12);
         $this->pdf->SetFont('Arial', 'B', 13);
         $this->pdf->SetTextColor(41, 128, 185);
         $nombre = $this->empresa->razon_social ?? $this->empresa->nombre ?? '';
-        $this->pdf->Cell(0, 7, utf8_decode($nombre), 0, 1, 'L');
+        //$this->pdf->Cell(0, 7, utf8_decode($nombre), 0, 1, 'L');
 
         $this->pdf->SetXY($xTexto, $this->pdf->GetY());
         $this->pdf->SetFont('Arial', '', 9);
@@ -644,7 +645,7 @@ class InformeMedicoController extends Controller
 
         $this->pdf->Ln(8);
         $yActual = 200;
-     
+
 
         // Renderizar sello al lado de la firma
         if ($mostrarSello && $medico->sello_digital) {
@@ -661,9 +662,9 @@ class InformeMedicoController extends Controller
             }
         }
 
-       
-        
-    
+
+
+
 
         $this->pdf->SetTextColor(0, 0, 0);
     }
@@ -672,7 +673,7 @@ class InformeMedicoController extends Controller
 
     private function piePagina(): void
     {
-       
+
     }
 
     // ── HELPERS ───────────────────────────────────────────────────────────────

@@ -27,6 +27,7 @@ class PlantillasClinicasSeeder extends Seeder
             PlantillaCirugiaGeneralSeeder::class,
             PlantillaCirugiaPediatricaSeeder::class,
             PlantillaMastologiaSeeder::class,
+            PlantillaOrtopediaPediatricaSeeder::class,
         ]);
 
         $this->command->info('── Creando formularios por estado ──');

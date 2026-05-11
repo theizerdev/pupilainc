@@ -16,11 +16,11 @@
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}">
     <meta name="keywords" content="admin dashboard, admin template, administration, analytics, bootstrap, bootstrap 5, bootstrap admin template, charts, crm, laravel, laravel admin panel, laravel template, performance, php, responsive, saas, sass">
     <meta name="author" content="ThemeSelection">
-    <meta name="robots" content="noindex, nofollow" /> 
+    <meta name="robots" content="noindex, nofollow" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/logo/1719430882.png" />
+    <link rel="icon" type="image/x-icon" href="/logo/favicon-32x32.png" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -63,6 +63,8 @@
     <!--? Template customizer: To hide customizer set displayCustomizer value false in config.js. -->
     <script src="/materialize/assets/vendor/js/template-customizer.js"></script>
 
+    <script src="/materialize/assets/js/config.js"></script>
+
     <!--? Config: Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file. -->
 
     <!-- Livewire Styles -->
@@ -70,7 +72,7 @@
 
     <!-- Page custom styles -->
     @stack('styles')
-   
+
   </head>
 
   <body>

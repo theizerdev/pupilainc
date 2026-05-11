@@ -209,19 +209,31 @@ class CitaNotificationService
     {
         $cita->loadMissing(['paciente.tutor', 'medico']);
 
-        // Notificar Paciente
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
+        // Verificar si se debe enviar notificación al paciente
+        if (\App\Models\ConfiguracionNotificacion::debeEnviar(
+            $cita->empresa_id ?? $this->empresaId,
+            'paciente',
+            $cita->estado
+        )) {
+            $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+            $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
 
-        foreach ($telefonos as $telefono) {
-            $this->enviar($telefono, $mensajePaciente);
+            foreach ($telefonos as $telefono) {
+                $this->enviar($telefono, $mensajePaciente);
+            }
         }
 
-        // Notificar Médico (si aplica)
+        // Verificar si se debe enviar notificación al médico
         if ($cita->medico && $cita->medico->telefono) {
-            $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
-            $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
-            $this->enviar($telefonoMedico, $mensajeMedico);
+            if (\App\Models\ConfiguracionNotificacion::debeEnviar(
+                $cita->empresa_id ?? $this->empresaId,
+                'doctor',
+                $cita->estado
+            )) {
+                $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
+                $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
+                $this->enviar($telefonoMedico, $mensajeMedico);
+            }
         }
 
         return true;

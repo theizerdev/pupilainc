@@ -179,16 +179,16 @@
                                     @php $datosEstado = $consulta->getDatosEstado($consulta->estado); @endphp
                                     @if(!empty($datosEstado))
                                         <div class="mt-1">
-                                            <a href="{{ route('admin.consulta.proceso', $consulta->id) }}" 
-                                               class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-decoration-none" 
+                                            <a href="{{ route('admin.consulta.proceso', $consulta->id) }}"
+                                               class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 text-decoration-none"
                                                style="font-size:0.65rem;">
                                                 <i class="ri ri-checkbox-circle-line me-1"></i>Ver formulario completado
                                             </a>
                                         </div>
                                     @elseif($this->tieneFormularioEstado($consulta))
                                         <div class="mt-1">
-                                            <a href="{{ route('admin.consulta.proceso', $consulta->id) }}" 
-                                               class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 text-decoration-none" 
+                                            <a href="{{ route('admin.consulta.proceso', $consulta->id) }}"
+                                               class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 text-decoration-none"
                                                style="font-size:0.65rem;">
                                                 <i class="ri ri-edit-line me-1"></i>{{ $this->getTituloFormularioEstado($consulta) ?? 'Completar formulario' }}
                                             </a>
@@ -270,11 +270,11 @@
                                             </li>
                                             @endif
 
-                                        
-                                           
+
+
 
                                             {{-- Documentos (finalizada) --}}
-                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA)
+                                            @if($consulta->estado === \App\Models\Consulta::ESTADO_FINALIZADA || $consulta->estado === \App\Models\Consulta::ESTADO_PAGADA)
                                             <li><hr class="dropdown-divider"></li>
                                             <li><h6 class="dropdown-header">Documentos</h6></li>
                                             <li>

@@ -20,6 +20,7 @@ class PlantillaConsulta extends Component
     // Configuración general de la plantilla
     public array $pasosHabilitados = [];
     public array $estadosFlujo     = [];
+    public bool $usarWizardEnConsultorio = true;
 
     // Modal paso
     public bool   $modalPaso      = false;
@@ -88,11 +89,13 @@ class PlantillaConsulta extends Component
         if ($this->plantilla) {
             $this->pasosHabilitados = $this->plantilla->getPasosEfectivos();
             $this->estadosFlujo = $this->plantilla->getEstadosEfectivos();
+            $this->usarWizardEnConsultorio = $this->plantilla->usar_wizard_en_consultorio ?? true;
             $this->sincronizarSecciones();
             $this->sincronizarEstadoFormularios();
         } else {
             $this->pasosHabilitados = $this->getPasosDefecto();
             $this->estadosFlujo     = $this->getEstadosDefecto();
+            $this->usarWizardEnConsultorio = true;
             $this->secciones        = [];
             $this->estadoFormularios = [];
         }
@@ -112,11 +115,9 @@ class PlantillaConsulta extends Component
 
     private function getEstadosDefecto(): array
     {
+        // Solo estados ESPECIALES por defecto (los base son automáticos)
         return [
-            ['key' => 'sala_espera', 'nombre' => 'Sala de Espera', 'color' => '#6B7280', 'activo' => true, 'orden' => 1],
-            ['key' => 'en_enfermeria', 'nombre' => 'En Enfermería', 'color' => '#3B82F6', 'activo' => true, 'orden' => 2],
-            ['key' => 'en_consultorio', 'nombre' => 'En Consultorio', 'color' => '#10B981', 'activo' => true, 'orden' => 3],
-            ['key' => 'finalizada', 'nombre' => 'Finalizada', 'color' => '#8B5CF6', 'activo' => true, 'orden' => 4],
+            ['key' => 'en_estudio', 'nombre' => 'En Estudio', 'color' => '#EC407A', 'activo' => false, 'orden' => 1, 'tipo' => 'especial'],
         ];
     }
 
@@ -334,8 +335,9 @@ class PlantillaConsulta extends Component
         }
 
         $this->plantilla->update([
-            'pasos_config'   => $this->pasosHabilitados,
-            'estados_config' => $this->estadosFlujo,
+            'pasos_config'               => $this->pasosHabilitados,
+            'estados_config'             => $this->estadosFlujo,
+            'usar_wizard_en_consultorio' => $this->usarWizardEnConsultorio,
         ]);
 
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Configuración guardada.']);
@@ -474,7 +476,7 @@ class PlantillaConsulta extends Component
             ];
             $msg = 'Estado actualizado.';
         } else {
-            // Crear nuevo estado
+            // Crear nuevo estado (siempre es especial)
             $key = \Illuminate\Support\Str::snake(\Illuminate\Support\Str::ascii($this->estadoNombre));
             $orden = count($this->estadosFlujo) + 1;
             $this->estadosFlujo[] = [
@@ -483,8 +485,9 @@ class PlantillaConsulta extends Component
                 'color'  => $this->estadoColor,
                 'activo' => true,
                 'orden'  => $orden,
+                'tipo'   => 'especial', // Marcar como estado especial
             ];
-            $msg = 'Estado agregado.';
+            $msg = 'Estado especial agregado.';
         }
 
         // Guardar automáticamente en la base de datos
@@ -494,9 +497,17 @@ class PlantillaConsulta extends Component
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
     }
 
+    // ── Estados del Flujo ────────────────────────────────────────────────────
+
     public function toggleEstado(int $index): void
     {
         if (isset($this->estadosFlujo[$index])) {
+            // No permitir desactivar estados base
+            if (($this->estadosFlujo[$index]['tipo'] ?? 'especial') === 'base') {
+                $this->dispatch('notify', ['type' => 'error', 'message' => 'Los estados base no se pueden desactivar.']);
+                return;
+            }
+
             $this->estadosFlujo[$index]['activo'] = !$this->estadosFlujo[$index]['activo'];
             $this->guardarConfiguracion();
         }
@@ -505,20 +516,38 @@ class PlantillaConsulta extends Component
     public function eliminarEstado(int $index): void
     {
         if (isset($this->estadosFlujo[$index])) {
+            // No permitir eliminar estados base
+            if (($this->estadosFlujo[$index]['tipo'] ?? 'especial') === 'base') {
+                $this->dispatch('notify', ['type' => 'error', 'message' => 'Los estados base no se pueden eliminar.']);
+                return;
+            }
+
             array_splice($this->estadosFlujo, $index, 1);
             // Reordenar
             foreach ($this->estadosFlujo as $i => &$estado) {
                 $estado['orden'] = $i + 1;
             }
             $this->guardarConfiguracion();
-            $this->dispatch('notify', ['type' => 'success', 'message' => 'Estado eliminado.']);
+            $this->dispatch('notify', ['type' => 'success', 'message' => 'Estado especial eliminado.']);
         }
     }
 
     public function moverEstado(int $index, string $direccion): void
     {
+        // No permitir mover estados base
+        if (isset($this->estadosFlujo[$index]) && ($this->estadosFlujo[$index]['tipo'] ?? 'especial') === 'base') {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Los estados base no se pueden reordenar.']);
+            return;
+        }
+
         $swap = $direccion === 'up' ? $index - 1 : $index + 1;
         if ($swap < 0 || $swap >= count($this->estadosFlujo)) return;
+
+        // No permitir mover si el estado destino es base
+        if (isset($this->estadosFlujo[$swap]) && ($this->estadosFlujo[$swap]['tipo'] ?? 'especial') === 'base') {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'No se puede reordenar con estados base.']);
+            return;
+        }
 
         $temp = $this->estadosFlujo[$index];
         $this->estadosFlujo[$index] = $this->estadosFlujo[$swap];
@@ -668,6 +697,7 @@ class PlantillaConsulta extends Component
             'campoEtiqueta' => 'required|string|max:100',
             'campoTipo'     => 'required|in:' . implode(',', array_keys(PlantillaCampo::TIPOS)),
             'campoAncho'    => 'required|integer|min:1|max:12',
+            'campoSeccionId' => 'required|exists:plantilla_secciones,id',
         ]);
 
         $nombreCampo = $this->campoEditId
@@ -697,8 +727,30 @@ class PlantillaConsulta extends Component
         ];
 
         if ($this->campoEditId) {
-            PlantillaCampo::findOrFail($this->campoEditId)->update($data);
-            $msg = 'Campo actualizado.';
+            $campo = PlantillaCampo::findOrFail($this->campoEditId);
+            $seccionOriginal = $campo->seccion_id;
+            
+            // Verificar si cambió de sección
+            if ($seccionOriginal != $this->campoSeccionId) {
+                // Mover a nueva sección
+                $data['seccion_id'] = $this->campoSeccionId;
+                
+                // Calcular nuevo orden (al final de la nueva sección)
+                $nuevoOrden = PlantillaCampo::where('seccion_id', $this->campoSeccionId)
+                    ->where('id', '!=', $this->campoEditId)  // Excluir el campo actual
+                    ->count() + 1;
+                $data['orden'] = $nuevoOrden;
+                
+                // Recalcular órdenes en la sección original
+                $this->recalcularOrdenCampos($seccionOriginal);
+                
+                $msg = 'Campo movido a otra sección y actualizado.';
+            } else {
+                // Solo actualizar datos, no cambia de sección
+                $msg = 'Campo actualizado.';
+            }
+            
+            $campo->update($data);
         } else {
             $seccion = PlantillaSeccion::findOrFail($this->campoSeccionId);
             $data['seccion_id'] = $seccion->id;
@@ -709,7 +761,7 @@ class PlantillaConsulta extends Component
 
         // Recargar según contexto (evaluación principal o formulario de estado)
         if ($this->campoEstadoFormularioId) {
-            $this->plantilla->load('todosLosEstadoFormularios.todasLasSecciones.todosLosCampos');
+            $this->plantilla->load('todosLosEstadoFormularios.secciones.campos');
             $this->sincronizarEstadoFormularios();
         } else {
             $this->plantilla->load('todasLasSecciones.todosLosCampos');
@@ -718,9 +770,20 @@ class PlantillaConsulta extends Component
 
         $this->resetModalCampo();
         $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
+    }
 
-        // Disparar evento global para actualizar otros componentes
-        $this->dispatch('plantilla-actualizada');
+    /**
+     * Recalcular el orden de los campos en una sección después de mover uno
+     */
+    private function recalcularOrdenCampos(int $seccionId): void
+    {
+        $campos = PlantillaCampo::where('seccion_id', $seccionId)
+            ->orderBy('orden')
+            ->get();
+        
+        foreach ($campos as $index => $campo) {
+            $campo->update(['orden' => $index + 1]);
+        }
     }
 
     public function toggleCampo(int $campoId): void
@@ -756,6 +819,54 @@ class PlantillaConsulta extends Component
         }
 
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Campo eliminado.']);
+    }
+
+    /**
+     * Mover un campo dentro de su sección (para formularios por estado)
+     */
+    public function moverCampoEstado(int $campoId, string $direccion, int $seccionId): void
+    {
+        $campo   = PlantillaCampo::findOrFail($campoId);
+
+        // Verificar que el campo pertenezca a la sección indicada
+        if ($campo->seccion_id !== $seccionId) {
+            return;
+        }
+
+        // Obtener todos los campos de esta sección ordenados
+        $campos  = PlantillaCampo::where('seccion_id', $seccionId)
+            ->orderBy('orden')
+            ->get();
+
+        // Encontrar el índice del campo actual
+        $idx = $campos->search(fn($c) => $c->id === $campoId);
+        if ($idx === false) {
+            return;
+        }
+
+        // Calcular el índice con el que intercambiar
+        $swap = $direccion === 'up' ? $idx - 1 : $idx + 1;
+
+        // Verificar límites
+        if ($swap < 0 || $swap >= $campos->count()) {
+            return;
+        }
+
+        // Intercambiar órdenes
+        $ordenA = $campos[$idx]->orden;
+        $ordenB = $campos[$swap]->orden;
+
+        $campos[$idx]->update(['orden' => $ordenB]);
+        $campos[$swap]->update(['orden' => $ordenA]);
+
+        // Recargar datos
+        $this->plantilla->load('todosLosEstadoFormularios.secciones.campos');
+        $this->sincronizarEstadoFormularios();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Campo reordenado correctamente.'
+        ]);
     }
 
     public function moverCampo(int $campoId, string $direccion): void

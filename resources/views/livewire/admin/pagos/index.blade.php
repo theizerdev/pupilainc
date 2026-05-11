@@ -75,9 +75,12 @@
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                    Total
+                                    Total (USD)
                                 </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ money($pagos->where('estado', 'aprobado')->sum('total_bs'), 2, ',', '.') }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ format_money($pagos->where('estado', 'aprobado')->sum('total_usd'), 2) }}</div>
+                                @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                                <small class="text-muted">Bs {{ format_money($pagos->where('estado', 'aprobado')->sum('total_bs'), 2) }}</small>
+                                @endif
                             </div>
                             <div class="col-auto">
                                 <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -169,7 +172,7 @@
                                 <th>Método</th>
 
                                 <th>Creado por</th>
-                                <th class="text-end">Total </th>
+                                <th class="text-end">Total (USD)</th>
                                 <th class="text-center">Estado</th>
 
                             </tr>
@@ -211,7 +214,10 @@
 
                                     <td>{{ $pago->user->name ?? 'N/A' }}</td>
                                     <td class="text-end">
-                                        <div class="fw-bold text-primary"> {{ money($pago->total_bs) }}</div>
+                                        <div class="fw-bold text-primary">{{ format_money($pago->total_usd, 2) }}</div>
+                                        @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                                        <small class="text-muted">Bs {{ format_money($pago->total_bs, 2) }}</small>
+                                        @endif
                                     </td>
                                     <td class="text-center">
                                         @php

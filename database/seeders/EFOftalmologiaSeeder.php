@@ -106,18 +106,17 @@ class EFOftalmologiaSeeder extends BaseEstadoFormularioSeeder
         // ── EN GOTAS ──────────────────────────────────────────────────────────
         $ef2 = $this->formularioEstado($plantilla, 'en_gotas', 'Aplicación de Gotas');
 
-        $s3 = $this->seccion($plantilla, $ef2, 'Aplicación de Gotas', 'fa-eye-dropper', '#26C6DA', 1);
+        $s3 = $this->seccion($plantilla, $ef2, 'Registro de Gotas', 'fa-eye-dropper', '#26C6DA', 1);
         $this->campos($s3->id, [
             ['tipo_gota', 'Tipo de Gota', 'select',
                 ['Tropicamida 1%', 'Fenilefrina 10%', 'Ciclopentolato 1%', 'Atropina 1%', 'Tropicamida + Fenilefrina', 'Anestésico tópico', 'Fluoresceína', 'Otro'],
-                true, 'Tropicamida 1%', null, 'Seleccione el tipo de gota...', 12],
-            ['gotas_od', '🔵 Gotas OD', 'number', null, false, '1', 'gotas', null, 3, 1, 10],
-            ['gotas_oi', '🟢 Gotas OI', 'number', null, false, '1', 'gotas', null, 3, 1, 10],
-            ['hora_aplicacion', '⏰ Hora de Aplicación', 'text', null, true, null, null, 'Ej: 10:30', 6],
-            ['tiempo_espera', '⏱️ Tiempo de Espera', 'select',
-                ['10 minutos', '15 minutos', '20 minutos', '30 minutos', '45 minutos', '60 minutos'],
-                false, '10 minutos', null, null, 6],
-            ['observaciones_gotas', 'Observaciones', 'textarea', null, false, null, null, 'Notas adicionales sobre la aplicación...', 12],
+                true, 'Tropicamida 1%', null, null, 6],
+            ['gotas_od', 'Gotas OD', 'number', null, false, '1', 'gotas', null, 3],
+            ['gotas_oi', 'Gotas OI', 'number', null, false, '1', 'gotas', null, 3],
+            ['hora_aplicacion', 'Hora de Aplicación', 'text', null, true, null, null, 'Ej: 10:30', 4],
+            ['tiempo_espera', 'Tiempo de Espera', 'select',
+                ['20 minutos', '30 minutos', '45 minutos', '60 minutos'], false, '30 minutos', null, null, 4],
+            ['observaciones_gotas', 'Observaciones', 'textarea', null, false, null, null, null, 12],
         ]);
 
         // ── DILATADO ──────────────────────────────────────────────────────────

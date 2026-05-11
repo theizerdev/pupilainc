@@ -23,14 +23,15 @@ class PlantillaCardiologiaSeeder extends Seeder
         EspecialidadPlantilla::where('especialidad_id', $especialidad->id)->delete();
 
         $plantilla = EspecialidadPlantilla::create([
-            'especialidad_id'   => $especialidad->id,
-            'nombre'            => 'Consulta de Cardiología',
-            'descripcion'       => 'Plantilla para evaluación cardiológica.',
-            'activo'            => true,
-            'empresa_id'        => $empresa->id,
-            'sucursal_id'       => $sucursal->id,
-            'pasos_habilitados' => ['signos_vitales', 'cuestionario', 'evaluacion', 'estudios', 'tratamientos', 'reposo'],
-            'estados_flujo'     => ['por_llegar', 'sala_espera', 'en_enfermeria', 'en_consultorio', 'en_estudio', 'finalizada'],
+            'especialidad_id'           => $especialidad->id,
+            'nombre'                    => 'Consulta de Cardiología',
+            'descripcion'               => 'Plantilla para evaluación cardiológica.',
+            'activo'                    => true,
+            'empresa_id'                => $empresa->id,
+            'sucursal_id'               => $sucursal->id,
+            'pasos_habilitados'         => ['signos_vitales', 'cuestionario', 'evaluacion', 'estudios', 'tratamientos', 'reposo'],
+            'estados_flujo'             => ['por_llegar', 'sala_espera', 'en_enfermeria', 'en_consultorio', 'en_estudio', 'finalizada'],
+            'usar_wizard_en_consultorio' => true,
         ]);
 
         // ── SECCIÓN 1: Examen Cardiovascular ─────────────────────────────────

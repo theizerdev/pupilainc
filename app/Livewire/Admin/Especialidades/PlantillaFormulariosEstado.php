@@ -259,9 +259,13 @@ class PlantillaFormulariosEstado extends Component
 
     public function render()
     {
+        // Obtener estados efectivos (base + especiales) para mostrar en la UI
+        $estadosFlujo = $this->plantilla ? $this->plantilla->getEstadosEfectivos() : [];
+
         return view('livewire.admin.especialidades.plantilla-formularios-estado', [
             'tiposCampo' => PlantillaCampo::TIPOS,
             'estadosDisponibles' => \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES,
+            'estadosFlujo' => $estadosFlujo,
         ])->layout($this->getLayout());
     }
 }

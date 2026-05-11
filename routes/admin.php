@@ -173,6 +173,16 @@ Route::prefix('monitoreo')->as('monitoreo.')->group(function () {
 Route::get('/tasas-cambio', ExchangeRates::class)->name('exchange-rates')->middleware('checkAdminPermission:view exchange-rates');
 Route::get('/tasas-cambio/configuracion', ExchangeRateConfigIndex::class)->name('exchange-rate-config.index')->middleware('checkAdminPermission:edit exchange-rates');
 
+// Configuración de Notificaciones
+Route::get('/configuracion/notificaciones', \App\Livewire\Admin\Configuracion\ConfigurarNotificaciones::class)
+    ->name('configuracion.notificaciones')
+    ->middleware('checkAdminPermission:access empresas');
+
+// Configuración de Wizard de Consultas
+Route::get('/configuracion/wizard-consultas', \App\Livewire\Admin\Configuracion\ConfigurarWizardConsultas::class)
+    ->name('configuracion.wizard-consultas')
+    ->middleware('checkAdminPermission:access empresas');
+
 // Pagos/Facturación
 Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
     Route::get('/pagos', \App\Livewire\Admin\Pagos\Index::class)->name('pagos.index');
@@ -316,6 +326,7 @@ Route::middleware(['checkAdminPermission:access citas'])->group(function () {
         Route::get('/consultas/en-optica',      \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware($middleware);
         Route::get('/consultas/en-estudio',     \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware($middleware);
         Route::get('/consultas/finalizadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware($middleware);
+        Route::get('/consultas/pagadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.pagadas')->middleware($middleware);
         // Ruta dinámica por estado — para estados específicos de especialidades (en_consultorio_optometrista, etc.)
         Route::get('/consultas/estado/{estado}', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.por-estado')->middleware($middleware);
     });

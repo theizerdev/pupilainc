@@ -108,17 +108,17 @@ class Index extends Component
         // ══════════════════════════════════════════════════════════
 
         // Logo de la empresa (si existe)
-        if (!empty($empresa->logo)) {
+
             try {
-                $logoPath = storage_path('app/public/' . $empresa->logo);
+                $logoPath = public_path('logo/logo-angeles.png');
                 if (file_exists($logoPath)) {
-                    $pdf->Image($logoPath, 10, 10, 30, 0);
+                    $pdf->Image($logoPath, 10, 10, 60, 0);
                     $pdf->SetX(45);
                 }
             } catch (\Exception $e) {
                 // Si falla el logo, continuar sin él
             }
-        }
+
 
         // Información de la empresa
         $pdf->SetFont('Arial', 'B', 16);

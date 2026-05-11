@@ -12,12 +12,12 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-    <title>{{ 'VITALMED SALUD' }}</title>
+    <title>{{ 'HOSPITAL ANGELES' }}</title>
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-      <link rel="icon" type="image/x-icon" href="/logo/1719430882.png" />
+      <link rel="icon" type="image/x-icon" href="/logo/favicon-32x32.png" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -106,7 +106,7 @@
             <div class="container-fluid flex-grow-1 container-p-y">
 
               <!-- Componente de notificaciones global -->
-              <x-notifications />
+
 
               {{ $slot }}
             </div>
@@ -165,16 +165,7 @@
     @livewire('dilatation-timer')
 
     <!-- Script global para manejar eventos de notificaciones -->
-    <script>
-        // Escuchar eventos de Livewire y convertirlos a eventos DOM
-        document.addEventListener('livewire:initialized', () => {
-            Livewire.on('notification-created', () => {
-                console.log('🔔 Livewire event notification-create recibido');
-                // Disparar evento DOM para que todos los componentes lo escuchen
-                window.dispatchEvent(new CustomEvent('notification-created'));
-            });
-        });
-    </script>
+
 
     @stack('scripts')
   </body>

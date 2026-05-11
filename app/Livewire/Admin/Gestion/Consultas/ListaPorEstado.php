@@ -63,6 +63,7 @@ class ListaPorEstado extends Component
             'admin.gestion.consultas.en-optica'     => ['estados' => ['en_optica'],                                      'titulo' => 'En Óptica'],
             'admin.gestion.consultas.en-estudio'    => ['estados' => ['en_estudio'],                                     'titulo' => 'En Estudio'],
             'admin.gestion.consultas.finalizadas'   => ['estados' => ['finalizada'],                                     'titulo' => 'Finalizadas'],
+            'admin.gestion.consultas.pagadas'       => ['estados' => ['pagada'],                                         'titulo' => 'Pagadas'],
         ];
 
         $routeName = request()->route()->getName();

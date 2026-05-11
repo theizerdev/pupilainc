@@ -422,7 +422,12 @@ class Pago extends Model
         $subtotal = $subtotalServicios + $subtotalProductos;
         $total = $subtotal - $this->descuento;
 
-        $tasaUSD = ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1;
+        // Determinar tasa de cambio según país de la empresa
+        $empresa = $this->empresa ?? \App\Models\Empresa::find($this->empresa_id);
+        $esVenezuela = $empresa && strtolower($empresa->pais->nombre ?? '') === 'venezuela';
+
+        // Solo usar tasa de cambio si es Venezuela, de lo contrario tasa = 1
+        $tasaUSD = $esVenezuela ? (ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1) : 1;
 
         $totalUSD = 0;
         $totalBS = 0;

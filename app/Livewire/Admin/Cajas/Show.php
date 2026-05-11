@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Cajas;
 use App\Models\Caja;
 use App\Models\ExchangeRate;
 use App\Models\Empresa;
+use App\Helpers\MetodoPagoHelper;
 use App\Traits\HasDynamicLayout;
 use App\Traits\HasRegionalFormatting;
 use App\Traits\HasDualCurrency;
@@ -442,72 +443,37 @@ class Show extends Component
 
     /**
      * Obtener nombre amigable del método de pago
+     * Usa MetodoPagoHelper para mantener consistencia en todo el sistema
      */
     private function getNombreAmigableMetodo(string $metodo): string
     {
-        $nombres = [
-            'efectivo' => 'Efectivo',
-            'efectivo_bs' => 'Efectivo Bs',
-            'efectivo_usd' => 'Efectivo USD',
-            'transferencia' => 'Transferencia',
-            'transferencia_bs' => 'Transferencia Bs',
-            'transferencia_usd' => 'Transferencia USD',
-            'pago_movil' => 'Pago Móvil',
-            'zelle' => 'Zelle',
-            'paypal' => 'PayPal',
-            'usdt' => 'USDT',
-            'tarjeta' => 'Tarjeta',
-            'tarjeta_debito' => 'Tarjeta Débito',
-            'tarjeta_credito' => 'Tarjeta Crédito',
-            'bbva_dr' => 'BBVA Débito',
-            'bbva_cr' => 'BBVA Crédito',
-            'mercantil_dr' => 'Mercantil Débito',
-            'mercantil_cr' => 'Mercantil Crédito',
-            'banesco_dr' => 'Banesco Débito',
-            'banesco_cr' => 'Banesco Crédito',
-            'provincial_dr' => 'Provincial Débito',
-            'provincial_cr' => 'Provincial Crédito',
-            'bod_dr' => 'BOD Débito',
-            'bod_cr' => 'BOD Crédito',
-        ];
-
-        return $nombres[$metodo] ?? ucfirst(str_replace('_', ' ', $metodo));
+        return MetodoPagoHelper::getNombreAmigable($metodo);
     }
 
     /**
      * Obtener categoría del método de pago
+     * Usa MetodoPagoHelper para mantener consistencia en todo el sistema
      */
     private function getCategoriaMetodo(string $metodo): string
     {
-        $efectivo = ['efectivo', 'efectivo_bs', 'efectivo_usd'];
-        $transferencias = ['transferencia', 'transferencia_bs', 'transferencia_usd', 'pago_movil', 'zelle', 'paypal', 'usdt'];
-        $tarjetaCredito = ['tarjeta_credito', 'bbva_cr', 'mercantil_cr', 'banesco_cr', 'provincial_cr', 'bod_cr'];
-        $tarjetaDebito = ['tarjeta_debito', 'bbva_dr', 'mercantil_dr', 'banesco_dr', 'provincial_dr', 'bod_dr'];
-
-        if (in_array($metodo, $efectivo)) return 'EFECTIVO';
-        if (in_array($metodo, $transferencias)) return 'TRANSFERENCIAS';
-        if (in_array($metodo, $tarjetaCredito)) return 'TARJETA CRÉDITO';
-        if (in_array($metodo, $tarjetaDebito)) return 'TARJETA DÉBITO';
-        if ($metodo === 'tarjeta') return 'TARJETA CRÉDITO'; // Legacy
-
-        return 'OTROS';
+        return MetodoPagoHelper::getCategoria($metodo);
     }
 
     /**
      * Agrupar resumen por categorías
+     * Usa MetodoPagoHelper para mantener consistencia
      */
     private function agruparPorCategoria($resumen): array
     {
-        $categorias = [
-            'EFECTIVO' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
-            'TRANSFERENCIAS' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
-            'TARJETA CRÉDITO' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
-            'TARJETA DÉBITO' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
-            'OTROS' => ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0],
-        ];
+        $categorias = [];
 
         foreach ($resumen as $item) {
             $categoria = $this->getCategoriaMetodo($item->metodo_pago);
+
+            if (!isset($categorias[$categoria])) {
+                $categorias[$categoria] = ['cantidad' => 0, 'total_usd' => 0, 'total_bs' => 0];
+            }
+
             $categorias[$categoria]['cantidad'] += $item->cantidad;
             $categorias[$categoria]['total_usd'] += $item->total_usd;
             $categorias[$categoria]['total_bs'] += $item->total_bs ?? 0;
@@ -1165,36 +1131,11 @@ class Show extends Component
 
     /**
      * Obtener nombre amigable del método de pago
+     * Usa MetodoPagoHelper para mantener consistencia en todo el sistema
      */
     private function getNombreAmigableMetodoPago(string $metodo): string
     {
-        $nombres = [
-            'efectivo' => 'Efectivo',
-            'efectivo_bs' => 'Efectivo Bs',
-            'efectivo_usd' => 'Efectivo USD',
-            'transferencia' => 'Transferencia',
-            'transferencia_bs' => 'Transferencia Bs',
-            'transferencia_usd' => 'Transferencia USD',
-            'pago_movil' => 'Pago Móvil',
-            'zelle' => 'Zelle',
-            'paypal' => 'PayPal',
-            'usdt' => 'USDT',
-            'tarjeta' => 'Tarjeta',
-            'tarjeta_debito' => 'Tarjeta Débito',
-            'tarjeta_credito' => 'Tarjeta Crédito',
-            'bbva_dr' => 'BBVA Débito',
-            'bbva_cr' => 'BBVA Crédito',
-            'mercantil_dr' => 'Mercantil Débito',
-            'mercantil_cr' => 'Mercantil Crédito',
-            'banesco_dr' => 'Banesco Débito',
-            'banesco_cr' => 'Banesco Crédito',
-            'provincial_dr' => 'Provincial Débito',
-            'provincial_cr' => 'Provincial Crédito',
-            'bod_dr' => 'BOD Débito',
-            'bod_cr' => 'BOD Crédito',
-        ];
-
-        return $nombres[$metodo] ?? ucfirst(str_replace('_', ' ', $metodo));
+        return MetodoPagoHelper::getNombreAmigable($metodo);
     }
 
     /**

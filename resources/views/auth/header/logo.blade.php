@@ -3,7 +3,7 @@
     <a href="{{ url('/') }}" class="app-brand-link gap-2">
 
     <span class="app-brand-logo demo">
-    <img src="/logo/logo.png" height="100px">
+    <img src="/logo/logo-horizontal.webp" height="60px">
 </span>
 
     </a>

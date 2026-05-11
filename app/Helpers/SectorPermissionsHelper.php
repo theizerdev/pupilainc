@@ -246,6 +246,7 @@ if (!function_exists('getSectorMenuItems')) {
                             [
                                 ['label' => 'En Estudio',  'route' => 'admin.gestion.consultas.en-estudio',  'active' => 'admin.gestion.consultas.en-estudio'],
                                 ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas'],
+                                ['label' => 'Pagadas', 'route' => 'admin.gestion.consultas.pagadas', 'active' => 'admin.gestion.consultas.pagadas'],
                             ]
                         )
                     ],
@@ -258,7 +259,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],
                 ]
             ],
-           
+
             'administracion' => [
                 'label' => 'Administración',
                 'icon' => 'ri-money-dollar-circle-line',
@@ -288,20 +289,20 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.series.index',
                         'active' => 'admin.series.*',
                     ],
-                    /*[
+                    [
                         'label' => 'Configuración Impuestos',
                         'icon' => 'ri-percent-line',
                         'permission' => 'access impuestos',
                         'route' => 'admin.impuestos.index',
                         'active' => 'admin.impuestos.*',
                     ],
-                    [
+                    /*[
                         'label' => 'Tasa de cambio',
                         'icon' => 'ri-exchange-dollar-line',
                         'permission' => 'view exchange-rates',
                         'route' => 'admin.exchange-rates',
                         'active' => 'admin.exchange-rates',
-                    ],
+                    ],*/
                     [
                         'label' => 'Contabilidad',
                         'icon' => 'ri-calculator-line',
@@ -316,10 +317,10 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Balance General', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.balance-general', 'active' => 'admin.contabilidad.balance-general'],
                             ['label' => 'Estado de Resultados', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.estado-resultados', 'active' => 'admin.contabilidad.estado-resultados'],
                             ['label' => 'Cierre Contable', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.cierre-contable', 'active' => 'admin.contabilidad.cierre-contable'],
-                            ['label' => 'Libro de Ventas', 'permission' => 'access contabilidad', 'route' => 'admin.seniat.libro-ventas', 'active' => 'admin.seniat.libro-ventas'],
+                            //['label' => 'Libro de Ventas', 'permission' => 'access contabilidad', 'route' => 'admin.seniat.libro-ventas', 'active' => 'admin.seniat.libro-ventas'],
                         ]
                     ],
-                    [
+                    /*[
                         'label' => 'Anulación de Talonarios',
                         'icon' => 'ri-file-damage-line',
                         'permission' => 'access anulacion-talonarios',
@@ -328,7 +329,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],*/
                 ]
             ],
-            
+
             'configuracion' => [
                 'label' => 'Configuración',
                 'icon' => 'ri-settings-3-line',
@@ -362,6 +363,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access template customization',
                         'route' => 'admin.template-customization',
                         'active' => 'admin.template-customization',
+                    ],
+                    [
+                        'label' => 'Configuración Wizard',
+                        'icon' => 'ri-steps-line',
+                        'permission' => 'access empresas',
+                        'route' => 'admin.configuracion.wizard-consultas',
+                        'active' => 'admin.configuracion.wizard-consultas',
                     ],
 
                 ]

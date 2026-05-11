@@ -22,6 +22,11 @@ class EstadoFormulariosSeeder extends Seeder
             EFPediatriaSeeder::class,
             EFNefrologiaSeeder::class,
             EFOtorrinolaringologiaSeeder::class,
+            // Nuevos seeders agregados
+            EFCirugiaGeneralSeeder::class,
+            EFCirugiaPediatricaSeeder::class,
+            EFMastologiaSeeder::class,
+            EFOrtopediaPediatricaSeeder::class,
         ]);
 
         $this->command->info('✓ Formularios por estado creados exitosamente.');

@@ -22,16 +22,18 @@ class EspecialidadPlantilla extends Model
         'estados_flujo',
         'pasos_config',
         'estados_config',
+        'usar_wizard_en_consultorio',
         'empresa_id',
         'sucursal_id',
     ];
 
     protected $casts = [
-        'activo'            => 'boolean',
-        'pasos_habilitados' => 'array',
-        'estados_flujo'     => 'array',
-        'pasos_config'      => 'array',
-        'estados_config'    => 'array',
+        'activo'                      => 'boolean',
+        'pasos_habilitados'           => 'array',
+        'estados_flujo'               => 'array',
+        'pasos_config'                => 'array',
+        'estados_config'              => 'array',
+        'usar_wizard_en_consultorio'  => 'boolean',
     ];
 
     // Pasos predefinidos del sistema (no se pueden eliminar, solo editar nombre/icono)
@@ -89,28 +91,59 @@ class EspecialidadPlantilla extends Model
             ->toArray();
     }
 
-    // Devuelve la config completa de estados ordenada
+    // Devuelve la config completa de estados ordenada (MODELO HÍBRIDO)
     public function getEstadosEfectivos(): array
     {
+        // 1. Estados BASE siempre incluidos (automáticos)
+        $config = [];
+        foreach (self::ESTADOS_BASE as $key => $nombre) {
+            $config[] = [
+                'key'    => $key,
+                'nombre' => $nombre,
+                'color'  => \App\Models\Consulta::ESTADO_COLORES[$key] ?? '#78909C',
+                'orden'  => count($config) + 1,
+                'activo' => true,  // Siempre activos
+                'tipo'   => 'base', // Marcador para UI
+            ];
+        }
+
+        // 2. Estados ESPECIALES configurados por la especialidad
         if (!empty($this->estados_config)) {
-            return collect($this->estados_config)
+            // Usar configuración personalizada si existe
+            $especialesConfig = collect($this->estados_config)
+                ->filter(function ($estado) {
+                    // Excluir estados base (ya se agregaron automáticamente)
+                    return !isset(self::ESTADOS_BASE[$estado['key']]) && ($estado['tipo'] ?? 'especial') !== 'base';
+                })
                 ->sortBy('orden')
                 ->values()
                 ->toArray();
+
+            foreach ($especialesConfig as $estado) {
+                // Asegurar que tenga el tipo 'especial'
+                $estado['tipo'] = $estado['tipo'] ?? 'especial';
+                $config[] = $estado;
+            }
+        } else {
+            // Migrar desde estados_flujo legacy (solo especiales)
+            $flujo = $this->estados_flujo ?? [];
+            $ordenBase = count($config);
+
+            foreach ($flujo as $i => $key) {
+                // Solo agregar si es un estado especial (no base)
+                if (isset(self::ESTADOS_ESPECIALES[$key])) {
+                    $config[] = [
+                        'key'    => $key,
+                        'nombre' => self::ESTADOS_ESPECIALES[$key],
+                        'color'  => \App\Models\Consulta::ESTADO_COLORES[$key] ?? '#78909C',
+                        'orden'  => $ordenBase + $i + 1,
+                        'activo' => true,
+                        'tipo'   => 'especial',
+                    ];
+                }
+            }
         }
 
-        // Migrar desde estados_flujo legacy
-        $flujo = $this->estados_flujo ?? ['sala_espera', 'en_enfermeria', 'en_consultorio', 'finalizada'];
-        $config = [];
-        foreach ($flujo as $i => $key) {
-            $config[] = [
-                'key'    => $key,
-                'nombre' => self::ESTADOS_DISPONIBLES[$key] ?? ucfirst($key),
-                'color'  => \App\Models\Consulta::ESTADO_COLORES[$key] ?? '#78909C',
-                'orden'  => $i + 1,
-                'activo' => true,
-            ];
-        }
         return $config;
     }
 
@@ -125,7 +158,26 @@ class EspecialidadPlantilla extends Model
             ->toArray();
     }
 
-    // Estados disponibles en el sistema
+    // Estados BASE (universales, siempre activos para todas las especialidades)
+    const ESTADOS_BASE = [
+        'por_llegar'      => 'Por Llegar',
+        'sala_espera'     => 'Sala de Espera',
+        'en_enfermeria'   => 'En Enfermería',
+        'en_consultorio'  => 'En Consultorio',
+        'finalizada'      => 'Finalizada',
+    ];
+
+    // Estados ESPECIALES (configurables por especialidad)
+    const ESTADOS_ESPECIALES = [
+        'en_consultorio_optometrista'   => 'En Consultorio Optometrista',
+        'en_gotas'                      => 'En Gotas',
+        'dilatado'                      => 'Dilatado',
+        'en_optica'                     => 'En Óptica',
+        'en_estudio'                    => 'En Estudio',
+        'pagada'                        => 'Pagada',
+    ];
+
+    // Todos los estados disponibles (base + especiales)
     const ESTADOS_DISPONIBLES = [
         'por_llegar'                    => 'Por Llegar',
         'sala_espera'                   => 'Sala de Espera',

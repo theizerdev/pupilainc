@@ -206,7 +206,12 @@
                     <i class="ri ri-settings-3-line me-1"></i>Configuración general
                 </button>
             </li>
-
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-tab-target="#tab-secciones" type="button" role="tab">
+                    <i class="ri ri-layout-grid-line me-1"></i>Secciones clínicas
+                    <span class="badge bg-label-secondary ms-1">{{ count($secciones) }}</span>
+                </button>
+            </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-tab-target="#tab-formularios" type="button" role="tab"
                         @if(!$plantilla) disabled title="Crea la plantilla primero" @endif>
@@ -225,61 +230,54 @@
 
             <div class="row g-4">
 
+                {{-- ═══ PASOS DE CONSULTA ═══ --}}
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
                             <div>
-                                <h6 class="mb-0"><i class="ri ri-flow-chart me-2 text-primary"></i>Estados del flujo (Kanban)</h6>
-                                <small class="text-muted">Configura los estados del flujo de consultas</small>
+                                <h6 class="mb-0"><i class="ri ri-footprints-line me-2 text-primary"></i>Pasos de Consulta</h6>
+                                <small class="text-muted">Activa o desactiva los pasos del proceso de consulta</small>
                             </div>
-                            <button class="btn btn-sm btn-primary" wire:click="abrirModalEstado()">
-                                <i class="ri ri-add-line me-1"></i>Nuevo estado
-                            </button>
                         </div>
                         <div class="card-body">
-                            @if(count($estadosFlujo) === 0)
-                                <p class="text-muted text-center mb-0">No hay estados configurados.</p>
+                            @if(count($pasosHabilitados) === 0)
+                                <p class="text-muted text-center mb-0">No hay pasos configurados.</p>
                             @else
                             <div class="row g-2">
-                                @foreach($estadosFlujo as $ei => $estado)
-                                <div class="col-12" wire:key="estado-{{ $ei }}">
-                                    <div class="campo-row rounded p-2 {{ !$estado['activo'] ? 'inactivo' : '' }}">
+                                @foreach($pasosHabilitados as $pi => $paso)
+                                <div class="col-12" wire:key="paso-{{ $pi }}">
+                                    <div class="campo-row rounded p-2 {{ !$paso['activo'] ? 'inactivo' : '' }}">
                                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                             <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                <span class="badge" style="background-color:{{ $estado['color'] ?? '#78909C' }};font-size:.85rem;padding:.4rem .7rem">
-                                                    {{ $estado['nombre'] }}
+                                                <span class="badge bg-label-primary" style="font-size:.85rem;padding:.4rem .7rem">
+                                                    <i class="{{ $paso['icono'] ?? 'ri ri-circle-line' }} me-1"></i>
+                                                    {{ $paso['nombre'] }}
                                                 </span>
-                                                <code class="small text-muted">{{ $estado['key'] }}</code>
-                                                @if(!$estado['activo'])
+                                                <code class="small text-muted">{{ $paso['key'] }}</code>
+                                                @if(!$paso['activo'])
                                                     <span class="badge bg-label-warning" style="font-size:.65rem">Inactivo</span>
                                                 @endif
+                                                <span class="badge bg-label-secondary" style="font-size:.65rem">
+                                                    {{ $paso['tipo'] === 'predefinido' ? 'Predefinido' : 'Personalizado' }}
+                                                </span>
                                             </div>
                                             <div class="d-flex gap-1 flex-wrap">
                                                 <div class="btn-group btn-group-sm" role="group">
                                                     <button class="btn btn-xs btn-icon btn-outline-secondary"
-                                                            wire:click="moverEstado({{ $ei }}, 'up')"
-                                                            @if($ei === 0) disabled @endif title="Subir">
+                                                            wire:click="moverPaso({{ $pi }}, 'up')"
+                                                            @if($pi === 0) disabled @endif title="Subir">
                                                         <i class="ri ri-arrow-up-s-line"></i>
                                                     </button>
                                                     <button class="btn btn-xs btn-icon btn-outline-secondary"
-                                                            wire:click="moverEstado({{ $ei }}, 'down')"
-                                                            @if($ei === count($estadosFlujo) - 1) disabled @endif title="Bajar">
+                                                            wire:click="moverPaso({{ $pi }}, 'down')"
+                                                            @if($pi === count($pasosHabilitados) - 1) disabled @endif title="Bajar">
                                                         <i class="ri ri-arrow-down-s-line"></i>
                                                     </button>
                                                 </div>
-                                                <button class="btn btn-xs btn-icon btn-outline-primary"
-                                                        wire:click="abrirModalEstado({{ $ei }})" title="Editar">
-                                                    <i class="ri ri-edit-line"></i>
-                                                </button>
-                                                <button class="btn btn-xs btn-icon {{ $estado['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
-                                                        wire:click="toggleEstado({{ $ei }})"
-                                                        title="{{ $estado['activo'] ? 'Desactivar' : 'Activar' }}">
-                                                    <i class="ri ri-{{ $estado['activo'] ? 'eye-off' : 'eye' }}-line"></i>
-                                                </button>
-                                                <button class="btn btn-xs btn-icon btn-outline-danger"
-                                                        wire:click="eliminarEstado({{ $ei }})"
-                                                        wire:confirm="¿Eliminar este estado?" title="Eliminar">
-                                                    <i class="ri ri-delete-bin-line"></i>
+                                                <button class="btn btn-xs btn-icon {{ $paso['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
+                                                        wire:click="togglePaso({{ $pi }})"
+                                                        title="{{ $paso['activo'] ? 'Desactivar' : 'Activar' }}">
+                                                    <i class="ri ri-{{ $paso['activo'] ? 'eye-off' : 'eye' }}-line"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -291,6 +289,203 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- ═══ ESTADOS DEL FLUJO (MODELO HÍBRIDO) ═══ --}}
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-transparent border-0">
+                            <h6 class="mb-0"><i class="ri ri-flow-chart me-2 text-primary"></i>Estados del Flujo</h6>
+                            <small class="text-muted">Los estados base son automáticos. Configura solo los estados especiales que necesites.</small>
+                        </div>
+                        <div class="card-body">
+
+                            {{-- Estados BASE (automáticos, no configurables) --}}
+                            <div class="mb-4">
+                                <h6 class="text-muted mb-3">
+                                    <i class="ri ri-lock-line me-1"></i>Estados Base (Automáticos)
+                                    <span class="badge bg-label-secondary ms-2">No configurables</span>
+                                </h6>
+                                <div class="row g-2">
+                                    @foreach(\App\Models\EspecialidadPlantilla::ESTADOS_BASE as $key => $nombre)
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="campo-row rounded p-2" style="opacity: 0.7; background: #f8f9fa;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge" style="background-color:{{ \App\Models\Consulta::ESTADO_COLORES[$key] ?? '#78909C' }};font-size:.85rem;padding:.4rem .7rem">
+                                                    {{ $nombre }}
+                                                </span>
+                                                <code class="small text-muted">{{ $key }}</code>
+                                                <span class="badge bg-label-success" style="font-size:.65rem">
+                                                    <i class="ri ri-check-line me-1"></i>Siempre activo
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            {{-- Estados ESPECIALES (configurables) --}}
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="text-muted mb-0">
+                                        <i class="ri ri-settings-3-line me-1"></i>Estados Especiales (Configurables)
+                                        <span class="badge bg-label-primary ms-2">Personalizables</span>
+                                    </h6>
+                                    <button class="btn btn-sm btn-primary" wire:click="abrirModalEstado()">
+                                        <i class="ri ri-add-line me-1"></i>Agregar estado especial
+                                    </button>
+                                </div>
+
+                                @php
+                                    $estadosEspeciales = collect($estadosFlujo)->where('tipo', '!=', 'base')->values();
+                                @endphp
+
+                                @if(count($estadosEspeciales) === 0)
+                                    <div class="alert alert-info">
+                                        <i class="ri ri-information-line me-2"></i>
+                                        No hay estados especiales configurados. Agrega estados específicos para esta especialidad si los necesitas.
+                                    </div>
+                                @else
+                                <div class="row g-2">
+                                    @foreach($estadosEspeciales as $ei => $estado)
+                                    <div class="col-12" wire:key="estado-especial-{{ $ei }}">
+                                        <div class="campo-row rounded p-2 {{ !$estado['activo'] ? 'inactivo' : '' }}">
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    <span class="badge" style="background-color:{{ $estado['color'] ?? '#78909C' }};font-size:.85rem;padding:.4rem .7rem">
+                                                        {{ $estado['nombre'] }}
+                                                    </span>
+                                                    <code class="small text-muted">{{ $estado['key'] }}</code>
+                                                    @if(!$estado['activo'])
+                                                        <span class="badge bg-label-warning" style="font-size:.65rem">Inactivo</span>
+                                                    @endif
+                                                    <span class="badge bg-label-primary" style="font-size:.65rem">
+                                                        Especial
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex gap-1 flex-wrap">
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                                wire:click="moverEstado({{ $ei }}, 'up')"
+                                                                @if($ei === 0) disabled @endif title="Subir">
+                                                            <i class="ri ri-arrow-up-s-line"></i>
+                                                        </button>
+                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                                wire:click="moverEstado({{ $ei }}, 'down')"
+                                                                @if($ei === count($estadosEspeciales) - 1) disabled @endif title="Bajar">
+                                                            <i class="ri ri-arrow-down-s-line"></i>
+                                                        </button>
+                                                    </div>
+                                                    <button class="btn btn-xs btn-icon btn-outline-primary"
+                                                            wire:click="abrirModalEstado({{ $ei }})" title="Editar">
+                                                        <i class="ri ri-edit-line"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-icon {{ $estado['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
+                                                            wire:click="toggleEstado({{ $ei }})"
+                                                            title="{{ $estado['activo'] ? 'Desactivar' : 'Activar' }}">
+                                                        <i class="ri ri-{{ $estado['activo'] ? 'eye-off' : 'eye' }}-line"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-icon btn-outline-danger"
+                                                            wire:click="eliminarEstado({{ $ei }})"
+                                                            wire:confirm="¿Eliminar este estado?" title="Eliminar">
+                                                        <i class="ri ri-delete-bin-line"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                                @endif
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ════════════════════════════════════════════════════════════════ --}}
+            {{-- CONFIGURACIÓN DEL WIZARD                                       --}}
+            {{-- ════════════════════════════════════════════════════════════════ --}}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="ri ri-steps-line me-2 text-primary"></i>
+                        Configuración del Flujo en Consultorio
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info d-flex align-items-start" role="alert">
+                        <i class="ri ri-information-line fs-4 me-3 mt-1"></i>
+                        <div>
+                            <strong>¿Cómo se mostrará la consulta cuando esté en estado "En Consultorio"?</strong>
+                            <p class="mb-0 mt-2 small">Esta configuración determina si el médico verá un wizard paso a paso o un formulario completo.</p>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card h-100 border-{{ $usarWizardEnConsultorio ? 'success' : 'secondary' }}">
+                                <div class="card-body">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="wizardToggle"
+                                               wire:model="usarWizardEnConsultorio"
+                                               {{ $usarWizardEnConsultorio ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-bold" for="wizardToggle">
+                                            @if($usarWizardEnConsultorio)
+                                                <i class="ri ri-checkbox-circle-line text-success me-1"></i>
+                                                Wizard por Pasos (Activado)
+                                            @else
+                                                <i class="ri ri-close-circle-line text-secondary me-1"></i>
+                                                Formulario Completo (Desactivado)
+                                            @endif
+                                        </label>
+                                    </div>
+                                    <hr>
+                                    <h6 class="small fw-bold mb-2">Características:</h6>
+                                    <ul class="small mb-0 ps-3">
+                                        @if($usarWizardEnConsultorio)
+                                            <li>Navegación secuencial paso a paso</li>
+                                            <li>Signos Vitales → Cuestionario → Evaluación → Estudios → Tratamientos → Reposo</li>
+                                            <li>Ideal para consultas estructuradas y protocolizadas</li>
+                                            <li>El médico completa un paso antes de avanzar al siguiente</li>
+                                        @else
+                                            <li>Todos los campos visibles en una sola pantalla</li>
+                                            <li>Formulario completo del estado "En Consultorio"</li>
+                                            <li>Ideal para consultas rápidas o flexibles</li>
+                                            <li>El médico puede completar cualquier campo en cualquier orden</li>
+                                        @endif
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold mb-3">
+                                        <i class="ri ri-lightbulb-line me-2 text-warning"></i>
+                                        Recomendación
+                                    </h6>
+                                    <div class="small">
+                                        <p><strong>Usa Wizard cuando:</strong></p>
+                                        <ul class="ps-3 mb-2">
+                                            <li>La especialidad requiere un protocolo específico</li>
+                                            <li>Quieres guiar al médico paso a paso</li>
+                                            <li>Las consultas son complejas y necesitan estructura</li>
+                                        </ul>
+                                        <p><strong>Usa Formulario cuando:</strong></p>
+                                        <ul class="ps-3 mb-0">
+                                            <li>Las consultas son rápidas y simples</li>
+                                            <li>El médico necesita flexibilidad total</li>
+                                            <li>No hay un orden específico requerido</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- Sticky save bar --}}
@@ -298,7 +493,7 @@
                 <button class="btn btn-primary" wire:click="guardarConfiguracion"
                         wire:loading.attr="disabled" wire:target="guardarConfiguracion">
                     <span wire:loading.remove wire:target="guardarConfiguracion">
-                        <i class="ri ri-save-line me-1"></i>Guardar pasos y estados
+                        <i class="ri ri-save-line me-1"></i>Guardar Configuración
                     </span>
                     <span wire:loading wire:target="guardarConfiguracion">
                         <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
@@ -307,7 +502,176 @@
             </div>
         </div>
 
+        {{-- ════════════════════════════════════════════════════════════════ --}}
+        {{-- TAB 2 · SECCIONES CLÍNICAS                                       --}}
+        {{-- ════════════════════════════════════════════════════════════════ --}}
+        <div class="tab-pane fade" id="tab-secciones" role="tabpanel">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h6 class="mb-0"><i class="ri ri-layout-line me-2 text-primary"></i>Secciones clínicas</h6>
+                    <small class="text-muted">Define los bloques y campos clínicos de la plantilla base</small>
+                </div>
+                @if($plantilla)
+                <button class="btn btn-sm btn-primary" wire:click="abrirModalSeccion()">
+                    <i class="ri ri-add-line me-1"></i>Nueva sección
+                </button>
+                @endif
+            </div>
+            <div class="card-body">
 
+                @if(!$plantilla)
+                <div class="empty-hero">
+                    <div class="empty-icon"><i class="ri ri-file-add-line"></i></div>
+                    <h5 class="mb-2">Esta especialidad aún no tiene plantilla</h5>
+                    <p class="text-muted mb-4">
+                        Crea la plantilla base para empezar a configurar secciones clínicas, campos y formularios por estado.
+                    </p>
+                    <button class="btn btn-primary btn-lg" wire:click="crearPlantilla"
+                            wire:loading.attr="disabled" wire:target="crearPlantilla">
+                        <span wire:loading.remove wire:target="crearPlantilla">
+                            <i class="ri ri-add-line me-1"></i>Crear plantilla
+                        </span>
+                        <span wire:loading wire:target="crearPlantilla">
+                            <span class="spinner-border spinner-border-sm me-1"></span>Creando...
+                        </span>
+                    </button>
+                </div>
+
+                @elseif(count($secciones) === 0)
+                <div class="empty-hero">
+                    <div class="empty-icon"><i class="ri ri-layout-line"></i></div>
+                    <h5 class="mb-2">No hay secciones todavía</h5>
+                    <p class="text-muted mb-3">Agrega la primera sección clínica para esta plantilla.</p>
+                    <button class="btn btn-primary" wire:click="abrirModalSeccion()">
+                        <i class="ri ri-add-line me-1"></i>Agregar sección
+                    </button>
+                </div>
+
+                @else
+                <div class="row g-3">
+                    @foreach($secciones as $si => $seccion)
+                    <div class="col-12">
+                        <div class="card seccion-card {{ !$seccion['activo'] ? 'opacity-50' : '' }}"
+                             style="--seccion-color: {{ $seccion['color'] ?? '#3B82F6' }}">
+                            <div class="card-header bg-transparent d-flex align-items-center justify-content-between py-2 flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas {{ $seccion['icono'] ?? 'fa-stethoscope' }}"
+                                       style="color: {{ $seccion['color'] ?? '#3B82F6' }}"></i>
+                                    <strong>{{ $seccion['nombre'] }}</strong>
+                                    <span class="badge bg-label-secondary">{{ count($seccion['campos']) }} campos</span>
+                                    @if(!$seccion['activo'])
+                                        <span class="badge bg-label-warning">Inactiva</span>
+                                    @endif
+                                </div>
+                                <div class="d-flex gap-1 flex-wrap">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Reordenar">
+                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                wire:click="moverSeccion({{ $seccion['id'] }}, 'up')"
+                                                @if($si === 0) disabled @endif title="Subir">
+                                            <i class="ri ri-arrow-up-s-line"></i>
+                                        </button>
+                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                wire:click="moverSeccion({{ $seccion['id'] }}, 'down')"
+                                                @if($si === count($secciones) - 1) disabled @endif title="Bajar">
+                                            <i class="ri ri-arrow-down-s-line"></i>
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-xs btn-icon btn-outline-primary"
+                                            wire:click="abrirModalSeccion({{ $seccion['id'] }})" title="Editar">
+                                        <i class="ri ri-edit-line"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-icon {{ $seccion['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
+                                            wire:click="toggleSeccion({{ $seccion['id'] }})"
+                                            title="{{ $seccion['activo'] ? 'Desactivar' : 'Activar' }}">
+                                        <i class="ri ri-{{ $seccion['activo'] ? 'eye-off' : 'eye' }}-line"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-icon btn-outline-danger"
+                                            wire:click="eliminarSeccion({{ $seccion['id'] }})"
+                                            wire:confirm="¿Eliminar esta sección y todos sus campos?" title="Eliminar">
+                                        <i class="ri ri-delete-bin-line"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-sm btn-primary"
+                                            wire:click="abrirModalCampo({{ $seccion['id'] }})">
+                                        <i class="ri ri-add-line me-1"></i>Campo
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Campos de la sección --}}
+                            @if(count($seccion['campos']) > 0)
+                            <div class="card-body pt-2 pb-3">
+                                <div class="row g-2">
+                                    @foreach($seccion['campos'] as $ci => $campo)
+                                    <div class="col-12">
+                                        <div class="campo-row rounded p-2 {{ !$campo['activo'] ? 'inactivo' : '' }}">
+                                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                    <span class="badge bg-label-primary tipo-badge">
+                                                        {{ $tiposCampo[$campo['tipo']] ?? $campo['tipo'] }}
+                                                    </span>
+                                                    <strong class="small">{{ $campo['etiqueta'] }}</strong>
+                                                    <code class="small text-muted">{{ $campo['nombre_campo'] }}</code>
+                                                    @if($campo['obligatorio'])
+                                                        <span class="badge bg-label-danger" style="font-size:.65rem">Obligatorio</span>
+                                                    @endif
+                                                    @if($campo['unidad'])
+                                                        <span class="badge bg-label-info" style="font-size:.65rem">{{ $campo['unidad'] }}</span>
+                                                    @endif
+                                                    <span class="width-indicator" title="Ancho {{ $campo['ancho_columnas'] }}/12">
+                                                        @for($w = 1; $w <= 12; $w++)
+                                                            <span class="wi-cell {{ $w <= $campo['ancho_columnas'] ? 'filled' : '' }}"></span>
+                                                        @endfor
+                                                    </span>
+                                                </div>
+                                                <div class="d-flex gap-1 flex-wrap">
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                                wire:click="moverCampo({{ $campo['id'] }}, 'up')"
+                                                                @if($ci === 0) disabled @endif title="Subir">
+                                                            <i class="ri ri-arrow-up-s-line"></i>
+                                                        </button>
+                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                                wire:click="moverCampo({{ $campo['id'] }}, 'down')"
+                                                                @if($ci === count($seccion['campos']) - 1) disabled @endif title="Bajar">
+                                                            <i class="ri ri-arrow-down-s-line"></i>
+                                                        </button>
+                                                    </div>
+                                                    <button class="btn btn-xs btn-icon btn-outline-primary"
+                                                            wire:click="abrirModalCampo({{ $seccion['id'] }}, {{ $campo['id'] }})" title="Editar">
+                                                        <i class="ri ri-edit-line"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-icon {{ $campo['activo'] ? 'btn-outline-warning' : 'btn-outline-success' }}"
+                                                            wire:click="toggleCampo({{ $campo['id'] }})"
+                                                            title="{{ $campo['activo'] ? 'Desactivar' : 'Activar' }}">
+                                                        <i class="ri ri-{{ $campo['activo'] ? 'eye-off' : 'eye' }}-line"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-icon btn-outline-danger"
+                                                            wire:click="eliminarCampo({{ $campo['id'] }})"
+                                                            wire:confirm="¿Eliminar este campo?" title="Eliminar">
+                                                        <i class="ri ri-delete-bin-line"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @else
+                            <div class="card-body py-2">
+                                <small class="text-muted fst-italic">Sin campos. Haz clic en "+ Campo" para agregar.</small>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+
+            </div>
+        </div>
+        </div>{{-- /tab-secciones --}}
 
         {{-- ════════════════════════════════════════════════════════════════ --}}
         {{-- TAB 3 · FORMULARIOS POR ESTADO                                    --}}
@@ -435,6 +799,20 @@
                                                         <div class="campo-row rounded p-2 {{ !$campo['activo'] ? 'inactivo' : '' }}">
                                                             <div class="d-flex align-items-center justify-content-between">
                                                                 <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                                    {{-- Indicador de orden --}}
+                                                                    <span class="badge bg-label-secondary" style="font-size:.7rem;min-width:30px;text-align:center">
+                                                                        #{{ $ci + 1 }}
+                                                                    </span>
+                                                                    {{-- Indicador de sección actual --}}
+                                                                    @php
+                                                                        $seccionActual = $estadoFormularios[$estadoFormularioActivo]['secciones'] ?? [];
+                                                                        $nombreSeccion = collect($seccionActual)->firstWhere('id', $seccion['id'])['nombre'] ?? '';
+                                                                    @endphp
+                                                                    @if($nombreSeccion)
+                                                                    <span class="badge bg-label-info" style="font-size:.65rem" title="Sección actual">
+                                                                        <i class="ri ri-folder-line me-1"></i>{{ $nombreSeccion }}
+                                                                    </span>
+                                                                    @endif
                                                                     <span class="badge bg-label-primary tipo-badge">
                                                                         {{ $tiposCampo[$campo['tipo']] ?? $campo['tipo'] }}
                                                                     </span>
@@ -453,6 +831,21 @@
                                                                     </span>
                                                                 </div>
                                                                 <div class="d-flex gap-1 flex-wrap">
+                                                                    {{-- Botones de reordenamiento --}}
+                                                                    <div class="btn-group btn-group-sm" role="group">
+                                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                                                wire:click="moverCampoEstado({{ $campo['id'] }}, 'up', {{ $seccion['id'] }})"
+                                                                                @if($ci === 0) disabled @endif
+                                                                                title="Subir">
+                                                                            <i class="ri ri-arrow-up-s-line"></i>
+                                                                        </button>
+                                                                        <button class="btn btn-xs btn-icon btn-outline-secondary"
+                                                                                wire:click="moverCampoEstado({{ $campo['id'] }}, 'down', {{ $seccion['id'] }})"
+                                                                                @if($ci === count($seccion['campos']) - 1) disabled @endif
+                                                                                title="Bajar">
+                                                                            <i class="ri ri-arrow-down-s-line"></i>
+                                                                        </button>
+                                                                    </div>
                                                                     <button class="btn btn-xs btn-icon btn-outline-primary"
                                                                             wire:click="abrirModalCampoEstado({{ $seccion['id'] }}, {{ $campo['id'] }})" title="Editar">
                                                                         <i class="ri ri-edit-line"></i>
@@ -626,6 +1019,19 @@
                                    placeholder="Ej: Ojo Derecho (AV), Presión Sistólica" autofocus>
                             @error('campoEtiqueta') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
                         </div>
+
+                        {{-- Selector de Sección (solo para campos de formularios por estado) --}}
+                        @if($campoEstadoFormularioId && count($estadoFormularios[$estadoFormularioActivo]['secciones'] ?? []) > 1)
+                        <div class="col-md-4">
+                            <label class="form-label">Sección</label>
+                            <select class="form-select" wire:model.live="campoSeccionId">
+                                @foreach($estadoFormularios[$estadoFormularioActivo]['secciones'] as $sec)
+                                    <option value="{{ $sec['id'] }}">{{ $sec['nombre'] }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted d-block mt-1">Cambiar sección</small>
+                        </div>
+                        @endif
 
                         {{-- Tipo --}}
                         <div class="col-md-4">

@@ -111,17 +111,8 @@
                         </div>
                         <div class="card-body py-3">
                             <div class="row">
-                                <div class="col-md-2 mb-2">
-                                    <label class="form-label text-xs fw-bold">Tipo *</label>
-                                    <select wire:model="fiscal_tipo_documento" class="form-select form-select-sm">
-                                        <option value="V">V - Venezolano</option>
-                                        <option value="E">E - Extranjero</option>
-                                        <option value="J">J - Jurídico</option>
-                                        <option value="G">G - Gobierno</option>
-                                        <option value="P">P - Pasaporte</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3 mb-2">
+
+                                <div class="col-md-4 mb-2">
                                     <label class="form-label text-xs fw-bold">N° Documento *</label>
                                     <input wire:model="fiscal_numero_documento" type="text" class="form-control form-control-sm @error('fiscal_numero_documento') is-invalid @enderror" placeholder="Ej: 12345678">
                                     @error('fiscal_numero_documento') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -131,7 +122,7 @@
                                     <input wire:model="fiscal_razon_social" type="text" class="form-control form-control-sm @error('fiscal_razon_social') is-invalid @enderror" placeholder="Nombre completo">
                                     @error('fiscal_razon_social') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="col-md-3 mb-2">
+                                <div class="col-md-4 mb-2">
                                     <label class="form-label text-xs fw-bold">Teléfono *</label>
                                     <input wire:model="fiscal_telefono" type="text" class="form-control form-control-sm @error('fiscal_telefono') is-invalid @enderror" placeholder="0414-1234567">
                                     @error('fiscal_telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -229,10 +220,7 @@
                                         <select required wire:model.live="metodo_pago" class="form-select">
                                             <option value="">SELECCIONE</option>
                                             <option value="efectivo">EFECTIVO</option>
-                                            <option value="bbva_dr">BBVA DR</option>
-                                            <option value="mifel_dra">MIFEL DRA</option>
-                                            <option value="cuenta_dr">CUENTA DR</option>
-                                            <option value="cuenta_dra">CUENTA DRA</option>
+                                            <option value="transferencia">TRANSFERENCIA</option>
                                             <option value="tarjeta_credito">TARJETA DE CREDITO</option>
                                             <option value="tarjeta_debito">TARJETA DE DEBITO</option>
                                         </select>
@@ -471,7 +459,7 @@
                                                 <input wire:model="cantidad" type="number" min="1" step="0.01" class="form-control form-control-sm text-center" placeholder="1">
                                             </div>
                                             <div class="col-md-2 mb-2">
-                                                <label class="form-label text-xs fw-bold mb-1">Precio USD *</label>
+                                                <label class="form-label text-xs fw-bold mb-1">Precio Unitario *</label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">$</span>
                                                     <input wire:model="precio_unitario" type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
@@ -604,7 +592,7 @@
                                                 <td class="text-end">
                                                     <strong class="text-success">{{ format_money($es_venezuela ? $detalle['subtotal'] * $tasa_usd : $detalle['subtotal']) }}</strong>
                                                 </td>
-                                                <td class="text-center">
+                                               {{--  <td class="text-center">
                                                     @if($detalle['exento_iva'] ?? false)
                                                         <span class="badge badge-sm bg-warning text-dark">Exento</span>
                                                     @elseif($detalle['aplica_iva'] ?? false)
@@ -613,6 +601,7 @@
                                                         <span class="badge badge-sm bg-secondary">Sin IVA</span>
                                                     @endif
                                                 </td>
+                                                 --}}
                                                 <td class="text-center">
                                                     <span class="text-muted">-</span>
                                                 </td>
@@ -716,7 +705,7 @@
                                                 <tr>
                                                     <td colspan="2"><hr class="my-1"></td>
                                                 </tr>
-                                                @if($es_venezuela)
+                                                @if($es_venezuela != false)
                                                 <tr class="table-primary">
                                                     <td class="fw-bold">Total USD:</td>
                                                     <td class="text-end fw-bold">${{ number_format($total, 2) }}</td>

@@ -5,7 +5,7 @@
     <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-6">
       <a href="{{ route('admin.dashboard') }}" class="app-brand-link gap-2">
         <span class="app-brand-logo demo">
-         <img src="/logo/auth.png" height="40px">
+         <img src="/logo/logo-horizontal.webp" height="30px">
         </span>
       </a>
 
@@ -147,7 +147,7 @@
 
         <li>
             <div class="d-grid px-4 pt-2 pb-1">
-          <a class="btn btn-sm btn-danger d-flex" href="{{ route('logout') }}"
+          <a class="btn btn-sm btn-danger d-flex" href="#"
             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
             <i class="icon-base ri ri-logout-box-r-line ms-2 icon-16px"></i>
             <span>Salir del sistema</span>

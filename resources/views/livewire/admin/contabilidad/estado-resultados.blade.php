@@ -9,8 +9,7 @@
     </style>
     @endpush
 
-    <div class="container-xxl flex-grow-1 container-p-y">
-        {{-- Breadcrumb --}}
+    <div class="container-p-y">
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb breadcrumb-style1 mb-0">
                 <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}"><i class="ri ri-home-line me-1"></i>Dashboard</a></li>
@@ -143,8 +142,8 @@
                                 @if($comparativo)
                                     <div class="text-center mb-3">
                                         <small class="text-muted">
-                                            Comparativo: {{ \Carbon\Carbon::parse($fecha_desde_comp)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fecha_hasta_comp)->format('d/m/Y') }} 
-                                            vs 
+                                            Comparativo: {{ \Carbon\Carbon::parse($fecha_desde_comp)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fecha_hasta_comp)->format('d/m/Y') }}
+                                            vs
                                             {{ \Carbon\Carbon::parse($fecha_desde)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($fecha_hasta)->format('d/m/Y') }}
                                         </small>
                                     </div>
@@ -159,7 +158,7 @@
                                         </span>
                                     @endif
                                 </div>
-                                
+
                                 @if($agrupar_por_categoria)
                                     @php
                                         $ingresosAgrupados = $ingresos->groupBy('categoria');
@@ -217,7 +216,7 @@
                                         </tbody>
                                     </table>
                                 @endif
-                                
+
                                 <div class="border-top pt-2 mb-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong class="text-success">Total Ingresos</strong>
@@ -258,7 +257,7 @@
                                             @endforeach
                                         </tbody>
                                     </table>
-                                    
+
                                     <div class="border-top pt-2 mb-3">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <strong class="text-warning">Total Costos</strong>
@@ -291,7 +290,7 @@
 
                                 {{-- GASTOS --}}
                                 <h6 class="text-danger fw-bold mb-2">GASTOS OPERACIONALES</h6>
-                                
+
                                 @if($agrupar_por_categoria)
                                     @php
                                         $egresosAgrupados = $egresos->groupBy('categoria');
@@ -349,7 +348,7 @@
                                         </tbody>
                                     </table>
                                 @endif
-                                
+
                                 <div class="border-top pt-2 mb-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <strong class="text-danger">Total Gastos</strong>

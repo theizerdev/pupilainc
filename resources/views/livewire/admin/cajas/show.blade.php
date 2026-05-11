@@ -153,60 +153,8 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 @php
-                                                    $iconClass = match($metodo->metodo_pago) {
-                                                        'efectivo' => 'ri ri-money-dollar-circle-line text-success',
-                                                        'efectivo_bs' => 'ri ri-money-dollar-circle-line text-success',
-                                                        'efectivo_usd' => 'ri ri-money-dollar-circle-line text-success',
-                                                        'transferencia' => 'ri ri-bank-line text-info',
-                                                        'transferencia_bs' => 'ri ri-bank-line text-info',
-                                                        'transferencia_usd' => 'ri ri-bank-line text-info',
-                                                        'pago_movil' => 'ri ri-smartphone-line text-primary',
-                                                        'zelle' => 'ri ri-bank-card-line text-purple',
-                                                        'paypal' => 'ri ri-paypal-line text-info',
-                                                        'usdt' => 'ri ri-bitcoin-line text-warning',
-                                                        'tarjeta' => 'ri ri-bank-card-line text-warning',
-                                                        'tarjeta_debito' => 'ri ri-bank-card-line text-primary',
-                                                        'tarjeta_credito' => 'ri ri-bank-card-line text-warning',
-                                                        'bbva_dr' => 'ri ri-bank-card-line text-primary',
-                                                        'bbva_cr' => 'ri ri-bank-card-line text-warning',
-                                                        'mercantil_dr' => 'ri ri-bank-card-line text-primary',
-                                                        'mercantil_cr' => 'ri ri-bank-card-line text-warning',
-                                                        'banesco_dr' => 'ri ri-bank-card-line text-primary',
-                                                        'banesco_cr' => 'ri ri-bank-card-line text-warning',
-                                                        'provincial_dr' => 'ri ri-bank-card-line text-primary',
-                                                        'provincial_cr' => 'ri ri-bank-card-line text-warning',
-                                                        'bod_dr' => 'ri ri-bank-card-line text-primary',
-                                                        'bod_cr' => 'ri ri-bank-card-line text-warning',
-                                                        default => 'ri ri-question-line text-muted'
-                                                    };
-
-                                                    $nombresAmigables = [
-                                                        'efectivo' => 'Efectivo',
-                                                        'efectivo_bs' => 'Efectivo Bs',
-                                                        'efectivo_usd' => 'Efectivo USD',
-                                                        'transferencia' => 'Transferencia',
-                                                        'transferencia_bs' => 'Transferencia Bs',
-                                                        'transferencia_usd' => 'Transferencia USD',
-                                                        'pago_movil' => 'Pago Móvil',
-                                                        'zelle' => 'Zelle',
-                                                        'paypal' => 'PayPal',
-                                                        'usdt' => 'USDT',
-                                                        'tarjeta' => 'Tarjeta',
-                                                        'tarjeta_debito' => 'Tarjeta Débito',
-                                                        'tarjeta_credito' => 'Tarjeta Crédito',
-                                                        'bbva_dr' => 'BBVA Débito',
-                                                        'bbva_cr' => 'BBVA Crédito',
-                                                        'mercantil_dr' => 'Mercantil Débito',
-                                                        'mercantil_cr' => 'Mercantil Crédito',
-                                                        'banesco_dr' => 'Banesco Débito',
-                                                        'banesco_cr' => 'Banesco Crédito',
-                                                        'provincial_dr' => 'Provincial Débito',
-                                                        'provincial_cr' => 'Provincial Crédito',
-                                                        'bod_dr' => 'BOD Débito',
-                                                        'bod_cr' => 'BOD Crédito',
-                                                    ];
-
-                                                    $nombreMostrar = $nombresAmigables[$metodo->metodo_pago] ?? ucfirst(str_replace('_', ' ', $metodo->metodo_pago));
+                                                    $iconClass = \App\Helpers\MetodoPagoHelper::getIcono($metodo->metodo_pago);
+                                                    $nombreMostrar = \App\Helpers\MetodoPagoHelper::getNombreAmigable($metodo->metodo_pago);
                                                 @endphp
                                                 <i class="{{ $iconClass }} me-2"></i>
                                                 {{ $nombreMostrar }}
@@ -323,15 +271,11 @@
                                         </td>
                                         <td>
                                             @php
-                                                $iconClass = match($pago->metodo_pago) {
-                                                    'efectivo' => 'ri ri-money-dollar-circle-line text-success',
-                                                    'transferencia' => 'ri ri-bank-line text-info',
-                                                    'tarjeta' => 'ri ri-bank-card-line text-primary',
-                                                    default => 'ri ri-question-line text-muted'
-                                                };
+                                                $iconClass = \App\Helpers\MetodoPagoHelper::getIcono($pago->metodo_pago);
+                                                $nombreMetodo = \App\Helpers\MetodoPagoHelper::getNombreAmigable($pago->metodo_pago);
                                             @endphp
                                             <i class="{{ $iconClass }} me-1"></i>
-                                            {{ ucfirst($pago->metodo_pago) }}
+                                            {{ $nombreMetodo }}
                                         </td>
                                         <td class="text-end fw-semibold">
                                             @if($tieneNotaCredito)

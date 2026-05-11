@@ -107,7 +107,7 @@ class LibroVentas extends Component
     public function getStatsProperty()
     {
         $documentos = $this->documentos;
-        
+
         return [
             'total_documentos' => $documentos->count(),
             'facturas' => $documentos->where('tipo_pago', 'factura')->count(),
