@@ -33,6 +33,7 @@ class Form extends Component
     public $sku = '';
     public $descripcion = '';
     public $categoria_producto_id = '';
+    public $categoria_search = ''; // Búsqueda de categorías
     public $marca_id = '';
     public $marca_search = ''; // Búsqueda de marcas
     public $proveedor_id = '';
@@ -153,6 +154,159 @@ class Form extends Component
         } else {
             $this->marca_search = '';
         }
+    }
+
+    // Categorías filtradas por búsqueda
+    public function getCategoriasFiltradasProperty()
+    {
+        $categorias = $this->categorias;
+
+        if (strlen($this->categoria_search) > 0) {
+            $search = strtolower($this->categoria_search);
+            $categorias = $categorias->filter(function ($cat) use ($search) {
+                return stripos(strtolower($cat->nombre), $search) !== false;
+            });
+        }
+
+        return $categorias->take(10); // Limitar a 10 resultados
+    }
+
+    // Categoría seleccionada (modelo completo)
+    public function getCategoriaSeleccionadaProperty()
+    {
+        if ($this->categoria_producto_id) {
+            return CategoriaProducto::find($this->categoria_producto_id);
+        }
+        return null;
+    }
+
+    // Seleccionar categoría
+    public function seleccionarCategoria($categoriaId)
+    {
+        $this->categoria_producto_id = $categoriaId;
+
+        if ($categoriaId) {
+            $categoria = CategoriaProducto::find($categoriaId);
+            $this->categoria_search = $categoria ? $categoria->nombre : '';
+        } else {
+            $this->categoria_search = '';
+        }
+    }
+
+    // Propiedades para los modales de creación rápida
+    public $showModalCategoria = false;
+    public $showModalMarca = false;
+    public $showModalProveedor = false;
+
+    // Datos para nueva categoría
+    public $nueva_categoria_nombre = '';
+    public $nueva_categoria_descripcion = '';
+
+    // Datos para nueva marca
+    public $nueva_marca_nombre = '';
+
+    // Datos para nuevo proveedor
+    public $nuevo_proveedor_nombre = '';
+    public $nuevo_proveedor_rif = '';
+    public $nuevo_proveedor_telefono = '';
+    public $nuevo_proveedor_email = '';
+
+    // Crear nueva categoría desde modal
+    public function crearNuevaCategoria()
+    {
+        $this->validate([
+            'nueva_categoria_nombre' => 'required|string|max:255',
+            'nueva_categoria_descripcion' => 'nullable|string|max:500',
+        ]);
+
+        $categoria = CategoriaProducto::create([
+            'nombre' => $this->nueva_categoria_nombre,
+            'descripcion' => $this->nueva_categoria_descripcion,
+            'empresa_id' => auth()->user()->empresa_id,
+            'status' => true,
+        ]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Categoría '{$categoria->nombre}' creada exitosamente.",
+            'duration' => 3000
+        ]);
+
+        // Seleccionar automáticamente la nueva categoría
+        $this->seleccionarCategoria($categoria->id);
+
+        // Limpiar y cerrar modal
+        $this->reset(['nueva_categoria_nombre', 'nueva_categoria_descripcion']);
+        $this->showModalCategoria = false;
+
+        // Recargar listas
+        $this->categorias = CategoriaProducto::forUser()->activas()->orderBy('nombre')->get();
+    }
+
+    // Crear nueva marca desde modal
+    public function crearNuevaMarca()
+    {
+        $this->validate([
+            'nueva_marca_nombre' => 'required|string|max:255',
+        ]);
+
+        $marca = Marca::create([
+            'nombre' => $this->nueva_marca_nombre,
+            'empresa_id' => auth()->user()->empresa_id,
+            'status' => true,
+        ]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Marca '{$marca->nombre}' creada exitosamente.",
+            'duration' => 3000
+        ]);
+
+        // Seleccionar automáticamente la nueva marca
+        $this->seleccionarMarca($marca->id);
+
+        // Limpiar y cerrar modal
+        $this->reset('nueva_marca_nombre');
+        $this->showModalMarca = false;
+
+        // Recargar listas
+        $this->marcas = Marca::forUser()->activas()->orderBy('nombre')->get();
+    }
+
+    // Crear nuevo proveedor desde modal
+    public function crearNuevoProveedor()
+    {
+        $this->validate([
+            'nuevo_proveedor_nombre' => 'required|string|max:255',
+            'nuevo_proveedor_rif' => 'nullable|string|max:20',
+            'nuevo_proveedor_telefono' => 'nullable|string|max:20',
+            'nuevo_proveedor_email' => 'nullable|email|max:255',
+        ]);
+
+        $proveedor = Proveedor::create([
+            'nombre' => $this->nuevo_proveedor_nombre,
+            'rif' => $this->nuevo_proveedor_rif,
+            'telefono' => $this->nuevo_proveedor_telefono,
+            'email' => $this->nuevo_proveedor_email,
+            'empresa_id' => auth()->user()->empresa_id,
+            'status' => true,
+        ]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Proveedor '{$proveedor->nombre}' creado exitosamente.",
+            'duration' => 3000
+        ]);
+
+        // Seleccionar automáticamente el nuevo proveedor
+        $this->seleccionarProveedor($proveedor->id);
+
+        // Limpiar y cerrar modal
+        $this->reset(['nuevo_proveedor_nombre', 'nuevo_proveedor_rif', 'nuevo_proveedor_telefono', 'nuevo_proveedor_email']);
+        $this->showModalProveedor = false;
+
+        // Recargar listas
+        $this->proveedores = Proveedor::forUser()->activos()->orderBy('nombre')->get();
     }
 
     const UNIDADES = [
@@ -590,6 +744,8 @@ class Form extends Component
     {
         return view('livewire.admin.inventario.productos.form', [
             'categorias'           => $this->categorias,
+            'categorias_filtradas' => $this->categorias_filtradas,
+            'categoria_seleccionada' => $this->categoria_seleccionada,
             'marcas'               => $this->marcas,
             'marcas_filtradas'     => $this->marcas_filtradas,
             'marca_seleccionada'   => $this->marca_seleccionada,

@@ -103,61 +103,83 @@
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Categoría</label>
-                                        <select class="form-control  @error('categoria_producto_id') is-invalid @enderror" wire:model="categoria_producto_id">
-                                            <option value="">Sin categoría</option>
-                                            @foreach($categorias as $cat)
-                                                <option value="{{ $cat->id }}">{{ $cat->nombre }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('categoria_producto_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                        <div class="input-group">
+                                            <div class="position-relative flex-grow-1">
+                                                <input type="text" class="form-control @error('categoria_producto_id') is-invalid @enderror"
+                                                       wire:model.live="categoria_search"
+                                                       placeholder="Buscar categoría..."
+                                                       autocomplete="off"
+                                                       @if($categoria_seleccionada) value="{{ $categoria_seleccionada->nombre }}" @endif>
+
+                                                @if(strlen($categoria_search) > 0 && count($categorias_filtradas) > 0 && (!$categoria_seleccionada || $categoria_seleccionada->nombre !== $categoria_search))
+                                                <div class="position-absolute w-100" style="z-index: 1000;">
+                                                    <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+                                                        @foreach($categorias_filtradas as $cat)
+                                                        <button type="button" class="list-group-item list-group-item-action"
+                                                                wire:click="seleccionarCategoria({{ $cat->id }})"
+                                                                style="background-color: #ffffff; border-left: none; border-right: none; border-bottom: 1px solid #f8f9fa; padding: 0.75rem 1rem; transition: background-color 0.2s;">
+                                                            <strong style="color: #212529;">{{ $cat->nombre }}</strong>
+                                                        </button>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                                @endif
+                                                @error('categoria_producto_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                            </div>
+                                            <button type="button" class="btn btn-outline-primary"
+                                                    wire:click="$set('showModalCategoria', true)"
+                                                    title="Agregar nueva categoría">
+                                                <i class="ri ri-add-line"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Marca</label>
-                                        <div class="position-relative">
-                                            <input type="text" class="form-control @error('marca_id') is-invalid @enderror" 
-                                                   wire:model.live="marca_search" 
-                                                   placeholder="Buscar marca..."
-                                                   autocomplete="off"
-                                                   @if($marca_seleccionada) value="{{ $marca_seleccionada->nombre }}" @endif>
-                                        
-                                            @if(strlen($marca_search) > 0 && count($marcas_filtradas) > 0)
-                                            <div class="position-absolute w-100" style="z-index: 1000;">
-                                                <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
-                                                    @foreach($marcas_filtradas as $marca)
-                                                    <button type="button" class="list-group-item list-group-item-action" 
-                                                            wire:click="seleccionarMarca({{ $marca->id }})"
-                                                            style="background-color: #ffffff; border-left: none; border-right: none; border-bottom: 1px solid #f8f9fa; padding: 0.75rem 1rem; transition: background-color 0.2s;">
-                                                        <strong style="color: #212529;">{{ $marca->nombre }}</strong>
-                                                    </button>
-                                                    @endforeach
+                                        <div class="input-group">
+                                            <div class="position-relative flex-grow-1">
+                                                <input type="text" class="form-control @error('marca_id') is-invalid @enderror"
+                                                       wire:model.live="marca_search"
+                                                       placeholder="Buscar marca..."
+                                                       autocomplete="off"
+                                                       @if($marca_seleccionada) value="{{ $marca_seleccionada->nombre }}" @endif>
+
+                                                @if(strlen($marca_search) > 0 && count($marcas_filtradas) > 0 && (!$marca_seleccionada || $marca_seleccionada->nombre !== $marca_search))
+                                                <div class="position-absolute w-100" style="z-index: 1000;">
+                                                    <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+                                                        @foreach($marcas_filtradas as $marca)
+                                                        <button type="button" class="list-group-item list-group-item-action"
+                                                                wire:click="seleccionarMarca({{ $marca->id }})"
+                                                                style="background-color: #ffffff; border-left: none; border-right: none; border-bottom: 1px solid #f8f9fa; padding: 0.75rem 1rem; transition: background-color 0.2s;">
+                                                            <strong style="color: #212529;">{{ $marca->nombre }}</strong>
+                                                        </button>
+                                                        @endforeach
+                                                    </div>
                                                 </div>
+                                                @endif
+                                                @error('marca_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                                             </div>
-                                            @endif
-                                            
-                                            @if($marca_seleccionada)
-                                            <div class="mt-2">
-                                                <span class="badge bg-success">
-                                                    <i class="ri ri-check-line"></i> {{ $marca_seleccionada->nombre }}
-                                                </span>
-                                            </div>
-                                            @endif
-                                            @error('marca_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                            <button type="button" class="btn btn-outline-primary"
+                                                    wire:click="$set('showModalMarca', true)"
+                                                    title="Agregar nueva marca">
+                                                <i class="ri ri-add-line"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="form-group mb-3">
                                         <label>Proveedor</label>
-                                        <div class="position-relative">
-                                            <input type="text" class="form-control @error('proveedor_id') is-invalid @enderror"
-                                                   wire:model.live="proveedor_search"
-                                                   placeholder="Buscar proveedor..."
-                                                   autocomplete="off"
-                                                   @if($proveedor_seleccionado) value="{{ $proveedor_seleccionado->nombre }}" @endif>
+                                        <div class="input-group">
+                                            <div class="position-relative flex-grow-1">
+                                                <input type="text" class="form-control @error('proveedor_id') is-invalid @enderror"
+                                                       wire:model.live="proveedor_search"
+                                                       placeholder="Buscar proveedor..."
+                                                       autocomplete="off"
+                                                       @if($proveedor_seleccionado) value="{{ $proveedor_seleccionado->nombre }}" @endif>
 
-                                                    @if(strlen($proveedor_search) > 0 && count($proveedores_filtrados) > 0)
+                                                    @if(strlen($proveedor_search) > 0 && count($proveedores_filtrados) > 0 && (!$proveedor_seleccionado || $proveedor_seleccionado->nombre !== $proveedor_search))
                                                     <div class="position-absolute w-100" style="z-index: 1000;">
                                                         <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
 
@@ -175,15 +197,13 @@
                                                         </div>
                                                     </div>
                                                     @endif
-
-                                            @if($proveedor_seleccionado)
-                                            <div class="mt-2">
-                                                <span class="badge bg-success">
-                                                    <i class="ri ri-check-line"></i> {{ $proveedor_seleccionado->nombre }}
-                                                </span>
+                                                    @error('proveedor_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                                             </div>
-                                            @endif
-                                            @error('proveedor_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                            <button type="button" class="btn btn-outline-primary"
+                                                    wire:click="$set('showModalProveedor', true)"
+                                                    title="Agregar nuevo proveedor">
+                                                <i class="ri ri-add-line"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -805,4 +825,145 @@
             </div>
         </div>
     </form>
+
+    {{-- Modal para Nueva Categoría --}}
+    @if($showModalCategoria)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="ri ri-folder-add-line me-2"></i>Nueva Categoría
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="$set('showModalCategoria', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <form wire:submit.prevent="crearNuevaCategoria">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" class="form-control @error('nueva_categoria_nombre') is-invalid @enderror"
+                                   wire:model="nueva_categoria_nombre"
+                                   placeholder="Nombre de la categoría"
+                                   required>
+                            @error('nueva_categoria_nombre') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea class="form-control @error('nueva_categoria_descripcion') is-invalid @enderror"
+                                      wire:model="nueva_categoria_descripcion"
+                                      rows="3"
+                                      placeholder="Descripción opcional"></textarea>
+                            @error('nueva_categoria_descripcion') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" wire:click="$set('showModalCategoria', false)">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ri ri-save-line me-1"></i>Crear Categoría
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal para Nueva Marca --}}
+    @if($showModalMarca)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="ri ri-award-line me-2"></i>Nueva Marca
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="$set('showModalMarca', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <form wire:submit.prevent="crearNuevaMarca">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre *</label>
+                            <input type="text" class="form-control @error('nueva_marca_nombre') is-invalid @enderror"
+                                   wire:model="nueva_marca_nombre"
+                                   placeholder="Nombre de la marca"
+                                   required>
+                            @error('nueva_marca_nombre') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" wire:click="$set('showModalMarca', false)">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="ri ri-save-line me-1"></i>Crear Marca
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Modal para Nuevo Proveedor --}}
+    @if($showModalProveedor)
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="ri ri-truck-line me-2"></i>Nuevo Proveedor
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" wire:click="$set('showModalProveedor', false)"></button>
+                </div>
+                <div class="modal-body">
+                    <form wire:submit.prevent="crearNuevoProveedor">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control @error('nuevo_proveedor_nombre') is-invalid @enderror"
+                                       wire:model="nuevo_proveedor_nombre"
+                                       placeholder="Nombre del proveedor"
+                                       required>
+                                @error('nuevo_proveedor_nombre') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Documento</label>
+                                <input type="text" class="form-control @error('nuevo_proveedor_rif') is-invalid @enderror"
+                                       wire:model="nuevo_proveedor_rif"
+                                       placeholder="J-12345678-9">
+                                @error('nuevo_proveedor_rif') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control @error('nuevo_proveedor_telefono') is-invalid @enderror"
+                                       wire:model="nuevo_proveedor_telefono"
+                                       placeholder="0414-1234567">
+                                @error('nuevo_proveedor_telefono') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control @error('nuevo_proveedor_email') is-invalid @enderror"
+                                       wire:model="nuevo_proveedor_email"
+                                       placeholder="correo@ejemplo.com">
+                                @error('nuevo_proveedor_email') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" wire:click="$set('showModalProveedor', false)">
+                                Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-info text-white">
+                                <i class="ri ri-save-line me-1"></i>Crear Proveedor
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

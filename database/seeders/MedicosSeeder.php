@@ -48,7 +48,7 @@ class MedicosSeeder extends Seeder
                 // Crear usuario
                 $email = strtolower(str_replace(' ', '.', $medicoData['nombres'])) . '.' .
                          strtolower(str_replace(' ', '.', $medicoData['apellidos'])) . '@' .
-                         config('app.name') . '.com';
+                         'mail' . '.com';
 
                 // Asegurar email único
                 $emailBase = $email;
