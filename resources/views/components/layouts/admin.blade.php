@@ -270,7 +270,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     @stack('scripts')
-    
+
     <!-- Configuración de Livewire para manejar CSRF automáticamente -->
     <script>
         // Configurar Livewire para auto-refresh cuando el token CSRF expira
@@ -284,7 +284,7 @@
             }
         });
     </script>
-    
+
     @livewireScripts
     <!-- Accessibility improvements -->
     <script>
@@ -328,7 +328,7 @@
     <!-- Sistema de Notificaciones Global -->
     <x-notifications />
     <!-- Timer Global de Dilatación -->
- 
+
 
   </body>
 </html>

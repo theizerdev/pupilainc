@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\ApplyTemplateLayout::class,
             \App\Http\Middleware\RegionalConfiguration::class,
-            
+
         ]);
         $middleware->alias([
             'track-active-session' => \App\Http\Middleware\TrackActiveSession::class,
@@ -34,12 +34,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
             }
-            
+
             // Si es logout, simplemente redirigir
             if ($request->is('logout')) {
                 return redirect('/')->with('info', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
             }
-            
+
             // Para otras peticiones, redirigir al login
             return redirect('/')->with('error', 'La página ha expirado. Por favor, recarga la página.');
         });

@@ -16,7 +16,7 @@ class CuentasGastosSeeder extends Seeder
             $cuentas = [
                 // Gastos Operativos Genéricos
                 ['codigo' => '5.1.99.001', 'nombre' => 'Otros Gastos Operativos', 'tipo' => 'egreso', 'naturaleza' => 'deudora'],
-                
+
                 // Gastos por Categoría
                 ['codigo' => '5.1.04.001', 'nombre' => 'Gastos de Combustible', 'tipo' => 'egreso', 'naturaleza' => 'deudora'],
                 ['codigo' => '5.1.05.001', 'nombre' => 'Materiales y Suministros', 'tipo' => 'egreso', 'naturaleza' => 'deudora'],

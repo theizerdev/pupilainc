@@ -97,13 +97,13 @@ class ContabilidadService
                 ->first();
 
             $subtotalTotal = $pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd);
-            
+
             // Calcular subtotal de ventas de productos para restarlo del ingreso por consultas
             $subtotalVentasProductos = 0;
             if ($pago->ventasProductos()->exists()) {
                 $subtotalVentasProductos = $pago->ventasProductos()->sum('subtotal');
             }
-            
+
             // El ingreso por consulta es el total menos las ventas de productos
             $subtotalConsultas = $subtotalTotal - $subtotalVentasProductos;
 

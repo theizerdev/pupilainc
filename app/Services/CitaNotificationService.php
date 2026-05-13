@@ -216,7 +216,7 @@ class CitaNotificationService
             $cita->estado
         )) {
             $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-            
+
             // Si el estado es 'confirmada', usar mensaje específico
             if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
                 $mensajePaciente = $this->construirMensajeConfirmacionPaciente($cita);
@@ -242,7 +242,7 @@ class CitaNotificationService
                 } else {
                     $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
                 }
-                
+
                 $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
                 $this->enviar($telefonoMedico, $mensajeMedico);
             }

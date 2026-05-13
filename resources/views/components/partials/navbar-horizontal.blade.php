@@ -147,7 +147,7 @@
 
         <li>
             <div class="d-grid px-4 pt-2 pb-1">
-                <button type="button" class="btn btn-sm btn-danger d-flex align-items-center justify-content-center" 
+                <button type="button" class="btn btn-sm btn-danger d-flex align-items-center justify-content-center"
                     onclick="handleLogout(event)">
                     <i class="icon-base ri ri-logout-box-r-line icon-16px me-2"></i>
                     <span>Salir del sistema</span>
@@ -201,14 +201,14 @@
 // Manejador de logout robusto que maneja errores CSRF
 function handleLogout(event) {
     event.preventDefault();
-    
+
     const form = document.getElementById('logout-form');
-    
+
     // Mostrar confirmación
     if (!confirm('¿Estás seguro de que deseas salir del sistema?')) {
         return;
     }
-    
+
     // Intentar enviar el formulario
     try {
         form.submit();
