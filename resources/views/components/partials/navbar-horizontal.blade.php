@@ -147,15 +147,15 @@
 
         <li>
             <div class="d-grid px-4 pt-2 pb-1">
-          <a class="btn btn-sm btn-danger d-flex" href="#"
-            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-            <i class="icon-base ri ri-logout-box-r-line ms-2 icon-16px"></i>
-            <span>Salir del sistema</span>
-            </a>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-              @csrf
-          </form>
-          </div>
+                <button type="button" class="btn btn-sm btn-danger d-flex align-items-center justify-content-center"
+                    onclick="handleLogout(event)">
+                    <i class="icon-base ri ri-logout-box-r-line icon-16px me-2"></i>
+                    <span>Salir del sistema</span>
+                </button>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                    @csrf
+                </form>
+            </div>
         </li>
       </ul>
     </li>
@@ -196,3 +196,35 @@
         vertical-align: middle;
     }
 </style>
+
+<script>
+// Manejador de logout robusto que maneja errores CSRF
+function handleLogout(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('logout-form');
+
+    // Mostrar confirmación
+    if (!confirm('¿Estás seguro de que deseas salir del sistema?')) {
+        return;
+    }
+
+    // Intentar enviar el formulario
+    try {
+        form.submit();
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        // Si hay error, redirigir manualmente al login
+        window.location.href = '/';
+    }
+}
+
+// Evitar que Livewire muestre el modal de CSRF expirado
+// Auto-refresh cuando el token CSRF expira
+if (typeof window.Livewire !== 'undefined') {
+    window.Livewire.on('csrf-token-mismatch', () => {
+        // Simplemente recargar la página silenciosamente
+        window.location.reload();
+    });
+}
+</script>

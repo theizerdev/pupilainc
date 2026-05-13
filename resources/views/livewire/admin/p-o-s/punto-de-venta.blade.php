@@ -21,7 +21,7 @@
                     <i class="ri ri-archive-line"></i>
                     <div class="pill-text">
                         <span class="pill-label">Caja abierta</span>
-                        <span class="pill-value">#{{ $caja->numero_corte }} · ${{ number_format($caja->monto_inicial, 2) }}</span>
+                        <span class="pill-value">#{{ $caja->numero_corte }} · {{ money($caja->monto_inicial, 2) }}</span>
                     </div>
                 </div>
             @else

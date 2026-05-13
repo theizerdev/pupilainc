@@ -12,14 +12,15 @@ class Index extends Component
     use WithPagination, HasDynamicLayout;
 
     public $search = '';
-    public $sortField = 'created_at';
-    public $sortDirection = 'desc';
+    public $sortField = 'nombre';
+    public $sortDirection = 'asc';
     public $activo = '';
+    public $perPage = 20;
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'sortField' => ['except' => 'created_at'],
-        'sortDirection' => ['except' => 'desc'],
+        'sortField' => ['except' => 'nombre'],
+        'sortDirection' => ['except' => 'asc'],
         'activo' => ['except' => '']
     ];
 
@@ -48,12 +49,12 @@ class Index extends Component
     public function delete($id)
     {
         $this->authorize('admin.categorias.destroy');
-        
+
         try {
             $categoria = Categoria::findOrFail($id);
             $nombreCategoria = $categoria->nombre;
             $categoria->delete();
-            
+
             $this->dispatch('notify', [
                 'type' => 'success',
                 'message' => "Categoría '{$nombreCategoria}' eliminada exitosamente.",
@@ -70,16 +71,17 @@ class Index extends Component
 
     public function toggleActivo($id)
     {
-        $this->authorize('edit categorias');
-        
         try {
+            $this->authorize('edit categorias');
+
             $categoria = Categoria::findOrFail($id);
             $categoria->activo = !$categoria->activo;
             $categoria->save();
-            
+
+            $estado = $categoria->activo ? 'activada' : 'desactivada';
             $this->dispatch('notify', [
                 'type' => 'success',
-                'message' => "Estado de la categoría actualizado exitosamente.",
+                'message' => "Categoría {$estado} exitosamente.",
                 'duration' => 4000
             ]);
         } catch (\Exception $e) {
@@ -105,13 +107,13 @@ class Index extends Component
                 $query->where('activo', $this->activo);
             })
             ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate(10);
+            ->paginate($this->perPage);
     }
 
     public function getStatsProperty()
     {
         $query = Categoria::forUser();
-        
+
         return [
             'total' => $query->count(),
             'activas' => $query->where('activo', true)->count(),
@@ -130,6 +132,19 @@ class Index extends Component
             'message' => "Categoría '{$nombreCategoria}' eliminada exitosamente.",
             'duration' => 4000
         ]);
+    }
+
+    protected function getPageTitle(): string
+    {
+        return 'Categorías';
+    }
+
+    protected function getBreadcrumb(): array
+    {
+        return [
+            'admin.dashboard' => 'Dashboard',
+            'admin.categorias.index' => 'Categorías'
+        ];
     }
 
     public function render()

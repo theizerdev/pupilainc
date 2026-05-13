@@ -7,14 +7,22 @@ use App\Models\ImpuestoConfiguracion;
 
 class FiscalCalculator
 {
-    private const METODOS_DIVISA = ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal'];
+    // Métodos de pago en divisas o que aplican IGTF
+    private const METODOS_DIVISA = [
+        'efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt',
+        'tarjeta', 'tarjeta_debito', 'tarjeta_credito',
+        'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr',
+        'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr',
+        'bod_dr', 'bod_cr'
+    ];
 
     public static function calcular(Pago $pago): array
     {
         $detalles = $pago->detalles;
+        $ventasProductos = $pago->ventasProductos;
 
-        // Si no hay detalles, usar el total del pago como base imponible
-        if ($detalles->isEmpty()) {
+        // Si no hay detalles ni productos, usar el total del pago como base imponible
+        if ($detalles->isEmpty() && $ventasProductos->isEmpty()) {
             // Sin detalles no se puede determinar si aplica IVA, no calcular
             $subtotal = (float) $pago->total;
 
@@ -35,6 +43,8 @@ class FiscalCalculator
                     $igtfMonto = $montoDivisas * ($igtfPorcentaje / 100);
                 }
             }
+
+
 
             return [
                 'subtotal'               => round($subtotal, 2),
@@ -66,15 +76,36 @@ class FiscalCalculator
         $baseImponibleReducida = 0;
         $montoExento = 0;
 
+        // Procesar servicios (detalles de pago)
         foreach ($detalles as $detalle) {
             $subtotal = (float) $detalle->subtotal;
 
-            if ($detalle->exento_iva) {
+            // Si no aplica IVA o es exento, agregar al monto exento
+            if ($detalle->exento_iva || !$detalle->aplica_iva) {
                 $montoExento += $subtotal;
                 continue;
             }
 
             $alicuota = $detalle->iva_alicuota ?? 16;
+
+            if ($alicuota == 8) {
+                $baseImponibleReducida += $subtotal;
+            } else {
+                $baseImponibleGeneral += $subtotal;
+            }
+        }
+
+        // Procesar productos (ventas de productos)
+        foreach ($ventasProductos as $ventaProducto) {
+            $subtotal = (float) $ventaProducto->subtotal;
+
+            // Si no aplica IVA o es exento, agregar al monto exento
+            if ($ventaProducto->exento_iva || !$ventaProducto->aplica_iva) {
+                $montoExento += $subtotal;
+                continue;
+            }
+
+            $alicuota = $ventaProducto->iva_alicuota ?? 16;
 
             if ($alicuota == 8) {
                 $baseImponibleReducida += $subtotal;
@@ -152,8 +183,11 @@ class FiscalCalculator
             return $montoDivisas;
         }
 
+        // Para pagos no mixtos en divisas, usar el subtotal como base
+        // El IGTF se calcula sobre el monto de la transacción, no sobre el total con impuestos
         if (in_array($pago->metodo_pago, self::METODOS_DIVISA)) {
-            return (float) $pago->total;
+            // Usar el subtotal (base imponible + exento) como referencia del monto en divisas
+            return (float) ($pago->subtotal ?? 0);
         }
 
         return 0;

@@ -336,7 +336,7 @@ class Form extends Component
             'precio_venta'         => 'required|numeric|min:0|gte:precio_costo',
             'aplica_iva'           => 'boolean',
             'exento_iva'           => 'boolean',
-            'iva_alicuota'         => 'required|numeric|in:0,8,16',
+            'iva_alicuota'         => 'required|numeric',
             'stock_minimo'         => 'required|integer|min:0',
             'stock_maximo'         => 'nullable|integer|min:0|gte:stock_minimo',
             'punto_reorden'        => 'required|integer|min:0',
@@ -451,7 +451,7 @@ class Form extends Component
             $this->iva_alicuota = 0;
         } else {
             $this->aplica_iva   = true;
-            $this->iva_alicuota = 16.00;
+            $this->iva_alicuota = 12.00;
         }
     }
 
@@ -461,7 +461,7 @@ class Form extends Component
             $this->iva_alicuota = 0;
         } else {
             $this->exento_iva   = false;
-            $this->iva_alicuota = 16.00;
+            $this->iva_alicuota = 12.00;
         }
     }
 

@@ -214,8 +214,8 @@
                                 </td>
                                 <td>{{ $producto->marca?->nombre ?? '-' }}</td>
                                 <td class="text-end">
-                                    <span class="fw-bold">${{ number_format($producto->precio_venta, 2) }}</span>
-                                    <small class="text-muted d-block">costo: ${{ number_format($producto->precio_costo, 2) }}</small>
+                                    <span class="fw-bold">{{ money($producto->precio_venta, 2) }}</span>
+                                    <small class="text-muted d-block">costo: {{ money($producto->precio_costo, 2) }}</small>
                                 </td>
                                 <td>
                                     <span class="fw-bold {{ $alertaStock === 'sin_stock' ? 'text-danger' : ($alertaStock === 'critico' ? 'text-warning' : 'text-success') }}">

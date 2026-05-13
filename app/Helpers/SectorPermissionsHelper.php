@@ -292,7 +292,7 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'Configuración Impuestos',
                         'icon' => 'ri-percent-line',
-                        'permission' => 'access impuestos',
+                        'permission' => 'view impuestos',
                         'route' => 'admin.impuestos.index',
                         'active' => 'admin.impuestos.*',
                     ],
@@ -363,13 +363,6 @@ if (!function_exists('getSectorMenuItems')) {
                         'permission' => 'access template customization',
                         'route' => 'admin.template-customization',
                         'active' => 'admin.template-customization',
-                    ],
-                    [
-                        'label' => 'Configuración Wizard',
-                        'icon' => 'ri-steps-line',
-                        'permission' => 'access empresas',
-                        'route' => 'admin.configuracion.wizard-consultas',
-                        'active' => 'admin.configuracion.wizard-consultas',
                     ],
 
                 ]

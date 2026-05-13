@@ -119,7 +119,7 @@
                                     Total Facturado
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    ${{ number_format($resumen['total_facturado_usd'], 2) }}
+                                    {{ money($resumen['total_facturado_usd'], 2) }}
                                 </div>
                             </div>
                             <div class="col-auto">
@@ -139,7 +139,7 @@
                                     Honorarios Médicos
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    ${{ number_format($resumen['total_honorarios_medico_usd'], 2) }}
+                                    {{ money($resumen['total_honorarios_medico_usd'], 2) }}
                                 </div>
                             </div>
                             <div class="col-auto">
@@ -159,7 +159,7 @@
                                     Ingresos Clínica
                                 </div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    ${{ number_format($resumen['total_ingresos_clinica_usd'], 2) }}
+                                    {{ money($resumen['total_ingresos_clinica_usd'], 2) }}
                                 </div>
                             </div>
                             <div class="col-auto">
@@ -211,16 +211,16 @@
                                     <span class="badge bg-info">{{ $resumenMedico->total_consultas }}</span>
                                 </td>
                                 <td class="text-end">
-                                    <strong>${{ number_format($resumenMedico->total_facturado, 2) }}</strong>
+                                    <strong>{{ money($resumenMedico->total_facturado, 2) }}</strong>
                                 </td>
                                 <td class="text-end">
                                     <span class="text-success fw-bold">
-                                        ${{ number_format($resumenMedico->total_honorarios, 2) }}
+                                        {{ money($resumenMedico->total_honorarios, 2) }}
                                     </span>
                                 </td>
                                 <td class="text-end">
                                     <span class="text-warning fw-bold">
-                                        ${{ number_format($resumenMedico->total_ingresos_clinica, 2) }}
+                                        {{ money($resumenMedico->total_ingresos_clinica, 2) }}
                                     </span>
                                 </td>
                                 <td class="text-center">
@@ -285,16 +285,16 @@
                                     <strong>{{ $honorario->consulta->paciente->nombre_completo }}</strong>
                                 </td>
                                 <td class="text-end">
-                                    <strong>${{ number_format($honorario->total_facturado_usd, 2) }}</strong>
+                                    <strong>{{ money($honorario->total_facturado_usd, 2) }}</strong>
                                 </td>
                                 <td class="text-end">
                                     <span class="text-success fw-bold">
-                                        ${{ number_format($honorario->total_honorarios_medico_usd, 2) }}
+                                        {{ money($honorario->total_honorarios_medico_usd, 2) }}
                                     </span>
                                 </td>
                                 <td class="text-end">
                                     <span class="text-info fw-bold">
-                                        ${{ number_format($honorario->total_ingresos_clinica_usd, 2) }}
+                                        {{ money($honorario->total_ingresos_clinica_usd, 2) }}
                                     </span>
                                 </td>
                                 <td class="text-center">
@@ -350,12 +350,12 @@
                                                                     <tr>
                                                                         <td>{{ $servicio['nombre_servicio'] ?? 'Servicio' }}</td>
                                                                         <td class="text-center">{{ $servicio['cantidad'] ?? 1 }}</td>
-                                                                        <td class="text-end">${{ number_format($servicio['subtotal_usd'] ?? 0, 2) }}</td>
+                                                                        <td class="text-end">{{ money($servicio['subtotal_usd'] ?? 0, 2) }}</td>
                                                                         <td class="text-center">
                                                                             <span class="badge bg-success">{{ $servicio['porcentaje_medico'] ?? 0 }}%</span>
                                                                         </td>
                                                                         <td class="text-end">
-                                                                            <strong>${{ number_format($servicio['honorario_medico_usd'] ?? 0, 2) }}</strong>
+                                                                            <strong>{{ money($servicio['honorario_medico_usd'] ?? 0, 2) }}</strong>
                                                                         </td>
                                                                     </tr>
                                                                     @endforeach

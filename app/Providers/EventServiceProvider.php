@@ -29,6 +29,9 @@ class EventServiceProvider extends ServiceProvider
         \App\Events\PagoCreated::class => [
             \App\Listeners\GenerarAsientoContable::class,
         ],
+        \App\Events\GastoCajaCreated::class => [
+            \App\Listeners\GenerarAsientoEgreso::class,
+        ],
     ];
 
     /**

@@ -270,6 +270,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     @stack('scripts')
+
+    <!-- Configuración de Livewire para manejar CSRF automáticamente -->
+    <script>
+        // Configurar Livewire para auto-refresh cuando el token CSRF expira
+        // en lugar de mostrar el modal de "Page Expired"
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof Livewire !== 'undefined') {
+                Livewire.on('csrf-token-mismatch', function() {
+                    // Auto-refresh silencioso sin mostrar modal
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
+
     @livewireScripts
     <!-- Accessibility improvements -->
     <script>
@@ -313,7 +328,7 @@
     <!-- Sistema de Notificaciones Global -->
     <x-notifications />
     <!-- Timer Global de Dilatación -->
- 
+
 
   </body>
 </html>

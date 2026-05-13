@@ -71,12 +71,23 @@ class CrearFactura extends Component
     public $proximo_control_fiscal = '';
     public $es_venezuela = false;
 
+    // Determina si se deben mostrar los impuestos en el resumen
+    public $mostrar_impuestos = false;
+    public $impuesto_iva_config = null;
+    public $impuesto_igtf_config = null;
+
     // Validación en tiempo real
     public $referencia_validada = true;
     public $caja_abierta = null;
 
     public function mount()
     {
+        // Accept consulta_id from URL query string (e.g., /admin/pagos/crear?consulta_id=123)
+        if (request()->has('consulta_id') && !$this->consulta_id) {
+            $this->consulta_id = request()->query('consulta_id');
+            $this->seleccionarConsulta($this->consulta_id);
+        }
+
         // Detectar si es Venezuela PRIMERO
         $this->es_venezuela = is_venezuela_company();
         $paisId = auth()->user()->empresa?->pais_id;
@@ -115,6 +126,83 @@ class CrearFactura extends Component
 
         // Verificar caja abierta al montar
         $this->verificarCajaAbierta();
+
+        // Cargar configuración de impuestos y determinar si se muestran
+        $this->cargarConfiguracionImpuestos();
+    }
+
+    /**
+     * Cargar configuración de impuestos y determinar si mostrar en el resumen
+     */
+    protected function cargarConfiguracionImpuestos()
+    {
+        $empresaId = auth()->user()->empresa_id;
+
+        // Cargar configuración de IVA
+        $this->impuesto_iva_config = ImpuestoConfiguracion::where('codigo', 'IVA')
+            ->where('empresa_id', $empresaId)
+            ->where('activo', true)
+            ->first();
+
+        // Cargar configuración de IGTF (solo para Venezuela)
+        if ($this->es_venezuela) {
+            $this->impuesto_igtf_config = ImpuestoConfiguracion::where('codigo', 'IGTF')
+                ->where('empresa_id', $empresaId)
+                ->where('activo', true)
+                ->first();
+        }
+
+        // Por defecto no mostrar impuestos hasta que se agreguen items
+        $this->mostrar_impuestos = false;
+    }
+
+    /**
+     * Verificar si hay items con IVA en el carrito para mostrar el desglose
+     * Se llama después de agregar items o modificar el carrito
+     */
+    public function verificarImpuestosEnCarrito()
+    {
+        $todosLosItems = array_merge(
+            array_values($this->detalles ?? []),
+            array_values($this->carrito ?? [])
+        );
+
+        $hayItemsConIva = false;
+
+        foreach ($todosLosItems as $item) {
+            // Usar alícuota del producto o un valor por defecto (16% para México)
+            $alicuotaRaw = $item['iva_alicuota'] ?? 0;
+            $alicuota = (float) $alicuotaRaw;
+
+            // Si aplica_iva es true pero alicuota es 0, usar valor por defecto
+            $esExento = (bool) ($item['exento_iva'] ?? false);
+            $aplicaIva = isset($item['aplica_iva']) && in_array($item['aplica_iva'], [1, true, '1', 'true'], true);
+
+            // Si aplica IVA pero alícuota es 0, usar 16% por defecto (común en México)
+            if ($aplicaIva && $alicuota == 0 && !$esExento) {
+                $alicuota = 16.0;
+            }
+
+            // Debug: registrar valores para diagnosticar
+            if (($item['tipo'] ?? '') === 'producto') {
+                \Log::info('DEBUG IVA Carrito', [
+                    'descripcion' => $item['descripcion'] ?? '',
+                    'aplica_iva' => $item['aplica_iva'] ?? 'N/A',
+                    'aplica_iva_bool' => $aplicaIva,
+                    'iva_alicuota' => $alicuota,
+                    'es_exento' => $esExento
+                ]);
+            }
+
+            if (!$esExento && $aplicaIva && $alicuota > 0) {
+                $hayItemsConIva = true;
+            }
+        }
+
+        // Mostrar impuestos si:
+        // 1. Es Venezuela (se aplica IGTF)
+        // 2. Hay items con IVA en el carrito
+        $this->mostrar_impuestos = $this->es_venezuela || $hayItemsConIva;
     }
 
     /**
@@ -138,6 +226,7 @@ class CrearFactura extends Component
         } else {
             $this->es_factura_fiscal = false;
         }
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
     }
 
@@ -267,9 +356,9 @@ class CrearFactura extends Component
     public function crearYSeleccionarCliente()
     {
         $this->validate([
-            'fiscal_numero_documento' => 'required|string|min:3',
+            //'fiscal_numero_documento' => 'required|string|min:3',
             'fiscal_razon_social'     => 'required|string|min:3',
-            'fiscal_direccion'        => 'required|string|min:5',
+            //'fiscal_direccion'        => 'required|string|min:5',
             'fiscal_telefono'         => 'required|string|min:7',
         ]);
 
@@ -452,6 +541,8 @@ class CrearFactura extends Component
             ];
         }
 
+        // Primero verificar si hay impuestos, luego calcular totales
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
         $this->search_producto = '';
         $this->productos_filtrados = [];
@@ -460,7 +551,16 @@ class CrearFactura extends Component
 public function seleccionarConsulta($id)
     {
         $this->consulta_id = $id;
-        $this->consulta_seleccionada = Consulta::with(['medico', 'paciente'])->find($id);
+        $this->consulta_seleccionada = Consulta::with(['medico', 'paciente', 'pagos'])->find($id);
+
+        // Validate that consultation is not already paid
+        if ($this->consulta_seleccionada && $this->consulta_seleccionada->estado === Consulta::ESTADO_PAGADA) {
+            session()->flash('error', 'Esta consulta ya ha sido pagada. No se puede registrar un nuevo pago.');
+            $this->consulta_id = null;
+            $this->consulta_seleccionada = null;
+            redirect()->route('admin.pagos.index');
+            return;
+        }
 
         if ($this->consulta_seleccionada && $this->consulta_seleccionada->paciente) {
             $paciente = $this->consulta_seleccionada->paciente;
@@ -502,6 +602,7 @@ public function seleccionarConsulta($id)
 
         $this->reset(['baremo_id', 'descripcion', 'precio_unitario', 'buscar_baremo', 'baremos_filtrados']);
         $this->cantidad = 1;
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
 
         $this->dispatch('notify', type: 'success', message: 'Servicio agregado correctamente');
@@ -511,6 +612,7 @@ public function seleccionarConsulta($id)
     {
         unset($this->detalles[$index]);
         $this->detalles = array_values($this->detalles);
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
     }
 
@@ -537,6 +639,7 @@ public function seleccionarConsulta($id)
             ];
         }
 
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
         $this->search_servicio = '';
     }
@@ -556,12 +659,14 @@ public function seleccionarConsulta($id)
         } else {
             unset($this->carrito[$key]);
         }
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
     }
 
     public function eliminarItem($key)
     {
         unset($this->carrito[$key]);
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
     }
 
@@ -585,8 +690,29 @@ public function seleccionarConsulta($id)
             $subtotalUsd += $subtotalItem;
 
             $esExento  = (bool) ($item['exento_iva'] ?? false);
-            $aplicaIva = (bool) ($item['aplica_iva'] ?? false); // false por defecto: no asumir IVA
+            $aplicaIva = isset($item['aplica_iva']) && in_array($item['aplica_iva'], [1, true, '1', 'true'], true);
             $alicuota  = (float) ($item['iva_alicuota'] ?? 0);
+
+            // Si aplica IVA pero alícuota es 0, usar valor por defecto (16%)
+            if ($aplicaIva && $alicuota == 0 && !$esExento) {
+                $alicuota = 16.0;
+            }
+
+            // Debug: Log para ver los valores de cada item
+            \Log::info('DEBUG Item en CalcularTotales', [
+                'descripcion' => $item['descripcion'] ?? '',
+                'tipo' => $item['tipo'] ?? 'N/A',
+                'cantidad' => $item['cantidad'],
+                'precio_unitario' => $item['precio_unitario'],
+                'subtotalItem' => $subtotalItem,
+                'aplica_iva' => $item['aplica_iva'] ?? 'N/A',
+                'aplicaIva_bool' => $aplicaIva,
+                'exento_iva' => $item['exento_iva'] ?? 'N/A',
+                'iva_alicuota_original' => $item['iva_alicuota'] ?? 'N/A',
+                'iva_alicuota_usada' => $alicuota,
+                'esExento' => $esExento,
+                'aplicaIva' => $aplicaIva,
+            ]);
 
             if (!$esExento && $aplicaIva && $alicuota > 0) {
                 $baseImponibleUsd += $subtotalItem;
@@ -601,7 +727,15 @@ public function seleccionarConsulta($id)
         $this->subtotal       = $subtotalUsd;
         $this->base_imponible = $baseImponibleUsd;
         $this->monto_exento   = $montoExentoUsd;
-        $this->iva_monto      = $this->es_factura_fiscal ? $ivaMonto : 0;
+        // Aplicar IVA si es factura fiscal O si la empresa tiene configuración de impuestos
+        \Log::info('DEBUG CalcularTotales', [
+            'es_factura_fiscal' => $this->es_factura_fiscal,
+            'mostrar_impuestos' => $this->mostrar_impuestos,
+            'ivaMonto' => $ivaMonto,
+            'baseImponibleUsd' => $baseImponibleUsd
+        ]);
+
+        $this->iva_monto      = ($this->es_factura_fiscal || $this->mostrar_impuestos) ? $ivaMonto : 0;
 
         // IGTF solo aplica en Venezuela
         if ($this->es_venezuela) {
@@ -638,6 +772,7 @@ public function seleccionarConsulta($id)
 
     public function updatedPagosMixtos()
     {
+        $this->verificarImpuestosEnCarrito();
         $this->calcularTotales();
     }
 
@@ -659,6 +794,16 @@ public function seleccionarConsulta($id)
                 \DB::rollBack();
                 session()->flash('error', 'Debe aperturar una caja antes de registrar pagos.');
                 return redirect()->route('admin.cajas.create');
+            }
+
+            // Validate that consultation is not already paid (final check before saving)
+            if ($this->consulta_id) {
+                $consulta = Consulta::find($this->consulta_id);
+                if ($consulta && $consulta->estado === Consulta::ESTADO_PAGADA) {
+                    \DB::rollBack();
+                    session()->flash('error', 'Esta consulta ya ha sido pagada. No se puede registrar un nuevo pago.');
+                    return;
+                }
             }
 
             // Generar numeración y control fiscal
@@ -753,7 +898,8 @@ public function seleccionarConsulta($id)
                         'precio_unitario' => $item['precio_unitario'],
                         'aplica_iva' => $item['aplica_iva'],
                         'exento_iva' => $item['exento_iva'],
-                        'iva_alicuota' => $item['iva_alicuota'] ?? 16,
+                        // Solo asignar alícuota si aplica IVA
+                        'iva_alicuota' => $item['aplica_iva'] ? ($item['iva_alicuota'] ?? 16) : 0,
                         'costo_unitario' => $item['costo_unitario'] ?? 0,
                     ]);
                 } elseif ($item['tipo'] === 'baremo') {
@@ -765,7 +911,8 @@ public function seleccionarConsulta($id)
                         'subtotal' => $item['cantidad'] * $item['precio_unitario'],
                         'aplica_iva' => $item['aplica_iva'],
                         'exento_iva' => $item['exento_iva'],
-                        'iva_alicuota' => $item['iva_alicuota'] ?? 16,
+                        // Solo asignar alícuota si aplica IVA
+                        'iva_alicuota' => $item['aplica_iva'] ? ($item['iva_alicuota'] ?? 16) : 0,
                     ]);
                 }
             }

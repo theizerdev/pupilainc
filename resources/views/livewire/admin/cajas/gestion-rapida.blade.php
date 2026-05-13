@@ -56,9 +56,9 @@
                                     <small class="text-success fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
                                         <i class="fas fa-arrow-up me-1"></i>Ingresos del Día
                                     </small>
-                                    <h4 class="mb-1 text-success fw-bold" style="font-size: 1.5rem;"><x-dual-currency :amount="$this->stats['ingresos_hoy']" /></h4>
+                                    <h4 class="mb-1 text-success fw-bold" style="font-size: 1.5rem;"><x-dual-currency :amount="$total_ingresos" /></h4>
                                     @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
-                                        <small class="text-success" style="font-size: 0.75rem;">≈ Bs {{ number_format($total_ingresos * $tasa_cambio, 2) }}</small>
+                                        <small class="text-success" style="font-size: 0.75rem;">≈ {{ money($total_ingresos * $tasa_cambio, 2) }}</small>
                                     @endif
                                 </div>
                                 <div class="text-end">
@@ -80,9 +80,9 @@
                                     <small class="text-danger fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
                                         <i class="fas fa-arrow-down me-1"></i>Egresos del Día
                                     </small>
-                                    <h4 class="mb-1 text-danger fw-bold" style="font-size: 1.5rem;"><x-dual-currency :amount="$this->stats['egresos_hoy']" /></h4>
-                                    @if($tasa_cambio > 1)
-                                        <small class="text-danger" style="font-size: 0.75rem;">≈ Bs {{ number_format($total_egresos * $tasa_cambio, 2) }}</small>
+                                    <h4 class="mb-1 text-danger fw-bold" style="font-size: 1.5rem;"><x-dual-currency :amount="$total_egresos" /></h4>
+                                   @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                                        <small class="text-success" style="font-size: 0.75rem;">≈ {{ money($total_egresos * $tasa_cambio, 2) }}</small>
                                     @endif
                                 </div>
                                 <div class="text-end">
@@ -105,10 +105,10 @@
                                         <i class="fas fa-wallet me-1"></i>Balance en Caja
                                     </small>
                                     <h3 class="mb-1 {{ $monto_final_ajustado >= 0 ? 'text-primary' : 'text-warning' }} fw-bold" style="font-size: 1.8rem;">
-                                        <x-dual-currency :amount="$this->stats['total_balance']" />
+                                        <x-dual-currency :amount="$monto_final_ajustado" />
                                     </h3>
-                                    @if($tasa_cambio > 1)
-                                        <small class="text-primary" style="font-size: 0.10rem;">≈ Bs {{ number_format($monto_final_ajustado * $tasa_cambio, 2) }}</small>
+                                    @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                                        <small class="text-primary" style="font-size: 0.10rem;">≈ {{ money($monto_final_ajustado * $tasa_cambio, 2) }}</small>
                                     @endif
                                 </div>
                                 <div class="text-end">
@@ -164,9 +164,9 @@
                                         </small>
                                     </div>
                                     <div class="text-end">
-                                        <div class="fw-bold text-danger small">-${{ number_format($egreso->monto, 2) }}</div>
-                                        @if($egreso->monto_bs > 0)
-                                            <small class="text-muted" style="font-size: 0.7rem;">Bs {{ number_format($egreso->monto_bs, 2) }}</small>
+                                        <div class="fw-bold text-danger small">-{{ money($egreso->monto, 2) }}</div>
+                                        @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                                            <small class="text-muted" style="font-size: 0.7rem;">{{ money($egreso->monto_bs, 2) }}</small>
                                         @endif
                                     </div>
                                 </div>
@@ -357,23 +357,23 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Total Ingresos:</span>
-                                <span class="fw-semibold text-success"><x-dual-currency :amount="$this->stats['ingresos_hoy']" /></span>
+                                <span class="fw-semibold text-success"><x-dual-currency :amount="$total_ingresos" /></span>
                             </div>
                             @if(auth()->user()->empresa->pais->nombre == 'Venezuela' && $tasa_cambio > 1)
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted" style="font-size: 0.85rem;">≈ en Bs:</span>
-                                    <span class="text-success" style="font-size: 0.85rem;">Bs {{ number_format($this->stats['ingresos_hoy'] * $tasa_cambio, 2) }}</span>
+                                    <span class="text-success" style="font-size: 0.85rem;">{{ money($total_ingresos * $tasa_cambio, 2) }}</span>
                                 </div>
                             @endif
 
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">Total Egresos:</span>
-                                <span class="fw-semibold text-danger">-${{ number_format($this->stats['egresos_hoy'], 2) }}</span>
+                                <span class="fw-semibold text-danger">-{{ money($total_egresos, 2) }}</span>
                             </div>
                             @if(auth()->user()->empresa->pais->nombre == 'Venezuela' && $tasa_cambio > 1)
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted" style="font-size: 0.85rem;">≈ en Bs:</span>
-                                    <span class="text-danger" style="font-size: 0.85rem;">-Bs {{ number_format($this->stats['egresos_hoy'] * $tasa_cambio, 2) }}</span>
+                                    <span class="text-danger" style="font-size: 0.85rem;">-{{ money($total_egresos * $tasa_cambio, 2) }}</span>
                                 </div>
                             @endif
 
@@ -382,14 +382,14 @@
                             <div class="d-flex justify-content-between">
                                 <span class="fw-bold">Balance Final:</span>
                                 <span class="fw-bold {{ $monto_final_ajustado >= 0 ? 'text-primary' : 'text-warning' }} fs-5">
-                                    <x-dual-currency :amount="$this->stats['total_balance']" />
+                                    <x-dual-currency :amount="$monto_final_ajustado" />
                                 </span>
                             </div>
                             @if(auth()->user()->empresa->pais->nombre == 'Venezuela' && $tasa_cambio > 1)
                                 <div class="d-flex justify-content-between mt-1">
                                     <span class="text-muted" style="font-size: 0.85rem;">≈ en Bs:</span>
                                     <span class="{{ $monto_final_ajustado >= 0 ? 'text-primary' : 'text-warning' }}" style="font-size: 0.85rem;">
-                                        Bs {{ number_format($this->stats['total_balance'] * $tasa_cambio, 2) }}
+                                        {{ money($monto_final_ajustado * $tasa_cambio, 2) }}
                                     </span>
                                 </div>
                             @endif

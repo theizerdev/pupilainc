@@ -418,9 +418,9 @@ class Pago extends Model
         // Sumar subtotales de productos (ventas de productos)
         $subtotalProductos = $this->ventasProductos()->sum('subtotal');
 
-        // Subtotal total = servicios + productos
+        // Subtotal total = servicios + productos (sin impuestos)
         $subtotal = $subtotalServicios + $subtotalProductos;
-        $total = $subtotal - $this->descuento;
+        $totalBase = $subtotal - $this->descuento;
 
         // Determinar tasa de cambio según país de la empresa
         $empresa = $this->empresa ?? \App\Models\Empresa::find($this->empresa_id);
@@ -461,31 +461,31 @@ class Pago extends Model
 
             // Pagos en Bolívares
             if (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
-                $totalBS = $total * $tasaUSD;
-                $totalUSD = $total;
+                $totalBS = $totalBase * $tasaUSD;
+                $totalUSD = $totalBase;
             }
             // Pagos en USD (aplican IGTF)
             elseif (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
-                $totalUSD = $total;
-                $totalBS = $total * $tasaUSD;
+                $totalUSD = $totalBase;
+                $totalBS = $totalBase * $tasaUSD;
                 $aplicaIGTF = true;
             }
             // Tarjetas de débito/crédito y bancos (aplican IGTF)
             elseif (in_array($metodo, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
-                $totalUSD = $total;
-                $totalBS = $total * $tasaUSD;
+                $totalUSD = $totalBase;
+                $totalBS = $totalBase * $tasaUSD;
                 $aplicaIGTF = true;
             }
             // Default: tratar como USD
             else {
-                $totalUSD = $total;
-                $totalBS = $total * $tasaUSD;
+                $totalUSD = $totalBase;
+                $totalBS = $totalBase * $tasaUSD;
             }
         }
 
         $updateData = [
             'subtotal' => $subtotal,
-            'total' => $total,
+            'total' => $totalBase,
             'tasa_cambio_usd' => $tasaUSD,
             'total_usd' => $totalUSD,
             'total_bs' => $totalBS,
@@ -514,9 +514,14 @@ class Pago extends Model
 
             // Actualizar totales en USD y BS con impuestos incluidos
             $totalConImpuestos = $fiscal['total_con_impuestos'];
+
+            // El total final debe incluir IVA e IGTF (solo si aplica)
+            $igtfMonto = $fiscal['aplica_igtf'] ? $fiscal['igtf_monto'] : 0;
+            $totalFinal = $totalBase + $fiscal['iva_monto'] + $igtfMonto;
+
             if ($this->es_pago_mixto && $this->detalles_pago_mixto) {
                 // Para pagos mixtos, mantener la distribución original pero ajustar proporcionalmente
-                $factor = $totalConImpuestos / $total;
+                $factor = $totalFinal / $totalBase;
                 $updateData['total_usd'] = $totalUSD * $factor;
                 $updateData['total_bs'] = $totalBS * $factor;
             } else {
@@ -524,26 +529,44 @@ class Pago extends Model
                     case 'efectivo_bs':
                     case 'transferencia_bs':
                     case 'pago_movil':
-                        $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
-                        $updateData['total_usd'] = $totalConImpuestos;
+                        $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                        $updateData['total_usd'] = $totalFinal;
                         break;
                     case 'efectivo_usd':
                     case 'transferencia_usd':
                     case 'zelle':
                     case 'paypal':
-                        $updateData['total_usd'] = $totalConImpuestos;
-                        $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
+                        $updateData['total_usd'] = $totalFinal;
+                        $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                        break;
+                    default:
+                        $updateData['total_usd'] = $totalFinal;
+                        $updateData['total_bs'] = $totalFinal * $tasaUSD;
                         break;
                 }
             }
+
+            // Actualizar el total con impuestos incluidos
+            $updateData['total'] = $totalFinal;
         } else {
-            // Para documentos no fiscales, solo calcular IGTF si aplica
+            // Para documentos no fiscales, calcular impuestos si hay items con IVA
             $fiscal = FiscalCalculator::calcular($this);
             $updateData = array_merge($updateData, [
+                'iva_porcentaje' => $fiscal['iva_porcentaje'],
+                'iva_monto' => $fiscal['iva_monto'],
                 'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
                 'igtf_monto' => $fiscal['igtf_monto'],
                 'aplica_igtf' => $fiscal['aplica_igtf'],
             ]);
+
+            // Si hay IVA, actualizar el total para incluirlo
+            if ($fiscal['iva_monto'] > 0 || $fiscal['igtf_monto'] > 0) {
+                $totalFinal = $totalBase + $fiscal['iva_monto'] + $fiscal['igtf_monto'];
+                $updateData['total'] = $totalFinal;
+                $updateData['total_usd'] = $totalFinal;
+                $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                $updateData['total_con_impuestos'] = $totalFinal;
+            }
         }
 
         $this->updateQuietly($updateData);

@@ -21,7 +21,7 @@
                 <div class="col-md-3">
                     <div class="bg-light p-3 rounded">
                         <small class="text-muted">Total Egresos</small>
-                        <h4 class="mb-0 text-danger">${{ number_format($resumen['total_monto'], 2) }}</h4>
+                        <h4 class="mb-0 text-danger">{{ money($resumen['total_monto'], 2) }}</h4>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -125,7 +125,7 @@
                                     <br><small class="text-muted">{{ $egreso->numero_referencia }}</small>
                                 @endif
                             </td>
-                            <td class="text-danger fw-bold">-${{ number_format($egreso->monto, 2) }}</td>
+                            <td class="text-danger fw-bold">-{{ money($egreso->monto, 2) }}</td>
                             <td>
                                 @if($egreso->monto_bs > 0)
                                     Bs {{ number_format($egreso->monto_bs, 2) }}
