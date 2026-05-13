@@ -154,7 +154,7 @@
                                 @if($modo_venta_directa)
                                     <i class="fas fa-user me-2"></i>
                                     <strong>Cliente:</strong> {{ $cliente_seleccionado['razon_social'] ?? $cliente_seleccionado['nombre'] ?? '' }}
-                                    &nbsp;·&nbsp; {{ $cliente_seleccionado['tipo_documento'] ?? '' }}-{{ $cliente_seleccionado['numero_documento'] ?? '' }}
+                                    &nbsp;·&nbsp;
                                     @if($cliente_seleccionado['telefono'] ?? '')
                                         &nbsp;·&nbsp; {{ $cliente_seleccionado['telefono'] }}
                                     @endif
@@ -440,7 +440,7 @@
                                                                 </div>
                                                                 <div class="text-end">
                                                                     <strong class="text-success">{{ format_money($es_venezuela ? $item['costo_usd'] * $tasa_usd : $item['costo_usd']) }}</strong>
-                                                                    @if($es_venezuela)<br><small class="text-muted">${{ number_format($item['costo_usd'], 2) }}</small>@endif
+                                                                    @if($es_venezuela)<br><small class="text-muted">{{ money($item['costo_usd'], 2) }}</small>@endif
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -497,8 +497,6 @@
                                                 <th>Descripción</th>
                                                 <th class="text-center">Cant.</th>
                                                 <th class="text-end">P/U</th>
-                                                <th class="text-end">Subtotal</th>
-
                                                 <th class="text-center">Stock</th>
                                                 <th class="text-center"></th>
                                             </tr>
@@ -541,9 +539,7 @@
                                                 <td class="text-end">
                                                     <strong>{{ format_money($es_venezuela ? $item['precio_unitario'] * $tasa_usd : $item['precio_unitario']) }}</strong>
                                                 </td>
-                                                <td class="text-end">
-                                                    <strong class="text-success">{{ format_money($es_venezuela ? $item['cantidad'] * $item['precio_unitario'] * $tasa_usd : $item['cantidad'] * $item['precio_unitario']) }}</strong>
-                                                </td>
+
 
                                                 <td class="text-center">
                                                     @if($item['tipo'] === 'producto')
@@ -678,28 +674,40 @@
                                                     </td>
                                                 </tr>
 
-                                                @if($es_factura_fiscal && $base_imponible > 0)
+                                                @if(($es_factura_fiscal || $mostrar_impuestos) && ($base_imponible > 0 || $monto_exento > 0))
                                                 <tr class="table-light">
-                                                    <td colspan="2"><small class="fw-bold text-primary">Desglose Fiscal SENIAT</small></td>
+                                                    <td colspan="2"><small class="fw-bold text-primary">Desglose de Impuestos</small></td>
                                                 </tr>
+                                                @if($base_imponible > 0)
                                                 <tr>
                                                     <td><small>Base Imponible:</small></td>
                                                     <td class="text-end"><small>{{ format_money($es_venezuela ? $base_imponible * $tasa_usd : $base_imponible) }}</small></td>
                                                 </tr>
+                                                @endif
+                                                @if($monto_exento > 0)
+                                                <tr class="table-info">
+                                                    <td><small class="fw-bold text-info">Valor Exento:</small></td>
+                                                    <td class="text-end"><small class="fw-bold text-info">{{ format_money($es_venezuela ? $monto_exento * $tasa_usd : $monto_exento) }}</small></td>
+                                                </tr>
+                                                @endif
+                                                @if($base_imponible > 0)
                                                 <tr>
                                                     <td><small class="fw-bold">IVA:</small></td>
                                                     <td class="text-end"><small class="fw-bold">{{ format_money($es_venezuela ? $iva_monto * $tasa_usd : $iva_monto) }}</small></td>
                                                 </tr>
-                                                @if($igtf_monto > 0)
+                                                @endif
+                                                @if($es_venezuela && $igtf_monto > 0)
                                                 <tr class="table-warning">
                                                     <td><small class="fw-bold">IGTF (3%) - Divisas:</small></td>
                                                     <td class="text-end"><small class="fw-bold">{{ format_money($es_venezuela ? $igtf_monto * $tasa_usd : $igtf_monto) }}</small></td>
                                                 </tr>
                                                 @endif
+                                                @if($es_factura_fiscal)
                                                 <tr>
                                                     <td><small class="text-muted">Condición:</small></td>
                                                     <td class="text-end"><small class="text-muted">{{ $condicion_pago === 'credito' ? 'Crédito' : 'Contado' }}</small></td>
                                                 </tr>
+                                                @endif
                                                 @endif
 
                                                 <tr>
@@ -708,7 +716,7 @@
                                                 @if($es_venezuela != false)
                                                 <tr class="table-primary">
                                                     <td class="fw-bold">Total USD:</td>
-                                                    <td class="text-end fw-bold">${{ number_format($total, 2) }}</td>
+                                                    <td class="text-end fw-bold">{{ money($total, 2) }}</td>
                                                 </tr>
                                                 <tr class="table-success">
                                                     <td class="fw-bold fs-6">Total Bs.:</td>

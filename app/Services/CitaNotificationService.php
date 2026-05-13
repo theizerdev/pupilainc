@@ -216,7 +216,13 @@ class CitaNotificationService
             $cita->estado
         )) {
             $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-            $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
+            
+            // Si el estado es 'confirmada', usar mensaje específico
+            if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
+                $mensajePaciente = $this->construirMensajeConfirmacionPaciente($cita);
+            } else {
+                $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
+            }
 
             foreach ($telefonos as $telefono) {
                 $this->enviar($telefono, $mensajePaciente);
@@ -230,7 +236,13 @@ class CitaNotificationService
                 'doctor',
                 $cita->estado
             )) {
-                $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
+                // Si el estado es 'confirmada', usar mensaje específico de confirmación
+                if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
+                    $mensajeMedico = $this->construirMensajeConfirmacionMedico($cita);
+                } else {
+                    $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
+                }
+                
                 $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
                 $this->enviar($telefonoMedico, $mensajeMedico);
             }
@@ -569,6 +581,44 @@ class CitaNotificationService
             . "📅 Fecha: {$fecha} a las {$hora}\n"
             . "📌 Estado anterior: " . ($estadoLabels[$estadoAnterior] ?? $estadoAnterior) . "\n"
             . "✅ Nuevo estado: " . ($estadoLabels[$cita->estado] ?? $cita->estado);
+    }
+
+    protected function construirMensajeConfirmacionPaciente(Cita $cita): string
+    {
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+        $esMenor = $cita->paciente->es_menor;
+        $saludo = $esMenor ? "Estimado representante de *{$cita->paciente->nombre_completo}*" : "Estimado(a) *{$cita->paciente->nombre_completo}*";
+
+        return "✅ *Cita Confirmada*\n\n"
+            . "{$saludo},\n\n"
+            . "Su cita médica ha sido confirmada exitosamente:\n\n"
+            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
+            . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
+            . "📅 Fecha: {$fecha}\n"
+            . "🕐 Hora: {$hora}\n"
+            . "📋 Motivo: {$cita->motivo}\n\n"
+            . "Por favor, llegue 15 minutos antes de su cita.\n"
+            . "Si necesita cancelar o reprogramar, comuníquese con nosotros.";
+    }
+
+    protected function construirMensajeConfirmacionMedico(Cita $cita): string
+    {
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+        $especialidad = $cita->especialidad->nombre ?? '';
+
+        return "✅ *Cita Confirmada por el Paciente*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
+            . "El paciente ha confirmado su asistencia a la siguiente cita:\n\n"
+            . "👤 Paciente: *{$cita->paciente->nombre_completo}*\n"
+            . ($especialidad ? "🏥 Especialidad: {$especialidad}\n" : "")
+            . "📅 Fecha: {$fecha}\n"
+            . "🕐 Hora: {$hora}\n"
+            . "📋 Motivo: {$cita->motivo}\n\n"
+            . "━━━━━━━━━━━━━━━━━━━━\n"
+            . "ℹ️ Esta cita está confirmada en su agenda.\n"
+            . "El paciente llegará 15 minutos antes de la hora programada.";
     }
 
     protected function construirMensajeCancelacionMedico(Cita $cita): string

@@ -4,7 +4,7 @@ return [
     'cuentas' => [
         // Cuentas principales
         'caja' => '1.1.01.001',
-        'banco_bs' => '1.1.01.002', 
+        'banco_bs' => '1.1.01.002',
         'banco_usd' => '1.1.01.003',
         'pago_movil' => '1.1.01.004',
         'zelle' => '1.1.01.005',
@@ -14,7 +14,8 @@ return [
         'ingreso' => '4.1.01',
         'resultado_ejercicio' => '3.2.02',
         'resultado_acumulado' => '3.2.01',
-        
+        'gastos_operativos' => '5.1.99.001',  // Cuenta genérica para gastos
+
         // Cuentas de productos
         'venta_productos' => '4.1.03',
         'venta_medicamentos' => '4.1.04',

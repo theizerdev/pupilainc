@@ -170,17 +170,34 @@ class Caja extends Model
      */
     public function actualizarTotalesEgresos(): void
     {
-        // Recargar el modelo para obtener los últimos valores de total_ingresos
+        // Recargar el modelo desde la BD para obtener los últimos valores
         $this->refresh();
 
-        $this->total_egresos = $this->gastos()
+        // Calcular total de egresos aprobados
+        $egresosTotal = $this->gastos()
             ->where('estado', 'aprobado')
             ->sum('monto');
+
+        \Log::info('Calculando egresos', [
+            'caja_id' => $this->id,
+            'egresos_calculados' => $egresosTotal,
+            'total_ingresos_actual' => $this->total_ingresos,
+            'monto_inicial' => $this->monto_inicial
+        ]);
+
+        // Actualizar campos
+        $this->total_egresos = $egresosTotal;
 
         // Monto final ajustado = Inicial + Ingresos - Egresos
         $this->monto_final_ajustado = $this->monto_inicial + $this->total_ingresos - $this->total_egresos;
 
         $this->save();
+
+        \Log::info('Totales guardados', [
+            'caja_id' => $this->id,
+            'total_egresos' => $this->total_egresos,
+            'monto_final_ajustado' => $this->monto_final_ajustado
+        ]);
     }
 
     /**
@@ -196,6 +213,7 @@ class Caja extends Model
             'numero_referencia' => $datos['numero_referencia'] ?? null,
             'categoria' => $datos['categoria'] ?? null,
             'fecha_gasto' => $datos['fecha_gasto'] ?? now(),
+            'estado' => 'aprobado', // Establecer estado explícitamente
         ]);
     }
 

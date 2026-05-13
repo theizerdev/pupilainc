@@ -105,7 +105,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
     let selectedEspecialidadId = null;
     let selectedSubespecialidadId = null;
     let fechaFlatpickr = null;
-    let currentSlotDuration = 30;
+    let currentSlotDuration = 15; // Duración predeterminada de cita en minutos (múltiplo de slotDuration 5min)
     var prefetchCache = {};
     var currentCitaId = null;
 
@@ -800,7 +800,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             if(slotsList) slotsList.innerHTML='';
             if (!result||!result.disponible) { if(slotsMessage){slotsMessage.textContent=result?result.mensaje:'No hay horarios disponibles.';slotsMessage.classList.remove('d-none');} return; }
             if(slotsMessage) slotsMessage.classList.add('d-none');
-            currentSlotDuration = result.duracion_cita || 30;
+            currentSlotDuration = result.duracion_cita || 15; // Usar duración de la especialidad o default 15min
 
             if (result.horario_laboral) {
                 horarioLaboralMedico = result.horario_laboral;
@@ -1219,19 +1219,29 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var selectedStr = rawStr.includes('T') ? rawStr : rawStr + 'T00:00:00';
 
             // 2. Obtener el "ahora" en la zona horaria LOCAL del navegador
-            // para que coincida exactamente con lo que el usuario ve en la línea roja.
-            var nowStr = new Date().toLocaleString('sv-SE').replace(' ', 'T');
+            var now = new Date();
+            var nowStr = now.toLocaleString('sv-SE').replace(' ', 'T');
 
-            // 3. Comparar como cadenas (orden lexicográfico funciona para ISO)
-            // Añadimos un pequeño margen: si son el mismo minuto, permitimos.
-            // Para eso comparamos solo hasta los minutos.
-            var selectedMin = selectedStr.substring(0, 16);
-            var nowMin = nowStr.substring(0, 16);
+            // 3. Crear objeto Date para la selección
+            var selectedDate = new Date(selectedStr);
 
-            if (selectedMin < nowMin) {
-                showPastAlert(selectedMin.replace('T', ' '), nowMin.replace('T', ' '));
+            // 4. Calcular diferencia en minutos (margen de tolerancia)
+            var diffMs = selectedDate.getTime() - now.getTime();
+            var diffMinutes = Math.floor(diffMs / 60000);
+
+            // MARGEN DE TOLERANCIA: Permitir citas hasta 5 minutos en el pasado
+            // Esto evita el error cuando se hace clic cerca de la línea roja
+            var toleranceMinutes = -5;
+
+            if (diffMinutes < toleranceMinutes) {
+                showPastAlert(selectedStr.substring(0, 16).replace('T', ' '),
+                             nowStr.substring(0, 16).replace('T', ' '));
                 return true;
             }
+
+            // Si está dentro del margen de tolerancia (entre -5 y 0 minutos), permitir
+            return false;
+
         } catch (e) {
             console.error('Error in isPastDateTime:', e);
         }
@@ -1356,6 +1366,13 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         if(btnCancelCita) btnCancelCita.classList.remove('d-none');
         if(btnReagendar) btnReagendar.classList.remove('d-none');
         if(btnReagendarAuto) btnReagendarAuto.classList.remove('d-none');
+
+        // Payment button logic: show only for finalized appointments
+        var paymentButtonContainer = document.getElementById('paymentButtonContainer');
+        var btnRegistrarPago = document.getElementById('btnRegistrarPago');
+        if (paymentButtonContainer) paymentButtonContainer.style.display = 'none';
+        if (btnRegistrarPago) btnRegistrarPago.style.display = 'none';
+
         // Modo edición: ocultar estado (se cambia desde el modal), ocultar botón nuevo paciente, deshabilitar paciente
         var estadoContainer = document.getElementById('estadoContainer');
         if(estadoContainer) estadoContainer.style.display = 'none';
@@ -1370,6 +1387,18 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         if(eventMotivo) eventMotivo.value = ep.motivo || ep.descripcion || '';
         if(eventNotas) eventNotas.value = ep.notas || '';
         if(eventEstado.length) eventEstado.val(ep.estado || 'programada').trigger('change');
+
+        // Show payment button if appointment is finalized and has a consultation
+        if (ep.estado === 'finalizada' && ep.consulta_id) {
+            var paymentButtonContainer = document.getElementById('paymentButtonContainer');
+            var btnRegistrarPago = document.getElementById('btnRegistrarPago');
+            if (paymentButtonContainer) paymentButtonContainer.style.display = 'block';
+            if (btnRegistrarPago) {
+                btnRegistrarPago.style.display = 'block';
+                btnRegistrarPago.href = '/admin/pagos/crear?consulta_id=' + ep.consulta_id;
+            }
+        }
+
         if(eventTipoConsulta.length) eventTipoConsulta.val(ep.tipo_consulta_id || '').trigger('change.select2');
         if(eventStartDate) eventStartDate.value = formatDateForLivewire(eventToUpdate.start);
         if(eventEndDate) eventEndDate.value = eventToUpdate.end ? formatDateForLivewire(eventToUpdate.end) : formatDateForLivewire(eventToUpdate.start);
@@ -1729,7 +1758,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         firstDay: 1,
         nowIndicator: true,
         slotEventOverlap: true,
-        slotMinTime: '06:00:00',
+        slotMinTime: '07:00:00',
         slotMaxTime: '24:00:00',
         scrollTime: (function() {
             var now = new Date();
@@ -1740,7 +1769,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         stickyHeaderDates: true,
         expandRows: false, // Desactivar expandRows para que nuestras celdas compactas se respeten
         slotDuration: '00:10:00',
-        slotLabelInterval: '01:00:00',
+        slotLabelInterval: '01:00:00', // Mostrar etiquetas cada 1 hora (07:00, 08:00, 09:00...)
         snapDuration: '00:05:00',
         slotLabelFormat: {
             hour: 'numeric',
@@ -1748,9 +1777,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             omitZeroMinute: true,
             meridiem: 'short'
         },
+        // Compactación visual: reducir altura de slots y eventos
+        slotMinHeight: 50, // Altura mínima de cada slot en píxeles
         eventMinHeight: 20,
         eventShortHeight: 20,
         slotEventOverlap: false,
+        aspectRatio: 1.8, // Mejorar proporción para vistas de día/semana
         dayMaxEventRows: false, // Permitir que las filas crezcan infinitamente
         dayMaxEvents: false, // Quitar límite para que siempre se muestren todos
         editable: true,

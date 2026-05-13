@@ -257,7 +257,7 @@
                                     @if($costo > 0 || $venta > 0)
                                         <div class="alert alert-{{ $mColor }} py-2 mb-3">
                                             <div class="d-flex justify-content-between align-items-center">
-                                                <div><small class="d-block opacity-75">Ganancia</small><strong>${{ number_format($ganancia, 2) }}</strong></div>
+                                                <div><small class="d-block opacity-75">Ganancia</small><strong>{{ money($ganancia, 2) }}</strong></div>
                                                 <div class="text-center"><small class="d-block opacity-75">Margen</small><strong class="fs-5">{{ $margen }}%</strong></div>
                                                 <div>
                                                     @if($margen < 0)<i class="ri-arrow-down-circle-fill fs-3"></i>
@@ -306,9 +306,9 @@
                         </div>
                     </div>
 
-                   @if(auth()->user()->empresa->pais->nombre === 'Venezuela')
+                   @if(auth()->user()->empresa->pais->nombre === 'Venezuela' || \App\Models\ImpuestoConfiguracion::where('codigo','IVA')->first())
                     <div class="card mb-4">
-                        <div class="card-header"><h5 class="mb-0">Configuración Fiscal (IVA)</h5></div>
+                        <div class="card-header"><h5 class="mb-0">Configuración de Impuestos</h5></div>
                         <div class="card-body">
                             <div class="row align-items-end">
                                 <div class="col-md-4">
@@ -324,14 +324,17 @@
                                         </div>
                                     </div>
                                 </div>
+                                @php
+                                  $impuestos = \App\Models\ImpuestoConfiguracion::where('empresa_id', auth()->user()->empresa_id)->activos()->get();
+                                @endphp
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold">Alícuota IVA</label>
                                     <select class="form-select @error('iva_alicuota') is-invalid @enderror"
-                                            wire:model="iva_alicuota"
+                                            wire:model.change="iva_alicuota"
                                             @if(!$aplica_iva || $exento_iva) disabled @endif>
-                                        <option value="0">0% - No aplica / Exento</option>
-                                        <option value="8">8% - Alícuota reducida</option>
-                                        <option value="16">16% - Alícuota general</option>
+                                      @foreach($impuestos as $alicuota)
+                                        <option value="{{ $alicuota->porcentaje }}">{{ $alicuota->nombre .' '.$alicuota->porcentaje }}</option>
+                                      @endforeach
                                     </select>
                                     @error('iva_alicuota')<span class="text-danger small">{{ $message }}</span>@enderror
                                 </div>
@@ -345,7 +348,7 @@
                                         <div class="alert alert-success py-2 mb-0">
                                             <i class="ri-percent-line me-1"></i>
                                             <strong>Gravado al {{ $iva_alicuota }}%:</strong>
-                                            Precio con IVA: <strong>${{ number_format((float)$precio_venta * (1 + $iva_alicuota / 100), 2) }}</strong>
+                                            Precio con IVA: <strong>{{ money((float)$precio_venta * (1 + $iva_alicuota / 100), 2) }}</strong>
                                         </div>
                                     @endif
                                 </div>
@@ -773,7 +776,7 @@
                                         <span class="badge bg-primary fs-6">{{ $stockTotal }}</span>
                                     </div>
                                     <div class="px-3 py-2">
-                                        <small class="text-muted">Valorización: <strong>${{ number_format($stockTotal * (float)$precio_costo, 2) }}</strong></small>
+                                        <small class="text-muted">Valorización: <strong>{{ money($stockTotal * (float)$precio_costo, 2) }}</strong></small>
                                     </div>
                                 @endif
                             </div>
@@ -792,10 +795,10 @@
                         <div class="card mb-4">
                             <div class="card-header"><h5 class="mb-0">Resumen de Precios</h5></div>
                             <div class="card-body">
-                                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Costo:</span><span class="fw-bold">${{ number_format($c2, 2) }}</span></div>
-                                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Venta:</span><span class="fw-bold">${{ number_format($v2, 2) }}</span></div>
+                                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Costo:</span><span class="fw-bold">{{ money($c2, 2) }}</span></div>
+                                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Venta:</span><span class="fw-bold">{{ money($v2, 2) }}</span></div>
                                 <hr class="my-2">
-                                <div class="d-flex justify-content-between mb-1"><span class="text-muted">Ganancia:</span><span class="fw-bold text-{{ $mc2 }}">${{ number_format($g2, 2) }}</span></div>
+                                <div class="d-flex justify-content-between mb-1"><span class="text-muted">Ganancia:</span><span class="fw-bold text-{{ $mc2 }}">{{ money($g2, 2) }}</span></div>
                                 <div class="d-flex justify-content-between"><span class="text-muted">Margen:</span><span class="fw-bold fs-5 text-{{ $mc2 }}">{{ $m2 }}%</span></div>
                             </div>
                         </div>

@@ -375,6 +375,17 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'manage template customization',
                     ]
                 ],
+                'impuestos' => [
+                    'name' => 'Configuración de Impuestos',
+                    'permissions' => [
+                        'view impuestos',
+                        'create impuestos',
+                        'edit impuestos',
+                        'delete impuestos',
+                        'activate impuestos',
+                        'deactivate impuestos',
+                    ]
+                ],
 
             ],
 

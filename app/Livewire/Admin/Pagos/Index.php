@@ -18,11 +18,52 @@ class Index extends Component
     public $tipo_pago = '';
     public $showPreview = false;
     public $previewPagoId;
+    public $sortField = 'created_at';
+    public $sortDirection = 'desc';
+    public $perPage = 20;
 
-    protected $paginationTheme = 'bootstrap';
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'estado' => ['except' => ''],
+        'metodo_pago' => ['except' => ''],
+        'tipo_pago' => ['except' => ''],
+        'sortField' => ['except' => 'created_at'],
+        'sortDirection' => ['except' => 'desc'],
+    ];
 
     public function updatingSearch()
     {
+        $this->resetPage();
+    }
+
+    public function updatingEstado()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMetodoPago()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingTipoPago()
+    {
+        $this->resetPage();
+    }
+
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortDirection = 'asc';
+        }
+        $this->sortField = $field;
+    }
+
+    public function resetFilters()
+    {
+        $this->reset(['search', 'estado', 'metodo_pago', 'tipo_pago']);
         $this->resetPage();
     }
 
@@ -1132,9 +1173,9 @@ class Index extends Component
         $this->previewPagoId = null;
     }
 
-    public function render()
+    public function getPagosProperty()
     {
-        $pagos = Pago::with(['consulta.paciente', 'clienteFiscal', 'user', 'notasCredito', 'notasDebito', 'caja'])
+        return Pago::with(['consulta.paciente', 'clienteFiscal', 'user', 'notasCredito', 'notasDebito', 'caja'])
             ->whereIn('tipo_pago', ['factura', 'boleta', 'recibo'])
             ->when($this->search, fn($q) => $q->where('serie', 'like', "%{$this->search}%")
                 ->orWhere('numero', 'like', "%{$this->search}%")
@@ -1144,9 +1185,42 @@ class Index extends Component
             ->when($this->estado, fn($q) => $q->where('estado', $this->estado))
             ->when($this->metodo_pago, fn($q) => $q->where('metodo_pago', $this->metodo_pago))
             ->when($this->tipo_pago, fn($q) => $q->where('tipo_pago', $this->tipo_pago))
-            ->latest()
-            ->paginate(15);
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->paginate($this->perPage);
+    }
 
-        return view('livewire.admin.pagos.index', compact('pagos'))->layout($this->getLayout());
+    public function getStatsProperty()
+    {
+        $query = Pago::whereIn('tipo_pago', ['factura', 'boleta', 'recibo']);
+
+        return [
+            'total' => $query->count(),
+            'aprobados' => $query->where('estado', 'aprobado')->count(),
+            'pendientes' => $query->where('estado', 'pendiente')->count(),
+            'total_usd' => $query->where('estado', 'aprobado')->sum('total_usd'),
+            'total_bs' => $query->where('estado', 'aprobado')->sum('total_bs'),
+        ];
+    }
+
+    protected function getPageTitle(): string
+    {
+        return 'Pagos y Facturación';
+    }
+
+    protected function getBreadcrumb(): array
+    {
+        return [
+            'admin.dashboard' => 'Dashboard',
+            'admin.pagos.index' => 'Pagos y Facturación'
+        ];
+    }
+
+    public function render()
+    {
+        return view('livewire.admin.pagos.index', [
+            'pagos' => $this->pagos,
+            'stats' => $this->stats,
+            'totalSumado' => Pago::sum('total_usd'),
+        ])->layout($this->getLayout());
     }
 }

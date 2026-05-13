@@ -166,6 +166,19 @@
 
     <!-- Script global para manejar eventos de notificaciones -->
 
+     <!-- Configuración de Livewire para manejar CSRF automáticamente -->
+    <script>
+        // Configurar Livewire para auto-refresh cuando el token CSRF expira
+        // en lugar de mostrar el modal de "Page Expired"
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof Livewire !== 'undefined') {
+                Livewire.on('csrf-token-mismatch', function() {
+                    // Auto-refresh silencioso sin mostrar modal
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
 
     @stack('scripts')
   </body>

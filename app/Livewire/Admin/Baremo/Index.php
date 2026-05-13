@@ -13,15 +13,16 @@ class Index extends Component
     use WithPagination, HasDynamicLayout;
 
     public $search = '';
-    public $sortField = 'created_at';
-    public $sortDirection = 'desc';
+    public $sortField = 'nombre_servicio';
+    public $sortDirection = 'asc';
     public $activo = '';
     public $categoria_id = '';
+    public $perPage = 20;
 
     protected $queryString = [
         'search' => ['except' => ''],
-        'sortField' => ['except' => 'created_at'],
-        'sortDirection' => ['except' => 'desc'],
+        'sortField' => ['except' => 'nombre_servicio'],
+        'sortDirection' => ['except' => 'asc'],
         'activo' => ['except' => ''],
         'categoria_id' => ['except' => '']
     ];
@@ -55,16 +56,17 @@ class Index extends Component
 
     public function toggleEstado($id)
     {
-        $this->authorize('edit baremos');
-        
         try {
+            $this->authorize('edit baremos');
+
             $baremo = Baremo::findOrFail($id);
             $baremo->activo = !$baremo->activo;
             $baremo->save();
-            
-             $this->dispatch('notify', [
+
+            $estado = $baremo->activo ? 'activado' : 'desactivado';
+            $this->dispatch('notify', [
                 'type' => 'success',
-                'message' => "Estado actualizado exitosamente.",
+                'message' => "Servicio {$estado} exitosamente.",
                 'duration' => 4000
             ]);
         } catch (\Exception $e) {
@@ -79,7 +81,7 @@ class Index extends Component
     public function deleteBaremo($baremo)
     {
         $this->authorize('admin.baremos.destroy');
-        
+
         try {
             $baremo = Baremo::find($baremo);
             $nombreServicio = $baremo->nombre_servicio;
@@ -117,7 +119,7 @@ class Index extends Component
                 $query->where('categoria_id', $this->categoria_id);
             })
             ->orderBy($this->sortField, $this->sortDirection)
-            ->paginate(10);
+            ->paginate($this->perPage);
     }
 
     public function getCategoriasProperty()
@@ -128,11 +130,24 @@ class Index extends Component
     public function getStatsProperty()
     {
         $query = Baremo::forUser();
-        
+
         return [
             'total' => $query->count(),
             'activos' => $query->where('activo', true)->count(),
             'inactivos' => $query->where('activo', false)->count(),
+        ];
+    }
+
+    protected function getPageTitle(): string
+    {
+        return 'Baremos';
+    }
+
+    protected function getBreadcrumb(): array
+    {
+        return [
+            'admin.dashboard' => 'Dashboard',
+            'admin.baremos.index' => 'Baremos'
         ];
     }
 

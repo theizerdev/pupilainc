@@ -62,12 +62,41 @@ class GastoCaja extends Model
 
         // Actualizar totales de la caja cuando se crea un gasto
         static::created(function ($gasto) {
+            \Log::info('Observer GastoCaja created ejecutado', [
+                'gasto_id' => $gasto->id,
+                'caja_id' => $gasto->caja_id,
+                'estado' => $gasto->estado,
+                'monto' => $gasto->monto
+            ]);
+
             if ($gasto->caja_id && $gasto->estado === 'aprobado') {
                 $caja = Caja::find($gasto->caja_id);
                 if ($caja) {
+                    \Log::info('Actualizando totales de caja', [
+                        'caja_id' => $caja->id,
+                        'total_egresos_antes' => $caja->total_egresos
+                    ]);
+
                     $caja->actualizarTotalesEgresos();
+
+                    $caja->refresh();
+                    \Log::info('Totales actualizados', [
+                        'caja_id' => $caja->id,
+                        'total_egresos_despues' => $caja->total_egresos,
+                        'monto_final_ajustado' => $caja->monto_final_ajustado
+                    ]);
+                } else {
+                    \Log::warning('No se encontró la caja', ['caja_id' => $gasto->caja_id]);
                 }
+            } else {
+                \Log::warning('Condiciones no cumplidas para actualizar totales', [
+                    'caja_id' => $gasto->caja_id,
+                    'estado' => $gasto->estado
+                ]);
             }
+
+            // Disparar evento para generar asiento contable
+            event(new \App\Events\GastoCajaCreated($gasto));
         });
 
         // Actualizar totales cuando se cambia el estado

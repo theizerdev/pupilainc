@@ -27,5 +27,20 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Manejar error 419 (CSRF Token Mismatch) - redirigir automáticamente al login
+        $exceptions->render(function (\Illuminate\Session\TokenMismatchException $e, \Illuminate\Http\Request $request) {
+            // Invalidar sesión y hacer logout
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+            
+            // Si es logout, simplemente redirigir
+            if ($request->is('logout')) {
+                return redirect('/')->with('info', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            }
+            
+            // Para otras peticiones, redirigir al login
+            return redirect('/')->with('error', 'La página ha expirado. Por favor, recarga la página.');
+        });
     })->create();

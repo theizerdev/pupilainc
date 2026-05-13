@@ -170,7 +170,7 @@
                         </div>
 
 
-                       
+
                     </div>
 
 
@@ -387,6 +387,13 @@
                             <div class="form-floating form-floating-outline mb-5">
                                 <textarea class="form-control" name="eventNotas" id="eventNotas" rows="3" placeholder="Notas adicionales"></textarea>
                                 <label for="eventNotas">Notas</label>
+                            </div>
+
+                            <!-- Payment Button Container (hidden by default) -->
+                            <div id="paymentButtonContainer" class="mb-4" style="display: none;">
+                                <a id="btnRegistrarPago" href="#" class="btn btn-success w-100" style="display: none;">
+                                    <i class="ri ri-money-dollar-circle-line me-2"></i> 💳 Registrar Pago
+                                </a>
                             </div>
 
                             <!-- Buttons -->

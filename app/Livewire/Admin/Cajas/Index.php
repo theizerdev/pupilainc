@@ -16,16 +16,16 @@ class Index extends Component
 
     public $search = '';
     public $status = '';
-    public $perPage = 10;
+    public $perPage = 20;
     public $sortBy = 'fecha';
     public $sortDirection = 'desc';
 
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => ''],
-        'perPage' => ['except' => 10],
+        'perPage' => ['except' => 20],
         'sortBy' => ['except' => 'fecha'],
-        'sortDirection' => ['except' => 'asc'],
+        'sortDirection' => ['except' => 'desc'],
     ];
 
     public function sortBy($field)
@@ -42,6 +42,21 @@ class Index extends Component
     public function clearFilters()
     {
         $this->reset(['search', 'status', 'perPage']);
+        $this->resetPage();
+    }
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingStatus()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingPerPage()
+    {
         $this->resetPage();
     }
 
@@ -62,11 +77,10 @@ class Index extends Component
             ->where('sucursal_id', auth()->user()->sucursal_id);
 
         // Calcular los ingresos de hoy basados en los pagos aprobados del día actual
-        // Se cuentan todos los pagos aprobados hoy, independientemente de la caja
         $ingresosHoy = Pago::where('empresa_id', auth()->user()->empresa_id)
             ->where('sucursal_id', auth()->user()->sucursal_id)
             ->where('estado', 'aprobado')
-            ->whereDate('fecha', today()) // Filtrar por fecha del pago
+            ->whereDate('fecha', today())
             ->sum('total_usd');
 
         return [
@@ -133,11 +147,24 @@ class Index extends Component
         ];
     }
 
+    protected function getPageTitle(): string
+    {
+        return 'Gestión de Cajas';
+    }
+
+    protected function getBreadcrumb(): array
+    {
+        return [
+            'admin.dashboard' => 'Dashboard',
+            'admin.cajas.index' => 'Cajas'
+        ];
+    }
+
     public function render()
     {
         $cajas = $this->getExportQuery()->paginate($this->perPage);
         return $this->renderWithLayout('livewire.admin.cajas.index', compact('cajas'), [
-            'description' => 'Gestión de ',
+            'description' => 'Gestión de cajas diarias',
         ]);
     }
 }

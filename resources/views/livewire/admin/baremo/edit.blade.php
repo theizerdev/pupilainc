@@ -255,7 +255,7 @@
                                         @if($costo_usd && $porcentaje_medico)
                                         <small class="form-text text-success">
                                             <i class="fas fa-calculator me-1"></i>
-                                            Honorario: ${{ number_format($costo_usd * ($porcentaje_medico / 100), 2) }}
+                                            Honorario: {{ money($costo_usd * ($porcentaje_medico / 100), 2) }}
                                         </small>
                                         @endif
                                     </div>
@@ -283,7 +283,7 @@
                                         @if($costo_usd && $porcentaje_clinica)
                                         <small class="form-text text-info">
                                             <i class="fas fa-calculator me-1"></i>
-                                            Ingreso: ${{ number_format($costo_usd * ($porcentaje_clinica / 100), 2) }}
+                                            Ingreso: {{ money($costo_usd * ($porcentaje_clinica / 100), 2) }}
                                         </small>
                                         @endif
                                     </div>

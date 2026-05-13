@@ -33,8 +33,7 @@ class Create extends Component
             ->first();
 
         if ($cajaAbierta) {
-            session()->flash('error', 'Ya existe una caja abierta. Debe cerrarla antes de abrir una nueva.');
-            return redirect()->route('admin.cajas.index');
+            session()->flash('warning', '⚠️ Ya existe una caja abierta (Corte #' . $cajaAbierta->numero_corte . '). Se cerrará automáticamente al abrir una nueva.');
         }
     }
 
@@ -54,12 +53,15 @@ class Create extends Component
                 ->first();
 
             if ($cajaAbierta) {
+                // Cerrar automáticamente la caja anterior
+                $cajaAbierta->calcularTotales();
+                $cajaAbierta->cerrar('Cierre automático - nueva apertura de caja');
+
                 $this->dispatch('notify', [
-                    'type' => 'error',
-                    'message' => 'Ya existe una caja abierta. Debe cerrarla antes de abrir una nueva.',
-                    'duration' => 4000
+                    'type' => 'warning',
+                    'message' => '⚠️ Se cerró automáticamente la caja anterior (Corte #' . $cajaAbierta->numero_corte . ')',
+                    'duration' => 5000
                 ]);
-                return;
             }
 
             // Verificar si ya existe alguna caja para hoy

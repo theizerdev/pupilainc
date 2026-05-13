@@ -44,14 +44,23 @@ class GestionCajaRapida extends Component
 
     protected $listeners = [
         'caja-actualizada' => '$refresh',
-        'pago-registrado' => 'actualizarResumen',
+        'pago-registrado' => '$refresh',
+        'egreso-registrado' => '$refresh',
     ];
 
     // Polling para actualización en tiempo real (cada 5 segundos)
     public function polling()
     {
         if ($this->caja_abierta && $this->caja) {
-            $this->actualizarResumen();
+            // Recargar la caja desde la base de datos
+            $this->caja = $this->caja->fresh();
+
+            // Actualizar propiedades públicas
+            if ($this->caja) {
+                $this->total_ingresos = $this->caja->total_ingresos ?? 0;
+                $this->total_egresos = $this->caja->total_egresos ?? 0;
+                $this->monto_final_ajustado = $this->caja->monto_final_ajustado ?? 0;
+            }
         }
     }
 
@@ -133,6 +142,20 @@ class GestionCajaRapida extends Component
         try {
             DB::beginTransaction();
 
+            // Verificar si ya existe una caja abierta
+            $cajaExistente = Caja::obtenerCajaAbierta(
+                auth()->user()->empresa_id,
+                auth()->user()->sucursal_id
+            );
+
+            if ($cajaExistente) {
+                // Cerrar automáticamente la caja anterior
+                $cajaExistente->calcularTotales();
+                $cajaExistente->cerrar('Cierre automático - nueva apertura de caja');
+
+                $this->dispatch('notify', type: 'warning', message: '⚠️ Se cerró automáticamente la caja anterior (Corte #' . $cajaExistente->numero_corte . ')');
+            }
+
             $this->caja = Caja::crearCorte(
                 auth()->user()->empresa_id,
                 auth()->user()->sucursal_id,
@@ -192,10 +215,22 @@ class GestionCajaRapida extends Component
                 'categoria' => $this->categoria_gasto,
             ]);
 
+            // Los totales se actualizan automáticamente por el observer del modelo GastoCaja
+
             DB::commit();
 
             $this->mostrarModalEgreso = false;
-            $this->actualizarResumen();
+
+            // Recargar la caja desde la base de datos para obtener los nuevos totales
+            $this->caja = $this->caja->fresh();
+
+            // Actualizar propiedades públicas con los valores frescos
+            if ($this->caja) {
+                $gastos = \DB::table('gasto_cajas')->where('caja_id', $this->caja->id)->sum('monto');
+                $this->total_ingresos = $this->caja->total_ingresos ?? 0;
+                $this->total_egresos = $this->caja->total_egresos ?? 0;
+                $this->monto_final_ajustado = $this->caja->monto_final_ajustado ?? 0;
+            }
 
             $this->dispatch('notify', type: 'success', message: '✅ Egreso registrado: $' . number_format($this->monto_gasto, 2));
             $this->dispatch('egreso-registrado', ['gasto_id' => $gasto->id]);
@@ -267,7 +302,7 @@ class GestionCajaRapida extends Component
             ->where('estado', 'aprobado')
             ->with('usuario')
             ->orderBy('created_at', 'desc')
-            ->limit(10)
+            ->limit(5)
             ->get();
     }
 
@@ -295,33 +330,21 @@ class GestionCajaRapida extends Component
             ->where('estado', 'abierta')
             ->first();
 
+        if (!$caja) {
+            return [
+                'total' => 0,
+                'total_balance' => 0,
+                'egresos_hoy' => 0,
+                'ingresos_hoy' => 0,
+            ];
+        }
 
-
-        // Calcular los ingresos de hoy basados en los pagos aprobados del día actual
-        // Se cuentan todos los pagos aprobados hoy, independientemente de la caja
-        $ingresosHoy = \App\Models\Pago::where('empresa_id', auth()->user()->empresa_id)
-            ->where('sucursal_id', auth()->user()->sucursal_id)
-            ->where('estado', 'aprobado')
-            ->whereDate('fecha', today()) // Filtrar por fecha del pago
-            ->where('caja_id', $caja->id)
-            ->sum('total_usd');
-
-        $gastosHoy = \App\Models\GastoCaja::where('empresa_id', auth()->user()->empresa_id)
-            ->where('sucursal_id', auth()->user()->sucursal_id)
-            ->where('estado', 'aprobado')
-            ->whereDate('created_at', today())
-            ->where('caja_id', $caja->id)
-            ->sum('monto');
-
-
-
-        $totalBalance = $ingresosHoy - $gastosHoy;
-
+        // Usar los valores ya calculados y guardados en la caja
         return [
-            'total' => (clone $caja)->count() ?: 0,
-            'total_balance' => $totalBalance ?: 0,
-            'egresos_hoy' => $gastosHoy ?: 0,
-            'ingresos_hoy' => $ingresosHoy ?: 0,
+            'total' => 1,
+            'total_balance' => $caja->monto_final_ajustado ?? 0,
+            'egresos_hoy' => $caja->total_egresos ?? 0,
+            'ingresos_hoy' => $caja->total_ingresos ?? 0,
         ];
     }
 
