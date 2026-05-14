@@ -12,12 +12,12 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-    <title>{{ 'PUPILA INC' }}</title>
+    <title>{{ config('app.name') }}</title>
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-      <link rel="icon" type="image/x-icon" href="/logo/favicon-32x32.png" />
+      <link rel="icon" type="image/png" href="{{ asset('logo/1719430882.png') }}" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

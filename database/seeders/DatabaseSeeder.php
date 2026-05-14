@@ -33,10 +33,8 @@ class DatabaseSeeder extends Seeder
             PlantillasClinicasSeeder::class, // Especialidades y plantillas clínicas dinámicas
             EstadoFormulariosSeeder::class,
             PlanCuentasSeeder::class,
-            PacienteSeeder::class, // 20 pacientes de ejemplo (10 femeninos, 10 masculinos)
             BaremoSeeder::class, // Servicios médicos por especialidad
             ProductosSeeder::class, // Productos e insumos médicos
-            MedicosSeeder::class, // Médicos y sus usuarios
         ]);
     }
 }
