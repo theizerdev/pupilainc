@@ -17,7 +17,7 @@
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}" />
 
     <!-- Favicon -->
-      <link rel="icon" type="image/x-icon" href="/logo/1719430882.png" />
+      <link rel="icon" type="image/png" href="{{ asset('logo/1719430882.png') }}" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

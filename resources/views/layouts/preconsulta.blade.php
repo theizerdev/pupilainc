@@ -14,7 +14,7 @@
     <title>{{ config('app.name', 'Laravel') }} - Cuestionario Pre-consulta</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/logo/app.png" />
+    <link rel="icon" type="image/png" href="{{ asset('logo/1719430882.png') }}" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
