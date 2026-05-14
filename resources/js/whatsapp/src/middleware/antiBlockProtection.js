@@ -31,8 +31,9 @@ class AntiBlockProtection {
       const timeDiff = now - lastMessage;
       
       if (timeDiff < this.MESSAGE_DELAY_MS) {
-        const delay = this.MESSAGE_DELAY_MS - timeDiff;
-        logger.info(`Anti-block: Delaying message to ${to} by ${delay}ms`);
+        const jitter = Math.floor(Math.random() * 5000); // 0-5 segundos aleatorios
+        const delay = (this.MESSAGE_DELAY_MS - timeDiff) + jitter;
+        logger.info(`Anti-block: Delaying message to ${to} by ${delay}ms (includes ${jitter}ms jitter)`);
         await this.sleep(delay);
       }
     }
@@ -73,9 +74,13 @@ class AntiBlockProtection {
   validateBusinessHours() {
     const now = new Date();
     const hour = now.getHours();
-    const day = now.getDay();
     
-   
+    // Si END es 0, lo tratamos como 24 para la comparación
+    const endHour = this.BUSINESS_HOURS_END === 0 ? 24 : this.BUSINESS_HOURS_END;
+
+    if (hour < this.BUSINESS_HOURS_START || hour >= endHour) {
+      throw new Error(`Fuera de horario comercial (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00)`);
+    }
   }
 
   /**
@@ -98,13 +103,16 @@ class AntiBlockProtection {
     
     // Detectar patrones de spam
     const spamPatterns = [
-      /(.)\1{10,}/, // Mismo carácter repetido 10+ veces
-      /\b(compra|oferta|descuento|promoción)\b.*\b(compra|oferta|descuento|promoción)\b.*\b(compra|oferta|descuento|promoción)\b/i, // Spam comercial
-      /https?:\/\/.*\..*\..*\..*\..*/i, // URLs sospechosas (múltiples puntos)
-      /\d{10,}/ // Números largos (posibles teléfonos/IDs)
+      { pattern: /(.)\1{10,}/, description: 'Caracteres repetidos sospechosos' },
+      { pattern: /\b(compra|oferta|descuento|promoción)\b.*\b(compra|oferta|descuento|promoción)\b/i, description: 'Demasiadas palabras comerciales' },
+      { pattern: /https?:\/\/.*\..*\..*\..*\..*/i, description: 'URL con demasiados subdominios' }
     ];
     
-   
+    for (const { pattern, description } of spamPatterns) {
+      if (pattern.test(message)) {
+        throw new Error(`Contenido bloqueado por política anti-spam: ${description}`);
+      }
+    }
   }
 
   /**
