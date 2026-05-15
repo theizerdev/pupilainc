@@ -44,6 +44,22 @@ class InventarioMovimiento extends Model
         return self::TIPOS[$this->tipo] ?? ['label' => $this->tipo, 'color' => 'secondary', 'icon' => 'ri-question-line', 'signo' => ''];
     }
 
+    // Scopes for filtering by type
+    public function scopeEntrada($query)
+    {
+        return $query->where('tipo', 'entrada');
+    }
+
+    public function scopeSalida($query)
+    {
+        return $query->where('tipo', 'salida');
+    }
+
+    public function scopeAjuste($query)
+    {
+        return $query->whereIn('tipo', ['ajuste_positivo', 'ajuste_negativo']);
+    }
+
     /**
      * Registra un movimiento y actualiza el stock atómicamente.
      */

@@ -40,6 +40,6 @@ class Verify extends Component
         return view('livewire.auth.verify', [
             'hasError' => $this->hasError(...),
             'getError' => $this->getError(...),
-        ])->layout('components.layouts.auth-basic', ['title' => 'Verify Email']);
+        ])->layout('components.layouts.auth-cover', ['title' => 'Verify Email']);
     }
 }

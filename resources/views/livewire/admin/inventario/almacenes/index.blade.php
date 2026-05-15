@@ -1,27 +1,152 @@
-<div>
+<div class="w-100">
     @section('title', 'Almacenes')
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    @push('styles')
+    <style>
+        /* Hero Section */
+        .almacenes-hero {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            color: #fff;
+            border-radius: 0.75rem;
+            padding: 1.4rem 1.6rem;
+        }
+        .almacenes-hero h2 {
+            color: #fff;
+            margin: 0;
+        }
+        .almacenes-hero p {
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        /* Stat Cards - Compact Style */
+        .stat-card {
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: .65rem;
+            padding: .9rem 1rem;
+            transition: all .2s;
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            height: 100%;
+            background: #fff;
+        }
+        .stat-card:hover {
+            box-shadow: 0 6px 18px rgba(0,0,0,.07);
+            transform: translateY(-1px);
+        }
+        .stat-card .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 11px;
+            flex: 0 0 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+        }
+        .stat-card .stat-value {
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+        .stat-card .stat-label {
+            font-size: .72rem;
+            color: var(--bs-secondary-color);
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            font-weight: 600;
+        }
+
+        /* Table Styles */
+        .table-almacenes thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #e4e6f9;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #697a8d;
+            padding: 0.875rem 1rem;
+        }
+        .table-almacenes tbody td {
+            padding: 0.875rem 1rem;
+            vertical-align: middle;
+        }
+        .almacen-row { transition: background 0.15s; }
+        .almacen-row:hover { background-color: #f8f9fa; }
+    </style>
+    @endpush
+
+    {{-- Hero Section --}}
+    <div class="almacenes-hero mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
-            <h1 class="h3 mb-0">Almacenes</h1>
-            <p class="text-muted">Gestión de almacenes y ubicaciones de inventario</p>
+            <h2 class="fw-semibold"><i class="ri ri-building-line me-2"></i>Almacenes</h2>
+            <p class="mt-1">Gestión de almacenes y ubicaciones de inventario</p>
         </div>
         @can('create almacenes')
-            <button class="btn btn-primary" wire:click="openModal()">
-                <i class="ri ri-add-line me-1"></i> Nuevo Almacén
+            <button class="btn btn-light btn-sm" wire:click="openModal()">
+                <i class="ri ri-add-line me-1"></i>Nuevo Almacén
             </button>
         @endcan
     </div>
 
-    <!-- Filtros -->
-    <div class="card shadow mb-4">
-        <div class="card-body py-2">
-            <div class="row align-items-end">
+    {{-- Stat Cards --}}
+    @php
+        $totalAlmacenes = \App\Models\Almacen::forUser()->count();
+        $almacenesActivos = \App\Models\Almacen::forUser()->where('status', true)->count();
+        $almacenesInactivos = \App\Models\Almacen::forUser()->where('status', false)->count();
+        $almacenesPrincipales = \App\Models\Almacen::forUser()->where('es_principal', true)->count();
+    @endphp
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="ri ri-database-2-line"></i></div>
+                <div>
+                    <div class="stat-label">Total almacenes</div>
+                    <div class="stat-value">{{ $totalAlmacenes }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="ri ri-checkbox-circle-line"></i></div>
+                <div>
+                    <div class="stat-label">Activos</div>
+                    <div class="stat-value text-success">{{ $almacenesActivos }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fef3c7;color:#d97706;"><i class="ri ri-pause-circle-line"></i></div>
+                <div>
+                    <div class="stat-label">Inactivos</div>
+                    <div class="stat-value text-warning">{{ $almacenesInactivos }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#e0e7ff;color:#4f46e5;"><i class="ri ri-star-line"></i></div>
+                <div>
+                    <div class="stat-label">Principales</div>
+                    <div class="stat-value text-primary">{{ $almacenesPrincipales }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Main Card with Filters and Table --}}
+    <div class="card">
+        <div class="card-header border-bottom py-3">
+            <h5 class="card-title mb-3">Filtros</h5>
+            <div class="row g-3">
                 <div class="col-md-5">
                     <input type="text" class="form-control" wire:model.live.debounce.300ms="search" placeholder="Buscar almacén...">
                 </div>
                 <div class="col-md-3">
-                    <select class="form-control" wire:model.change="status">
+                    <select class="form-select" wire:model.change="status">
                         <option value="">Todos los estados</option>
                         <option value="1">Activo</option>
                         <option value="0">Inactivo</option>
@@ -29,74 +154,86 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tabla -->
-    <div class="card shadow">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Ubicación</th>
-                            <th>Principal</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($almacenes as $almacen)
-                            <tr>
-                                <td>
-                                    <div class="fw-semibold">{{ $almacen->nombre }}</div>
-                                    @if($almacen->descripcion)
-                                        <small class="text-muted">{{ $almacen->descripcion }}</small>
-                                    @endif
-                                </td>
-                                <td>{{ $almacen->ubicacion ?? '-' }}</td>
-                                <td>
-                                    @if($almacen->es_principal)
-                                        <span class="badge bg-primary"><i class="ri ri-star-line me-1"></i>Principal</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ $almacen->status ? 'success' : 'secondary' }}">
-                                        {{ $almacen->status ? 'Activo' : 'Inactivo' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="dropdown">
-                                        <button class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
-                                            <i class="ri ri-more-2-line"></i>
-                                        </button>
-                                        <div class="dropdown-menu">
-                                            @can('edit almacenes')
+        {{-- Table --}}
+        <div class="card-datatable table-responsive">
+            <table class="datatables-products table table-almacenes">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Ubicación</th>
+                        <th>Principal</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($almacenes as $almacen)
+                        <tr class="almacen-row">
+                            <td>
+                                <div class="fw-semibold">{{ $almacen->nombre }}</div>
+                                @if($almacen->descripcion)
+                                    <small class="text-muted">{{ $almacen->descripcion }}</small>
+                                @endif
+                            </td>
+                            <td>{{ $almacen->ubicacion ?? '-' }}</td>
+                            <td>
+                                @if($almacen->es_principal)
+                                    <span class="badge rounded-pill bg-primary-label"><i class="ri ri-star-line me-1"></i>Principal</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill bg-{{ $almacen->status ? 'success' : 'secondary' }}-label">
+                                    {{ $almacen->status ? 'Activo' : 'Inactivo' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="ri ri-more-2-line"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        @can('edit almacenes')
+                                            <li>
                                                 <button class="dropdown-item" wire:click="openModal({{ $almacen->id }})">
-                                                    <i class="ri ri-pencil-line me-1"></i> Editar
+                                                    <i class="ri ri-pencil-line me-2"></i>Editar
                                                 </button>
-                                            @endcan
-                                            @can('delete almacenes')
+                                            </li>
+                                        @endcan
+                                        @can('delete almacenes')
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
                                                 <button class="dropdown-item text-danger"
                                                         wire:click="delete({{ $almacen->id }})"
                                                         wire:confirm="¿Eliminar este almacén?">
-                                                    <i class="ri ri-delete-bin-line me-1"></i> Eliminar
+                                                    <i class="ri ri-delete-bin-line me-2"></i>Eliminar
                                                 </button>
-                                            @endcan
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="5" class="text-center text-muted py-4">No se encontraron almacenes</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            {{ $almacenes->links('livewire.pagination') }}
+                                            </li>
+                                        @endcan
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="ri ri-inbox-line ri-3x d-block mb-3"></i>
+                                <p class="mb-0">No se encontraron almacenes</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
+
+        {{-- Pagination --}}
+        @if($almacenes->hasPages())
+            <div class="card-footer bg-white border-0 pt-3 pb-3">
+                {{ $almacenes->links('livewire.pagination') }}
+            </div>
+        @endif
     </div>
 
     <!-- Modal -->

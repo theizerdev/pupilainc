@@ -169,6 +169,9 @@
                             @forelse($users as $user)
                                 <tr class="usuario-row">
                                     <td>
+                                        {{ $user->id }}
+                                    </td>
+                                    <td>
                                         <div class="d-flex align-items-center">
                                             <div class="me-3 d-flex align-items-center justify-content-center"
                                                  style="width: 42px; height: 42px; border-radius: 8px; overflow: hidden; background-color: {{ $user->profile_photo_path ? '#f3f4f6' : '#dbeafe' }};">

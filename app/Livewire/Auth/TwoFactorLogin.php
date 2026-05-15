@@ -222,6 +222,6 @@ class TwoFactorLogin extends Component
     public function render()
     {
         return view('livewire.auth.two-factor-login')
-            ->layout('components.layouts.auth-basic', ['title' => 'Verificación 2FA']);
+            ->layout('components.layouts.auth-cover', ['title' => 'Verificación 2FA']);
     }
 }
