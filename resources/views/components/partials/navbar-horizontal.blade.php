@@ -145,18 +145,18 @@
           <div class="dropdown-divider"></div>
         </li>
 
-        <li>
-            <div class="d-grid px-4 pt-2 pb-1">
-                <button type="button" class="btn btn-sm btn-danger d-flex align-items-center justify-content-center"
-                    onclick="handleLogout(event)">
-                    <i class="icon-base ri ri-logout-box-r-line icon-16px me-2"></i>
-                    <span>Salir del sistema</span>
-                </button>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                    @csrf
-                </form>
-            </div>
-        </li>
+          <li>
+                        <div class="d-grid px-4 pt-2 pb-1">
+                      <a class="btn btn-sm btn-danger d-flex" href="{{ route('logout') }}"
+                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <i class="icon-base ri ri-logout-box-r-line ms-2 icon-16px"></i>
+                        <span>Salir del sistema</span>
+                       </a>
+                       <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                         @csrf
+                      </form>
+                     </div>
+                    </li>
       </ul>
     </li>
     <!--/ User -->
