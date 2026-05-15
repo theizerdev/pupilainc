@@ -26,7 +26,7 @@
                                                autocomplete="off"
                                                @if($proveedor_seleccionado) value="{{ $proveedor_seleccionado->nombre }}" @endif>
 
-                                        @if(strlen($proveedor_search) > 0 && count($proveedores_filtrados) > 0)
+                                        @if(strlen($proveedor_search) > 0 && count($proveedores_filtrados) > 0 && !$proveedor_seleccionado)
                                         <div class="position-absolute w-100" style="z-index: 1000;">
                                             <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
                                                 @foreach($proveedores_filtrados as $prov)
@@ -69,13 +69,13 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label>Fecha Emisión *</label>
                                     <input type="date" class="form-control" wire:model="fecha_emision">
                                 </div>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <div class="form-group mb-3">
                                     <label>Fecha Esperada</label>
                                     <input type="date" class="form-control" wire:model="fecha_esperada">

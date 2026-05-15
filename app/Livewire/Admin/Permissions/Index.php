@@ -138,7 +138,7 @@ class Index extends Component
         $uniqueModules = Permission::distinct('module')->count('module');
 
         return view('livewire.admin.permissions.index', compact('permissions', 'modules', 'guards', 'totalPermissions', 'permissionsWithRoles', 'permissionsWithoutRoles', 'uniqueModules'))
-            ->layout('components.layouts.admin', [
+            ->layout($this->getLayout(), [
                 'title' => 'Lista de Permisos'
             ]);
     }

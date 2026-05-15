@@ -1,36 +1,82 @@
 <div>
-    <!-- Enhanced Alerts -->
+    @section('title', 'Conexión WhatsApp')
+
+    @push('styles')
+    <style>
+        .whatsapp-hero { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color:#fff; border-radius:.75rem; padding:1.4rem 1.6rem; }
+        .whatsapp-hero h2 { color:#fff; margin:0; }
+        .whatsapp-hero p { opacity:.9; margin:0; }
+
+        .stat-card { border:1px solid rgba(0,0,0,.06); border-radius:.65rem; padding:.9rem 1rem;
+                     transition:all .2s; display:flex; align-items:center; gap:.85rem; height:100%; background:#fff; }
+        .stat-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.07); transform:translateY(-1px); }
+        .stat-card .stat-icon { width:44px; height:44px; border-radius:11px; flex:0 0 44px;
+                                display:flex; align-items:center; justify-content:center; font-size:1.15rem; }
+        .stat-card .stat-value { font-size:1.35rem; font-weight:600; line-height:1; }
+        .stat-card .stat-label { font-size:.72rem; color:var(--bs-secondary-color);
+                                 text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+
+        .qr-container { border:2px dashed #25D366; border-radius:12px; padding:20px; background:#f8f9fa; }
+        .connection-card { border:1px solid rgba(0,0,0,.06); border-radius:.65rem; transition:all .2s; background:#fff; }
+        .connection-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.07); }
+    </style>
+    @endpush
+
+
+
+    {{-- Hero Section --}}
+    <div class="whatsapp-hero mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="position-relative">
+                <div class="avatar avatar-lg">
+                    <span class="avatar-initial rounded-circle bg-white text-success p-2">
+                        <i class="ri ri-link-line ri-24px"></i>
+                    </span>
+                    @if($status === 'connected')
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
+                            <span class="visually-hidden">Connected</span>
+                        </span>
+                    @endif
+                </div>
+            </div>
+            <div>
+                <h2 class="fw-semibold mb-1"><i class="ri ri-link-line me-2"></i>Conexión WhatsApp</h2>
+                <p class="mb-0 opacity-75">
+                    @if($status === 'connected')
+                        <span class="badge bg-white text-success me-2"><i class="ri ri-checkbox-circle-fill me-1"></i>Conectado</span>
+                        {{ $empresaNombre ?? 'Empresa' }}
+                    @elseif($status === 'connecting' || $status === 'qr_ready')
+                        <span class="badge bg-white text-warning me-2"><i class="ri ri-loader-4-line me-1"></i>Conectando...</span>
+                        Escanee el código QR para continuar
+                    @else
+                        <span class="badge bg-white text-danger me-2"><i class="ri ri-close-circle-fill me-1"></i>Desconectado</span>
+                        Inicie la conexión para enviar mensajes
+                    @endif
+                </p>
+            </div>
+        </div>
+        <button wire:click="checkStatus" class="btn btn-light btn-sm" wire:loading.attr="disabled" wire:target="checkStatus">
+            <span wire:loading.remove wire:target="checkStatus">
+                <i class="ri ri-refresh-line me-1"></i>Verificar Estado
+            </span>
+            <span wire:loading wire:target="checkStatus">
+                <span class="spinner-border spinner-border-sm me-1"></span>Verificando...
+            </span>
+        </button>
+    </div>
+
+    {{-- Alerts --}}
     @if($error)
         <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
-            <div class="d-flex align-items-center">
-                <div class="flex-shrink-0 me-3">
-                    <div class="avatar avatar-sm bg-danger rounded-circle">
-                        <i class="ri ri-error-warning-line ri-16px"></i>
-                    </div>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="alert-heading mb-1">Error de Conexión</h6>
-                    <p class="mb-0">{{ $error }}</p>
-                </div>
-                <button type="button" class="btn-close" wire:click="clearMessages"></button>
-            </div>
+            <i class="ri ri-error-warning-line me-2"></i><strong>Error:</strong> {{ $error }}
+            <button type="button" class="btn-close" wire:click="clearMessages"></button>
         </div>
     @endif
 
     @if($success)
         <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-            <div class="d-flex align-items-center">
-                <div class="flex-shrink-0 me-3">
-                    <div class="avatar avatar-sm bg-success rounded-circle">
-                        <i class="ri ri-checkbox-circle-line ri-16px"></i>
-                    </div>
-                </div>
-                <div class="flex-grow-1">
-                    <h6 class="alert-heading mb-1">¡Éxito!</h6>
-                    <p class="mb-0">{{ $success }}</p>
-                </div>
-                <button type="button" class="btn-close" wire:click="clearMessages"></button>
-            </div>
+            <i class="ri ri-checkbox-circle-line me-2"></i><strong>Éxito:</strong> {{ $success }}
+            <button type="button" class="btn-close" wire:click="clearMessages"></button>
         </div>
     @endif
 
@@ -53,7 +99,7 @@
                     <div class="text-center mb-4">
                         <div class="position-relative d-inline-block">
                             <div class="avatar avatar-lg mb-3">
-                               
+
                                <div class="avatar avatar-online me-3">
                                     @if(Auth::check() && Auth::user()->initials)
                                         <span class="avatar-initials bg-label-success"><i class="ri ri-check-double-line ri-24px"></i></span>
@@ -63,7 +109,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <h3 class="mb-2 text-{{ $statusColor }}">{{ $statusText }}</h3>
 
                         @if($user && $status === 'connected')
@@ -100,13 +146,13 @@
                                 </small>
                                 <span class="badge bg-label-info">{{ \Carbon\Carbon::parse($lastSeen)->diffForHumans() }}</span>
                             </div>
-                            
+
                             <div class="progress" style="height: 6px;">
-                                <div class="progress-bar bg-success" 
-                                     role="progressbar" 
-                                     style="width: {{ $uptimePercentage ?? 95 }}%" 
-                                     aria-valuenow="{{ $uptimePercentage ?? 95 }}" 
-                                     aria-valuemin="0" 
+                                <div class="progress-bar bg-success"
+                                     role="progressbar"
+                                     style="width: {{ $uptimePercentage ?? 95 }}%"
+                                     aria-valuenow="{{ $uptimePercentage ?? 95 }}"
+                                     aria-valuemin="0"
                                      aria-valuemax="100"></div>
                             </div>
                             <small class="text-muted mt-1 d-block">Uptime: {{ $uptimePercentage ?? 95 }}%</small>
@@ -115,7 +161,7 @@
 
                     <!-- Action Buttons -->
                     <div class="d-grid gap-2 mt-4">
-                       
+
                             <button wire:click="connect"
                                     class="btn btn-success btn-lg"
                                     wire:loading.attr="disabled"
@@ -127,7 +173,7 @@
                                     <span class="spinner-border spinner-border-sm me-2"></span>Conectando...
                                 </span>
                             </button>
-                    
+
 
                         @if($status === 'connected')
                             <button wire:click="disconnect"
@@ -197,8 +243,8 @@
 
                             <div class="mt-3">
                                 <div class="progress" style="height: 8px;">
-                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
-                                         role="progressbar" 
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
+                                         role="progressbar"
                                          style="width: 75%"></div>
                                 </div>
                                 <small class="text-muted">Expira en: 60 segundos</small>
@@ -214,10 +260,10 @@
                             </div>
                             <h5>Generando conexión segura...</h5>
                             <p class="text-muted">Preparando código QR para vinculación</p>
-                            
+
                             <div class="progress mt-3" style="height: 6px;">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                                     role="progressbar" 
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar"
                                      style="width: 45%"></div>
                             </div>
                         </div>
@@ -296,48 +342,47 @@
 
         <!-- Connection Statistics Card -->
         <div class="col-xl-4 col-lg-12">
-            <div class="card h-100 border-0 shadow-sm">
-                <div class="card-header bg-gradient-dark text-white">
-                    <h5 class="card-title mb-0 text-white">
-                        <i class="ri ri-bar-chart-line me-2"></i>Estadísticas de Conexión
-                    </h5>
+            <div class="connection-card card h-100 border-0 shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="mb-0 fw-semibold"><i class="ri ri-bar-chart-line me-2 text-primary"></i>Estadísticas de Conexión</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row g-3">
+                    {{-- Stat Cards Compactas --}}
+                    <div class="row g-3 mb-4">
                         <div class="col-6">
-                            <div class="border rounded p-3 text-center">
-                                <div class="avatar avatar-md bg-label-primary mb-2 mx-auto">
-                                    <i class="ri ri-message-2-line ri-24px"></i>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="ri ri-message-2-line"></i></div>
+                                <div>
+                                    <div class="stat-label">Mensajes hoy</div>
+                                    <div class="stat-value">{{ $mensajesHoy }}</div>
                                 </div>
-                                <h4 class="mb-0">{{ format_money($mensajesHoy) }}</h4>
-                                <small class="text-muted">Mensajes hoy</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="border rounded p-3 text-center">
-                                <div class="avatar avatar-md bg-label-success mb-2 mx-auto">
-                                    <i class="ri ri-check-double-line ri-24px"></i>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="ri ri-check-double-line"></i></div>
+                                <div>
+                                    <div class="stat-label">Tasa éxito</div>
+                                    <div class="stat-value">{{ $tasaExito }}%</div>
                                 </div>
-                                <h4 class="mb-0">{{ $tasaExito }}%</h4>
-                                <small class="text-muted">Tasa éxito</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="border rounded p-3 text-center">
-                                <div class="avatar avatar-md bg-label-warning mb-2 mx-auto">
-                                    <i class="ri ri-time-line ri-24px"></i>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:#fef3c7;color:#d97706;"><i class="ri ri-time-line"></i></div>
+                                <div>
+                                    <div class="stat-label">Latencia</div>
+                                    <div class="stat-value">{{ $latenciaPromedio }}ms</div>
                                 </div>
-                                <h4 class="mb-0">{{ $latenciaPromedio }}ms</h4>
-                                <small class="text-muted">Latencia</small>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="border rounded p-3 text-center">
-                                <div class="avatar avatar-md bg-label-info mb-2 mx-auto">
-                                    <i class="ri ri-calendar-line ri-24px"></i>
+                            <div class="stat-card">
+                                <div class="stat-icon" style="background:#cffafe;color:#0891b2;"><i class="ri ri-calendar-line"></i></div>
+                                <div>
+                                    <div class="stat-label">Tiempo activo</div>
+                                    <div class="stat-value" style="font-size:1rem;">{{ $this->diasActivoFormateado }}</div>
                                 </div>
-                                <h4 class="mb-0">{{ $this->diasActivoFormateado }}</h4>
-                                <small class="text-muted">Tiempo activo</small>
                             </div>
                         </div>
                     </div>
@@ -351,8 +396,8 @@
                             </span>
                         </div>
                         <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-{{ $status === 'connected' ? 'success' : ($status === 'disconnected' ? 'danger' : 'warning') }}" 
-                                 role="progressbar" 
+                            <div class="progress-bar bg-{{ $status === 'connected' ? 'success' : ($status === 'disconnected' ? 'danger' : 'warning') }}"
+                                 role="progressbar"
                                  style="width: {{ $saludConexion }}%"></div>
                         </div>
                     </div>
@@ -388,8 +433,8 @@
                         <div class="col-md-8">
                             <h6 class="mb-1">Información Técnica Importante</h6>
                             <p class="text-muted mb-0 small">
-                                La conexión se mantiene activa mientras el servidor esté funcionando. 
-                                Si cierra esta página, la conexión continuará activa. 
+                                La conexión se mantiene activa mientras el servidor esté funcionando.
+                                Si cierra esta página, la conexión continuará activa.
                                 WhatsApp puede desconectarse si el teléfono está sin internet por mucho tiempo.
                             </p>
                         </div>
@@ -486,7 +531,7 @@
 document.addEventListener('livewire:init', () => {
     @if($pollingActive && ($status === 'connecting' || $status === 'qr_ready'))
         console.log('🔄 Iniciando monitoreo de conexión...');
-        
+
         const statusInterval = setInterval(() => {
             @this.checkStatus()
                 .then(() => {
@@ -513,7 +558,7 @@ document.addEventListener('livewire:init', () => {
     Livewire.on('connection-status-updated', (event) => {
         const { status, message } = event;
         console.log(`📡 Estado de conexión actualizado: ${status}`);
-        
+
         // Show toast notification
         if (typeof toastr !== 'undefined') {
             if (status === 'connected') {

@@ -3,69 +3,614 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\DynamicDatabaseExport;
-use App\Traits\HasDynamicLayout;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use App\Traits\HasDynamicLayout;
 
 class DatabaseExport extends Component
 {
-    use HasDynamicLayout;
+    use HasDynamicLayout, WithFileUploads;
 
-    public $selectedTable = '';
-    public $selectedColumns = [];
-    public $availableColumns = [];
-    public $tableColumns = [];
-    public $conditions = [];
-    public $exportFormat = 'xlsx';
+    // Tab and wizard state
+    public $activeTab = 'export';
+    public $exportStep = 1;
+    public $importStep = 1;
+    public $password = '';
+    public $uploadedFile = null;
+    public $importFileName = '';
+    public $importFileSize = 0;
+    public $importValidationResults = [];
+    public $importProgress = 0;
+    public $totalTables = 0;
+    public $estimatedFileSize = '';
+    public $showPasswordModal = false;
+    public $pendingAction = '';
+    public $isImporting = false;
+
+    // Export progress
     public $exportProgress = 0;
     public $isExporting = false;
     public $exportFileName = '';
-    public $includeHeaders = true;
 
-    // Opciones de formato
-    public $formats = [
-        'xlsx' => 'Excel (.xlsx)',
-        'csv' => 'CSV (.csv)',
-        'pdf' => 'PDF (.pdf)',
-        'html' => 'HTML (.html)',
-        'sql' => 'SQL (.sql)'
+    // Messages
+    public $successMessage = '';
+    public $errorMessage = '';
+    public $downloadUrl = '';
+
+    // Export options
+    public $exportOptions = [
+        'include_structure' => true,
+        'include_data' => true,
+        'include_views' => true,
+        'include_procedures' => true,
+        'include_triggers' => true,
+        'include_functions' => true,
+        'exclude_system_tables' => true,
+        'compress' => false,
+        'add_drop_table' => true,
+        'add_if_not_exists' => true,
     ];
 
-    // Tablas disponibles (excluir tablas del sistema)
+    // Import options
+    public $importOptions = [
+        'drop_existing' => false,
+        'ignore_errors' => false,
+        'skip_foreign_key_checks' => true,
+    ];
+
+    // Available tables
     public $availableTables = [];
 
-    // Relaciones comunes
-    public $availableRelations = [];
-    public $selectedRelations = [];
-
     protected $rules = [
-        'selectedTable' => 'required|string',
-        'exportFormat' => 'required|in:xlsx,csv,pdf,html,sql',
-        'exportFileName' => 'nullable|string|max:255'
+        'password' => 'required',
+        'uploadedFile' => 'nullable|file|mimes:sql,gz|max:102400',
     ];
 
     public function mount()
     {
         $this->loadAvailableTables();
-        $this->conditions = [
-            ['column' => '', 'operator' => '=', 'value' => '', 'logic' => 'AND']
-        ];
+        $this->calculateEstimatedSize();
     }
 
     public function render()
     {
-        return view('livewire.admin.database-export-materialize')
+        return view('livewire.admin.database-export')
             ->layout($this->getLayout(), [
-                'title' => 'Exportar Base de Datos',
+                'title' => 'Exportar e Importar Base de Datos',
                 'breadcrumb' => [
                     ['name' => 'Dashboard', 'route' => 'admin.dashboard'],
-                    ['name' => 'Exportar BD', 'active' => true]
+                    ['name' => 'Base de Datos', 'active' => true]
                 ]
             ]);
     }
+
+    // ==================== TAB NAVIGATION ====================
+
+    public function switchTab($tab)
+    {
+        $this->activeTab = $tab;
+        $this->resetExport();
+        $this->resetImport();
+    }
+
+    // ==================== WIZARD NAVIGATION ====================
+
+    public function nextExportStep()
+    {
+        if ($this->exportStep < 3) {
+            $this->exportStep++;
+        }
+    }
+
+    public function previousExportStep()
+    {
+        if ($this->exportStep > 1) {
+            $this->exportStep--;
+        }
+    }
+
+    public function resetExport()
+    {
+        $this->exportStep = 1;
+        $this->exportProgress = 0;
+        $this->isExporting = false;
+        $this->exportFileName = '';
+    }
+
+    public function nextImportStep()
+    {
+        if ($this->importStep < 3) {
+            $this->importStep++;
+        }
+    }
+
+    public function previousImportStep()
+    {
+        if ($this->importStep > 1) {
+            $this->importStep--;
+        }
+    }
+
+    public function resetImport()
+    {
+        $this->importStep = 1;
+        $this->uploadedFile = null;
+        $this->importValidationResults = [];
+        $this->importProgress = 0;
+        $this->isImporting = false;
+        $this->importFileName = '';
+        $this->importFileSize = 0;
+    }
+
+    // ==================== PASSWORD VERIFICATION ====================
+
+    public function requestPasswordVerification($action)
+    {
+        $this->pendingAction = $action;
+        $this->password = '';
+        $this->showPasswordModal = true;
+        $this->dispatch('show-password-modal');
+    }
+
+    public function verifyPassword()
+    {
+        $this->validate([
+            'password' => 'required'
+        ]);
+
+        if (!Hash::check($this->password, auth()->user()->password)) {
+            $this->addError('password', 'La contraseña es incorrecta');
+            return false;
+        }
+
+        // Close modal FIRST before executing action
+        $this->showPasswordModal = false;
+        $this->password = '';
+        $this->dispatch('hide-password-modal');
+
+        if ($this->pendingAction === 'export') {
+            try {
+                $this->executeExport();
+            } catch (\Exception $e) {
+                $this->errorMessage = 'Error al exportar: ' . $e->getMessage();
+                Log::error('Database export error: ' . $e->getMessage());
+            }
+        } elseif ($this->pendingAction === 'import') {
+            try {
+                $this->executeImport();
+            } catch (\Exception $e) {
+                $this->errorMessage = 'Error en importación: ' . $e->getMessage();
+                Log::error('Database import error: ' . $e->getMessage());
+            }
+        }
+
+        return true;
+    }
+
+    // ==================== EXPORT FUNCTIONS ====================
+
+    public function executeExport()
+    {
+        $this->exportStep = 4;
+        $this->isExporting = true;
+        $this->exportProgress = 10;
+        $this->successMessage = '';
+        $this->errorMessage = '';
+        $this->downloadUrl = '';
+
+        try {
+            $databaseName = DB::getDatabaseName();
+            $fileName = 'backup_' . str_replace('_', '-', $databaseName) . '_' . now()->format('Y-m-d_His');
+
+            $this->exportProgress = 30;
+
+            $sqlContent = $this->generateCompleteSQLDump();
+
+            $this->exportProgress = 70;
+
+            // Compress if requested
+            if ($this->exportOptions['compress']) {
+                $fileName .= '.sql.gz';
+                $sqlContent = gzencode($sqlContent);
+            } else {
+                $fileName .= '.sql';
+            }
+
+            $this->exportProgress = 90;
+
+            // Save to storage temporarily
+            $filePath = 'backups/' . $fileName;
+            Storage::disk('local')->put($filePath, $sqlContent);
+
+            // Generate download URL
+            $this->downloadUrl = route('admin.database-download', ['file' => $fileName]);
+
+            $this->exportProgress = 100;
+
+            // Log the export action
+            activity()
+                ->causedBy(auth()->user())
+                ->log('Exportación de base de datos: ' . $fileName);
+
+            $this->exportFileName = $fileName;
+            $this->isExporting = false;
+            $this->successMessage = 'Exportación completada. La descarga comenzará automáticamente.';
+
+            // Trigger download via JavaScript
+            $this->dispatch('trigger-download', url: $this->downloadUrl);
+
+        } catch (\Exception $e) {
+            $this->errorMessage = 'Error al exportar: ' . $e->getMessage();
+            Log::error('Database export error: ' . $e->getMessage());
+            $this->isExporting = false;
+            throw $e;
+        }
+    }
+
+    private function generateCompleteSQLDump()
+    {
+        $output = [];
+
+        // Header
+        $output[] = "-- ============================================";
+        $output[] = "-- Exportación de Base de Datos Completa";
+        $output[] = "-- ============================================";
+        $output[] = "-- Fecha: " . now()->format('Y-m-d H:i:s');
+        $output[] = "-- Sistema: Solumed - Sistema de Gestión";
+        $output[] = "-- Usuario: " . (auth()->check() ? auth()->user()->name : 'Sistema');
+        $output[] = "-- Empresa: " . (auth()->check() && auth()->user()->empresa ? auth()->user()->empresa->nombre : 'N/A');
+        $output[] = "-- Base de datos: " . DB::getDatabaseName();
+        $output[] = "-- ============================================";
+        $output[] = "";
+        $output[] = "SET FOREIGN_KEY_CHECKS = 0;";
+        $output[] = "SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';";
+        $output[] = "START TRANSACTION;";
+        $output[] = "SET time_zone = '+00:00';";
+        $output[] = "";
+
+        // Tables
+        $tablesToExport = $this->availableTables;
+        $totalTables = count($tablesToExport);
+        $processed = 0;
+
+        foreach ($tablesToExport as $table => $label) {
+            $processed++;
+            $this->exportProgress = 30 + ($processed / $totalTables * 40);
+
+            $output = array_merge($output, $this->getTableSQL($table));
+        }
+
+        // Commit
+        $output[] = "";
+        $output[] = "COMMIT;";
+        $output[] = "";
+        $output[] = "SET FOREIGN_KEY_CHECKS = 1;";
+
+        return implode("\n", $output);
+    }
+
+    private function getTableSQL($tableName)
+    {
+        $output = [];
+
+        try {
+            // Table structure
+            if ($this->exportOptions['include_structure']) {
+                $output[] = "--";
+                $output[] = "-- Estructura de tabla para `{$tableName}`";
+                $output[] = "--";
+
+                if ($this->exportOptions['add_drop_table']) {
+                    $output[] = "DROP TABLE IF EXISTS `{$tableName}`;";
+                }
+
+                $createTable = DB::selectOne("SHOW CREATE TABLE `{$tableName}`");
+                $createStatement = $createTable->{'Create Table'};
+
+                if ($this->exportOptions['add_if_not_exists']) {
+                    $createStatement = str_replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', $createStatement);
+                }
+
+                $output[] = $createStatement . ";";
+                $output[] = "";
+            }
+
+            // Table data
+            if ($this->exportOptions['include_data']) {
+                $output[] = "--";
+                $output[] = "-- Volcado de datos para la tabla `{$tableName}`";
+                $output[] = "--";
+
+                $query = DB::table($tableName);
+                $records = $query->get();
+
+                if ($records->isNotEmpty()) {
+                    foreach ($records as $record) {
+                        $data = (array) $record;
+                        $columns = array_keys($data);
+                        $values = array_map(function($value) {
+                            if ($value === null) {
+                                return 'NULL';
+                            } elseif (is_numeric($value)) {
+                                return $value;
+                            } elseif (is_bool($value)) {
+                                return $value ? 1 : 0;
+                            } else {
+                                return "'" . addslashes($value) . "'";
+                            }
+                        }, array_values($data));
+
+                        $sql = "INSERT INTO `{$tableName}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $values) . ");";
+                        $output[] = $sql;
+                    }
+                }
+
+                $output[] = "";
+            }
+
+        } catch (\Exception $e) {
+            $output[] = "-- Error al procesar la tabla {$tableName}: " . $e->getMessage();
+            $output[] = "";
+            Log::warning("Error exporting table {$tableName}: " . $e->getMessage());
+        }
+
+        return $output;
+    }
+
+    // ==================== IMPORT FUNCTIONS ====================
+
+    public function updatedUploadedFile()
+    {
+        if ($this->uploadedFile) {
+            $this->importFileName = $this->uploadedFile->getClientOriginalName();
+            $this->importFileSize = $this->uploadedFile->getSize();
+        }
+    }
+
+    public function validateImportFile()
+    {
+        $this->importStep = 2;
+
+        if (!$this->uploadedFile) {
+            $this->addError('uploadedFile', 'Por favor selecciona un archivo');
+            return;
+        }
+
+        // Validate file
+        $validator = Validator::make([
+            'file' => $this->uploadedFile
+        ], [
+            'file' => 'required|file|mimes:sql,gz|max:102400'
+        ]);
+
+        if ($validator->fails()) {
+            $this->addError('uploadedFile', $validator->errors()->first('file'));
+            $this->importStep = 1;
+            return;
+        }
+
+        // Read and validate content
+        try {
+            $content = file_get_contents($this->uploadedFile->getRealPath());
+
+            // Handle gzip
+            if ($this->uploadedFile->getClientOriginalExtension() === 'gz') {
+                $content = gzdecode($content);
+                if ($content === false) {
+                    $this->addError('uploadedFile', 'El archivo gzip está corrupto');
+                    $this->importStep = 1;
+                    return;
+                }
+            }
+
+            // Check if valid SQL
+            if (stripos($content, 'CREATE TABLE') === false && stripos($content, 'INSERT INTO') === false) {
+                $this->addError('uploadedFile', 'El archivo no parece ser un archivo SQL válido');
+                $this->importStep = 1;
+                return;
+            }
+
+            // Analyze file
+            $this->importValidationResults = $this->analyzeSQLFile($content);
+
+        } catch (\Exception $e) {
+            $this->addError('uploadedFile', 'Error al leer el archivo: ' . $e->getMessage());
+            $this->importStep = 1;
+        }
+    }
+
+    private function analyzeSQLFile($content)
+    {
+        $results = [
+            'total_tables' => 0,
+            'total_statements' => 0,
+            'has_structure' => false,
+            'has_data' => false,
+            'tables' => [],
+            'warnings' => []
+        ];
+
+        // Count CREATE TABLE statements
+        $createMatches = [];
+        preg_match_all('/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?(\w+)`?/i', $content, $createMatches);
+        $results['total_tables'] = count(array_unique($createMatches[1]));
+        $results['tables'] = array_unique($createMatches[1]);
+        $results['has_structure'] = $results['total_tables'] > 0;
+
+        // Count INSERT statements
+        $insertMatches = [];
+        preg_match_all('/INSERT\s+INTO\s+`?(\w+)`?/i', $content, $insertMatches);
+        $results['has_data'] = count($insertMatches[1]) > 0;
+
+        // Total statements (approximate)
+        $results['total_statements'] = substr_count($content, ';');
+
+        // Warnings
+        if (stripos($content, 'DROP TABLE') !== false) {
+            $results['warnings'][] = 'El archivo contiene sentencias DROP TABLE - Esto eliminará tablas existentes';
+        }
+
+        if (stripos($content, 'TRUNCATE') !== false) {
+            $results['warnings'][] = 'El archivo contiene sentencias TRUNCATE - Esto vaciará tablas';
+        }
+
+        return $results;
+    }
+
+    public function executeImport()
+    {
+        $this->importStep = 4;
+        $this->isImporting = true;
+        $this->importProgress = 10;
+        $this->successMessage = '';
+        $this->errorMessage = '';
+
+        try {
+            // Disable foreign key checks first (before any transaction)
+            if ($this->importOptions['skip_foreign_key_checks']) {
+                DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+            }
+
+            // Disable unique checks and autocommit for better performance
+            DB::statement('SET UNIQUE_CHECKS = 0');
+            DB::statement('SET AUTOCOMMIT = 0');
+
+            $content = file_get_contents($this->uploadedFile->getRealPath());
+
+            // Handle gzip
+            if ($this->uploadedFile->getClientOriginalExtension() === 'gz') {
+                $content = gzdecode($content);
+            }
+
+            // Parse and execute statements
+            $statements = $this->parseSQLStatements($content);
+            $executed = 0;
+            $total = count($statements);
+            $errors = [];
+
+            $this->importProgress = 30;
+
+            // Execute statements without wrapping in a single transaction
+            // DDL statements (DROP, CREATE) cannot be in transactions in MySQL
+            foreach ($statements as $index => $statement) {
+                if (empty(trim($statement))) continue;
+
+                try {
+                    DB::statement($statement);
+                    $executed++;
+                } catch (\Exception $e) {
+                    if (!$this->importOptions['ignore_errors']) {
+                        // Re-enable settings before throwing
+                        if ($this->importOptions['skip_foreign_key_checks']) {
+                            DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+                        }
+                        DB::statement('SET UNIQUE_CHECKS = 1');
+                        DB::statement('SET AUTOCOMMIT = 1');
+                        throw $e;
+                    }
+                    $errors[] = "Statement {$index}: " . $e->getMessage();
+                }
+
+                $this->importProgress = 30 + ($executed / max(1, $total) * 70);
+            }
+
+            // Commit any pending changes
+            DB::statement('COMMIT');
+
+            // Re-enable settings
+            if ($this->importOptions['skip_foreign_key_checks']) {
+                DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+            }
+            DB::statement('SET UNIQUE_CHECKS = 1');
+            DB::statement('SET AUTOCOMMIT = 1');
+
+            $this->importProgress = 100;
+
+            // Log the import action
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'file' => $this->importFileName,
+                    'statements_executed' => $executed,
+                    'total_statements' => $total,
+                    'errors_count' => count($errors)
+                ])
+                ->log('Importación de base de datos: ' . $this->importFileName);
+
+            if (count($errors) > 0) {
+                $this->successMessage = "Importación completada con advertencias: {$executed} sentencias ejecutadas, " . count($errors) . " errores ignorados";
+            } else {
+                $this->successMessage = "Importación exitosa: {$executed} sentencias ejecutadas";
+            }
+
+        } catch (\Exception $e) {
+            // Ensure settings are re-enabled on error
+            try {
+                if ($this->importOptions['skip_foreign_key_checks']) {
+                    DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+                }
+                DB::statement('SET UNIQUE_CHECKS = 1');
+                DB::statement('SET AUTOCOMMIT = 1');
+            } catch (\Exception $cleanupError) {
+                Log::error('Error cleaning up import settings: ' . $cleanupError->getMessage());
+            }
+
+            $this->errorMessage = 'Error en importación: ' . $e->getMessage();
+            Log::error('Database import error: ' . $e->getMessage());
+            throw $e;
+        } finally {
+            $this->isImporting = false;
+        }
+    }
+
+    private function parseSQLStatements($content)
+    {
+        $statements = [];
+        $current = '';
+        $delimiter = ';';
+
+        $lines = explode("\n", $content);
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+
+            // Skip empty lines
+            if (empty($line)) {
+                continue;
+            }
+
+            // Skip comments
+            if (strpos($line, '--') === 0 || strpos($line, '/*') === 0) {
+                continue;
+            }
+
+            // Check for DELIMITER change
+            if (stripos($line, 'DELIMITER') === 0) {
+                $delimiter = trim(str_ireplace('DELIMITER', '', $line));
+                continue;
+            }
+
+            $current .= $line . "\n";
+
+            // Check if statement is complete
+            if (substr(trim($line), -strlen($delimiter)) === $delimiter) {
+                $statement = trim(str_replace($delimiter, '', $current));
+                if (!empty($statement)) {
+                    $statements[] = $statement;
+                }
+                $current = '';
+            }
+        }
+
+        return $statements;
+    }
+
+    // ==================== UTILITY FUNCTIONS ====================
 
     public function loadAvailableTables()
     {
@@ -74,7 +619,6 @@ class DatabaseExport extends Component
         $databaseName = DB::getDatabaseName();
         $key = 'Tables_in_' . $databaseName;
 
-        // Tablas a excluir (del sistema)
         $excludedTables = [
             'migrations', 'password_resets', 'password_reset_tokens',
             'personal_access_tokens', 'cache', 'cache_locks', 'jobs',
@@ -91,215 +635,27 @@ class DatabaseExport extends Component
         asort($this->availableTables);
     }
 
-    public function updatedSelectedTable($tableName)
+    public function calculateEstimatedSize()
     {
-        if (empty($tableName)) {
-            $this->reset(['availableColumns', 'tableColumns', 'selectedColumns', 'availableRelations']);
-            $this->dispatch('contentChanged');
-            return;
-        }
+        $totalSize = 0;
 
-        $this->loadTableColumns($tableName);
-        $this->loadTableRelations($tableName);
-        $this->selectedColumns = array_keys($this->availableColumns);
-        $this->generateDefaultFileName();
-        $this->dispatch('contentChanged');
-    }
-
-    public function updatedExportFormat($format)
-    {
-        // Si cambia a SQL y no hay tabla seleccionada, resetear columnas
-        if ($format === 'sql' && $this->selectedTable !== '*') {
-            $this->selectedColumns = [];
-        }
-
-        // Regenerar el nombre del archivo con el nuevo formato
-        $this->generateDefaultFileName();
-        $this->dispatch('contentChanged');
-    }
-
-    public function loadTableColumns($tableName)
-    {
-        $this->availableColumns = [];
-        $this->tableColumns = [];
-
-        try {
-            $columns = Schema::getColumnListing($tableName);
-
-            foreach ($columns as $column) {
-                $columnType = $this->getColumnType($tableName, $column);
-                $this->availableColumns[$column] = [
-                    'name' => $this->formatColumnName($column),
-                    'type' => $columnType,
-                    'original' => $column
-                ];
-                $this->tableColumns[$column] = $this->formatColumnName($column);
-            }
-        } catch (\Exception $e) {
-            session()->flash('error', 'Error al cargar las columnas: ' . $e->getMessage());
-        }
-    }
-
-    public function loadTableRelations($tableName)
-    {
-        $this->availableRelations = [];
-        $modelName = $this->getModelName($tableName);
-
-        if (class_exists($modelName)) {
+        foreach ($this->availableTables as $table => $label) {
             try {
-                $model = new $modelName();
-                $relations = $this->getModelRelations($model);
+                $stats = DB::selectOne("SELECT
+                    data_length + index_length as total_size,
+                    table_rows
+                FROM information_schema.TABLES
+                WHERE table_schema = '" . DB::getDatabaseName() . "'
+                AND table_name = '{$table}'");
 
-                foreach ($relations as $relation => $info) {
-                    $this->availableRelations[$relation] = [
-                        'name' => $this->formatColumnName($relation),
-                        'type' => $info['type'],
-                        'related_model' => $info['model']
-                    ];
-                }
+                $totalSize += $stats->total_size ?? 0;
             } catch (\Exception $e) {
-                // Silenciar errores de relaciones
+                // Skip if error
             }
         }
-    }
 
-    public function addCondition()
-    {
-        $this->conditions[] = ['column' => '', 'operator' => '=', 'value' => '', 'logic' => 'AND'];
-        $this->dispatch('contentChanged');
-    }
-
-    public function removeCondition($index)
-    {
-        unset($this->conditions[$index]);
-        $this->conditions = array_values($this->conditions);
-
-        // Asegurar que el primer elemento no tenga operador lógico
-        if (!empty($this->conditions)) {
-            $this->conditions[0]['logic'] = 'AND';
-        }
-        
-        $this->dispatch('contentChanged');
-    }
-
-    public function updatedConditions($value, $key)
-    {
-        list($index, $field) = explode('.', $key);
-
-        // Si es el primer elemento y cambia a OR, forzar AND
-        if ($index == 0 && $field == 'logic' && $value == 'OR') {
-            $this->conditions[$index]['logic'] = 'AND';
-        }
-        
-        $this->dispatch('contentChanged');
-    }
-
-    public function selectAllColumns()
-    {
-        $this->selectedColumns = array_keys($this->availableColumns);
-        $this->dispatch('contentChanged');
-    }
-
-    public function deselectAllColumns()
-    {
-        $this->selectedColumns = [];
-        $this->dispatch('contentChanged');
-    }
-
-    public function startExport()
-    {
-        $this->validate();
-
-        // Validación especial para exportación SQL
-        if ($this->exportFormat === 'sql') {
-            return $this->exportSQL();
-        }
-
-        if (empty($this->selectedColumns)) {
-            session()->flash('message', 'Por favor selecciona al menos una columna para exportar.');
-            session()->flash('message_type', 'error');
-            return;
-        }
-
-        $this->isExporting = true;
-        $this->exportProgress = 0;
-
-        try {
-            $exportData = [
-                'table' => $this->selectedTable,
-                'columns' => $this->selectedColumns,
-                'conditions' => array_filter($this->conditions, function($condition) {
-                    return !empty($condition['column']) && !empty($condition['value']);
-                }),
-                'relations' => $this->selectedRelations,
-                'empresa_id' => auth()->user()->empresa_id,
-                'sucursal_id' => auth()->user()->sucursal_id
-            ];
-
-            $fileName = $this->exportFileName ?: $this->generateDefaultFileName();
-
-            // Simular progreso
-            $this->exportProgress = 25;
-
-            $export = new DynamicDatabaseExport($exportData);
-
-            $this->exportProgress = 75;
-
-            return Excel::download($export, $fileName . '.' . $this->exportFormat);
-
-        } catch (\Exception $e) {
-            session()->flash('message', 'Error al exportar: ' . $e->getMessage());
-            session()->flash('message_type', 'error');
-            Log::error('Error en exportación de BD: ' . $e->getMessage());
-        } finally {
-            $this->isExporting = false;
-            $this->exportProgress = 100;
-        }
-    }
-
-    public function generateDefaultFileName()
-    {
-        if (empty($this->selectedTable)) {
-            $this->exportFileName = '';
-            return;
-        }
-
-        if ($this->selectedTable === '*') {
-            $databaseName = DB::getDatabaseName();
-            $date = now()->format('Y-m-d-His');
-            $this->exportFileName = 'database-' . str_replace('_', '-', $databaseName) . '-' . $date;
-        } else {
-            $tableName = str_replace('_', '-', $this->selectedTable);
-            $date = now()->format('Y-m-d-His');
-            $this->exportFileName = 'export-' . $tableName . '-' . $date;
-        }
-        
-        return $this->exportFileName;
-    }
-
-    private function getColumnType($table, $column)
-    {
-        try {
-            $columnType = DB::select("SHOW COLUMNS FROM {$table} WHERE Field = ?", [$column])[0]->Type;
-            return $this->formatColumnType($columnType);
-        } catch (\Exception $e) {
-            return 'string';
-        }
-    }
-
-    private function formatColumnType($type)
-    {
-        if (strpos($type, 'int') !== false) return 'integer';
-        if (strpos($type, 'decimal') !== false) return 'decimal';
-        if (strpos($type, 'float') !== false) return 'float';
-        if (strpos($type, 'double') !== false) return 'double';
-        if (strpos($type, 'date') !== false) return 'date';
-        if (strpos($type, 'datetime') !== false) return 'datetime';
-        if (strpos($type, 'timestamp') !== false) return 'timestamp';
-        if (strpos($type, 'varchar') !== false) return 'string';
-        if (strpos($type, 'text') !== false) return 'text';
-        if (strpos($type, 'boolean') !== false) return 'boolean';
-        return 'string';
+        $this->estimatedFileSize = $this->formatBytes($totalSize);
+        $this->totalTables = count($this->availableTables);
     }
 
     private function formatTableName($tableName)
@@ -307,220 +663,16 @@ class DatabaseExport extends Component
         return ucwords(str_replace('_', ' ', $tableName));
     }
 
-    private function formatColumnName($columnName)
+    private function formatBytes($bytes, $precision = 2)
     {
-        return ucwords(str_replace('_', ' ', $columnName));
-    }
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
-    private function getModelName($tableName)
-    {
-        $modelName = 'App\\Models\\' . str_replace(' ', '', ucwords(str_replace('_', ' ', $tableName)));
-        return rtrim($modelName, 's'); // Singular
-    }
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
 
-    private function getModelRelations($model)
-    {
-        $relations = [];
-        $reflection = new \ReflectionClass($model);
+        $bytes /= (1 << (10 * $pow));
 
-        foreach ($reflection->getMethods() as $method) {
-            if ($method->class !== get_class($model) || $method->getNumberOfParameters() > 0) {
-                continue;
-            }
-
-            try {
-                $return = $method->invoke($model);
-
-                if ($return instanceof \Illuminate\Database\Eloquent\Relations\Relation) {
-                    $relatedClass = get_class($return->getRelated());
-                    $relationType = class_basename(get_class($return));
-
-                    $relations[$method->getName()] = [
-                        'type' => $relationType,
-                        'model' => $relatedClass
-                    ];
-                }
-            } catch (\Exception $e) {
-                continue;
-            }
-        }
-
-        return $relations;
-    }
-
-    public function getAvailableOperators()
-    {
-        return [
-            '=' => 'Igual',
-            '!=' => 'Diferente',
-            '>' => 'Mayor que',
-            '<' => 'Menor que',
-            '>=' => 'Mayor o igual',
-            '<=' => 'Menor o igual',
-            'LIKE' => 'Contiene',
-            'NOT LIKE' => 'No contiene',
-            'IN' => 'En lista',
-            'NOT IN' => 'No en lista',
-            'IS NULL' => 'Es nulo',
-            'IS NOT NULL' => 'No es nulo'
-        ];
-    }
-
-    /**
-     * Exporta la base de datos completa o una tabla específica como archivo SQL
-     */
-    public function exportSQL()
-    {
-        $this->isExporting = true;
-        $this->exportProgress = 0;
-
-        try {
-            $fileName = $this->exportFileName ?: 'database_backup_' . now()->format('Y-m-d_His');
-            $fileName .= '.sql';
-
-            // Simular progreso
-            $this->exportProgress = 25;
-
-            // Obtener el contenido SQL
-            $sqlContent = $this->generateSQLDump();
-
-            $this->exportProgress = 75;
-
-            // Crear la respuesta para descargar el archivo SQL
-            return response()->streamDownload(function() use ($sqlContent) {
-                echo $sqlContent;
-            }, $fileName, [
-                'Content-Type' => 'application/sql',
-                'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
-            ]);
-
-        } catch (\Exception $e) {
-            session()->flash('message', 'Error al generar el archivo SQL: ' . $e->getMessage());
-            session()->flash('message_type', 'error');
-            Log::error('Error en exportación SQL: ' . $e->getMessage());
-        } finally {
-            $this->isExporting = false;
-            $this->exportProgress = 100;
-        }
-    }
-
-    /**
-     * Genera el contenido SQL del dump de la base de datos
-     */
-    private function generateSQLDump()
-    {
-        $output = [];
-
-        // Encabezado del archivo SQL
-        $output[] = "-- Exportación de Base de Datos";
-        $output[] = "-- Fecha: " . now()->format('Y-m-d H:i:s');
-        $output[] = "-- Sistema: Sistema de Gestión Académica";
-        $output[] = "-- Usuario: " . (auth()->check() ? auth()->user()->name : 'Sistema');
-        $output[] = "-- Empresa: " . (auth()->check() && auth()->user()->empresa ? auth()->user()->empresa->nombre : 'N/A');
-        $output[] = "";
-        $output[] = "SET FOREIGN_KEY_CHECKS = 0;";
-        $output[] = "";
-
-        // Si se seleccionó una tabla específica
-        if (!empty($this->selectedTable)) {
-            $output = array_merge($output, $this->getTableSQL($this->selectedTable));
-        } else {
-            // Exportar todas las tablas disponibles
-            foreach ($this->availableTables as $table => $tableLabel) {
-                $output = array_merge($output, $this->getTableSQL($table));
-            }
-        }
-
-        $output[] = "";
-        $output[] = "SET FOREIGN_KEY_CHECKS = 1;";
-
-        return implode("\n", $output);
-    }
-
-    /**
-     * Genera el SQL para una tabla específica
-     */
-    private function getTableSQL($tableName)
-    {
-        $output = [];
-
-        try {
-            // Estructura de la tabla
-            $output[] = "--";
-            $output[] = "-- Estructura de tabla para `{$tableName}`";
-            $output[] = "--";
-            $output[] = "DROP TABLE IF EXISTS `{$tableName}`;";
-
-            // Obtener la estructura CREATE TABLE
-            $createTable = DB::selectOne("SHOW CREATE TABLE `{$tableName}`");
-            $createStatement = $createTable->{'Create Table'};
-            $output[] = $createStatement . ";";
-            $output[] = "";
-
-            // Datos de la tabla
-            $output[] = "--";
-            $output[] = "-- Volcado de datos para la tabla `{$tableName}`";
-            $output[] = "--";
-
-            // Aplicar filtros si existen
-            $query = DB::table($tableName);
-
-            // Aplicar condiciones de filtro
-            $validConditions = array_filter($this->conditions, function($condition) {
-                return !empty($condition['column']) && !empty($condition['value']);
-            });
-
-            foreach ($validConditions as $condition) {
-                if ($condition['operator'] === 'LIKE') {
-                    $query->where($condition['column'], $condition['operator'], '%' . $condition['value'] . '%');
-                } elseif (in_array($condition['operator'], ['IS NULL', 'IS NOT NULL'])) {
-                    if ($condition['operator'] === 'IS NULL') {
-                        $query->whereNull($condition['column']);
-                    } else {
-                        $query->whereNotNull($condition['column']);
-                    }
-                } else {
-                    $query->where($condition['column'], $condition['operator'], $condition['value']);
-                }
-            }
-
-            // Filtrar por empresa y sucursal si aplica
-            if (Schema::hasColumn($tableName, 'empresa_id')) {
-                $query->where('empresa_id', auth()->user()->empresa_id);
-            }
-
-            if (Schema::hasColumn($tableName, 'sucursal_id')) {
-                $query->where('sucursal_id', auth()->user()->sucursal_id);
-            }
-
-            $records = $query->get();
-
-            if ($records->isNotEmpty()) {
-                foreach ($records as $record) {
-                    $data = (array) $record;
-                    $columns = array_keys($data);
-                    $values = array_map(function($value) {
-                        if ($value === null) {
-                            return 'NULL';
-                        } elseif (is_numeric($value)) {
-                            return $value;
-                        } else {
-                            return "'" . addslashes($value) . "'";
-                        }
-                    }, array_values($data));
-
-                    $sql = "INSERT INTO `{$tableName}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $values) . ");";
-                    $output[] = $sql;
-                }
-            }
-
-            $output[] = "";
-
-        } catch (\Exception $e) {
-            $output[] = "-- Error al procesar la tabla {$tableName}: " . $e->getMessage();
-            $output[] = "";
-        }
-
-        return $output;
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 }

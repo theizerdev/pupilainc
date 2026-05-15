@@ -1,78 +1,73 @@
 <div>
-    <!-- Enhanced Header with Status Overview -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-4">
-                        <div class="d-flex align-items-center gap-4">
-                            <div class="position-relative">
-                                <div class="avatar avatar-xl">
-                                    <span class="avatar-initial rounded-circle bg-label-{{ $statusColor }} p-3">
-                                        <i class="{{ $statusIcon }} ri-28px"></i>
-                                    </span>
-                                    @if($status === 'connected')
-                                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
-                                            <span class="visually-hidden">Connected</span>
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                            <div>
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                                    <h3 class="mb-0 fw-bold">WhatsApp Business</h3>
-                                    <span class="badge bg-{{ $statusColor }} fs-6 px-3 py-2">
-                                        <i class="{{ $statusIcon }} me-1"></i>{{ $statusText }}
-                                    </span>
-                                </div>
-                                
-                                @if($user && $status === 'connected')
-                                    <div class="d-flex flex-wrap align-items-center gap-3 text-muted">
-                                        <div class="d-flex align-items-center">
-                                            <i class="ri ri-user-line me-2 text-primary"></i>
-                                            <span class="fw-medium">{{ $user['name'] ?? 'Usuario' }}</span>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <i class="ri ri-phone-line me-2 text-success"></i>
-                                            <span>{{ $user['id'] ?? 'N/A' }}</span>
-                                        </div>
-                                        @if($lastSeen)
-                                            <div class="d-flex align-items-center">
-                                                <i class="ri ri-time-line me-2 text-info"></i>
-                                                <span>Última actividad: {{ \Carbon\Carbon::parse($lastSeen)->diffForHumans() }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                @elseif($connectionError)
-                                    <div class="d-flex align-items-center text-danger">
-                                        <i class="ri ri-error-warning-line me-2"></i>
-                                        <span>{{ $connectionError }}</span>
-                                    </div>
-                                @else
-                                    <p class="mb-0 text-muted">
-                                        <i class="ri ri-information-line me-2"></i>No hay sesión activa de WhatsApp
-                                    </p>
-                                @endif
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex flex-wrap gap-2">
-                            <button wire:click="refresh" 
-                                    class="btn btn-outline-primary" 
-                                    wire:loading.attr="disabled">
-                                <span wire:loading.remove wire:target="refresh">
-                                    <i class="ri ri-refresh-line me-1"></i>Actualizar
-                                </span>
-                                <span wire:loading wire:target="refresh">
-                                    <span class="spinner-border spinner-border-sm me-1"></span>Actualizando...
-                                </span>
-                            </button>
-                            
-                           
-                        </div>
-                    </div>
+    @section('title', 'WhatsApp Business')
+
+    @push('styles')
+    <style>
+        .whatsapp-hero { background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); color:#fff; border-radius:.75rem; padding:1.4rem 1.6rem; }
+        .whatsapp-hero h2 { color:#fff; margin:0; }
+        .whatsapp-hero p { opacity:.9; margin:0; }
+
+        .stat-card { border:1px solid rgba(0,0,0,.06); border-radius:.65rem; padding:.9rem 1rem;
+                     transition:all .2s; display:flex; align-items:center; gap:.85rem; height:100%; background:#fff; }
+        .stat-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.07); transform:translateY(-1px); }
+        .stat-card .stat-icon { width:44px; height:44px; border-radius:11px; flex:0 0 44px;
+                                display:flex; align-items:center; justify-content:center; font-size:1.15rem; }
+        .stat-card .stat-value { font-size:1.35rem; font-weight:600; line-height:1; }
+        .stat-card .stat-label { font-size:.72rem; color:var(--bs-secondary-color);
+                                 text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+    </style>
+    @endpush
+
+    {{-- Breadcrumb --}}
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">WhatsApp</li>
+        </ol>
+    </nav>
+
+    {{-- Hero Section --}}
+    <div class="whatsapp-hero mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="position-relative">
+                <div class="avatar avatar-lg">
+                    <span class="avatar-initial rounded-circle bg-white text-success p-2">
+                        <i class="ri ri-whatsapp-line ri-24px"></i>
+                    </span>
+                    @if($status === 'connected')
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
+                            <span class="visually-hidden">Connected</span>
+                        </span>
+                    @endif
                 </div>
             </div>
+            <div>
+                <h2 class="fw-semibold mb-1"><i class="ri ri-whatsapp-line me-2"></i>WhatsApp Business</h2>
+                <p class="mb-0 opacity-75">
+                    @if($status === 'connected')
+                        <span class="badge bg-white text-success me-2"><i class="ri ri-checkbox-circle-fill me-1"></i>Conectado</span>
+                        @if($user)
+                            {{ $user['name'] ?? 'Usuario' }} • {{ $user['id'] ?? 'N/A' }}
+                        @endif
+                    @elseif($connectionError)
+                        <span class="badge bg-white text-danger me-2"><i class="ri ri-error-warning-fill me-1"></i>Error</span>
+                        {{ $connectionError }}
+                    @else
+                        <span class="badge bg-white text-warning me-2"><i class="ri ri-time-fill me-1"></i>Desconectado</span>
+                        No hay sesión activa de WhatsApp
+                    @endif
+                </p>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <button wire:click="refresh" class="btn btn-light btn-sm" wire:loading.attr="disabled">
+                <span wire:loading.remove wire:target="refresh">
+                    <i class="ri ri-refresh-line me-1"></i>Actualizar
+                </span>
+                <span wire:loading wire:target="refresh">
+                    <span class="spinner-border spinner-border-sm me-1"></span>Cargando...
+                </span>
+            </button>
         </div>
     </div>
 
@@ -86,7 +81,7 @@
         $pendingPercent = round(($stats['pending'] / $totalMsgs) * 100, 1);
         $successRate = $totalMsgs > 0 ? round((($stats['delivered'] + $stats['read']) / $totalMsgs) * 100, 1) : 0;
     @endphp
-    
+
     <div class="row g-4 mb-4">
         <!-- Summary Row -->
         <div class="col-md-8">
@@ -258,7 +253,7 @@
                             @endphp
                             <div class="text-center flex-fill px-1">
                                 <small class="d-block mb-1 fw-medium">{{ $day['count'] }}</small>
-                                <div class="bg-primary rounded-top mx-auto" 
+                                <div class="bg-primary rounded-top mx-auto"
                                      style="width: 60%; height: {{ max($barHeight, 4) }}px; min-height: 4px;"
                                      title="{{ $dateLabel }}: {{ $day['count'] }} mensajes"></div>
                                 <small class="d-block mt-1 text-muted">{{ $dayLabel }}</small>
@@ -302,7 +297,7 @@
                             @if($status !== 'connected') disabled @endif>
                         <i class="ri ri-message-2-line me-2 ri-20px"></i>
                         <span class="d-none d-sm-inline">Mensajes</span>
-                      
+
                         @if($status !== 'connected')
                             <i class="ri ri-lock-line ms-1 text-muted"></i>
                         @endif
@@ -368,7 +363,7 @@
                                                         </div>
                                                     </li>
                                                     @endif
-                                                   
+
                                                     <li class="py-2">
                                                         <div class="d-flex justify-content-between align-items-center">
                                                             <span class="fw-medium">Plataforma</span>
@@ -598,12 +593,12 @@
                 </div>
             @endif
 
-            
+
         </div>
     </div>
 
     <!-- Enhanced Loading Overlay -->
-    
+
 </div>
 
 @push('scripts')
@@ -618,7 +613,7 @@
                 console.log(`${data.type}: ${data.message}`);
             }
         });
-        
+
         // Auto-refresh dashboard every 30 seconds when active
         let refreshInterval;
         const startAutoRefresh = () => {
@@ -626,19 +621,19 @@
                 @this.refresh();
             }, 30000);
         };
-        
+
         const stopAutoRefresh = () => {
             if (refreshInterval) {
                 clearInterval(refreshInterval);
                 refreshInterval = null;
             }
         };
-        
+
         // Start auto-refresh when dashboard is active
         if (@this.activeTab === 'dashboard') {
             startAutoRefresh();
         }
-        
+
         // Listen for tab changes
         Livewire.on('tabChanged', (tab) => {
             if (tab === 'dashboard') {
@@ -647,7 +642,7 @@
                 stopAutoRefresh();
             }
         });
-        
+
         // Cleanup on page unload
         window.addEventListener('beforeunload', stopAutoRefresh);
     });
