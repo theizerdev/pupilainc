@@ -241,6 +241,11 @@ class Index extends Component
         $this->dispatch('notify', type: 'success', message: 'Dashboard actualizado correctamente.');
     }
 
+    public function loadMoreMessages()
+    {
+        $this->refresh();
+    }
+
     public function handleConnectionUpdate($newStatus)
     {
         $this->status = $newStatus;

@@ -72,14 +72,21 @@ class AntiBlockProtection {
    * Valida horarios comerciales
    */
   validateBusinessHours() {
+    // Obtener la hora actual en la zona horaria de México
     const now = new Date();
-    const hour = now.getHours();
+    const mexicoTime = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Mexico_City',
+      hour: 'numeric',
+      hour12: false
+    }).format(now);
+    
+    const hour = parseInt(mexicoTime);
     
     // Si END es 0, lo tratamos como 24 para la comparación
     const endHour = this.BUSINESS_HOURS_END === 0 ? 24 : this.BUSINESS_HOURS_END;
 
     if (hour < this.BUSINESS_HOURS_START || hour >= endHour) {
-      throw new Error(`Fuera de horario comercial (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00)`);
+      throw new Error(`Fuera de horario comercial (${this.BUSINESS_HOURS_START}:00 - ${this.BUSINESS_HOURS_END}:00). Hora actual en México: ${hour}:00`);
     }
   }
 
@@ -103,7 +110,6 @@ class AntiBlockProtection {
     
     // Detectar patrones de spam
     const spamPatterns = [
-      { pattern: /(.)\1{10,}/, description: 'Caracteres repetidos sospechosos' },
       { pattern: /\b(compra|oferta|descuento|promoción)\b.*\b(compra|oferta|descuento|promoción)\b/i, description: 'Demasiadas palabras comerciales' },
       { pattern: /https?:\/\/.*\..*\..*\..*\..*/i, description: 'URL con demasiados subdominios' }
     ];

@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             EmpresaSeeder::class,
             SucursalSeeder::class,
             ConsultoriosSeeder::class,
-            UsersTableSeeder::class,
+            // UsersTableSeeder::class,
             SerieSeeder::class,
             CuestionarioSeeder::class,
             EspecialidadesSubespecialidadesSeeder::class, // Agregar especialidades y subespecialidades médicas

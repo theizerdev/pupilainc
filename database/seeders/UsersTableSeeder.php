@@ -15,9 +15,9 @@ class UsersTableSeeder extends Seeder
     {
         // Create demo users
           $superUser =  User::create([
-                    'name' => 'Test User',
-                    'username' => 'superadministrador',
-                    'email' => 'test@example.com',
+                    'name' => 'Super Administrador Pupila',
+                    'username' => 'superadmin',
+                    'email' => 'admin@pupilainc.com',
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                     'empresa_id' => 1,
@@ -28,9 +28,9 @@ class UsersTableSeeder extends Seeder
         $superUser->assignRole('Super Administrador');
 
          $adminUser =  User::create([
-                    'name' => 'Usuario Administrador',
-                    'username' => 'administrador',
-                    'email' => 'admin@example.com',
+                    'name' => 'Admin Pupila',
+                    'username' => 'admin',
+                    'email' => 'staff@pupilainc.com',
                     'password' => Hash::make('password'),
                     'email_verified_at' => now(),
                     'empresa_id' => 1,

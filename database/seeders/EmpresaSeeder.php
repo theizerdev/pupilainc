@@ -14,13 +14,13 @@ class EmpresaSeeder extends Seeder
     {
         $empresas = [
             [
-                'razon_social' => 'Devtechvnzla C.A',
-                'direccion'    => 'Av. Principal 123',
-                'documento'    => '1234567890',
-                'telefono'     => '1234567890',
-                'email'        => '1234567890',
-                'representante_legal' => 'Theizer Gonzalez',
-                'pais_id'      => 20,
+                'razon_social' => 'Pupila Inc.',
+                'direccion'    => 'Ciudad de México, México',
+                'documento'    => 'PUP123456789',
+                'telefono'     => '5512345678',
+                'email'        => 'contacto@pupilainc.com',
+                'representante_legal' => 'Director Pupila Inc.',
+                'pais_id'      => 12,
             ],
         ];
 
