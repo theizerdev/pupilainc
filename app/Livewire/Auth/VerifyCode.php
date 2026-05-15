@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Mail\VerificationCodeMail;
 use App\Services\WhatsAppService;
-use App\Models\Medico;  
+use App\Models\Medico;
 
 class VerifyCode extends Component
 {
@@ -35,7 +35,7 @@ class VerifyCode extends Component
         if (Auth::user()->hasVerifiedEmail()) {
             return redirect()->intended('/');
         }
-        
+
         // Verificar si hay un límite de reenvío
         $throttleKey = $this->throttleKey();
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
@@ -55,18 +55,18 @@ class VerifyCode extends Component
     {
         // Limpiar errores cuando el usuario empieza a escribir
         unset($this->errors['code']);
-        
+
         // Convertir a mayúsculas
         $this->codeInputs[$index] = strtoupper($value);
-        
+
         // Combinar todos los inputs en un solo código
         $this->code = implode('', $this->codeInputs);
-        
+
         // Si todos los campos están llenos, verificar automáticamente
         if (strlen($this->code) == 6 && !in_array('', $this->codeInputs)) {
             $this->verifyCode();
         }
-        
+
         // Mover foco al siguiente campo si se llena uno
         if (strlen($value) == 1 && $index < 5) {
             $this->dispatch('focus-next', $index + 1);
@@ -89,13 +89,13 @@ class VerifyCode extends Component
 
         // Generar un nuevo código y obtener el código en texto plano
         $plainCode = Auth::user()->generateVerificationCode();
-        
+
          $user = Auth::user();
          $telefono = $this->formatearTelefono($user->phone);
-        
+
         // Verificar si el usuario tiene teléfono y WhatsApp habilitado
         $hasWhatsApp = !empty($telefono) && $user->whatsapp_verification_enabled;
-        
+
         if ($hasWhatsApp) {
             // Enviar por WhatsApp
             try {
@@ -104,9 +104,9 @@ class VerifyCode extends Component
                 $mensaje .= "Tu código de verificación es: *{$plainCode}*\n\n";
                 $mensaje .= "Este código expira en 15 minutos.\n\n";
                 $mensaje .= "Si no solicitaste este código, por favor ignora este mensaje.";
-                
+
                 $whatsAppService->sendMessage($telefono, $mensaje);
-                
+
                 session()->flash('resent', 'Se ha enviado un nuevo código de verificación a tu WhatsApp.');
             } catch (\Exception $e) {
                 // Si falla WhatsApp, enviar por correo como respaldo
@@ -118,16 +118,16 @@ class VerifyCode extends Component
             Mail::to($user->email)->send(new VerificationCodeMail($plainCode));
             session()->flash('resent', 'Se ha enviado un nuevo código de verificación a tu correo electrónico.');
         }
-        
+
         $this->resent = true;
         $this->canResend = false;
         // Limpiar campos de código
         $this->codeInputs = ['', '', '', '', '', ''];
         $this->code = '';
-        
+
         // Iniciar contador regresivo
         $this->resendCountdown = 300; // 5 minutos en segundos
-        
+
         // Actualizar estado de reenvío cada segundo
         $this->js('
             let countdown = ' . $this->resendCountdown . ';
@@ -154,7 +154,7 @@ class VerifyCode extends Component
     public function verifyCode()
     {
         $this->errors = [];
-        
+
         // Validar entrada
         if (strlen($this->code) != 6) {
             $this->errors['code'] = 'El código debe tener 6 caracteres.';
@@ -165,10 +165,10 @@ class VerifyCode extends Component
         if (Auth::user()->isVerificationCodeValid($this->code)) {
             // Marcar el correo como verificado
             Auth::user()->markEmailAsVerified();
-            
+
             // Regenerar sesión para prevenir session fixation
             request()->session()->regenerate();
-            
+
             // Redirigir al dashboard o a la página anterior
             return redirect()->intended('/');
         } else {
@@ -238,6 +238,6 @@ class VerifyCode extends Component
             'getError' => $this->getError(...),
             'canResend' => $this->canResend,
             'resendCountdown' => $this->resendCountdown,
-        ])->layout('components.layouts.auth-basic', ['title' => 'Verificar Código']);
+        ])->layout('components.layouts.auth-cover', ['title' => 'Verificar Código']);
     }
 }

@@ -3,12 +3,12 @@
 <!DOCTYPE html>
 <html
   lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-  class="layout-menu-fixed layout-navbar-fixed {{ isset($templateSettings) ? ($templateSettings->content_layout === 'wide' ? 'layout-wide' : 'layout-compact') : 'layout-compact' }}{{ isset($templateSettings) && $templateSettings->footer_fixed ? ' layout-footer-fixed' : '' }}"
+  class="layout-menu-fixed layout-navbar-fixed customizer-hide {{ isset($templateSettings) ? ($templateSettings->content_layout === 'wide' ? 'layout-wide' : 'layout-compact') : 'layout-compact' }}{{ isset($templateSettings) && $templateSettings->footer_fixed ? ' layout-footer-fixed' : '' }}"
   dir="{{ isset($templateSettings) ? $templateSettings->text_direction : 'ltr' }}"
   data-skin="{{ isset($templateSettings) ? ($templateSettings->skin == 1 ? 'bordered' : 'default') : 'default' }}"
   data-bs-theme="{{ isset($templateSettings) ? $templateSettings->theme : 'light' }}"
   data-assets-path="{{ asset('materialize/assets/') }}/"
-  data-template="horizontal-menu-template">
+  data-template="vertical-menu-template">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

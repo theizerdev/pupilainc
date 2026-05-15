@@ -12,6 +12,7 @@ use App\Models\Medico;
 use App\Models\Cita;
 use App\Models\AuditLog;
 use App\Traits\HasSpanishActivityLog;
+use Illuminate\Support\Str;
 
 class ActivityLog extends Component
 {
@@ -20,38 +21,38 @@ class ActivityLog extends Component
 
     #[Url]
     public $search = '';
-    
+
     #[Url]
     public $userFilter = '';
-    
+
     #[Url]
     public $dateRange = '';
-    
+
     #[Url]
     public $actionFilter = '';
-    
+
     #[Url]
     public $subjectTypeFilter = '';
-    
+
     #[Url]
     public $sortBy = 'created_at';
-    
+
     #[Url]
     public $sortDirection = 'desc';
-    
+
     #[Url]
     public $doctorFilter = '';
-    
+
     #[Url]
     public $onlyCitaEstados = false;
-    
+
     #[Url]
     public $securityFilter = '';
-    
+
     public $perPage = 10;
-    
+
     public $selectedActivities = [];
-    
+
     public $selectAll = false;
 
     protected $queryString = ['search', 'userFilter', 'dateRange', 'actionFilter', 'subjectTypeFilter', 'sortBy', 'sortDirection', 'doctorFilter', 'onlyCitaEstados', 'securityFilter'];
@@ -111,7 +112,7 @@ class ActivityLog extends Component
 
         $users = User::orderBy('name')->get();
         $medicos = Medico::orderBy('nombres')->get();
-        
+
         $actions = Activity::select('description')
             ->distinct()
             ->orderBy('description')
@@ -119,7 +120,7 @@ class ActivityLog extends Component
             ->mapWithKeys(function ($item) {
                 return [$item => ucfirst($item)];
             });
-            
+
         $subjectTypes = Activity::select('subject_type')
             ->distinct()
             ->whereNotNull('subject_type')
@@ -233,7 +234,7 @@ class ActivityLog extends Component
         $this->sortDirection = 'desc';
         $this->securityFilter = '';
         $this->resetPage();
-        
+
         $this->dispatch('showToast', [
             'type' => 'success',
             'message' => 'Filtros limpiados correctamente'
@@ -262,10 +263,10 @@ class ActivityLog extends Component
 
         try {
             $count = Activity::whereIn('id', $this->selectedActivities)->delete();
-            
+
             $this->selectedActivities = [];
             $this->selectAll = false;
-            
+
             $this->dispatch('showToast', [
                 'type' => 'success',
                 'message' => "Se eliminaron {$count} actividades correctamente"
@@ -293,15 +294,15 @@ class ActivityLog extends Component
 
     public function getActionIcon($action)
     {
-        if (str_contains($action, 'creó') || $action === 'created') return 'plus';
-        if (str_contains($action, 'editó') || $action === 'updated') return 'edit';
+        if (str_contains($action, 'creó') || $action === 'created') return 'add';
+        if (str_contains($action, 'editó') || $action === 'updated') return 'pencil';
         if (str_contains($action, 'eliminó') || $action === 'deleted' || $action === 'force-deleted') return 'trash';
         if ($action === 'restored') return 'undo';
         if ($action === 'login') return 'sign-in-alt';
         if ($action === 'logout') return 'sign-out-alt';
         if ($action === 'password-updated') return 'key';
         if ($action === 'profile-updated') return 'user-edit';
-        return 'circle';
+        return 'pencil';
     }
 
     public function export($format = 'csv')
@@ -378,18 +379,18 @@ class ActivityLog extends Component
     protected function exportToCsv($activities, $filename)
     {
         $csv = fopen('php://temp', 'w+');
-        
+
         fputcsv($csv, [
-            'Usuario', 
-            'Acción', 
-            'Modelo', 
-            'ID Modelo', 
-            'Fecha', 
-            'IP', 
+            'Usuario',
+            'Acción',
+            'Modelo',
+            'ID Modelo',
+            'Fecha',
+            'IP',
             'User Agent',
             'Propiedades'
         ]);
-        
+
         foreach ($activities as $activity) {
             fputcsv($csv, [
                 $activity->causer?->name ?? 'Sistema',
@@ -402,16 +403,16 @@ class ActivityLog extends Component
                 json_encode($activity->properties->except(['ip_address', 'user_agent']))
             ]);
         }
-        
+
         rewind($csv);
         $csvContent = stream_get_contents($csv);
         fclose($csv);
-        
+
         $this->dispatch('showToast', [
             'type' => 'success',
             'message' => 'Exportación CSV completada exitosamente'
         ]);
-        
+
         return response()->stream(function() use ($csvContent) {
             echo $csvContent;
         }, 200, [
@@ -449,7 +450,7 @@ class ActivityLog extends Component
     protected function exportToXml($activities, $filename)
     {
         $xml = new \SimpleXMLElement('<activities></activities>');
-        
+
         foreach ($activities as $activity) {
             $activityElement = $xml->addChild('activity');
             $activityElement->addChild('usuario', htmlspecialchars($activity->causer?->name ?? 'Sistema'));
@@ -459,7 +460,7 @@ class ActivityLog extends Component
             $activityElement->addChild('fecha', $activity->created_at->format('Y-m-d H:i:s'));
             $activityElement->addChild('ip', htmlspecialchars($activity->properties->get('ip_address', 'N/A')));
             $activityElement->addChild('user_agent', htmlspecialchars($activity->properties->get('user_agent', 'N/A')));
-            
+
             $properties = $activityElement->addChild('propiedades');
             foreach ($activity->properties->except(['ip_address', 'user_agent']) as $key => $value) {
                 $properties->addChild($key, htmlspecialchars((string) $value));

@@ -180,6 +180,6 @@ class ForgotPassword extends Component
         return view('livewire.auth.forgot-password', [
             'hasError' => $this->hasError(...),
             'getError' => $this->getError(...),
-        ])->layout('components.layouts.auth-basic', ['title' => 'Recuperar Contraseña']);
+        ])->layout('components.layouts.auth-cover', ['title' => 'Recuperar Contraseña']);
     }
 }

@@ -15,28 +15,28 @@ class ActiveSessions extends Component
 {
     use WithPagination;
     use HasDynamicLayout;
-    
+
     protected $paginationTheme = 'bootstrap';
 
     #[Url]
     public $search = '';
-    
+
     #[Url]
     public $status = '';
-    
+
     #[Url]
     public $deviceType = '';
-    
+
     #[Url]
     public $sortBy = 'last_activity';
-    
+
     #[Url]
     public $sortDirection = 'desc';
-    
+
     public $perPage = 10;
-    
+
     public $selectedSessions = [];
-    
+
     public $selectAll = false;
 
     protected $queryString = [
@@ -145,7 +145,7 @@ class ActiveSessions extends Component
 
     public function terminateSession($sessionId)
     {
-        if (!auth()->user()->can('manage sessions')) {
+        if (!auth()->user()->can('view active sessions')) {
             $this->dispatch('showToast', [
                 'type' => 'error',
                 'message' => 'No tienes permisos para gestionar sesiones.'
@@ -155,7 +155,7 @@ class ActiveSessions extends Component
 
         try {
             $session = ActiveSession::findOrFail($sessionId);
-            
+
             if ($session->is_current) {
                 $this->dispatch('showToast', [
                     'type' => 'error',
@@ -170,7 +170,7 @@ class ActiveSessions extends Component
                 'message' => 'Sesión terminada exitosamente.'
             ]);
             $this->dispatch('sessionTerminated');
-            
+
         } catch (\Exception $e) {
             $this->dispatch('showToast', [
                 'type' => 'error',
@@ -204,7 +204,7 @@ class ActiveSessions extends Component
 
     public function bulkTerminateSessions()
     {
-        if (!auth()->user()->can('manage sessions')) {
+        if (!auth()->user()->can('view active sessions')) {
             $this->dispatch('showToast', [
                 'type' => 'error',
                 'message' => 'No tienes permisos para gestionar sesiones.'

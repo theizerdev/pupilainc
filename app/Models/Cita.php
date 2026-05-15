@@ -36,6 +36,7 @@ class Cita extends Model
     const ESTADO_EN_OPTICA = 'en_optica';
     const ESTADO_EN_ESTUDIO = 'en_estudio';
     const ESTADO_FINALIZADA = 'finalizada';
+    const ESTADO_COMPLETADA = 'finalizada';
     const ESTADO_PAGADA = 'pagada';
 
     const ESTADOS = [
@@ -315,17 +316,17 @@ class Cita extends Model
                     'estado_changed_at' => now(),
                 ]);
             }
-            
+
             // Verificar si es el primer cambio al estado de sala de espera y si la preconsulta aún está pendiente
             // y si no se han completado las respuestas de preconsulta
-            if ($nuevoEstado === self::ESTADO_SALA_ESPERA && 
+            if ($nuevoEstado === self::ESTADO_SALA_ESPERA &&
                 $estadoAnterior !== self::ESTADO_SALA_ESPERA) {
-                
+
                 // Verificar si ya se completaron las respuestas de preconsulta
                 $yaTieneRespuestas = $this->respuestasPreconsulta()
                     ->where('completado', true)
                     ->exists();
-                
+
                 // Solo enviar el formulario si no ha sido completado previamente
                 if ($this->estado_preconsulta === 'pendiente') {
                     $this->crearPreconsultaYEnviarWhatsApp();
@@ -609,7 +610,7 @@ class Cita extends Model
                            "👨‍⚕️ *Médico:* {$medico}\n" .
                            "🏥 *Especialidad:* {$especialidad}\n" .
                            "🏢 *Sucursal:* {$sucursal}\n\n";
-                           
+
                 // Incluir formulario de preconsulta si aún no ha sido completado
                 if ($this->estado_preconsulta !== 'completado') {
                     // Generar token si no existe
@@ -617,13 +618,13 @@ class Cita extends Model
                         $token = \Illuminate\Support\Str::random(32);
                         $this->update(['token_preconsulta' => $token]);
                     }
-                    
+
                     $mensaje .= "📋 *FORMULARIO DE PRECONSULTA*\n\n" .
                                "Para agilizar su atención, le solicitamos completar el formulario de preconsulta:\n\n" .
                                "🔗 Complete su preconsulta aquí: " . route('preconsulta.formulario', ['token' => $this->token_preconsulta]) . "\n\n" .
                                "⏰ Recuerde completarlo antes de su cita.\n\n";
                 }
-                
+
                 $mensaje .= "Por favor confirme su asistencia respondiendo *SI* o *NO*";
                 return $mensaje;
 
