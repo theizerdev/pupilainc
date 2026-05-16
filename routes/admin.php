@@ -114,6 +114,14 @@ Route::middleware(['checkAdminPermission:access pacientes'])->group(function () 
     Route::get('/pacientes/{paciente}/preconsulta', \App\Livewire\Admin\Pacientes\Preconsulta::class)->name('pacientes.preconsulta');
 });
 
+// Mascotas (Veterinaria)
+Route::middleware(['checkAdminPermission:access mascotas'])->group(function () {
+    Route::get('/mascotas', \App\Livewire\Admin\Mascotas\Index::class)->name('mascotas.index');
+    Route::get('/mascotas/crear', \App\Livewire\Admin\Mascotas\Create::class)->name('mascotas.create');
+    Route::get('/mascotas/{mascota}/editar', \App\Livewire\Admin\Mascotas\Edit::class)->name('mascotas.edit');
+    Route::get('/mascotas/{mascota}', \App\Livewire\Admin\Mascotas\Show::class)->name('mascotas.show');
+});
+
 // Países
 Route::middleware(['checkAdminPermission:access paises'])->group(function () {
     Route::get('/paises', \App\Livewire\Admin\Paises\PaisIndex::class)->name('paises.index');

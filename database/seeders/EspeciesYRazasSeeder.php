@@ -83,7 +83,7 @@ class EspeciesYRazasSeeder extends Seeder
 
         foreach ($especies as $especieData) {
             $especie = Especie::create($especieData);
-            
+
             // Crear razas para cada especie
             $this->crearRazas($especie);
         }
@@ -154,7 +154,7 @@ class EspeciesYRazasSeeder extends Seeder
         ];
 
         $nombreEspecie = $especie->nombre;
-        
+
         if (isset($razasPorEspecie[$nombreEspecie])) {
             foreach ($razasPorEspecie[$nombreEspecie] as $razaData) {
                 Raza::create(array_merge($razaData, [

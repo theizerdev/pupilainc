@@ -30,15 +30,15 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'assign tipo-consultas',
                     ]
                 ],
-                'pacientes' => [
-                    'name' => 'Pacientes',
+                'mascotas' => [
+                    'name' => 'Mascotas (Veterinaria)',
                     'permissions' => [
-                        'access pacientes',
-                        'create pacientes',
-                        'edit pacientes',
-                        'delete pacientes',
-                        'view pacientes',
-                        'export pacientes',
+                        'access mascotas',
+                        'create mascotas',
+                        'edit mascotas',
+                        'delete mascotas',
+                        'view mascotas',
+                        'export mascotas',
                     ]
                 ],
                 'medicos' => [
@@ -237,22 +237,7 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'view clientes-fiscales',
                     ]
                 ],*/
-                'notas_credito' => [
-                    'name' => 'Notas de Crédito',
-                    'permissions' => [
-                        'access notas-credito',
-                        'create notas-credito',
-                        'view notas-credito',
-                    ]
-                ],
-                'notas_debito' => [
-                    'name' => 'Notas de Débito',
-                    'permissions' => [
-                        'access notas-debito',
-                        'create notas-debito',
-                        'view notas-debito',
-                    ]
-                ],
+
                 'contabilidad' => [
                     'name' => 'Contabilidad',
                     'permissions' => [
@@ -617,11 +602,24 @@ class SectorRolesAndPermissionsSeeder extends Seeder
         $chatPermission = Permission::where('name', 'access chat interno')->get();
         $medico->syncPermissions($medicoPermissions->merge($chatPermission));
 
+        // Rol Veterinario - Sector médico + mascotas
+        $veterinario = Role::firstOrCreate(['name' => 'Veterinario']);
+        $veterinarioPermissions = Permission::whereIn('sector', ['medico'])
+            ->orWhere('sector', 'mascotas')
+            ->whereNotIn('name', [
+                'delete medicos',
+                'delete tipo-consultas',
+                'delete especialidades',
+                'delete subespecialidades',
+            ])->get();
+        $veterinario->syncPermissions($veterinarioPermissions->merge($chatPermission));
+
 
 
         // Rol Recepción - Sector médico + administración limitada
         $recepcion = Role::firstOrCreate(['name' => 'Recepción']);
         $recepcionPermissions = Permission::whereIn('sector', ['medico', 'administracion', 'recepcion'])
+            ->orWhere('sector', 'mascotas')
             ->whereIn('name', [
                 // Recepción
                 'access recepcion dashboard',
@@ -638,6 +636,11 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'access pacientes',
                 'create pacientes',
                 'edit pacientes',
+                // Mascotas (Veterinaria)
+                'access mascotas',
+                'create mascotas',
+                'edit mascotas',
+                'view mascotas',
                 'access medicos',
                 'view medicos',
                 'access citas',

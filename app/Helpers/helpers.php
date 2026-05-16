@@ -316,7 +316,7 @@ if (!function_exists('getPermissionSectors')) {
                 'name' => '🏥 Médico',
                 'description' => 'Gestión de pacientes, médicos, citas y especialidades',
                 'color' => 'blue',
-                'modules' => ['tipo-consultas', 'pacientes', 'medicos', 'citas', 'especialidades', 'subespecialidades']
+                'modules' => ['tipo-consultas', 'pacientes', 'mascotas', 'medicos', 'citas', 'especialidades', 'subespecialidades']
             ],
             'administracion' => [
                 'name' => '💰 Administración',

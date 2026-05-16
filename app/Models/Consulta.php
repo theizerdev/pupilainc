@@ -160,7 +160,7 @@ class Consulta extends Model
                 return max(0, $minutos);
             }
         }
-        
+
         return null;
     }
 
@@ -176,7 +176,7 @@ class Consulta extends Model
                 return max(0, $minutos);
             }
         }
-        
+
         return null;
     }
 
@@ -186,27 +186,27 @@ class Consulta extends Model
     public function getTiempoEsperaFormateadoAttribute()
     {
         $minutos = $this->tiempo_sala_espera;
-        
+
         if (!$minutos) {
             return 'No en sala de espera';
         }
-        
+
         // Si es menos de 1 minuto, mostrar "Ahora"
         if ($minutos < 1) {
             return 'Ahora';
         }
-        
+
         if ($minutos < 60) {
             return "{$minutos} min";
         }
-        
+
         $horas = floor($minutos / 60);
         $minutosRestantes = $minutos % 60;
-        
+
         if ($minutosRestantes === 0) {
             return "{$horas}h";
         }
-        
+
         return "{$horas}h {$minutosRestantes}min";
     }
 
@@ -216,26 +216,26 @@ class Consulta extends Model
     public function getTiempoGotasFormateadoAttribute()
     {
         $minutos = $this->tiempo_en_gotas;
-        
+
         if ($minutos === null) {
             return null;
         }
-        
+
         if ($minutos < 1) {
             return 'Ahora';
         }
-        
+
         if ($minutos < 60) {
             return "{$minutos} min";
         }
-        
+
         $horas = floor($minutos / 60);
         $minutosRestantes = $minutos % 60;
-        
+
         if ($minutosRestantes === 0) {
             return "{$horas}h";
         }
-        
+
         return "{$horas}h {$minutosRestantes}min";
     }
 

@@ -13,37 +13,37 @@ return new class extends Migration
     {
         Schema::create('propietarios', function (Blueprint $table) {
             $table->id();
-            
+
             // Información personal
             $table->string('nombres');
             $table->string('apellidos');
             $table->string('documento_identidad')->nullable()->comment('Cédula, DNI, etc.');
             $table->date('fecha_nacimiento')->nullable();
             $table->enum('genero', ['masculino', 'femenino', 'otro'])->nullable();
-            
+
             // Contacto
             $table->string('telefono')->nullable();
             $table->string('telefono_alternativo')->nullable();
             $table->string('email')->nullable();
             $table->text('direccion')->nullable();
-            
+
             // Información adicional
             $table->string('ocupacion')->nullable();
             $table->text('notas')->nullable();
             $table->string('foto')->nullable();
-            
+
             // Preferencias de contacto
             $table->enum('preferencia_contacto', ['whatsapp', 'llamada', 'email', 'sms'])->default('whatsapp');
             $table->boolean('acepta_recordatorios')->default(true);
             $table->boolean('acepta_promociones')->default(false);
-            
+
             // Estado
             $table->boolean('activo')->default(true);
-            
+
             // Multi-tenancy
             $table->unsignedBigInteger('empresa_id')->nullable();
             $table->unsignedBigInteger('sucursal_id')->nullable();
-            
+
             $table->timestamps();
             $table->softDeletes();
 

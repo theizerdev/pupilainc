@@ -219,6 +219,13 @@ if (!function_exists('getSectorMenuItems')) {
                         'active' => 'admin.pacientes.*',
                     ],
                     [
+                        'label' => 'Mascotas',
+                        'icon' => 'ri-paw-line',
+                        'permission' => 'access mascotas',
+                        'route' => 'admin.mascotas.index',
+                        'active' => 'admin.mascotas.*',
+                    ],
+                    [
                         'label' => 'Citas',
                         'icon' => 'ri-calendar-line',
                         'permission' => 'access citas',

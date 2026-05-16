@@ -188,7 +188,7 @@ class Mascota extends Model
     public function isProfileComplete(): bool
     {
         $required = ['nombre', 'especie_id', 'sexo'];
-        
+
         foreach ($required as $field) {
             $value = $this->$field ?? null;
             if (is_string($value)) {
