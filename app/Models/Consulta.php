@@ -141,6 +141,11 @@ class Consulta extends Model
         return $this->belongsTo(Paciente::class);
     }
 
+    public function mascota()
+    {
+        return $this->belongsTo(Mascota::class, 'mascota_id');
+    }
+
     /**
      * Calcula el tiempo transcurrido en sala de espera
      */

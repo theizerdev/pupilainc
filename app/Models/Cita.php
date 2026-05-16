@@ -147,6 +147,11 @@ class Cita extends Model
         return $this->belongsTo(Paciente::class);
     }
 
+    public function mascota(): BelongsTo
+    {
+        return $this->belongsTo(Mascota::class, 'mascota_id');
+    }
+
     public function medico(): BelongsTo
     {
         return $this->belongsTo(Medico::class);
