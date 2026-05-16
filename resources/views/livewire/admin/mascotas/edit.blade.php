@@ -162,13 +162,13 @@
                     <label class="form-label">Foto de la Mascota</label>
                     @if($foto)
                         <div class="mb-2">
-                            <img src="{{ Storage::url($foto) }}" 
-                                 alt="{{ $nombre }}" 
+                            <img src="{{ Storage::url($foto) }}"
+                                 alt="{{ $nombre }}"
                                  style="max-width: 150px; border-radius: 8px; border: 2px solid #e5e7eb;">
                         </div>
                     @endif
-                    <input type="file" 
-                           wire:model="nueva_foto" 
+                    <input type="file"
+                           wire:model="nueva_foto"
                            class="form-control @error('nueva_foto') is-invalid @enderror"
                            accept="image/*">
                     @error('nueva_foto') <div class="invalid-feedback">{{ $message }}</div> @enderror

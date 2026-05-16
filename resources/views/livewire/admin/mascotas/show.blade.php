@@ -85,8 +85,8 @@ use Illuminate\Support\Facades\Storage;
         <div class="row align-items-center">
             <div class="col-auto">
                 @if($mascota->foto)
-                    <img src="{{ Storage::url($mascota->foto) }}" 
-                         alt="{{ $mascota->nombre }}" 
+                    <img src="{{ Storage::url($mascota->foto) }}"
+                         alt="{{ $mascota->nombre }}"
                          class="mascota-avatar-large">
                 @else
                     <div class="mascota-avatar-large d-flex align-items-center justify-content-center bg-white">
@@ -126,11 +126,11 @@ use Illuminate\Support\Facades\Storage;
             </div>
             <div class="col-auto">
                 <div class="btn-group">
-                    <a href="{{ route('admin.mascotas.edit', $mascota->id) }}" 
+                    <a href="{{ route('admin.mascotas.edit', $mascota->id) }}"
                        class="btn btn-light">
                         <i class="ri ri-edit-line me-1"></i>Editar
                     </a>
-                    <a href="{{ route('admin.mascotas.index') }}" 
+                    <a href="{{ route('admin.mascotas.index') }}"
                        class="btn btn-light">
                         <i class="ri ri-arrow-go-back-line me-1"></i>Volver
                     </a>

@@ -125,23 +125,23 @@ if (!function_exists('format_date')) {
 
         try {
             $carbonDate = Carbon::parse($date);
-            
+
             if ($format) {
                 return $carbonDate->format($format);
             }
-            
+
             $dateFormat = get_regional_config('date_format') ?? 'd/m/Y';
-            
+
             // Convertir formato del país a formato Carbon
             $carbonFormat = match($dateFormat) {
                 'dd/mm/yyyy' => 'd/m/Y',
-                'mm/dd/yyyy' => 'm/d/Y', 
+                'mm/dd/yyyy' => 'm/d/Y',
                 'yyyy-mm-dd' => 'Y-m-d',
                 'dd-mm-yyyy' => 'd-m-Y',
                 'yyyy/mm/dd' => 'Y/m/d',
                 default => 'd/m/Y'
             };
-            
+
             return $carbonDate->format($carbonFormat);
         } catch (Exception $e) {
             return (string) $date;
@@ -169,18 +169,18 @@ if (!function_exists('is_venezuela_company')) {
     function is_venezuela_company()
     {
         $config = get_regional_config();
-        
+
         // Verificar si usa moneda VES (Venezuela)
         if (isset($config['currency']) && $config['currency'] === 'VES') {
             return true;
         }
-        
+
         // Verificar si hay configuración de tasas de cambio activa
         $exchangeConfig = \App\Models\ExchangeRateConfig::getCurrentConfig();
         if ($exchangeConfig && $exchangeConfig->requiere_tasa_cambio) {
             return true;
         }
-        
+
         return false;
     }
 }
@@ -197,17 +197,17 @@ if (!function_exists('format_dual_currency')) {
     {
         $amountValue = (float) $amount;
         $config = get_regional_config();
-        
+
         // Obtener configuración de tasas de cambio
         $exchangeConfig = \App\Models\ExchangeRateConfig::getCurrentConfig();
-        
+
         // Verificar si requiere tasa de cambio
         if ($exchangeConfig && $exchangeConfig->requiere_tasa_cambio && $exchangeConfig->activo) {
             // País con tasa de cambio dinámica
-            
+
             // Obtener tasa
             $exchangeRate = null;
-            
+
             // Si usa tasa fija
             if ($exchangeConfig->getFixedRate()) {
                 $exchangeRate = $exchangeConfig->getFixedRate();
@@ -215,27 +215,27 @@ if (!function_exists('format_dual_currency')) {
                 // Si no, obtener de la base de datos
                 $exchangeRate = \App\Models\ExchangeRate::getLatestRate('USD', $exchangeConfig->pais_id);
             }
-            
+
             if ($exchangeRate) {
                 $bsAmount = $amountValue * $exchangeRate;
-                
+
                 // Obtener símbolo de moneda local
                 $pais = $exchangeConfig->pais;
                 $localSymbol = $pais?->simbolo_moneda ?? 'Bs.';
-                
+
                 // Formatear USD
                 $usdFormatted = '$' . format_money($amountValue, 2, '.', ',');
-                
+
                 if (!$showBoth) {
                     return $usdFormatted;
                 }
-                
+
                 // Formatear moneda local
                 $localFormatted = $localSymbol . ' ' . format_money($bsAmount, 2, ',', '.');
-                
+
                 return $usdFormatted . ' / ' . $localFormatted;
             }
-            
+
             // Si no hay tasa, solo mostrar USD
             return '$' . format_money($amountValue, 2, '.', ',');
         } else {
@@ -244,7 +244,7 @@ if (!function_exists('format_dual_currency')) {
             $decimals = $config['decimals'] ?? 2;
             $decimalSep = $config['decimal_separator'] ?? '.';
             $thousandSep = $config['thousand_separator'] ?? ',';
-            
+
             return $symbol . format_money($amountValue, $decimals, $decimalSep, $thousandSep);
         }
     }
@@ -279,23 +279,23 @@ if (!function_exists('format_datetime')) {
 
         try {
             $carbonDate = Carbon::parse($datetime);
-            
+
             if (!$includeTime) {
                 return format_date($datetime);
             }
-            
+
             $dateFormat = get_regional_config('date_format') ?? 'd/m/Y';
-            
+
             // Convertir formato del país a formato Carbon con hora
             $carbonFormat = match($dateFormat) {
                 'dd/mm/yyyy' => 'd/m/Y H:i',
-                'mm/dd/yyyy' => 'm/d/Y H:i', 
+                'mm/dd/yyyy' => 'm/d/Y H:i',
                 'yyyy-mm-dd' => 'Y-m-d H:i',
                 'dd-mm-yyyy' => 'd-m-Y H:i',
                 'yyyy/mm/dd' => 'Y/m/d H:i',
                 default => 'd/m/Y H:i'
             };
-            
+
             return $carbonDate->format($carbonFormat);
         } catch (Exception $e) {
             return (string) $datetime;
@@ -375,7 +375,7 @@ if (!function_exists('getUserSectors')) {
     {
         $permissions = $user->permissions()->pluck('sector')->unique()->filter()->values();
         $sectors = getPermissionSectors();
-        
+
         return $permissions->mapWithKeys(function ($sector) use ($sectors) {
             return [$sector => $sectors[$sector] ?? ['name' => ucfirst($sector)]];
         })->toArray();
@@ -422,11 +422,11 @@ if (!function_exists('formatSectorName')) {
     {
         $sectors = getPermissionSectors();
         $name = $sectors[$sector]['name'] ?? ucfirst($sector);
-        
+
         if (!$withIcon) {
             return str_replace(['🏥', '💰', '⚙️', '📊', '📱', '🔧'], '', $name);
         }
-        
+
         return $name;
     }
 }
@@ -439,13 +439,13 @@ if (!function_exists('getSectorStats')) {
     {
         $sectors = getPermissionSectors();
         $stats = [];
-        
+
         foreach ($sectors as $key => $sector) {
             $totalPermissions = \Spatie\Permission\Models\Permission::where('sector', $key)->count();
             $totalRoles = \Spatie\Permission\Models\Role::whereHas('permissions', function ($query) use ($key) {
                 $query->where('sector', $key);
             })->count();
-            
+
             $stats[$key] = [
                 'name' => $sector['name'],
                 'total_permissions' => $totalPermissions,
@@ -454,7 +454,7 @@ if (!function_exists('getSectorStats')) {
                 'description' => $sector['description']
             ];
         }
-        
+
         return $stats;
     }
 }
@@ -464,7 +464,7 @@ if (!function_exists('getSectorStats')) {
 if (!function_exists('current_regional_config')) {
     /**
      * Obtener la configuración regional actual
-     * 
+     *
      * @return array|null
      */
     function current_regional_config() {
@@ -475,7 +475,7 @@ if (!function_exists('current_regional_config')) {
 if (!function_exists('current_pais')) {
     /**
      * Obtener el país actual
-     * 
+     *
      * @return string|null
      */
     function current_pais() {

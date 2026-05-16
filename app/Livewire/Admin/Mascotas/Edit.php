@@ -37,7 +37,7 @@ class Edit extends Component
     public $alergias_conocidas;
     public $condiciones_cronicas;
     public $nivel_agresividad;
-    
+
     // Propietario
     public $propietario_id;
     public $showNuevoPropietario = false;
@@ -50,7 +50,7 @@ class Edit extends Component
 
     // UI
     public $razas = [];
-    
+
     protected $rules = [
         'nombre' => 'required|string|max:255',
         'especie_id' => 'required|exists:especies,id',
@@ -133,7 +133,7 @@ class Edit extends Component
     {
         $this->showNuevoPropietario = !$this->showNuevoPropietario;
         if (!$this->showNuevoPropietario) {
-            $this->reset(['prop_nombres', 'prop_apellidos', 'prop_documento_identidad', 
+            $this->reset(['prop_nombres', 'prop_apellidos', 'prop_documento_identidad',
                          'prop_telefono', 'prop_email', 'prop_direccion']);
         }
     }
@@ -143,7 +143,7 @@ class Edit extends Component
         // Agregar ID de la mascota actual a las reglas unique
         $this->rules['microchip'] .= $this->mascota->id;
         $this->rules['numero_registro'] .= $this->mascota->id;
-        
+
         $this->validate();
 
         // Si hay nuevo propietario, crearlo primero
