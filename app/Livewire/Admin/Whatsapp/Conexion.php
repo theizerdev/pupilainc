@@ -160,15 +160,18 @@ class Conexion extends Component
                         $this->user['formatted_id'] = explode(':', $this->user['id'])[0];
                     }
                 } 
-                // Si hay QR disponible en el status, mostrarlo
-                elseif (isset($data['qr']) && $data['qr']) {
-                    // Generar QR en base64 si viene raw string
-                    if (!str_starts_with($data['qr'], 'data:image')) {
-                         // El backend ya debería devolverlo como data URL si se usa el endpoint correcto,
-                         // pero si status devuelve el raw string, necesitamos convertirlo o llamar a getQRCode
-                         $this->checkQR(); 
+                // Si está conectando o esperando QR
+                elseif ($this->status === 'connecting' || $this->status === 'qr_ready') {
+                    $this->user = null;
+                    if (isset($data['qr']) && $data['qr']) {
+                        if (!str_starts_with($data['qr'], 'data:image')) {
+                            $this->checkQR();
+                        } else {
+                            $this->qrCode = $data['qr'];
+                        }
                     } else {
-                        $this->qrCode = $data['qr'];
+                        // Buscar el código QR si aún no lo tenemos o si cambió
+                        $this->checkQR();
                     }
                 } else {
                     $this->user = null;

@@ -618,7 +618,9 @@
         let refreshInterval;
         const startAutoRefresh = () => {
             refreshInterval = setInterval(() => {
-                @this.refresh();
+                if (typeof $wire !== 'undefined') {
+                    $wire.refresh();
+                }
             }, 30000);
         };
 
@@ -630,12 +632,13 @@
         };
 
         // Start auto-refresh when dashboard is active
-        if (@this.activeTab === 'dashboard') {
+        if ('{{ $activeTab }}' === 'dashboard') {
             startAutoRefresh();
         }
 
         // Listen for tab changes
-        Livewire.on('tabChanged', (tab) => {
+        Livewire.on('tabChanged', (event) => {
+            const tab = Array.isArray(event) ? event[0] : event;
             if (tab === 'dashboard') {
                 startAutoRefresh();
             } else {

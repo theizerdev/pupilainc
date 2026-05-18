@@ -1,4 +1,4 @@
-<div>
+<div @if($status === 'connecting' || $status === 'qr_ready') wire:poll.5s="checkStatus" @endif>
     @section('title', 'Conexión WhatsApp')
 
     @push('styles')
@@ -221,7 +221,28 @@
                 <div class="card-body">
                     @if($qrCode && ($status === 'qr_ready' || $status === 'connecting'))
                         <!-- QR Code Display -->
-                        <div class="text-center">
+                        <div class="text-center"
+                             x-data="{ 
+                                 timeLeft: 60, 
+                                 qrCode: '{{ $qrCode }}',
+                                 init() {
+                                     this.startTimer();
+                                     // Watch for changes in the QR code from Livewire
+                                     this.$watch('qrCode', (newVal) => {
+                                         if (newVal) {
+                                             this.timeLeft = 60;
+                                         }
+                                     });
+                                 },
+                                 startTimer() {
+                                     setInterval(() => {
+                                         if (this.timeLeft > 0) {
+                                             this.timeLeft--;
+                                         }
+                                     }, 1000);
+                                 }
+                             }"
+                             x-effect="qrCode = $wire.qrCode">
                             <div class="qr-container d-inline-block p-4 bg-white rounded shadow-lg mb-4 position-relative">
                                 <img src="{{ $qrCode }}" alt="Código QR WhatsApp" class="img-fluid rounded" style="max-width: 200px;">
                                 <div class="position-absolute top-0 start-100 translate-middle badge bg-danger rounded-pill">
@@ -236,7 +257,7 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <h6 class="alert-heading mb-1">Tiempo Limitado</h6>
-                                        <p class="mb-0 small">El código QR expira en 60 segundos. Escanéalo inmediatamente.</p>
+                                        <p class="mb-0 small">El código QR expira en <span x-text="timeLeft"></span> segundos. Escanéalo inmediatamente.</p>
                                     </div>
                                 </div>
                             </div>
@@ -245,9 +266,9 @@
                                 <div class="progress" style="height: 8px;">
                                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning"
                                          role="progressbar"
-                                         style="width: 75%"></div>
+                                         :style="'width: ' + ((timeLeft / 60) * 100) + '%'"></div>
                                 </div>
-                                <small class="text-muted">Expira en: 60 segundos</small>
+                                <small class="text-muted">Expira en: <span x-text="timeLeft"></span> segundos</small>
                             </div>
                         </div>
                     @elseif($status === 'connecting')
@@ -529,31 +550,6 @@
 @push('scripts')
 <script>
 document.addEventListener('livewire:init', () => {
-    @if($pollingActive && ($status === 'connecting' || $status === 'qr_ready'))
-        console.log('🔄 Iniciando monitoreo de conexión...');
-
-        const statusInterval = setInterval(() => {
-            @this.checkStatus()
-                .then(() => {
-                    console.log('✅ Estado actualizado');
-                })
-                .catch(error => {
-                    console.error('❌ Error al actualizar estado:', error);
-                });
-        }, 5000);
-
-        // Cleanup on navigation
-        document.addEventListener('livewire:navigating', () => {
-            console.log('🧹 Limpiando intervalo de monitoreo');
-            clearInterval(statusInterval);
-        });
-
-        // Cleanup on tab close
-        window.addEventListener('beforeunload', () => {
-            clearInterval(statusInterval);
-        });
-    @endif
-
     // Connection status notifications
     Livewire.on('connection-status-updated', (event) => {
         const { status, message } = event;
