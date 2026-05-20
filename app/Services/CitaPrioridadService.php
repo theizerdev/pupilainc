@@ -145,9 +145,11 @@ class CitaPrioridadService
         $cuestionario = \App\Models\Cuestionario::where('activo', true)->first();
 
         if ($cuestionario) {
+            // Determinar si es cita veterinaria o humana
+            $esVeterinaria = $cita->mascota_id && !$cita->paciente_id;
+
             foreach ($cuestionario->preguntas as $pregunta) {
-                \App\Models\RespuestaPreconsulta::create([
-                    'paciente_id' => $cita->paciente_id,
+                $preconsultaData = [
                     'cita_id' => $cita->id,
                     'consulta_id' => null,
                     'pregunta_id' => $pregunta->id,
@@ -155,8 +157,18 @@ class CitaPrioridadService
                     'empresa_id' => $cita->empresa_id,
                     'sucursal_id' => $cita->sucursal_id ?? 1,
                     'completado' => false,
-                    'created_by' => $cita->paciente_id,
-                ]);
+                ];
+
+                // Agregar mascota_id o paciente_id según corresponda
+                if ($esVeterinaria) {
+                    $preconsultaData['mascota_id'] = $cita->mascota_id;
+                    $preconsultaData['created_by'] = $cita->mascota_id;
+                } else {
+                    $preconsultaData['paciente_id'] = $cita->paciente_id;
+                    $preconsultaData['created_by'] = $cita->paciente_id;
+                }
+
+                \App\Models\RespuestaPreconsulta::create($preconsultaData);
             }
         }
 

@@ -251,7 +251,15 @@ if (!function_exists('getSectorMenuItems')) {
                             ],
                             getEstadosConsultaMenuItems(),
                             [
-                                ['label' => 'En Estudio',  'route' => 'admin.gestion.consultas.en-estudio',  'active' => 'admin.gestion.consultas.en-estudio'],
+                                // Estados veterinarios
+                                ['label' => 'En Triaje/Urgencias', 'route' => 'admin.gestion.consultas.en-triage', 'active' => 'admin.gestion.consultas.en-triage'],
+                                ['label' => 'En Tratamiento', 'route' => 'admin.gestion.consultas.en-tratamiento', 'active' => 'admin.gestion.consultas.en-tratamiento'],
+                                ['label' => 'En Procedimiento/Curas', 'route' => 'admin.gestion.consultas.en-procedimiento', 'active' => 'admin.gestion.consultas.en-procedimiento'],
+                                ['label' => 'Pre-Quirúrgico', 'route' => 'admin.gestion.consultas.pre-quirurgico', 'active' => 'admin.gestion.consultas.pre-quirurgico'],
+                                ['label' => 'En Cirugía', 'route' => 'admin.gestion.consultas.en-cirugia', 'active' => 'admin.gestion.consultas.en-cirugia'],
+                                ['label' => 'En Recuperación', 'route' => 'admin.gestion.consultas.recuperacion', 'active' => 'admin.gestion.consultas.recuperacion'],
+                                ['label' => 'Educación/Alta', 'route' => 'admin.gestion.consultas.educacion-propietario', 'active' => 'admin.gestion.consultas.educacion-propietario'],
+                                // Estados finales
                                 ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas'],
                                 ['label' => 'Pagadas', 'route' => 'admin.gestion.consultas.pagadas', 'active' => 'admin.gestion.consultas.pagadas'],
                             ]
@@ -513,13 +521,26 @@ if (!function_exists('getEstadosConsultaMenuItems')) {
     function getEstadosConsultaMenuItems(): array
     {
         // Estados base que ya tienen ruta fija en el menú
-        $estadosBase = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_estudio', 'finalizada', 'pagada', 'por_llegar', 'borrador'];
+        // (Estos estados se filtran para no duplicar en el menú dinámico)
+        $estadosBase = [
+            'sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista',
+            'en_gotas', 'dilatado', 'en_optica', 'en_estudio', // Oftalmología (ocultos del menú)
+            'finalizada', 'pagada', 'por_llegar', 'borrador',
+            // Estados veterinarios (ocultos del menú dinámico, se agregan manualmente)
+            'en_triage', 'en_tratamiento', 'en_procedimiento', 'pre_quirurgico',
+            'en_cirugia', 'recuperacion', 'educacion_propietario'
+        ];
 
         // Rutas fijas existentes para algunos estados especiales
         $rutasFijas = [
-            'en_gotas'  => 'admin.gestion.consultas.en-gotas',
-            'dilatado'  => 'admin.gestion.consultas.dilatado',
-            'en_optica' => 'admin.gestion.consultas.en-optica',
+            // Estados veterinarios
+            'en_triage' => 'admin.gestion.consultas.en-triage',
+            'en_tratamiento' => 'admin.gestion.consultas.en-tratamiento',
+            'en_procedimiento' => 'admin.gestion.consultas.en-procedimiento',
+            'pre_quirurgico' => 'admin.gestion.consultas.pre-quirurgico',
+            'en_cirugia' => 'admin.gestion.consultas.en-cirugia',
+            'recuperacion' => 'admin.gestion.consultas.recuperacion',
+            'educacion_propietario' => 'admin.gestion.consultas.educacion-propietario',
         ];
 
         try {

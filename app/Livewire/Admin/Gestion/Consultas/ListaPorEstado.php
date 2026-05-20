@@ -55,13 +55,26 @@ class ListaPorEstado extends Component
     public function mount(): void
     {
         $routeMap = [
+            // Estados comunes
             'admin.gestion.consultas.sala-espera'   => ['estados' => ['sala_espera'],                                    'titulo' => 'Sala de Espera'],
             'admin.gestion.consultas.en-enfermeria' => ['estados' => ['en_enfermeria'],                                  'titulo' => 'En Enfermería'],
             'admin.gestion.consultas.en-consultorio'=> ['estados' => ['en_consultorio', 'en_consultorio_optometrista'],  'titulo' => 'En Consultorio'],
-            'admin.gestion.consultas.en-gotas'      => ['estados' => ['en_gotas'],                                       'titulo' => 'En Gotas'],
-            'admin.gestion.consultas.dilatado'      => ['estados' => ['dilatado'],                                       'titulo' => 'Dilatado'],
-            'admin.gestion.consultas.en-optica'     => ['estados' => ['en_optica'],                                      'titulo' => 'En Óptica'],
-            'admin.gestion.consultas.en-estudio'    => ['estados' => ['en_estudio'],                                     'titulo' => 'En Estudio'],
+
+            // Estados oftalmología humana
+            'admin.gestion.consultas.en-gotas'      => ['estados' => ['en_gotas'],                                     'titulo' => 'En Gotas'],
+            'admin.gestion.consultas.dilatado'      => ['estados' => ['dilatado'],                                     'titulo' => 'Dilatado'],
+            'admin.gestion.consultas.en-optica'     => ['estados' => ['en_optica'],                                    'titulo' => 'En Óptica'],
+
+            // Estados veterinarios
+            'admin.gestion.consultas.en-triage'          => ['estados' => ['en_triage'],                                   'titulo' => 'En Triaje/Urgencias'],
+            'admin.gestion.consultas.en-tratamiento'     => ['estados' => ['en_tratamiento'],                              'titulo' => 'En Tratamiento'],
+            'admin.gestion.consultas.en-procedimiento'   => ['estados' => ['en_procedimiento'],                            'titulo' => 'En Procedimiento/Curas'],
+            'admin.gestion.consultas.pre-quirurgico'     => ['estados' => ['pre_quirurgico'],                              'titulo' => 'Pre-Quirúrgico'],
+            'admin.gestion.consultas.en-cirugia'         => ['estados' => ['en_cirugia'],                                  'titulo' => 'En Cirugía'],
+            'admin.gestion.consultas.recuperacion'       => ['estados' => ['recuperacion'],                                'titulo' => 'En Recuperación'],
+            'admin.gestion.consultas.educacion-propietario' => ['estados' => ['educacion_propietario'],                   'titulo' => 'Educación/Alta'],
+
+            // Estados finales
             'admin.gestion.consultas.finalizadas'   => ['estados' => ['finalizada'],                                     'titulo' => 'Finalizadas'],
             'admin.gestion.consultas.pagadas'       => ['estados' => ['pagada'],                                         'titulo' => 'Pagadas'],
         ];

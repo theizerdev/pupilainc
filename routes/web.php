@@ -80,6 +80,62 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
    Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/dashboard', \App\Livewire\Admin\Dashboard::class)->name('dashboard');
         require __DIR__.'/admin.php';
+
+        // Calendario Veterinario - API para selects dependientes
+        Route::prefix('api/calendario')->group(function () {
+            Route::get('/razas/{especieId}', function($especieId) {
+                $razas = \App\Models\Raza::withoutGlobalScopes()
+                    ->where('especie_id', $especieId)
+                    ->activas()
+                    ->ordenadas()
+                    ->get(['id', 'nombre']);
+
+                return response()->json($razas);
+            })->name('calendario.razas');
+
+            Route::get('/mascotas', function(\Illuminate\Http\Request $request) {
+                $especieId = $request->query('especie_id');
+                $razaId = $request->query('raza_id');
+
+                $query = \App\Models\Mascota::forUser()->activos();
+
+                if ($razaId) {
+                    $query->where('raza_id', $razaId);
+                } elseif ($especieId) {
+                    $query->where('especie_id', $especieId);
+                }
+
+                $mascotas = $query->with(['especie', 'raza'])
+                    ->orderBy('nombre')
+                    ->get(['id', 'nombre', 'especie_id', 'raza_id']);
+
+                return response()->json($mascotas);
+            })->name('calendario.mascotas');
+
+            Route::get('/medicos', function() {
+                $medicos = \App\Models\Medico::activos()
+                    ->forUser()
+                    ->orderBy('nombres')
+                    ->get(['id', 'nombres', 'apellidos']);
+
+                return response()->json($medicos->map(function($m) {
+                    return [
+                        'id' => $m->id,
+                        'nombre' => $m->nombre_completo,
+                    ];
+                }));
+            })->name('calendario.medicos');
+
+            Route::get('/especies', function() {
+                $especies = \App\Models\Especie::forUser()
+                    ->activas()
+                    ->orderBy('orden')
+                    ->orderBy('nombre')
+                    ->get(['id', 'nombre', 'icono', 'color']);
+
+                return response()->json($especies);
+            })->name('calendario.especies');
+        });
    });
 });
 

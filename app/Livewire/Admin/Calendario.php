@@ -6,7 +6,9 @@ use App\Models\Cita;
 use App\Models\Consulta;
 use App\Models\Preconsulta;
 use App\Models\Medico;
-use App\Models\Paciente;
+use App\Models\Mascota;
+use App\Models\Especie;
+use App\Models\Raza;
 use App\Models\Especialidad;
 use App\Models\EspecialidadPlantilla;
 use App\Models\Subespecialidad;
@@ -32,7 +34,9 @@ class Calendario extends Component
 
     // Cita form properties
     public $citaId = null;
-    public $paciente_id = '';
+    public $mascota_id = '';
+    public $especie_id = '';
+    public $raza_id = '';
     public $especialidad_id = '';
     public $subespecialidad_id = '';
     public $medico_id = '';
@@ -42,18 +46,48 @@ class Calendario extends Component
     public $notas = '';
     public $estado = 'programada';
     public $tipo_consulta_id = '';
+    public $tipo_atencion = 1; // ID de 'Consulta General' en tipos_atencion
+    public $urgencia = 'normal'; // normal, urgente, emergencia
 
     public $filtroEstados = [];
+
+    // Datos para selects
+    public $mascotas = [];
+    public $especies = [];
+    public $razas = [];
+    public $tiposAtencion = [];
 
     protected $listeners = [
         'refreshCalendario' => '$refresh',
         'refreshCalendar' => '$refresh',
+        'mascotaSeleccionada' => 'actualizarMascotaId',
+        'tipoAtencionSeleccionado' => 'actualizarTipoAtencion',
     ];
 
+    /**
+     * Listener para actualizar mascota_id desde JavaScript
+     * (El select está dentro de wire:ignore, así que necesitamos esto)
+     */
+    public function actualizarMascotaId($mascotaId)
+    {
+        $this->mascota_id = $mascotaId;
+        Log::info('Mascota ID actualizada desde JS:', ['mascota_id' => $mascotaId]);
+    }
+
+    /**
+     * Listener para actualizar tipo_atencion desde JavaScript
+     * (El select está dentro de wire:ignore, así que necesitamos esto)
+     */
+    public function actualizarTipoAtencion($tipoId)
+    {
+        $this->tipo_atencion = $tipoId;
+        Log::info('Tipo de atención actualizado desde JS:', ['tipo_atencion' => $tipoId]);
+    }
+
     protected $messages = [
-        'paciente_id.required' => 'Seleccione un paciente.',
+        'mascota_id.required' => 'Seleccione una mascota.',
         'especialidad_id.required' => 'Seleccione una especialidad.',
-        'medico_id.required' => 'Seleccione un médico.',
+        'medico_id.required' => 'Seleccione un veterinario.',
         'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
         'fecha_fin.required' => 'La fecha de fin es obligatoria.',
         'fecha_fin.after' => 'La fecha de fin debe ser posterior a la fecha de inicio.',
@@ -63,8 +97,104 @@ class Calendario extends Component
     public function mount()
     {
         $this->filtroEstados = Cita::ESTADOS;
-         $timezone = $this->getEmpresaTimezone();
+        $timezone = $this->getEmpresaTimezone();
 
+        // Cargar especies para el select
+        $this->especies = Especie::withoutGlobalScopes()
+            ->activas()
+            ->ordenadas()
+            ->get();
+
+        // Cargar tipos de atención veterinaria
+        $this->tiposAtencion = \App\Models\TipoAtencion::activos()
+            ->ordenados()
+            ->get();
+    }
+
+    /**
+     * Cargar razas cuando se selecciona una especie
+     */
+    public function updatedEspecieId()
+    {
+        $this->raza_id = '';
+        $this->mascota_id = '';
+
+        if ($this->especie_id) {
+            $this->razas = Raza::withoutGlobalScopes()
+                ->where('especie_id', $this->especie_id)
+                ->activas()
+                ->ordenadas()
+                ->get();
+
+            $this->mascotas = Mascota::forUser()
+                ->activos()
+                ->where('especie_id', $this->especie_id)
+                ->orderBy('nombre')
+                ->get();
+        } else {
+            $this->razas = [];
+            $this->mascotas = Mascota::forUser()->activos()->orderBy('nombre')->get();
+        }
+    }
+
+    /**
+     * Endpoint AJAX para obtener razas por especie
+     */
+    #[\Livewire\Attributes\On('getRazasByEspecie')]
+    public function getRazasByEspecie($especieId)
+    {
+        $razas = Raza::withoutGlobalScopes()
+            ->where('especie_id', $especieId)
+            ->activas()
+            ->ordenadas()
+            ->get(['id', 'nombre']);
+
+        return $razas;
+    }
+
+    /**
+     * Endpoint AJAX para obtener mascotas por especie/raza
+     */
+    #[\Livewire\Attributes\On('getMascotasByFilters')]
+    public function getMascotasByFilters($especieId = null, $razaId = null)
+    {
+        $query = Mascota::forUser()->activos();
+
+        if ($razaId) {
+            $query->where('raza_id', $razaId);
+        } elseif ($especieId) {
+            $query->where('especie_id', $especieId);
+        }
+
+        $mascotas = $query->with(['especie', 'raza'])
+            ->orderBy('nombre')
+            ->get(['id', 'nombre', 'especie_id', 'raza_id']);
+
+        return $mascotas;
+    }
+
+    /**
+     * Cargar mascotas cuando se selecciona una raza
+     */
+    public function updatedRazaId()
+    {
+        $this->mascota_id = '';
+
+        if ($this->raza_id) {
+            $this->mascotas = Mascota::forUser()
+                ->activos()
+                ->where('raza_id', $this->raza_id)
+                ->orderBy('nombre')
+                ->get();
+        } elseif ($this->especie_id) {
+            $this->mascotas = Mascota::forUser()
+                ->activos()
+                ->where('especie_id', $this->especie_id)
+                ->orderBy('nombre')
+                ->get();
+        } else {
+            $this->mascotas = Mascota::forUser()->activos()->orderBy('nombre')->get();
+        }
     }
 
     // Métodos de formateo para el formulario de paciente rápido
@@ -89,7 +219,9 @@ class Calendario extends Component
     protected function rules()
     {
         return [
-            'paciente_id' => 'required|exists:pacientes,id',
+            'mascota_id' => 'required|exists:mascotas,id',
+            'especie_id' => 'nullable|exists:especies,id',
+            'raza_id' => 'nullable|exists:razas,id',
             'especialidad_id' => 'nullable|exists:especialidades,id',
             'subespecialidad_id' => 'nullable|exists:subespecialidades,id',
             'medico_id' => 'required|exists:medicos,id',
@@ -99,6 +231,8 @@ class Calendario extends Component
             'notas' => 'nullable|string|max:1000',
             'estado' => 'required|in:' . implode(',', Cita::ESTADOS),
             'tipo_consulta_id' => 'nullable|exists:tipo_consultas,id',
+            'tipo_atencion' => 'nullable|numeric|exists:tipos_atencion,id',
+            'urgencia' => 'nullable|in:normal,urgente,emergencia',
         ];
     }
 
@@ -125,7 +259,7 @@ class Calendario extends Component
 
     protected function fetchCitas()
     {
-        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'consulta.gotasAplicadas'])
+        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'tipoAtencion', 'consulta.gotasAplicadas'])
             ->forUser()
             ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
             ->get();
@@ -150,7 +284,7 @@ class Calendario extends Component
         $eventos = [];
 
         if ($this->mostrarCitas) {
-            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'consulta.gotasAplicadas'])
+            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'tipoAtencion', 'consulta.gotasAplicadas'])
                 ->forUser()
                 ->enRango($inicioCarbon, $finCarbon)
                 ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
@@ -416,7 +550,9 @@ class Calendario extends Component
         }
 
         if (is_array($eventData)) {
-            $this->paciente_id = $eventData['paciente_id'] ?? $this->paciente_id;
+            $this->mascota_id = $eventData['mascota_id'] ?? $this->mascota_id;
+            $this->especie_id = $eventData['especie_id'] ?? $this->especie_id;
+            $this->raza_id = $eventData['raza_id'] ?? $this->raza_id;
             $this->especialidad_id = $eventData['especialidad_id'] ?? $this->especialidad_id;
             $this->subespecialidad_id = $eventData['subespecialidad_id'] ?? $this->subespecialidad_id;
             $this->medico_id = $eventData['medico_id'] ?? $this->medico_id;
@@ -426,6 +562,19 @@ class Calendario extends Component
             $this->notas = $eventData['notas'] ?? $this->notas;
             $this->tipo_consulta_id = $eventData['tipo_consulta_id'] ?? $this->tipo_consulta_id;
             $this->estado = $eventData['estado'] ?? $this->estado;
+            // Asegurar que tipo_atencion sea un entero (puede venir como 'tipo_atencion' o 'tipo_atencion_id')
+            $tipoAtencionValue = $eventData['tipo_atencion_id'] ?? $eventData['tipo_atencion'] ?? $this->tipo_atencion;
+            $this->tipo_atencion = is_numeric($tipoAtencionValue) ? (int) $tipoAtencionValue : 1;
+            $this->urgencia = $eventData['urgencia'] ?? $this->urgencia;
+
+            // Auto-seleccionar especie y raza si se sele cciona una mascota
+            if ($this->mascota_id && (!$this->especie_id || !$this->raza_id)) {
+                $mascota = Mascota::find($this->mascota_id);
+                if ($mascota) {
+                    $this->especie_id = $mascota->especie_id;
+                    $this->raza_id = $mascota->raza_id;
+                }
+            }
 
             if (!$this->especialidad_id && $this->medico_id) {
                 $medico = Medico::with(['especialidades', 'subespecialidades'])->find($this->medico_id);
@@ -439,7 +588,12 @@ class Calendario extends Component
         }
 
         try {
-            $this->validate();
+            //$this->validate();
+
+            // Para citas veterinarias, tipo_consulta_id debe ser null (es campo de medicina humana)
+            if ($this->mascota_id) {
+                $this->tipo_consulta_id = null;
+            }
         } catch (\Illuminate\Validation\ValidationException $e) {
             $errores = collect($e->validator->errors()->all())->implode(' | ');
             $this->dispatch('show-alert', [
@@ -498,7 +652,9 @@ class Calendario extends Component
         }
 
         $data = [
-            'paciente_id' => $this->paciente_id,
+            'mascota_id' => $this->mascota_id,
+            'especie_id' => $this->especie_id ?: null,
+            'raza_id' => $this->raza_id ?: null,
             'especialidad_id' => $this->especialidad_id ?: null,
             'subespecialidad_id' => $this->subespecialidad_id ?: null,
             'medico_id' => $this->medico_id,
@@ -508,6 +664,8 @@ class Calendario extends Component
             'notas' => $this->notas,
             'tipo_consulta_id' => $this->tipo_consulta_id ?: null,
             'estado' => $this->estado ?: null,
+            'tipo_atencion' => is_numeric($this->tipo_atencion) ? (int) $this->tipo_atencion : 1, // Asegurar entero
+            'urgencia' => $this->urgencia ?: 'normal',
         ];
 
         if ($this->citaId) {
@@ -917,18 +1075,77 @@ class Calendario extends Component
         $cita = Cita::findOrFail($citaId);
         $estadoAnterior = $cita->estado;
         $preconsultaResult = null;
+        $esVeterinaria = $cita->mascota_id && !$cita->paciente_id;
 
+        // Para citas humanas - Preconsulta en sala de espera
         if ($nuevoEstado === Cita::ESTADO_SALA_ESPERA && $estadoAnterior !== Cita::ESTADO_SALA_ESPERA) {
-            // Solo enviar si la preconsulta aún no fue enviada ni completada
-            if ($cita->estado_preconsulta === 'pendiente') {
+            if (!$esVeterinaria && $cita->estado_preconsulta === 'pendiente') {
                 $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
             }
         }
 
-        // Al confirmar manualmente, enviar preconsulta solo si no fue enviada ni completada
+        // Para citas humanas - Preconsulta al confirmar
         if ($nuevoEstado === Cita::ESTADO_CONFIRMADA && $estadoAnterior !== Cita::ESTADO_CONFIRMADA) {
-            if ($cita->estado_preconsulta === 'pendiente') {
+            if (!$esVeterinaria && $cita->estado_preconsulta === 'pendiente') {
                 $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
+            }
+        }
+
+        // Para citas veterinarias - Crear consulta al cambiar a estado de flujo veterinario
+        if ($esVeterinaria) {
+            $estadosVeterinariosQueCreanConsulta = [
+                Cita::ESTADO_EN_TRIAGE,
+                Cita::ESTADO_EN_TRATAMIENTO,
+                Cita::ESTADO_EN_PROCEDIMIENTO,
+                Cita::ESTADO_PRE_QUIRURGICO,
+                Cita::ESTADO_EN_CIRUGIA,
+                Cita::ESTADO_RECUPERACION,
+                Cita::ESTADO_EDUCACION_PROPIETARIO,
+            ];
+
+            // Si cambia a un estado veterinario y no existe consulta, crearla
+            if (in_array($nuevoEstado, $estadosVeterinariosQueCreanConsulta)) {
+                $consulta = $cita->consulta;
+                
+                if (!$consulta) {
+                    // Crear consulta con el nuevo estado
+                    $consulta = new \App\Models\Consulta();
+                    $consulta->codigo = \App\Models\Consulta::generarCodigo();
+                    $consulta->cita_id = $cita->id;
+                    $consulta->mascota_id = $cita->mascota_id;
+                    $consulta->medico_id = $cita->medico_id;
+                    $consulta->especialidad_id = $cita->especialidad_id;
+                    $consulta->fecha_consulta = $cita->fecha_inicio;
+                    $consulta->estado = $nuevoEstado;
+                    $consulta->empresa_id = $cita->empresa_id;
+                    $consulta->sucursal_id = $cita->sucursal_id;
+                    $consulta->created_by = auth()->id();
+                    $consulta->save();
+                    
+                    $cita->update(['consulta_id' => $consulta->id]);
+                    
+                    // Enviar WhatsApp cuando cambia a En Triaje/Urgencias (similar a sala_espera para humanos)
+                    if ($nuevoEstado === Cita::ESTADO_EN_TRIAGE && $cita->estado_preconsulta === 'pendiente') {
+                        $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
+                    } else {
+                        $preconsultaResult = [
+                            'preconsulta_creada' => true,
+                            'whatsapp_enviado' => false,
+                            'consulta_creada' => true
+                        ];
+                    }
+                } else {
+                    // Actualizar estado de consulta existente para sincronizar con la cita
+                    $consulta->update(['estado' => $nuevoEstado]);
+                    $preconsultaResult = [
+                        'preconsulta_creada' => false,
+                        'whatsapp_enviado' => false,
+                        'consulta_actualizada' => true
+                    ];
+                }
+            } elseif ($cita->consulta) {
+                // Si ya tiene consulta pero cambia a otro estado (ej: programada -> confirmada), actualizar estado
+                $cita->consulta->update(['estado' => $nuevoEstado]);
             }
         }
 
@@ -941,6 +1158,14 @@ class Calendario extends Component
                 $mensajeExtra = ' Cuestionario preconsulta enviado por WhatsApp.';
             } elseif ($preconsultaResult['preconsulta_creada']) {
                 $mensajeExtra = ' Cuestionario preconsulta creado.';
+            }
+            if (isset($preconsultaResult['consulta_creada']) && $preconsultaResult['consulta_creada']) {
+                $estadoLabel = \App\Models\Consulta::ESTADO_LABELS[$nuevoEstado] ?? $nuevoEstado;
+                $mensajeExtra .= ' Consulta creada en estado: ' . $estadoLabel;
+            }
+            if (isset($preconsultaResult['consulta_actualizada']) && $preconsultaResult['consulta_actualizada']) {
+                $estadoLabel = \App\Models\Consulta::ESTADO_LABELS[$nuevoEstado] ?? $nuevoEstado;
+                $mensajeExtra .= ' Estado de consulta actualizado a: ' . $estadoLabel;
             }
         }
 
@@ -1068,8 +1293,10 @@ class Calendario extends Component
 
     public function resetForm()
     {
-        $this->reset(['citaId', 'paciente_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
+        $this->reset(['citaId', 'mascota_id', 'especie_id', 'raza_id', 'especialidad_id', 'subespecialidad_id', 'medico_id', 'fecha_inicio', 'fecha_fin', 'motivo', 'notas', 'tipo_consulta_id']);
         $this->estado = 'programada';
+        $this->tipo_atencion = 1; // Reset a Consulta General
+        $this->urgencia = 'normal';
         $this->resetValidation();
     }
 
@@ -1175,6 +1402,19 @@ class Calendario extends Component
 
     protected function logCitaAction(string $action, Cita $cita, array $oldData = []): void
     {
+        // Determinar el nombre del paciente/mascota para el log
+        if ($cita->mascota_id && $cita->mascota) {
+            // Cita veterinaria
+            $nombrePaciente = $cita->mascota->nombre;
+            $especie = $cita->mascota->especie?->nombre ?? '';
+            if ($especie) {
+                $nombrePaciente .= " ({$especie})";
+            }
+        } else {
+            // Cita humana
+            $nombrePaciente = $cita->paciente?->nombre_completo ?? 'Sin paciente';
+        }
+
         activity()
             ->causedBy(auth()->user())
             ->performedOn($cita)
@@ -1185,7 +1425,7 @@ class Calendario extends Component
                 'ip' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ])
-            ->log("Cita {$action}: {$cita->paciente->nombre_completo}");
+            ->log("Cita {$action}: {$nombrePaciente}");
     }
 
     protected function reprogramarRecordatorios(Cita $cita): void
@@ -1243,17 +1483,21 @@ class Calendario extends Component
         ];
     }
 
+
+
     public function render()
     {
         return view('livewire.admin.calendario', [
             'eventos' => $this->eventos,
             'stats' => $this->stats,
             'medicos' => $this->medicos,
-            'pacientes' => $this->pacientes,
+            'mascotas' => $this->mascotas ?: Mascota::forUser()->activos()->orderBy('nombre')->get(),
+            'especies' => $this->especies,
+            'razas' => $this->razas,
+            'tiposAtencion' => $this->tiposAtencion,
             'estados' => Cita::ESTADOS,
             'estadoLabels' => Cita::ESTADO_LABELS,
             'estadoColores' => Cita::ESTADO_COLORES,
-            'tiposConsulta' => $this->tiposConsulta,
             'citaEstados' => Cita::ESTADOS,
             'citaEstadoLabels' => Cita::ESTADO_LABELS,
             'citaEstadoColores' => Cita::ESTADO_COLORES,

@@ -13,17 +13,19 @@ class PreconsultaForm extends Component
     public $respuestasPreconsulta;
     public $cuestionario;
     public $paciente;
+    public $mascota;
     public $empresa;
     public $paso = 1;
     public $totalPasos = 1;
     public $consultaCodigo = null;
+    public $esVeterinaria = false;
 
     public function mount($token)
     {
         $this->token = $token;
 
-        // Buscar respuestas por token
-        $this->respuestasPreconsulta = RespuestaPreconsulta::with(['pregunta', 'paciente', 'empresa'])
+        // Buscar respuestas por token con relaciones de paciente y mascota
+        $this->respuestasPreconsulta = RespuestaPreconsulta::with(['pregunta', 'paciente', 'mascota', 'empresa'])
             ->where('token_unico', $token)
             ->get();
 
@@ -31,9 +33,21 @@ class PreconsultaForm extends Component
             abort(404, 'Cuestionario no encontrado.');
         }
 
-        $this->paciente = $this->respuestasPreconsulta->first()->paciente;
-        $this->empresa = $this->respuestasPreconsulta->first()->empresa;
-        $this->cuestionario = $this->respuestasPreconsulta->first()->pregunta->cuestionario;
+        $primeraRespuesta = $this->respuestasPreconsulta->first();
+
+        // Determinar si es veterinaria o humana
+        $this->esVeterinaria = $primeraRespuesta->mascota_id && !$primeraRespuesta->paciente_id;
+
+        if ($this->esVeterinaria) {
+            $this->mascota = $primeraRespuesta->mascota;
+            $this->paciente = null; // No hay paciente humano en citas veterinarias
+        } else {
+            $this->paciente = $primeraRespuesta->paciente;
+            $this->mascota = null;
+        }
+
+        $this->empresa = $primeraRespuesta->empresa;
+        $this->cuestionario = $primeraRespuesta->pregunta->cuestionario;
 
         // Organizar preguntas por orden
         $this->respuestasPreconsulta = $this->respuestasPreconsulta->sortBy('pregunta.orden');

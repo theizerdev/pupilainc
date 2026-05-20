@@ -236,6 +236,59 @@
         </div>
     </div>
 
+    <!-- Veterinary Statistics Cards -->
+    @if($mascotasStats['total'] > 0 || $citasVeterinariasHoy > 0)
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <h5 class="fw-semibold mb-3">
+                <i class="ri ri-paw-line me-2" style="color: #F59E0B;"></i>
+                Estadísticas Veterinarias
+            </h5>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fef3c7;color:#d97706;"><i class="ri ri-paw-line"></i></div>
+                <div>
+                    <div class="stat-label">Total mascotas</div>
+                    <div class="stat-value text-warning">{{ $mascotasStats['total'] }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="ri ri-calendar-event-line"></i></div>
+                <div>
+                    <div class="stat-label">Citas veterinarias hoy</div>
+                    <div class="stat-value text-primary">{{ $citasVeterinariasHoy }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-6">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="ri ri-bar-chart-grouped-line"></i></div>
+                <div class="flex-grow-1">
+                    <div class="stat-label">Mascotas por especie</div>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        @forelse($mascotasStats['por_especie'] as $especie)
+                            @if($especie->total_mascotas > 0)
+                                <span class="badge" style="background: {{ $especie->color }}20; color: {{ $especie->color }}; border: 1px solid {{ $especie->color }}40; padding: .35rem .65rem; font-size: .8rem;">
+                                    <i class="{{ $especie->icono ?? 'ri ri-shape-line' }} me-1"></i>
+                                    {{ $especie->nombre }}: {{ $especie->total_mascotas }}
+                                </span>
+                            @endif
+                        @empty
+                            <span class="text-muted small">Sin datos</span>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Alerts Panel and Today's Income -->
     <div class="row g-4 mb-4">
         <!-- Alertas -->
@@ -458,6 +511,25 @@
         </div>
     </div>
 
+    <!-- Veterinary Appointments Chart -->
+    @if(count($especiesChartData['labels']) > 0 && array_sum($especiesChartData['data']) > 0)
+    <div class="row g-4 mb-4">
+        <div class="col-lg-12">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="ri ri-paw-line me-2" style="color: #F59E0B;"></i>
+                        Citas Veterinarias por Especie (Últimos 7 días)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="especiesChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 
 
     @push('scripts')
@@ -488,6 +560,42 @@
         }
 
         initCitasChart(@json($citasChartData['labels']), @json($citasChartData['data']));
+
+        // Initialize species chart if data exists
+        @if(count($especiesChartData['labels']) > 0)
+        function initEspeciesChart(labels, data, colors) {
+            labels = Array.isArray(labels) ? labels : [];
+            var arr = Array.isArray(data) ? data.map(function(v){ return Number(v) || 0; }) : [];
+            var colorArr = Array.isArray(colors) ? colors : ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+            var el = document.querySelector('#especiesChart');
+            if (!el) return;
+
+            var config = {
+                chart: { height: 300, type: 'bar', toolbar: { show: false } },
+                plotOptions: { bar: { borderRadius: 6, columnWidth: '50%', distributed: true } },
+                dataLabels: { enabled: false },
+                colors: colorArr,
+                series: [{ name: 'Citas', data: arr }],
+                xaxis: { categories: labels },
+                yaxis: { min: 0 },
+                legend: { show: false }
+            };
+
+            if (window.especiesChart && typeof window.especiesChart.updateOptions === 'function') {
+                window.especiesChart.updateOptions({ xaxis: { categories: labels } });
+                window.especiesChart.updateSeries([{ name: 'Citas', data: arr }]);
+            } else {
+                window.especiesChart = new ApexCharts(el, config);
+                window.especiesChart.render();
+            }
+        }
+
+        initEspeciesChart(
+            @json($especiesChartData['labels']),
+            @json($especiesChartData['data']),
+            @json($especiesChartData['colors'])
+        );
+        @endif
 
         document.addEventListener('livewire:init', function () {
             Livewire.on('chartDataUpdated', function () {

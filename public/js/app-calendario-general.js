@@ -1386,7 +1386,37 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         var ep = eventToUpdate.extendedProps;
         if(eventMotivo) eventMotivo.value = ep.motivo || ep.descripcion || '';
         if(eventNotas) eventNotas.value = ep.notas || '';
-        if(eventEstado.length) eventEstado.val(ep.estado || 'programada').trigger('change');
+
+        // Detectar si es cita veterinaria
+        var isVeterinary = ep.es_cita_veterinaria || (ep.mascota_id && !ep.paciente_id);
+
+        if(eventEstado.length) {
+            // Filtrar opciones según tipo de cita
+            var allOptions = eventEstado.find('option');
+            allOptions.each(function() {
+                var optionValue = $(this).val();
+                var isVetState = ['en_triage', 'en_tratamiento', 'en_procedimiento', 'pre_quirurgico', 'en_cirugia', 'recuperacion', 'educacion_propietario'].includes(optionValue);
+                var isHumanState = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_gotas', 'dilatado', 'en_optica', 'en_estudio'].includes(optionValue);
+
+                if (isVeterinary) {
+                    // Mostrar solo estados veterinarios + estados básicos
+                    if (isHumanState) {
+                        $(this).hide();
+                    } else {
+                        $(this).show();
+                    }
+                } else {
+                    // Mostrar solo estados humanos + estados básicos
+                    if (isVetState) {
+                        $(this).hide();
+                    } else {
+                        $(this).show();
+                    }
+                }
+            });
+
+            eventEstado.val(ep.estado || 'programada').trigger('change');
+        }
 
         // Show payment button if appointment is finalized and has a consultation
         if (ep.estado === 'finalizada' && ep.consulta_id) {
@@ -2057,7 +2087,10 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             // Agregar data-event-id para poder actualizar timers
             info.el.setAttribute('data-event-id', info.event.id);
 
-            var tipoColor = (isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color : (isCita ? '#1565C0' : '#7B1FA2');
+            // Usar color del tipo de atención (prioridad visual sobre tipo_consulta)
+            var tipoColor = (isCita && ep.tipo_atencion_color) ? ep.tipo_atencion_color :
+                           ((isCita && ep.tipo_consulta_color) ? ep.tipo_consulta_color :
+                           (isCita ? '#1565C0' : '#7B1FA2'));
 
             // Estilo Google Calendar: fondo sólido, borde izquierdo según prioridad
             info.el.style.backgroundColor = tipoColor;
@@ -2239,6 +2272,30 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         'cancelada': 'Cancelada',
         'no_asistio': 'No Asistió'
     };
+    // Estados veterinarios
+    var veterinaryStates = {
+        'en_triage': 'En Triaje/Urgencias',
+        'en_tratamiento': 'En Tratamiento',
+        'en_procedimiento': 'En Procedimiento/Curas',
+        'pre_quirurgico': 'Pre-Quirúrgico',
+        'en_cirugia': 'En Cirugía',
+        'recuperacion': 'En Recuperación',
+        'educacion_propietario': 'Educación/Alta',
+        'finalizada': 'Finalizada',
+        'pagada': 'Pagada'
+    };
+    // Colores de estados veterinarios
+    var veterinaryStateColors = {
+        'en_triage': '#FF5722',
+        'en_tratamiento': '#2196F3',
+        'en_procedimiento': '#00BCD4',
+        'pre_quirurgico': '#FFC107',
+        'en_cirugia': '#F44336',
+        'recuperacion': '#4CAF50',
+        'educacion_propietario': '#9C27B0',
+        'finalizada': '#66BB6A',
+        'pagada': '#4CAF50'
+    };
     var confirmedStates = ['confirmada','sala_espera','en_consultorio','en_consultorio_optometrista','en_gotas','dilatado','en_optica','en_estudio','finalizada','pagada'];
 
     // Inicializar el modal de Bootstrap
@@ -2259,11 +2316,20 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
 
         var ep = event.extendedProps || {};
         var currentState = ep.estado || 'programada';
+        var isVeterinary = ep.es_cita_veterinaria || (ep.mascota_id && !ep.paciente_id);
 
-        // Estados dinámicos según la especialidad de la cita
-        var estadosFlujo   = ep.estados_flujo   || Object.keys(preConfirmStates).concat(Object.keys(postConfirmStates));
-        var estadosLabels  = ep.estados_labels  || Object.assign({}, preConfirmStates, postConfirmStates);
-        var estadosColores = ep.estados_colores || citaCalendarColors;
+        // Si es cita veterinaria, usar solo estados veterinarios
+        var estadosFlujo, estadosLabels, estadosColores;
+        if (isVeterinary) {
+            estadosFlujo = Object.keys(veterinaryStates);
+            estadosLabels = veterinaryStates;
+            estadosColores = veterinaryStateColors;
+        } else {
+            // Estados dinámicos según la especialidad de la cita (humanas)
+            estadosFlujo   = ep.estados_flujo   || Object.keys(preConfirmStates).concat(Object.keys(postConfirmStates));
+            estadosLabels  = ep.estados_labels  || Object.assign({}, preConfirmStates, postConfirmStates);
+            estadosColores = ep.estados_colores || citaCalendarColors;
+        }
 
         // Configurar el modal
         var selectEl = document.getElementById('estadoSelect');

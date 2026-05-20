@@ -9,6 +9,8 @@ use App\Models\Cita;
 use App\Models\Medico;
 use App\Models\Paciente;
 use App\Models\Pago;
+use App\Models\Mascota;
+use App\Models\Especie;
 
 class Dashboard extends Component
 {
@@ -20,6 +22,11 @@ class Dashboard extends Component
     public $alerts = [];
     public $recentPayments = [];
     public $topMedicos = [];
+
+    // Veterinary statistics
+    public $mascotasStats = [];
+    public $especiesChartData = [];
+    public $citasVeterinariasHoy = 0;
 
     public function mount()
     {
@@ -52,6 +59,7 @@ class Dashboard extends Component
         $this->loadAlerts();
         $this->loadRecentPayments();
         $this->loadTopMedicos();
+        $this->loadVeterinaryStats();
 
         $this->dispatch('chartDataUpdated', [
             'citasChartData' => $this->citasChartData,
@@ -182,6 +190,65 @@ class Dashboard extends Component
         ->get();
     }
 
+    /**
+     * Cargar estadísticas veterinarias
+     */
+    public function loadVeterinaryStats()
+    {
+        // Total de mascotas registradas
+        $this->mascotasStats['total'] = Mascota::forUser()->count();
+
+        // Mascotas atendidas hoy (citas con mascota_id)
+        $this->citasVeterinariasHoy = Cita::whereDate('fecha_inicio', Carbon::today())
+            ->whereNotNull('mascota_id')
+            ->count();
+
+        // Estadísticas por especie
+        $this->mascotasStats['por_especie'] = Especie::forUser()
+            ->activas()
+            ->withCount(['mascotas as total_mascotas'])
+            ->orderByDesc('total_mascotas')
+            ->get();
+
+        // Citas veterinarias por especie (últimos 7 días)
+        $this->loadEspeciesChartData();
+    }
+
+    /**
+     * Cargar gráfico de citas por especie
+     */
+    public function loadEspeciesChartData()
+    {
+        $especies = Especie::forUser()->activas()->get();
+
+        $labels = [];
+        $data = [];
+        $colors = [];
+
+        foreach ($especies as $especie) {
+            $labels[] = $especie->nombre;
+            $colors[] = $especie->color ?? '#3B82F6';
+
+            // Contar citas de esta especie en los últimos 7 días
+            $total = Cita::whereBetween('fecha_inicio', [
+                    Carbon::now()->subDays(7),
+                    Carbon::now()
+                ])
+                ->whereHas('mascota', function ($query) use ($especie) {
+                    $query->where('especie_id', $especie->id);
+                })
+                ->count();
+
+            $data[] = $total;
+        }
+
+        $this->especiesChartData = [
+            'labels' => $labels,
+            'data' => $data,
+            'colors' => $colors,
+        ];
+    }
+
     public function render()
     {
         return view('livewire.admin.dashboard', [
@@ -190,7 +257,10 @@ class Dashboard extends Component
             'citasChartData' => $this->citasChartData,
             'alerts' => $this->alerts,
             'recentPayments' => $this->recentPayments,
-            'topMedicos' => $this->topMedicos
+            'topMedicos' => $this->topMedicos,
+            'mascotasStats' => $this->mascotasStats,
+            'citasVeterinariasHoy' => $this->citasVeterinariasHoy,
+            'especiesChartData' => $this->especiesChartData,
         ])->layout($this->getLayout());
     }
 }

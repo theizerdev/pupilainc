@@ -9,6 +9,7 @@ class RespuestaPreconsulta extends Model
 {
     protected $fillable = [
         'paciente_id',
+        'mascota_id',
         'cita_id',
         'consulta_id',
         'pregunta_id',
@@ -32,6 +33,11 @@ class RespuestaPreconsulta extends Model
     public function paciente(): BelongsTo
     {
         return $this->belongsTo(Paciente::class);
+    }
+
+    public function mascota(): BelongsTo
+    {
+        return $this->belongsTo(Mascota::class, 'mascota_id');
     }
 
     public function cita(): BelongsTo

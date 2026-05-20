@@ -103,9 +103,16 @@ class CitaNotificationService
 
     public function notificarNuevaCita(Cita $cita): array
     {
-        $cita->loadMissing(['paciente.tutor', 'medico', 'especialidad']);
+        // Cargar relaciones según tipo de cita
+        if ($cita->mascota_id) {
+            $cita->loadMissing(['mascota.propietario', 'medico', 'especialidad']);
+            $destinatario = $cita->mascota;
+        } else {
+            $cita->loadMissing(['paciente.tutor', 'medico', 'especialidad']);
+            $destinatario = $cita->paciente;
+        }
 
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+        $telefonos = $this->obtenerTelefonosPaciente($destinatario);
         $resultado = false;
         $errores = [];
 
@@ -151,9 +158,16 @@ class CitaNotificationService
 
     public function programarRecordatorios(Cita $cita): void
     {
-        $cita->loadMissing(['paciente.tutor', 'medico']);
+        // Cargar relaciones según tipo de cita
+        if ($cita->mascota_id) {
+            $cita->loadMissing(['mascota.propietario', 'medico']);
+            $destinatario = $cita->mascota;
+        } else {
+            $cita->loadMissing(['paciente.tutor', 'medico']);
+            $destinatario = $cita->paciente;
+        }
 
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+        $telefonos = $this->obtenerTelefonosPaciente($destinatario);
         if (empty($telefonos)) return;
 
         $recordatorios = [
@@ -215,7 +229,9 @@ class CitaNotificationService
             'paciente',
             $cita->estado
         )) {
-            $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+            // Obtener destinatario según tipo de cita
+            $destinatario = $cita->mascota_id ? $cita->mascota : $cita->paciente;
+            $telefonos = $this->obtenerTelefonosPaciente($destinatario);
 
             // Si el estado es 'confirmada', usar mensaje específico
             if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
@@ -253,12 +269,13 @@ class CitaNotificationService
 
     public function notificarCancelacion(Cita $cita): bool
     {
-        $cita->loadMissing(['paciente.tutor', 'medico']);
+        $cita->loadMissing(['medico']);
 
         $this->cancelarRecordatoriosPendientes($cita);
 
-        // Notificar Paciente
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+        // Notificar al destinatario (paciente o propietario de mascota)
+        $destinatario = $cita->mascota_id ? $cita->mascota : $cita->paciente;
+        $telefonos = $this->obtenerTelefonosPaciente($destinatario);
         $mensajePaciente = $this->construirMensajeCancelacion($cita);
 
         foreach ($telefonos as $telefono) {
@@ -277,9 +294,16 @@ class CitaNotificationService
 
     public function enviarRecordatorio(Cita $cita): array
     {
-        $cita->loadMissing(['paciente.tutor', 'medico']);
+        // Cargar relaciones según tipo de cita
+        if ($cita->mascota_id) {
+            $cita->loadMissing(['mascota.propietario', 'medico']);
+            $destinatario = $cita->mascota;
+        } else {
+            $cita->loadMissing(['paciente.tutor', 'medico']);
+            $destinatario = $cita->paciente;
+        }
 
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+        $telefonos = $this->obtenerTelefonosPaciente($destinatario);
         if (empty($telefonos)) {
             return [
                 'success' => false,
@@ -302,7 +326,7 @@ class CitaNotificationService
                 ],
                 [
                     'empresa_id' => $cita->empresa_id ?? $this->empresaId,
-                    'recipient_name' => $cita->paciente->nombre_completo,
+                    'recipient_name' => $this->obtenerNombreDestinatario($cita),
                     'message_content' => $mensaje,
                     'scheduled_at' => now(),
                     'status' => 'pending',
@@ -328,31 +352,113 @@ class CitaNotificationService
         ];
     }
 
+    // ===== HELPERS PARA OBTENER DATOS DEL PACIENTE/MASCOTA =====
+
+    /**
+     * Obtener nombre completo del destinatario (paciente humano o mascota)
+     */
+    protected function obtenerNombreDestinatario(Cita $cita): string
+    {
+        if ($cita->mascota_id && $cita->mascota) {
+            // Cita veterinaria - nombre de la mascota con especie y raza
+            $nombre = $cita->mascota->nombre;
+            $especie = $cita->mascota->especie?->nombre ?? '';
+            $raza = $cita->mascota->raza?->nombre ?? '';
+
+            $detalles = [];
+            if ($especie) $detalles[] = $especie;
+            if ($raza) $detalles[] = $raza;
+
+            if (!empty($detalles)) {
+                return "{$nombre} - " . implode(' ', $detalles);
+            }
+            return $nombre;
+        }
+
+        // Cita humana
+        return $cita->paciente?->nombre_completo ?? 'Sin paciente';
+    }
+
+    /**
+     * Obtener saludo apropiado para el destinatario
+     */
+    protected function obtenerSaludoDestinatario(Cita $cita): string
+    {
+        if ($cita->mascota_id && $cita->mascota) {
+            // Cita veterinaria - dirigirse al propietario/tutor
+            $propietario = $cita->mascota->propietario;
+            if ($propietario) {
+                return "Estimado(a) *{$propietario->nombres}*";
+            }
+            return "Estimado propietario";
+        }
+
+        // Cita humana
+        $esMenor = $cita->paciente?->es_menor ?? false;
+        $nombre = $cita->paciente?->nombre_completo ?? 'paciente';
+        return $esMenor
+            ? "Estimado representante de *{$nombre}*"
+            : "Estimado(a) *{$nombre}*";
+    }
+
     // ===== RESOLUCIÓN DE DESTINATARIOS =====
 
-    protected function obtenerTelefonosPaciente(Paciente $paciente): array
+    protected function obtenerTelefonosPaciente($pacienteOMascota): array
     {
         $telefonos = [];
 
-        if ($paciente->es_menor) {
-            if (!empty($paciente->telefono)) {
-                $telefonos[] = $this->formatearTelefono($paciente->telefono);
+        // Determinar si es paciente humano o mascota veterinaria
+        if ($pacienteOMascota instanceof \App\Models\Mascota) {
+            // Cita veterinaria - obtener teléfono del propietario (tutor/dueño)
+            $propietario = $pacienteOMascota->propietario;
+
+            if (!$propietario) {
+                Log::warning('CitaNotificationService: Mascota sin propietario registrado', [
+                    'mascota_id' => $pacienteOMascota->id
+                ]);
+                return [];
             }
 
-            $tutorTelefono = optional($paciente->tutor)->telefono;
-            if (!empty($tutorTelefono)) {
-                $telefonos[] = $this->formatearTelefono($tutorTelefono);
+            if (!empty($propietario->telefono)) {
+                $telefonos[] = $this->formatearTelefono($propietario->telefono);
+            }
+
+            if (!empty($propietario->telefono_alternativo)) {
+                $telefonos[] = $this->formatearTelefono($propietario->telefono_alternativo);
             }
 
             if (empty($telefonos)) {
-                Log::warning('CitaNotificationService: Paciente menor sin teléfono ni tutor', [
-                    'paciente_id' => $paciente->id
+                Log::warning('CitaNotificationService: Propietario sin teléfono registrado', [
+                    'propietario_id' => $propietario->id,
+                    'mascota_id' => $pacienteOMascota->id
                 ]);
             }
-        } else {
-            if (!empty($paciente->telefono)) {
-                $telefonos[] = $this->formatearTelefono($paciente->telefono);
+        } elseif ($pacienteOMascota instanceof \App\Models\Paciente) {
+            // Cita humana - usar lógica existente
+            if ($pacienteOMascota->es_menor) {
+                if (!empty($pacienteOMascota->telefono)) {
+                    $telefonos[] = $this->formatearTelefono($pacienteOMascota->telefono);
+                }
+
+                $tutorTelefono = optional($pacienteOMascota->tutor)->telefono;
+                if (!empty($tutorTelefono)) {
+                    $telefonos[] = $this->formatearTelefono($tutorTelefono);
+                }
+
+                if (empty($telefonos)) {
+                    Log::warning('CitaNotificationService: Paciente menor sin teléfono ni tutor', [
+                        'paciente_id' => $pacienteOMascota->id
+                    ]);
+                }
+            } else {
+                if (!empty($pacienteOMascota->telefono)) {
+                    $telefonos[] = $this->formatearTelefono($pacienteOMascota->telefono);
+                }
             }
+        } else {
+            Log::warning('CitaNotificationService: Tipo de paciente/mascota no reconocido', [
+                'tipo' => get_class($pacienteOMascota)
+            ]);
         }
 
         return array_values(array_unique($telefonos));
@@ -371,7 +477,7 @@ class CitaNotificationService
                 ],
                 [
                     'empresa_id' => $cita->empresa_id ?? $this->empresaId,
-                    'recipient_name' => $cita->paciente->nombre_completo,
+                    'recipient_name' => $this->obtenerNombreDestinatario($cita),
                     'message_content' => $mensaje,
                     'scheduled_at' => $fechaEnvio,
                     'status' => 'pending',
@@ -478,15 +584,8 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
-        $esMenor = $cita->paciente->es_menor;
-        if (!$esMenor)
-            {
-              $saludo = "Estimado(a) *{$cita->paciente->nombre_completo}*";
-            }
-            else
-          {
-            $saludo = "Estimado representante de *{$cita->paciente->nombre_completo}*";
-          }
+        $saludo = $this->obtenerSaludoDestinatario($cita);
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
 
         $urlConfirmar = URL::temporarySignedRoute(
             'citas.confirmar',
@@ -500,23 +599,18 @@ class CitaNotificationService
             ['token' => $confirmacion->token_confirmacion]
         );
 
-        $especialidad = $cita->especialidad->nombre ?? '';
+        $prefijo = $cita->mascota_id ? "🐾 *Nueva Cita Veterinaria*" : "🏥 *Nueva Cita Médica*";
 
-        return "🏥 *Nueva Cita Médica Agendada*\n\n"
+        return "{$prefijo}\n\n"
             . "{$saludo},\n\n"
-            . "Se ha agendado la siguiente cita:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
+            . "Se ha agendado una nueva cita:\n\n"
+            . "👤 Paciente/Mascota: {$nombreDestinatario}\n"
             . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
-            . ($especialidad ? "🏥 Especialidad: {$especialidad}\n" : "")
             . "📅 Fecha: {$fecha}\n"
-            . "🕐 Hora: {$hora}\n"
-            . "📋 Motivo: {$cita->motivo}\n\n"
-            . "Por favor, llegue 15 minutos antes de su cita.\n\n"
-            . "━━━━━━━━━━━━━━━━━━━━\n"
-            . "📋 *¿Confirma su asistencia?*\n\n"
-            . "📱 Responda por este chat:\n"
-            . "*SI* - para confirmar\n"
-            . "*NO* - para cancelar\n\n"
+            . " Hora: {$hora}\n\n"
+            . "Por favor confirme su asistencia dentro de las próximas 24 horas:\n\n"
+            . "✅ Confirmar: {$urlConfirmar}\n\n"
+            . "❌ Cancelar: {$urlCancelar}\n\n"
             . "⏰ Tiene 24 horas para responder.";
     }
 
@@ -526,14 +620,17 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
-        $esMenor = $cita->paciente->es_menor;
-        $saludo = $esMenor ? "Estimado representante de *{$cita->paciente->nombre_completo}*" : "Estimado(a) *{$cita->paciente->nombre_completo}*";
+        $saludo = $this->obtenerSaludoDestinatario($cita);
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
 
-        return "🏥 *Nueva Cita Médica Agendada*\n\n"
+        $prefijo = $cita->mascota_id ? "🐾 *Nueva Cita Veterinaria Agendada*" : "🏥 *Nueva Cita Médica Agendada*";
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
+
+        return "{$prefijo}\n\n"
             . "{$saludo},\n\n"
             . "Se ha agendado la siguiente cita:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
+            . "👨⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
             . "📅 Fecha: {$fecha}\n"
             . "🕐 Hora: {$hora}\n"
             . "📋 Motivo: {$cita->motivo}\n\n"
@@ -545,11 +642,13 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
         return "🏥 *Nueva Cita Agendada*\n\n"
             . "Dr(a). *{$cita->medico->nombre_completo}*, se le informa que tiene una nueva cita programada:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "📅 Fecha: {$fecha}\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
+            . " Fecha: {$fecha}\n"
             . "🕐 Hora: {$hora}\n"
             . "📋 Motivo: {$cita->motivo}\n\n"
             . "Esta notificación queda como constancia de aviso.";
@@ -560,10 +659,12 @@ class CitaNotificationService
         $estadoLabels = Cita::ESTADO_LABELS;
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
-        return "🏥 *Actualización de Cita Médica*\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
+        return " *Actualización de Cita*\n\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
+            . "‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
             . "📅 Fecha: {$fecha} a las {$hora}\n\n"
             . "📌 Estado anterior: " . ($estadoLabels[$estadoAnterior] ?? $estadoAnterior) . "\n"
             . "✅ Nuevo estado: " . ($estadoLabels[$cita->estado] ?? $cita->estado);
@@ -574,10 +675,12 @@ class CitaNotificationService
         $estadoLabels = Cita::ESTADO_LABELS;
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
         return "🏥 *Actualización de Cita*\n\n"
             . "Dr(a). *{$cita->medico->nombre_completo}*,\n"
-            . "La cita del paciente *{$cita->paciente->nombre_completo}* ha cambiado de estado.\n\n"
+            . "La cita de {$etiqueta} *{$nombreDestinatario}* ha cambiado de estado.\n\n"
             . "📅 Fecha: {$fecha} a las {$hora}\n"
             . "📌 Estado anterior: " . ($estadoLabels[$estadoAnterior] ?? $estadoAnterior) . "\n"
             . "✅ Nuevo estado: " . ($estadoLabels[$cita->estado] ?? $cita->estado);
@@ -587,17 +690,18 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
-        $esMenor = $cita->paciente->es_menor;
-        $saludo = $esMenor ? "Estimado representante de *{$cita->paciente->nombre_completo}*" : "Estimado(a) *{$cita->paciente->nombre_completo}*";
+        $saludo = $this->obtenerSaludoDestinatario($cita);
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
         return "✅ *Cita Confirmada*\n\n"
             . "{$saludo},\n\n"
-            . "Su cita médica ha sido confirmada exitosamente:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
+            . "Su cita ha sido confirmada exitosamente:\n\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
+            . "‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
             . "📅 Fecha: {$fecha}\n"
             . "🕐 Hora: {$hora}\n"
-            . "📋 Motivo: {$cita->motivo}\n\n"
+            . " Motivo: {$cita->motivo}\n\n"
             . "Por favor, llegue 15 minutos antes de su cita.\n"
             . "Si necesita cancelar o reprogramar, comuníquese con nosotros.";
     }
@@ -607,14 +711,16 @@ class CitaNotificationService
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
         $especialidad = $cita->especialidad->nombre ?? '';
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
-        return "✅ *Cita Confirmada por el Paciente*\n\n"
+        return "✅ *Cita Confirmada*\n\n"
             . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
-            . "El paciente ha confirmado su asistencia a la siguiente cita:\n\n"
-            . "👤 Paciente: *{$cita->paciente->nombre_completo}*\n"
+            . "La cita ha sido confirmada:\n\n"
+            . "👤 {$etiqueta}: *{$nombreDestinatario}*\n"
             . ($especialidad ? "🏥 Especialidad: {$especialidad}\n" : "")
             . "📅 Fecha: {$fecha}\n"
-            . "🕐 Hora: {$hora}\n"
+            . " Hora: {$hora}\n"
             . "📋 Motivo: {$cita->motivo}\n\n"
             . "━━━━━━━━━━━━━━━━━━━━\n"
             . "ℹ️ Esta cita está confirmada en su agenda.\n"
@@ -625,12 +731,14 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
         return "🏥 *Cita Cancelada*\n\n"
             . "Dr(a). *{$cita->medico->nombre_completo}*,\n"
             . "Se ha cancelado la siguiente cita:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "📅 Fecha: {$fecha} a las {$hora}\n\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
+            . " Fecha: {$fecha} a las {$hora}\n\n"
             . "El horario ha quedado disponible nuevamente.";
     }
 
@@ -638,11 +746,13 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
         return "🏥 *Cita Médica Cancelada*\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
             . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
-            . "📅 Fecha: {$fecha} a las {$hora}\n\n"
+            . " Fecha: {$fecha} a las {$hora}\n\n"
             . "❌ Su cita ha sido cancelada.\n"
             . "Si desea reprogramar, por favor comuníquese con nosotros.";
     }
@@ -651,18 +761,19 @@ class CitaNotificationService
     {
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
-        $esMenor = $cita->paciente->es_menor;
-        $saludo = $esMenor ? "Estimado representante de *{$cita->paciente->nombre_completo}*" : "Estimado(a) *{$cita->paciente->nombre_completo}*";
+        $saludo = $this->obtenerSaludoDestinatario($cita);
+        $nombreDestinatario = $this->obtenerNombreDestinatario($cita);
+        $etiqueta = $cita->mascota_id ? "Mascota" : "Paciente";
 
         $tiempoTexto = $tiempoRestante
-            ? "⏰ Su cita es en aproximadamente *{$tiempoRestante}*."
+            ? " Su cita es en aproximadamente *{$tiempoRestante}*."
             : "⏰ Le recordamos que su cita es pronto.";
 
-        return "🏥 *Recordatorio de Cita Médica*\n\n"
+        return "🏥 *Recordatorio de Cita*\n\n"
             . "{$saludo},\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
+            . "👤 {$etiqueta}: {$nombreDestinatario}\n"
             . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
-            . "📅 Fecha: {$fecha}\n"
+            . " Fecha: {$fecha}\n"
             . "🕐 Hora: {$hora}\n"
             . "📋 Motivo: {$cita->motivo}\n\n"
             . "{$tiempoTexto}\n"

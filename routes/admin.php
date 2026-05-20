@@ -320,24 +320,43 @@ Route::middleware(['checkAdminPermission:access citas'])->group(function () {
     Route::get('/citas/confirmaciones', \App\Livewire\Admin\CitaConfirmationStats::class)->name('citas.confirmaciones');
 });
 
-    // Gestión de Consultas
-    Route::prefix('gestion')->as('gestion.')->group(function () {
+// Gestión de Consultas
+Route::prefix('gestion')->as('gestion.')->group(function () {
         Route::get('/consultas', function () {
             return redirect()->to('admin/calendario');
         })->name('consultas.index')->middleware('checkAdminPermission:access consultas');
 
         $middleware = 'checkAdminPermission:access consultas';
+        // Estados comunes
         Route::get('/consultas/sala-espera',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware($middleware);
         Route::get('/consultas/en-enfermeria',  \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware($middleware);
         Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware($middleware);
-        Route::get('/consultas/en-gotas',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-gotas')->middleware($middleware);
-        Route::get('/consultas/dilatado',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.dilatado')->middleware($middleware);
-        Route::get('/consultas/en-optica',      \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware($middleware);
-        Route::get('/consultas/en-estudio',     \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware($middleware);
+
+        // Estados veterinarios
+        Route::get('/consultas/en-triage',          \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-triage')->middleware($middleware);
+        Route::get('/consultas/en-tratamiento',     \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-tratamiento')->middleware($middleware);
+        Route::get('/consultas/en-procedimiento',   \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-procedimiento')->middleware($middleware);
+        Route::get('/consultas/pre-quirurgico',     \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.pre-quirurgico')->middleware($middleware);
+        Route::get('/consultas/en-cirugia',         \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-cirugia')->middleware($middleware);
+        Route::get('/consultas/recuperacion',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.recuperacion')->middleware($middleware);
+        Route::get('/consultas/educacion-propietario', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.educacion-propietario')->middleware($middleware);
+
+        // Estados finales
         Route::get('/consultas/finalizadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware($middleware);
-        Route::get('/consultas/pagadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.pagadas')->middleware($middleware);
+        Route::get('/consultas/pagadas',        \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.pagadas')->middleware($middleware);
+
         // Ruta dinámica por estado — para estados específicos de especialidades (en_consultorio_optometrista, etc.)
         Route::get('/consultas/estado/{estado}', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.por-estado')->middleware($middleware);
+
+        // Formularios veterinarios
+        Route::get('/consultas/{consulta}/signos-vitales-veterinarios', \App\Livewire\Admin\Gestion\Consultas\RegistrarSignosVitalesVeterinarios::class)->name('consultas.signos-vitales-veterinarios')->middleware($middleware);
+        Route::get('/consultas/{consulta}/triaje', \App\Livewire\Admin\Gestion\Consultas\RegistrarTriaje::class)->name('consultas.triage')->middleware($middleware);
+        Route::get('/consultas/{consulta}/tratamiento', \App\Livewire\Admin\Gestion\Consultas\RegistrarTratamiento::class)->name('consultas.tratamiento')->middleware($middleware);
+        Route::get('/consultas/{consulta}/procedimiento', \App\Livewire\Admin\Gestion\Consultas\RegistrarProcedimiento::class)->name('consultas.procedimiento')->middleware($middleware);
+        Route::get('/consultas/{consulta}/pre-quirurgico', \App\Livewire\Admin\Gestion\Consultas\RegistrarPreQuirurgico::class)->name('consultas.pre-quirurgico-form')->middleware($middleware);
+        Route::get('/consultas/{consulta}/cirugia', \App\Livewire\Admin\Gestion\Consultas\RegistrarCirugia::class)->name('consultas.cirugia')->middleware($middleware);
+        Route::get('/consultas/{consulta}/recuperacion', \App\Livewire\Admin\Gestion\Consultas\RegistrarRecuperacion::class)->name('consultas.recuperacion-form')->middleware($middleware);
+        Route::get('/consultas/{consulta}/educacion-propietario', \App\Livewire\Admin\Gestion\Consultas\RegistrarEducacionPropietario::class)->name('consultas.educacion-propietario-form')->middleware($middleware);
     });
 
 // Contabilidad

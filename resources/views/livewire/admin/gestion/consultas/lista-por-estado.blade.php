@@ -282,9 +282,36 @@
                             </td>
                             <td>
                                 <div>
-                                    <div class="fw-semibold">{{ $consulta->paciente->nombre_completo }}</div>
-                                    @if($consulta->paciente->documento_identidad)
-                                        <small class="text-muted">{{ $consulta->paciente->documento_identidad }}</small>
+                                    @if($consulta->mascota_id && $consulta->mascota)
+                                        {{-- Consulta veterinaria --}}
+                                        <div class="fw-semibold">
+                                            <i class="ri ri-paw-line me-1 text-warning"></i>
+                                            {{ $consulta->mascota->nombre }}
+                                        </div>
+                                        @if($consulta->mascota->especie || $consulta->mascota->raza)
+                                            <small class="text-muted">
+                                                {{ $consulta->mascota->especie?->nombre ?? '' }}
+                                                @if($consulta->mascota->raza)
+                                                    - {{ $consulta->mascota->raza->nombre }}
+                                                @endif
+                                            </small>
+                                        @endif
+                                        @if($consulta->mascota->propietario)
+                                            <div class="mt-1">
+                                                <small class="badge bg-light text-secondary border" style="font-size: 0.7rem;">
+                                                    <i class="ri ri-user-line me-1"></i>
+                                                    Propietario: {{ $consulta->mascota->propietario->nombres }} {{ $consulta->mascota->propietario->apellidos }}
+                                                </small>
+                                            </div>
+                                        @endif
+                                    @elseif($consulta->paciente)
+                                        {{-- Consulta humana --}}
+                                        <div class="fw-semibold">{{ $consulta->paciente->nombre_completo }}</div>
+                                        @if($consulta->paciente->documento_identidad)
+                                            <small class="text-muted">{{ $consulta->paciente->documento_identidad }}</small>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">Sin paciente/mascota</span>
                                     @endif
                                 </div>
                             </td>
@@ -374,13 +401,101 @@
                                         <li><hr class="dropdown-divider"></li>
                                         @endif
 
-                                        {{-- Signos vitales (enfermería) --}}
-                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && auth()->user()->can('registrar signos vitales'))
+                                        {{-- Signos vitales (enfermería humana) --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && !$consulta->mascota_id && auth()->user()->can('registrar signos vitales'))
                                         <li>
                                             <a class="dropdown-item d-flex align-items-center" href="#"
                                                data-bs-toggle="modal" data-bs-target="#registrarSignosVitalesModal{{ $consulta->id }}">
                                                 <i class="ri ri-heart-pulse-line me-2 text-danger"></i>
                                                 Signos Vitales
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Signos vitales veterinarios (enfermería veterinaria) --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_ENFERMERIA && $consulta->mascota_id && auth()->user()->can('registrar signos vitales'))
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.signos-vitales-veterinarios', $consulta->id) }}">
+                                                <i class="ri ri-thermometer-line me-2 text-danger"></i>
+                                                Signos Vitales Veterinarios
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Triaje veterinario --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_TRIAGE && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.triage', $consulta->id) }}">
+                                                <i class="ri ri-first-aid-kit-line me-2 text-danger"></i>
+                                                Evaluación de Triaje
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Tratamiento veterinario --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_TRATAMIENTO && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.tratamiento', $consulta->id) }}">
+                                                <i class="ri ri-injection-line me-2 text-primary"></i>
+                                                Registrar Tratamiento
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Procedimiento/Cura veterinario --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_PROCEDIMIENTO && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.procedimiento', $consulta->id) }}">
+                                                <i class="ri ri-scissors-cut-line me-2 text-info"></i>
+                                                Registrar Procedimiento/Cura
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Pre-quirúrgico veterinario --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_PRE_QUIRURGICO && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.pre-quirurgico-form', $consulta->id) }}">
+                                                <i class="ri ri-hospital-line me-2 text-warning"></i>
+                                                Evaluación Pre-Quirúrgica
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Cirugía veterinaria --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EN_CIRUGIA && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.cirugia', $consulta->id) }}">
+                                                <i class="ri ri-hospital-line me-2 text-danger"></i>
+                                                Registro Quirúrgico
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Recuperación veterinaria --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_RECUPERACION && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.recuperacion-form', $consulta->id) }}">
+                                                <i class="ri ri-heart-pulse-line me-2 text-success"></i>
+                                                Registro de Recuperación
+                                            </a>
+                                        </li>
+                                        @endif
+
+                                        {{-- Educación al propietario / Alta veterinaria --}}
+                                        @if($consulta->estado === \App\Models\Consulta::ESTADO_EDUCACION_PROPIETARIO && $consulta->mascota_id)
+                                        <li>
+                                            <a class="dropdown-item d-flex align-items-center"
+                                               href="{{ route('admin.gestion.consultas.educacion-propietario-form', $consulta->id) }}">
+                                                <i class="ri ri-user-follow-line me-2 text-warning"></i>
+                                                Educación y Alta
                                             </a>
                                         </li>
                                         @endif
@@ -490,7 +605,17 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-muted small mb-3">
-                            Paciente: <strong>{{ $consulta->paciente->nombre_completo }}</strong>
+                            @if($consulta->mascota_id && $consulta->mascota)
+                                Mascota: <strong>{{ $consulta->mascota->nombre }}</strong>
+                                @if($consulta->mascota->especie || $consulta->mascota->raza)
+                                    ({{ $consulta->mascota->especie?->nombre ?? '' }}
+                                    @if($consulta->mascota->raza) {{ $consulta->mascota->raza->nombre }} @endif)
+                                @endif
+                            @elseif($consulta->paciente)
+                                Paciente: <strong>{{ $consulta->paciente->nombre_completo }}</strong>
+                            @else
+                                Sin paciente/mascota
+                            @endif
                         </p>
 
                         <div class="mb-3">
@@ -537,7 +662,7 @@
                             </div>
                         </div>
 
-                        @if($consulta->paciente->es_menor && $consulta->paciente->tutor)
+                        @if($consulta->paciente && $consulta->paciente->es_menor && $consulta->paciente->tutor)
                         <div class="alert alert-info small mt-3 mb-0">
                             <i class="ri ri-information-line me-1"></i>
                             Paciente menor de edad. Si no agrega acompañante manual, se incluirá automáticamente

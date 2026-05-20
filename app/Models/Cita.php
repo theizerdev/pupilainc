@@ -39,6 +39,15 @@ class Cita extends Model
     const ESTADO_COMPLETADA = 'finalizada';
     const ESTADO_PAGADA = 'pagada';
 
+    // Estados veterinarios
+    const ESTADO_EN_TRIAGE = 'en_triage';
+    const ESTADO_EN_TRATAMIENTO = 'en_tratamiento';
+    const ESTADO_EN_PROCEDIMIENTO = 'en_procedimiento';
+    const ESTADO_PRE_QUIRURGICO = 'pre_quirurgico';
+    const ESTADO_EN_CIRUGIA = 'en_cirugia';
+    const ESTADO_RECUPERACION = 'recuperacion';
+    const ESTADO_EDUCACION_PROPIETARIO = 'educacion_propietario';
+
     const ESTADOS = [
         self::ESTADO_PENDIENTE,
         self::ESTADO_CONFIRMADA,
@@ -55,6 +64,14 @@ class Cita extends Model
         self::ESTADO_EN_ESTUDIO,
         self::ESTADO_FINALIZADA,
         self::ESTADO_PAGADA,
+        // Estados veterinarios
+        self::ESTADO_EN_TRIAGE,
+        self::ESTADO_EN_TRATAMIENTO,
+        self::ESTADO_EN_PROCEDIMIENTO,
+        self::ESTADO_PRE_QUIRURGICO,
+        self::ESTADO_EN_CIRUGIA,
+        self::ESTADO_RECUPERACION,
+        self::ESTADO_EDUCACION_PROPIETARIO,
     ];
 
     const ESTADO_COLORES = [
@@ -74,6 +91,14 @@ class Cita extends Model
         'finalizada' => '#66BB6A',
         'pagada' => '#4CAF50',
         'borrador' => '#BDBDBD',
+        // Estados veterinarios
+        'en_triage' => '#FF5722',           // Naranja rojizo - Urgencias
+        'en_tratamiento' => '#2196F3',      // Azul - Tratamiento
+        'en_procedimiento' => '#00BCD4',    // Cyan - Procedimientos
+        'pre_quirurgico' => '#FFC107',      // Amarillo - Pre-quirúrgico
+        'en_cirugia' => '#F44336',          // Rojo - Cirugía
+        'recuperacion' => '#4CAF50',        // Verde - Recuperación
+        'educacion_propietario' => '#9C27B0', // Púrpura - Educación
     ];
 
     const ESTADO_LABELS = [
@@ -92,6 +117,14 @@ class Cita extends Model
         'en_estudio' => 'En Estudio',
         'finalizada' => 'Finalizada',
         'pagada' => 'Pagada',
+        // Estados veterinarios
+        'en_triage' => 'En Triaje/Urgencias',
+        'en_tratamiento' => 'En Tratamiento',
+        'en_procedimiento' => 'En Procedimiento/Curas',
+        'pre_quirurgico' => 'Pre-Quirúrgico',
+        'en_cirugia' => 'En Cirugía',
+        'recuperacion' => 'En Recuperación',
+        'educacion_propietario' => 'Educación/Alta',
     ];
 
     // Prioridades de citas
@@ -113,6 +146,9 @@ class Cita extends Model
 
     protected $fillable = [
         'paciente_id',
+        'mascota_id',
+        'especie_id',
+        'raza_id',
         'medico_id',
         'especialidad_id',
         'subespecialidad_id',
@@ -130,6 +166,8 @@ class Cita extends Model
         'estado_preconsulta',
         'token_preconsulta',
         'fecha_envio_preconsulta',
+        'tipo_atencion', // consulta, emergencia, cirugia, vacunacion, control
+        'urgencia', // normal, urgente, emergencia
     ];
 
     protected $casts = [
@@ -205,6 +243,11 @@ class Cita extends Model
     public function tipoConsulta(): BelongsTo
     {
         return $this->belongsTo(TipoConsulta::class);
+    }
+
+    public function tipoAtencion(): BelongsTo
+    {
+        return $this->belongsTo(TipoAtencion::class, 'tipo_atencion');
     }
 
     public function confirmaciones()
@@ -530,12 +573,14 @@ class Cita extends Model
                 return;
             }
 
-            Consulta::withoutGlobalScopes()->create([
+            // Determinar si es cita veterinaria o humana
+            $esVeterinaria = $this->mascota_id && !$this->paciente_id;
+
+            $consultaData = [
                 'cita_id' => $this->id,
-                'paciente_id' => $this->paciente_id,
                 'medico_id' => $this->medico_id,
                 'especialidad_id' => $this->especialidad_id,
-                'fecha_consulta' => $this->fecha_inicio, // Align consultation start time with appointment
+                'fecha_consulta' => $this->fecha_inicio,
                 'motivo_consulta' => $this->motivo,
                 'preconsulta' => true,
                 'estado' => Consulta::ESTADO_SALA_ESPERA,
@@ -543,7 +588,24 @@ class Cita extends Model
                 'empresa_id' => $this->empresa_id,
                 'sucursal_id' => $this->sucursal_id,
                 'created_by' => auth()->id(),
-            ]);
+            ];
+
+            // Agregar mascota_id o paciente_id según corresponda
+            if ($esVeterinaria) {
+                $consultaData['mascota_id'] = $this->mascota_id;
+                \Log::info("Creando consulta VETERINARIA para cita #{$this->id}", [
+                    'mascota_id' => $this->mascota_id,
+                    'mascota_nombre' => $this->mascota?->nombre,
+                ]);
+            } else {
+                $consultaData['paciente_id'] = $this->paciente_id;
+                \Log::info("Creando consulta HUMANA para cita #{$this->id}", [
+                    'paciente_id' => $this->paciente_id,
+                    'paciente_nombre' => $this->paciente?->nombre_completo,
+                ]);
+            }
+
+            Consulta::withoutGlobalScopes()->create($consultaData);
 
             \Log::info("Consulta sala_espera creada para cita #{$this->id} con la misma duración", [
                 'fecha_inicio' => $this->fecha_inicio,
@@ -602,22 +664,52 @@ class Cita extends Model
     public function generarMensajeRecordatorio(string $tipo): string
     {
         $fecha = $this->fecha_inicio->format('d/m/Y H:i');
-        $medico = $this->medico->nombre_completo;
-        $especialidad = $this->especialidad->nombre;
-        $sucursal = $this->sucursal->nombre;
+        $medico = $this->medico?->nombre_completo ?? 'Sin médico';
+        $especialidad = $this->especialidad?->nombre ?? 'General';
+        $sucursal = $this->sucursal?->nombre ?? 'Sin sucursal';
+
+        // Determinar si es cita veterinaria o humana
+        $esVeterinaria = $this->mascota_id && !$this->paciente_id;
+
+        if ($esVeterinaria) {
+            // Cita veterinaria - usar datos de la mascota
+            $mascota = $this->mascota;
+            $nombrePaciente = $mascota ? $mascota->nombre : 'Sin mascota';
+            $especie = $mascota?->especie?->nombre ?? '';
+            $raza = $mascota?->raza?->nombre ?? '';
+
+            if ($especie || $raza) {
+                $detalles = [];
+                if ($especie) $detalles[] = $especie;
+                if ($raza) $detalles[] = $raza;
+                $nombrePaciente .= ' - ' . implode(' ', $detalles);
+            }
+
+            // Obtener nombre del propietario
+            $propietario = $mascota?->propietario;
+            $nombrePropietario = $propietario ? $propietario->nombres : 'Estimado propietario';
+        } else {
+            // Cita humana
+            $nombrePaciente = $this->paciente?->nombre_completo ?? 'Sin paciente';
+            $nombrePropietario = $nombrePaciente;
+        }
 
         switch ($tipo) {
             case '48h':
-                $mensaje = "🩺 *Recordatorio de Cita Médica*\n\n" .
-                           "Hola {$this->paciente->nombre_completo},\n\n" .
-                           "Le recordamos que tiene una cita médica programada:\n\n" .
+                $prefijo = $esVeterinaria ? "🐾 *Recordatorio de Cita Veterinaria*" : "🩺 *Recordatorio de Cita Médica*";
+                $etiqueta = $esVeterinaria ? "Mascota" : "Paciente";
+
+                $mensaje = "{$prefijo}\n\n" .
+                           "Hola {$nombrePropietario},\n\n" .
+                           "Le recordamos que tiene una cita programada:\n\n" .
+                           "👤 *{$etiqueta}:* {$nombrePaciente}\n" .
                            "📅 *Fecha:* {$fecha}\n" .
                            "👨‍⚕️ *Médico:* {$medico}\n" .
                            "🏥 *Especialidad:* {$especialidad}\n" .
                            "🏢 *Sucursal:* {$sucursal}\n\n";
 
-                // Incluir formulario de preconsulta si aún no ha sido completado
-                if ($this->estado_preconsulta !== 'completado') {
+                // Incluir formulario de preconsulta si aún no ha sido completado (solo para humanos)
+                if (!$esVeterinaria && $this->estado_preconsulta !== 'completado') {
                     // Generar token si no existe
                     if (!$this->token_preconsulta) {
                         $token = \Illuminate\Support\Str::random(32);
@@ -634,9 +726,13 @@ class Cita extends Model
                 return $mensaje;
 
             case '24h':
-                return "🩺 *Recordatorio de Cita Médica*\n\n" .
-                       "Hola {$this->paciente->nombre_completo},\n\n" .
-                       "Le recordamos que tiene una cita médica programada para mañana:\n\n" .
+                $prefijo = $esVeterinaria ? "🐾 *Recordatorio de Cita Veterinaria*" : "🩺 *Recordatorio de Cita Médica*";
+                $etiqueta = $esVeterinaria ? "Mascota" : "Paciente";
+
+                return "{$prefijo}\n\n" .
+                       "Hola {$nombrePropietario},\n\n" .
+                       "Le recordamos que tiene una cita programada para mañana:\n\n" .
+                       "👤 *{$etiqueta}:* {$nombrePaciente}\n" .
                        "📅 *Fecha:* {$fecha}\n" .
                        "👨‍⚕️ *Médico:* {$medico}\n" .
                        "🏥 *Especialidad:* {$especialidad}\n" .
@@ -644,9 +740,13 @@ class Cita extends Model
                        "Por favor confirme su asistencia respondiendo *SI* o *NO*";
 
             case '2h':
-                return "⏰ *Próxima Cita Médica*\n\n" .
-                       "Hola {$this->paciente->nombre_completo},\n\n" .
-                       "Su cita médica es en 2 horas:\n\n" .
+                $prefijo = $esVeterinaria ? "⏰ *Próxima Cita Veterinaria*" : "⏰ *Próxima Cita Médica*";
+                $etiqueta = $esVeterinaria ? "Mascota" : "Paciente";
+
+                return "{$prefijo}\n\n" .
+                       "Hola {$nombrePropietario},\n\n" .
+                       "Su cita es en 2 horas:\n\n" .
+                       "👤 *{$etiqueta}:* {$nombrePaciente}\n" .
                        "📅 *Fecha:* {$fecha}\n" .
                        "👨‍⚕️ *Médico:* {$medico}\n" .
                        "🏥 *Especialidad:* {$especialidad}\n" .
@@ -654,7 +754,7 @@ class Cita extends Model
                        "¡Lo esperamos! 🏥";
 
             default:
-                return "Recordatorio de cita médica el {$fecha} con {$medico}";
+                return "Recordatorio de cita el {$fecha} con {$medico}";
         }
     }
 
@@ -665,14 +765,57 @@ class Cita extends Model
 
     public function toFullCalendarEvent()
     {
-        $nickname = $this->paciente->nickname ?? '';
-        $nombreCompleto = $this->paciente->nombre_completo;
-        $edad = $this->paciente->edad;
-        $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+        // Determinar si es cita humana o veterinaria
+        $esCitaVeterinaria = $this->mascota_id && !$this->paciente_id;
 
-        $nombrePaciente = $nombreCompleto;
-        if (!empty($nickname)) {
-            $nombrePaciente = "({$nickname}) {$nombreCompleto}";
+        if ($esCitaVeterinaria) {
+            // Cita veterinaria - usar datos de la mascota
+            $mascota = $this->mascota;
+            if (!$mascota) {
+                // Si no hay mascota, usar información básica
+                $nombrePaciente = 'Sin mascota asignada';
+                $nombreCompleto = 'Sin mascota';
+                $nickname = '';
+                $edadTexto = '';
+            } else {
+                $nickname = $mascota->nickname ?? '';
+                $nombreCompleto = $mascota->nombre;
+                $edad = $mascota->edad;
+                $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+
+                // Agregar especie y raza si están disponibles
+                $especie = $mascota->especie?->nombre ?? '';
+                $raza = $mascota->raza?->nombre ?? '';
+                $detalles = [];
+                if ($especie) $detalles[] = $especie;
+                if ($raza) $detalles[] = $raza;
+
+                $nombrePaciente = $nombreCompleto;
+                if (!empty($detalles)) {
+                    $nombrePaciente .= ' - ' . implode(' ', $detalles);
+                }
+                if (!empty($nickname)) {
+                    $nombrePaciente = "({$nickname}) {$nombrePaciente}";
+                }
+            }
+        } else {
+            // Cita humana - usar datos del paciente
+            if (!$this->paciente) {
+                $nombrePaciente = 'Sin paciente';
+                $nombreCompleto = 'Sin paciente';
+                $nickname = '';
+                $edadTexto = '';
+            } else {
+                $nickname = $this->paciente->nickname ?? '';
+                $nombreCompleto = $this->paciente->nombre_completo;
+                $edad = $this->paciente->edad;
+                $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+
+                $nombrePaciente = $nombreCompleto;
+                if (!empty($nickname)) {
+                    $nombrePaciente = "({$nickname}) {$nombreCompleto}";
+                }
+            }
         }
 
         $tieneConsulta = $this->consulta !== null;
@@ -728,16 +871,18 @@ class Cita extends Model
             'extendedProps' => [
                 'tipo_evento' => 'cita',
                 'calendar' => $this->estado,
-                'medico' => $this->medico->nombre_completo,
-                'medico_full' => $this->medico->nombre_completo,
+                'medico' => $this->medico?->nombre_completo ?? 'Sin médico',
+                'medico_full' => $this->medico?->nombre_completo ?? 'Sin médico',
                 'paciente' => $nombreCompleto,
                 'nickname' => $nickname,
                 'edad' => $edadTexto,
                 'paciente_id' => $this->paciente_id,
+                'mascota_id' => $this->mascota_id,
                 'medico_id' => $this->medico_id,
                 'especialidad_id' => $this->especialidad_id,
                 'subespecialidad_id' => $this->subespecialidad_id,
-                'es_menor' => $this->paciente->es_menor,
+                'es_menor' => $esCitaVeterinaria ? false : ($this->paciente?->es_menor ?? false),
+                'es_cita_veterinaria' => $esCitaVeterinaria,
                 'motivo' => $this->motivo,
                 'estado' => $this->estado,
                 'estado_label' => $this->nombre_estado,
@@ -746,6 +891,9 @@ class Cita extends Model
                 'tipo_consulta_id' => $this->tipo_consulta_id,
                 'tipo_consulta_nombre' => $this->tipoConsulta?->nombre,
                 'tipo_consulta_color' => $this->tipoConsulta?->color,
+                'tipo_atencion_id' => $this->tipo_atencion,
+                'tipo_atencion_nombre' => $this->tipoAtencion?->nombre,
+                'tipo_atencion_color' => $this->tipoAtencion?->color,
                 'sucursal_id' => $this->sucursal_id,
                 'prioridad' => $this->prioridad ?? 'normal',
                 'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal',
