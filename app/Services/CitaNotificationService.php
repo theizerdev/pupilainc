@@ -217,12 +217,8 @@ class CitaNotificationService
         )) {
             $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
 
-            // Si el estado es 'confirmada', usar mensaje específico
-            if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
-                $mensajePaciente = $this->construirMensajeConfirmacionPaciente($cita);
-            } else {
-                $mensajePaciente = $this->construirMensajeCambioEstado($cita, $estadoAnterior);
-            }
+            // Usar mensaje específico según el nuevo estado
+            $mensajePaciente = $this->construirMensajePorEstadoPaciente($cita, $cita->estado, $estadoAnterior);
 
             foreach ($telefonos as $telefono) {
                 $this->enviar($telefono, $mensajePaciente);
@@ -240,7 +236,7 @@ class CitaNotificationService
                 if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
                     $mensajeMedico = $this->construirMensajeConfirmacionMedico($cita);
                 } else {
-                    $mensajeMedico = $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
+                    $mensajeMedico = $this->construirMensajePorEstadoMedico($cita, $cita->estado, $estadoAnterior);
                 }
 
                 $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
@@ -257,9 +253,12 @@ class CitaNotificationService
 
         $this->cancelarRecordatoriosPendientes($cita);
 
+        // Determinar si es primera vez o subsecuente
+        $esPrimeraVez = $this->esPrimeraVez($cita);
+
         // Notificar Paciente
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        $mensajePaciente = $this->construirMensajeCancelacion($cita);
+        $mensajePaciente = $this->construirMensajeCancelada($cita, $esPrimeraVez);
 
         foreach ($telefonos as $telefono) {
             $this->enviar($telefono, $mensajePaciente);
@@ -524,35 +523,47 @@ class CitaNotificationService
 
     protected function construirMensajeNuevaCita(Cita $cita): string
     {
-        $fecha = $cita->fecha_inicio->format('d/m/Y');
-        $hora = $cita->fecha_inicio->format('h:i A');
-        $esMenor = $cita->paciente->es_menor;
-        $saludo = $esMenor ? "Estimado representante de *{$cita->paciente->nombre_completo}*" : "Estimado(a) *{$cita->paciente->nombre_completo}*";
-
-        return "🏥 *Nueva Cita Médica Agendada*\n\n"
-            . "{$saludo},\n\n"
-            . "Se ha agendado la siguiente cita:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
-            . "📅 Fecha: {$fecha}\n"
-            . "🕐 Hora: {$hora}\n"
-            . "📋 Motivo: {$cita->motivo}\n\n"
-            . "Por favor, llegue 15 minutos antes de su cita.\n"
-            . "Si necesita cancelar o reprogramar, comuníquese con nosotros con anticipación.";
+        // Determinar si es primera vez o subsecuente
+        if ($this->esPrimeraVez($cita)) {
+            return $this->construirMensajePrimeraVez($cita);
+        } else {
+            return $this->construirMensajeSubsecuente($cita);
+        }
     }
 
-    protected function construirMensajeNuevaCitaMedico(Cita $cita): string
+    /**
+     * Construir mensaje para paciente de PRIMERA VEZ
+     */
+    protected function construirMensajePrimeraVez(Cita $cita): string
     {
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
         $fecha = $cita->fecha_inicio->format('d/m/Y');
         $hora = $cita->fecha_inicio->format('h:i A');
 
-        return "🏥 *Nueva Cita Agendada*\n\n"
-            . "Dr(a). *{$cita->medico->nombre_completo}*, se le informa que tiene una nueva cita programada:\n\n"
-            . "👤 Paciente: {$cita->paciente->nombre_completo}\n"
-            . "📅 Fecha: {$fecha}\n"
-            . "🕐 Hora: {$hora}\n"
-            . "📋 Motivo: {$cita->motivo}\n\n"
-            . "Esta notificación queda como constancia de aviso.";
+        return "*PRIMERA VEZ:*\n"
+            . "¡Listo! Queda confirmada tu cita en Pupila Inc. 👁️\n\n"
+            . "👤 Paciente: *{$cita->paciente->nombre_completo}*\n"
+            . "👨‍⚕️ Médico: *{$cita->medico->nombre_completo}*\n"
+            . " Fecha: *{$diaSemana} {$fecha}*\n"
+            . "🕐 Hora: *{$hora}*\n"
+            . " Motivo: *{$cita->motivo}*\n"
+            . " Baluarte #469, Lagos de Moreno\n\n"
+            . "Días antes recibirás un recordatorio para confirmar tu asistencia y un formulario breve. ¡Te esperamos! 💙";
+    }
+
+    /**
+     * Construir mensaje para paciente SUBSECUENTE
+     */
+    protected function construirMensajeSubsecuente(Cita $cita): string
+    {
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+
+        return "*SUBSECUENTE:*\n"
+            . "¡Hola *{$cita->paciente->nombre_completo}*! Qué gusto verte de nuevo 💙\n\n"
+            . "Tu cita: *{$diaSemana} {$fecha}* | *{$hora}*  Baluarte #469\n\n"
+            . "Días antes recibirás un recordatorio y 2 preguntas rápidas. ¡Hasta pronto! 👁️";
     }
 
     protected function construirMensajeCambioEstado(Cita $cita, string $estadoAnterior): string
@@ -682,6 +693,352 @@ class CitaNotificationService
             . "Es confidencial y nos ayudara a brindarle mejor atencion.";
     }
 
+    // ===== MENSAJES ESPECÍFICOS POR ESTADO - PACIENTE =====
 
+    /**
+     * Mensaje cuando la cita está PROGRAMADA
+     */
+    protected function construirMensajeProgramada(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        $medico = 'Dr(a). ' . $cita->medico->nombre_completo;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $hora = $cita->fecha_inicio->format('h:i A');
+        $motivo = $cita->motivo ?? 'Consulta general';
+        
+        if ($esPrimeraVez) {
+            return "¡Listo! Queda confirmada tu cita en Pupila Inc. 🎉\n\n"
+                . "👤 Paciente: {$nombre}\n"
+                . "👁️ Médico: {$medico}\n"
+                . "📅 Fecha: {$diaSemana} {$fecha}\n"
+                . "🕐 Hora: {$hora}\n"
+                . " Motivo: {$motivo}\n"
+                . "📍 Baluarte #469, Lagos de Moreno\n\n"
+                . "Días antes recibirás un recordatorio para confirmar tu asistencia y un formulario breve. ¡Te esperamos! 💙";
+        } else {
+            return "¡Hola {$nombre}! Qué gusto verte de nuevo 💙\n\n"
+                . "Tu cita: {$diaSemana} {$fecha} | {$hora} | 📍 Baluarte #469\n\n"
+                . "Días antes recibirás un recordatorio y 2 preguntas rápidas. ¡Hasta pronto! 👋";
+        }
+    }
+
+    /**
+     * Mensaje cuando la cita está CONFIRMADA (por paciente)
+     */
+    protected function construirMensajeConfirmada(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        $medico = 'Dr(a). ' . $cita->medico->nombre_completo;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $hora = $cita->fecha_inicio->format('h:i A');
+        
+        return "¡Perfecto, {$nombre}! Tu cita está confirmada. Te esperamos 💙\n\n"
+            . "👁️ Médico: {$medico}\n"
+            . "📅 {$diaSemana} {$fecha} a las {$hora}\n"
+            . "📍 Baluarte #469, Lagos de Moreno\n\n"
+            . "Si por alguna razón no puedes asistir, avísanos con anticipación para liberar ese espacio para otra familia que también lo necesita.";
+    }
+
+    /**
+     * Mensaje cuando la cita está CANCELADA
+     */
+    protected function construirMensajeCancelada(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $hora = $cita->fecha_inicio->format('h:i A');
+        
+        return "Hola {$nombre}, entendemos que a veces los planes cambian. 😊\n\n"
+            . "Tu cita del {$diaSemana} {$fecha} a las {$hora} ha sido cancelada sin problema.\n\n"
+            . "Cuando quieras reagendar, escríbenos aquí y con gusto te buscamos el siguiente espacio disponible.\n\n"
+            . "¡Pupila Inc. te espera cuando estés listo! 💙";
+    }
+
+    /**
+     * Mensaje cuando NO ASISTIÓ
+     */
+    protected function construirMensajeNoAsistio(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $hora = $cita->fecha_inicio->format('h:i A');
+        
+        return "Hola {$nombre}, el día de hoy te esperábamos en Pupila Inc. y notamos que no pudiste llegar. Esperamos que todo esté bien. 💙\n\n"
+            . "Sabemos que a veces surgen imprevistos, no te preocupes.\n\n"
+            . "¿Te gustaría reagendar tu cita?\n"
+            . "Dinos qué día y horario te conviene mejor y con gusto te reservamos un nuevo espacio. 📅";
+    }
+
+    /**
+     * Mensaje cuando está en SALA DE ESPERA
+     */
+    protected function construirMensajeSalaEspera(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        
+        // Obtener enlace al formulario si existe
+        $enlaceFormulario = '';
+        if ($cita->token_preconsulta) {
+            $enlaceFormulario = route('preconsulta.formulario', ['token' => $cita->token_preconsulta]);
+        }
+        
+        return "¡Bienvenido(a) a Pupila Inc., {$nombre}! ️\n\n"
+            . "Si aún no has llenado el formulario breve para tu consulta de hoy, puedes hacerlo ahora mientras esperas. Solo toma unos minutos:\n"
+            . " {$enlaceFormulario}\n\n"
+            . "Si ya lo llenaste, ¡perfecto! En breve te atendemos. 🙏";
+    }
+
+    /**
+     * Mensaje cuando está FINALIZADA
+     */
+    protected function construirMensajeFinalizada(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        
+        return "¡Gracias por tu visita a Pupila Inc., {$nombre}! 💙\n\n"
+            . "Esperamos que tu consulta haya sido de gran ayuda.\n\n"
+            . "Recuerda seguir las indicaciones del médico. Si tienes alguna duda sobre tu diagnóstico o tratamiento, no dudes en escribirnos.\n\n"
+            . "¡Cuídate mucho y hasta pronto! 👋";
+    }
+
+    /**
+     * Mensaje cuando está PAGADA
+     */
+    protected function construirMensajePagada(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        
+        // Aquí se debería obtener información del pago desde una relación
+        // Por ahora usaremos datos genéricos
+        $folio = 'N/A';
+        $servicio = $cita->tipoConsulta ? $cita->tipoConsulta->nombre : 'Consulta médica';
+        $monto = 'N/A';
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $formaPago = 'N/A';
+        
+        // Recibo inmediato
+        $mensajeRecibo = "¡Hola {$nombre}! 💙 Aquí está tu comprobante:\n\n"
+            . "🧾 Folio: {$folio}\n"
+            . "👁️ Servicio: {$servicio}\n"
+            . "💰 Total: \$[MONTO]\n"
+            . "📅 {$fecha} | 💳 [FORMA DE PAGO]\n\n"
+            . "Gracias por tu confianza. 💙\n\n";
+        
+        // Reseña (se envía 48h después, pero lo incluimos como referencia)
+        $mensajeResena = "¡Hola {$nombre}! Tu opinión nos ayuda a seguir mejorando y a que más familias encuentren la atención que necesitan.\n\n"
+            . "¿Podrías dejarnos una reseña?\n"
+            . "⭐ [ENLACE GOOGLE MAPS]\n\n"
+            . "¡Muchas gracias! 🙏";
+        
+        return $mensajeRecibo . "---\n\n" . $mensajeResena;
+    }
+
+    // ===== MENSAJES ESPECÍFICOS POR ESTADO - MÉDICO =====
+
+    /**
+     * Mensaje cuando la cita está PROGRAMADA (para médico)
+     */
+    protected function construirMensajeProgramadaMedico(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $hora = $cita->fecha_inicio->format('h:i A');
+        $motivo = $cita->motivo ?? 'Consulta general';
+        
+        return "🏥 *Nueva Cita Agendada*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*, se le informa que tiene una nueva cita programada:\n\n"
+            . "👤 Paciente: {$nombre}\n"
+            . " Fecha: {$diaSemana} {$fecha}\n"
+            . "🕐 Hora: {$hora}\n"
+            . "📋 Motivo: {$motivo}\n\n"
+            . "Esta notificación queda como constancia de aviso.";
+    }
+
+    /**
+     * Mensaje cuando NO ASISTIÓ (para médico)
+     */
+    protected function construirMensajeNoAsistioMedico(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $diaSemana = $this->obtenerDiaSemana($cita->fecha_inicio);
+        $hora = $cita->fecha_inicio->format('h:i A');
+        
+        return "️ *Paciente No Asistió*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
+            . "El paciente *{$nombre}* no asistió a su cita programada:\n\n"
+            . "📅 Fecha: {$diaSemana} {$fecha}\n"
+            . " Hora: {$hora}\n\n"
+            . "El horario ha quedado disponible nuevamente en su agenda.";
+    }
+
+    /**
+     * Mensaje cuando está en SALA DE ESPERA (para médico)
+     */
+    protected function construirMensajeSalaEsperaMedico(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        
+        return "🔔 *Paciente en Sala de Espera*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
+            . "El paciente *{$nombre}* ha llegado y se encuentra en sala de espera.\n\n"
+            . "Por favor, proceda a atenderlo cuando esté disponible.";
+    }
+
+    /**
+     * Mensaje cuando está FINALIZADA (para médico)
+     */
+    protected function construirMensajeFinalizadaMedico(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        
+        return "✅ *Cita Finalizada*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
+            . "La consulta del paciente *{$nombre}* ha sido finalizada exitosamente.\n\n"
+            . "Gracias por su atención profesional. 💙";
+    }
+
+    /**
+     * Mensaje cuando está PAGADA (para médico)
+     */
+    protected function construirMensajePagadaMedico(Cita $cita, bool $esPrimeraVez): string
+    {
+        $nombre = $cita->paciente->nombre_completo;
+        
+        return "💰 *Pago Registrado*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
+            . "Se ha registrado el pago correspondiente a la consulta del paciente *{$nombre}*.\n\n"
+            . "Estado: ✅ Pagado";
+    }
+
+    // ===== CONSTRUCCIÓN DE MENSAJES POR ESTADO =====
+
+    /**
+     * Construir mensaje específico según el estado de la cita para el paciente
+     */
+    protected function construirMensajePorEstadoPaciente(Cita $cita, string $estado, string $estadoAnterior): string
+    {
+        $esPrimeraVez = $this->esPrimeraVez($cita);
+        
+        switch ($estado) {
+            case Cita::ESTADO_PENDIENTE: // 'programada'
+                return $this->construirMensajeProgramada($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_CONFIRMADA:
+                return $this->construirMensajeConfirmada($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_CANCELADA:
+                return $this->construirMensajeCancelada($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_NO_ASISTIO:
+                return $this->construirMensajeNoAsistio($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_SALA_ESPERA:
+                return $this->construirMensajeSalaEspera($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_FINALIZADA:
+                return $this->construirMensajeFinalizada($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_PAGADA:
+                return $this->construirMensajePagada($cita, $esPrimeraVez);
+            
+            default:
+                return $this->construirMensajeCambioEstado($cita, $estadoAnterior);
+        }
+    }
+
+    /**
+     * Construir mensaje específico según el estado de la cita para el médico
+     */
+    protected function construirMensajePorEstadoMedico(Cita $cita, string $estado, string $estadoAnterior): string
+    {
+        $esPrimeraVez = $this->esPrimeraVez($cita);
+        
+        switch ($estado) {
+            case Cita::ESTADO_PENDIENTE: // 'programada'
+                return $this->construirMensajeProgramadaMedico($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_CONFIRMADA:
+                return $this->construirMensajeConfirmacionMedico($cita);
+            
+            case Cita::ESTADO_CANCELADA:
+                return $this->construirMensajeCancelacionMedico($cita);
+            
+            case Cita::ESTADO_NO_ASISTIO:
+                return $this->construirMensajeNoAsistioMedico($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_SALA_ESPERA:
+                return $this->construirMensajeSalaEsperaMedico($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_FINALIZADA:
+                return $this->construirMensajeFinalizadaMedico($cita, $esPrimeraVez);
+            
+            case Cita::ESTADO_PAGADA:
+                return $this->construirMensajePagadaMedico($cita, $esPrimeraVez);
+            
+            default:
+                return $this->construirMensajeCambioEstadoMedico($cita, $estadoAnterior);
+        }
+    }
+
+    /**
+     * Determinar si es primera vez o subsecuente
+     * Se basa en el tipo de consulta o en el historial del paciente
+     */
+    protected function esPrimeraVez(Cita $cita): bool
+    {
+        // Si tiene tipo_consulta_id, verificar el nombre
+        if ($cita->tipoConsulta) {
+            $nombreTipo = strtolower($cita->tipoConsulta->nombre);
+            
+            // Verificar si contiene palabras clave de primera vez
+            if (strpos($nombreTipo, 'primera') !== false || 
+                strpos($nombreTipo, '1ra') !== false ||
+                strpos($nombreTipo, 'inicial') !== false) {
+                return true;
+            }
+            
+            // Verificar si contiene palabras clave de subsecuente
+            if (strpos($nombreTipo, 'subsecuente') !== false || 
+                strpos($nombreTipo, 'control') !== false ||
+                strpos($nombreTipo, 'seguimiento') !== false ||
+                strpos($nombreTipo, '2da') !== false) {
+                return false;
+            }
+        }
+        
+        // Verificar si el paciente tiene citas previas
+        $citasPrevias = Cita::where('paciente_id', $cita->paciente_id)
+            ->where('id', '!=', $cita->id)
+            ->whereNotIn('estado', [Cita::ESTADO_CANCELADA, Cita::ESTADO_NO_ASISTIO])
+            ->count();
+        
+        // Si no tiene citas previas, es primera vez
+        return $citasPrevias === 0;
+    }
+
+    /**
+     * Obtener el día de la semana en español
+     */
+    protected function obtenerDiaSemana($fecha): string
+    {
+        $dias = [
+            'Monday' => 'Lunes',
+            'Tuesday' => 'Martes',
+            'Wednesday' => 'Miércoles',
+            'Thursday' => 'Jueves',
+            'Friday' => 'Viernes',
+            'Saturday' => 'Sábado',
+            'Sunday' => 'Domingo'
+        ];
+        
+        $dayName = $fecha->format('l');
+        return $dias[$dayName] ?? $dayName;
+    }
 
 }

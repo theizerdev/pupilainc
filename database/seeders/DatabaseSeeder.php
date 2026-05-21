@@ -28,15 +28,17 @@ class DatabaseSeeder extends Seeder
             CategoriaSeeder::class, // Categorías para clasificación de elementos
             CategoriaProductoSeeder::class, // Categorías de producto para inventario
             MarcaSeeder::class, // Marcas para inventario
-            InventarioBaseSeeder::class, // Almacenes y proveedores base
+            //InventarioBaseSeeder::class, // Almacenes y proveedores base
             TipoVarianteSeeder::class, // Tipos y valores de variantes para productos
             PlantillasClinicasSeeder::class, // Especialidades y plantillas clínicas dinámicas
             EstadoFormulariosSeeder::class,
             PlanCuentasSeeder::class,
-            PacienteSeeder::class, // 20 pacientes de ejemplo (10 femeninos, 10 masculinos)
-            BaremoSeeder::class, // Servicios médicos por especialidad
-            ProductosSeeder::class, // Productos e insumos médicos
-            MedicosSeeder::class, // Médicos y sus usuarios
+            CuestionarioOftalmologiaSeeder::class,
+            CuestionarioSubsecuenteOftalmologiaSeeder::class,
+            //PacienteSeeder::class, // 20 pacientes de ejemplo (10 femeninos, 10 masculinos)
+            //BaremoSeeder::class, // Servicios médicos por especialidad
+            //ProductosSeeder::class, // Productos e insumos médicos
+            //MedicosSeeder::class, // Médicos y sus usuarios
         ]);
     }
 }
