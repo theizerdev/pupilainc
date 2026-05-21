@@ -28,13 +28,13 @@ class Edit extends Component
     public $status;
     public $role;
     public $sucursales = [];
-    public $username; // Solo para mostrar, no se edita
+    public $username; // Ahora editable
 
     public function mount(User $user)
     {
         $this->user = $user;
         $this->name = $user->name;
-        $this->username = $user->username; // Cargar username para mostrar
+        $this->username = $user->username;
         $this->email = $user->email;
         $this->phone = $user->phone;
         $this->whatsapp_verification_enabled = $user->whatsapp_verification_enabled;
@@ -48,10 +48,84 @@ class Edit extends Component
             ->get();
     }
 
+    /**
+     * Generar username automáticamente a partir del nombre
+     * Formato: primera letra del primer nombre + primer apellido
+     */
+    public function generateUsername()
+    {
+        if (empty($this->name)) {
+            return;
+        }
+
+        // Limpiar el nombre: eliminar acentos y convertir a minúsculas
+        $name = strtolower($this->name);
+        $name = $this->removeAccents($name);
+        
+        // Dividir el nombre en palabras
+        $words = explode(' ', trim($name));
+        
+        if (count($words) < 2) {
+            return;
+        }
+
+        // Obtener la primera letra del primer nombre
+        $firstInitial = substr($words[0], 0, 1);
+        
+        // Obtener el primer apellido (última palabra)
+        $lastName = end($words);
+        
+        // Generar el username base
+        $baseUsername = $firstInitial . $lastName;
+        
+        // Verificar si el username base existe (excluyendo el usuario actual)
+        $username = $baseUsername;
+        $counter = 1;
+        
+        while (User::where('username', $username)->where('id', '!=', $this->user->id)->exists()) {
+            // Si existe y hay segundo nombre, agregar su inicial
+            if (count($words) > 2 && $counter === 1) {
+                $secondInitial = substr($words[1], 0, 1);
+                $username = $firstInitial . $secondInitial . $lastName;
+            } else {
+                // Si aún existe, agregar número incremental
+                $username = $baseUsername . $counter;
+            }
+            $counter++;
+            
+            // Prevenir bucle infinito
+            if ($counter > 10) {
+                break;
+            }
+        }
+        
+        $this->username = $username;
+    }
+
+    /**
+     * Eliminar acentos de una cadena
+     */
+    private function removeAccents($string)
+    {
+        $search = ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü'];
+        $replace = ['a', 'e', 'i', 'o', 'u', 'n', 'u'];
+        
+        return str_replace($search, $replace, $string);
+    }
+
+    /**
+     * Actualizar username cuando cambia el nombre
+     */
+    public function updatedName($value)
+    {
+        $this->generateUsername();
+    }
+
     protected function rules()
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', \Illuminate\Validation\Rule::unique('users', 'username')->ignore($this->user->id)],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $this->user->id],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^[0-9+()]+$/', \Illuminate\Validation\Rule::unique('users', 'phone')->ignore($this->user->id)],
             'whatsapp_verification_enabled' => ['boolean'],
@@ -87,6 +161,7 @@ class Edit extends Component
 
         $data = [
             'name' => $this->name,
+            'username' => $this->username,
             'email' => $this->email,
             'phone' => $this->phone,
             'whatsapp_verification_enabled' => $this->whatsapp_verification_enabled,
@@ -101,6 +176,7 @@ class Edit extends Component
 
         $user = User::find($this->user->id);
         $user->name = $this->name;
+        $user->username = $this->username;
         $user->email = $this->email;
         $user->phone = $this->phone;
         $user->password = $data['password'] ?? $user->password;
