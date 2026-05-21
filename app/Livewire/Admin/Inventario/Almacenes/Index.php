@@ -15,6 +15,7 @@ class Index extends Component
     public $status = '';
     public $sortField = 'nombre';
     public $sortDirection = 'asc';
+    public $selected = [];
 
     // Modal inline
     public $showModal = false;
@@ -108,6 +109,47 @@ class Index extends Component
 
         $a->delete();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Almacén eliminado.', 'duration' => 3000]);
+    }
+
+    public function deleteSelected()
+    {
+        $this->authorize('delete almacenes');
+        if (empty($this->selected)) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'No hay almacenes seleccionados.', 'duration' => 3000]);
+            return;
+        }
+
+        $deleted = 0;
+        $skipped = [];
+
+        foreach ($this->selected as $id) {
+            $a = Almacen::find($id);
+            if (! $a) continue;
+            if ($a->stocks()->where('cantidad', '>', 0)->exists()) {
+                $skipped[] = $a->nombre;
+                continue;
+            }
+            $a->delete();
+            $deleted++;
+        }
+
+        $this->selected = [];
+
+        if ($deleted > 0) {
+            $message = "$deleted almacén(es) eliminado(s).";
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'success', 'message' => $message, 'duration' => 5000]);
+        } else {
+            $message = 'No se eliminaron almacenes. Algunos tienen stock o no existen.';
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'error', 'message' => $message, 'duration' => 5000]);
+        }
     }
 
     public function getAlmacenesProperty()

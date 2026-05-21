@@ -143,6 +143,25 @@
                     </button>
                 </div>
             </div>
+            <div class="mt-3 d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        wire:click="$set('selected', {{ json_encode($marcas->pluck('id')) }})">
+                    Seleccionar página
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="$set('selected', [])">
+                    Deseleccionar
+                </button>
+                @can('delete marcas')
+                    <button type="button" class="btn btn-danger btn-sm"
+                            onclick="confirm('¿Eliminar las marcas seleccionadas?') || event.stopImmediatePropagation()"
+                            wire:click="deleteSelected" @if(!count($selected)) disabled @endif>
+                        <i class="ri ri-delete-bin-line me-1"></i>Eliminar seleccionados
+                        @if(count($selected))
+                            <span class="badge bg-white text-danger ms-2">{{ count($selected) }}</span>
+                        @endif
+                    </button>
+                @endcan
+            </div>
         </div>
 
         {{-- Table --}}
@@ -150,6 +169,7 @@
             <table class="datatables-products table table-marcas">
                 <thead>
                     <tr>
+                        <th style="width:40px;"></th>
                         <th wire:click="sortBy('nombre')" style="cursor: pointer;">
                             Nombre
                             @if($sortField === 'nombre')
@@ -171,6 +191,11 @@
                 <tbody>
                     @forelse($marcas as $marca)
                         <tr class="marca-row">
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" wire:model="selected" value="{{ $marca->id }}">
+                                </div>
+                            </td>
                             <td class="fw-semibold">{{ $marca->nombre }}</td>
                             <td>{{ $marca->descripcion ?? '-' }}</td>
                             <td>
