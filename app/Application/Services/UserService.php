@@ -120,6 +120,10 @@ class UserService
             $updateData['name'] = $userUpdateDTO->name;
         }
 
+        if ($userUpdateDTO->username !== null) {
+            $updateData['username'] = $userUpdateDTO->username;
+        }
+
         if ($userUpdateDTO->email !== null) {
             $updateData['email'] = $userUpdateDTO->email;
         }
@@ -282,6 +286,11 @@ class UserService
         if ($dto->name !== null) {
             $data['name'] = $dto->name;
             $rules['name'] = 'string|max:255';
+        }
+
+        if ($dto->username !== null) {
+            $data['username'] = $dto->username;
+            $rules['username'] = 'string|max:255|unique:users,username,' . $userId;
         }
 
         if ($dto->email !== null) {

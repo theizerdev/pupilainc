@@ -7,6 +7,7 @@ namespace App\Application\DTOs;
 class UserUpdateDTO
 {
     public ?string $name = null;
+    public ?string $username = null;
     public ?string $email = null;
     public ?string $password = null;
     public ?string $status = null;
@@ -17,6 +18,7 @@ class UserUpdateDTO
 
     public function __construct(
         ?string $name = null,
+        ?string $username = null,
         ?string $email = null,
         ?string $password = null,
         ?string $status = null,
@@ -26,6 +28,7 @@ class UserUpdateDTO
         ?array $permissionIds = null
     ) {
         $this->name = $name;
+        $this->username = $username;
         $this->email = $email;
         $this->password = $password;
         $this->status = $status;
@@ -39,6 +42,7 @@ class UserUpdateDTO
     {
         return new self(
             $data['name'] ?? null,
+            $data['username'] ?? null,
             $data['email'] ?? null,
             $data['password'] ?? null,
             $data['status'] ?? null,
@@ -55,6 +59,10 @@ class UserUpdateDTO
 
         if ($this->name !== null) {
             $data['name'] = $this->name;
+        }
+
+        if ($this->username !== null) {
+            $data['username'] = $this->username;
         }
 
         if ($this->email !== null) {
@@ -91,6 +99,7 @@ class UserUpdateDTO
     public function hasChanges(): bool
     {
         return $this->name !== null ||
+               $this->username !== null ||
                $this->email !== null ||
                $this->password !== null ||
                $this->status !== null ||
@@ -106,6 +115,10 @@ class UserUpdateDTO
 
         if ($this->name !== null) {
             $fields[] = 'name';
+        }
+
+        if ($this->username !== null) {
+            $fields[] = 'username';
         }
 
         if ($this->email !== null) {
@@ -168,6 +181,10 @@ class UserUpdateDTO
 
         if ($this->name !== null) {
             $context['name'] = $this->name;
+        }
+
+        if ($this->username !== null) {
+            $context['username'] = $this->username;
         }
 
         if ($this->email !== null) {
