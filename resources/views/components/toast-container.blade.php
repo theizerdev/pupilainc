@@ -147,13 +147,15 @@ window.showToast = function(type, message, duration = 5000) {
 
 // Listener para eventos de Livewire
 if (typeof Livewire !== 'undefined') {
-  Livewire.on('showToast', function(data) {
-    // Si data es un array con un objeto, extraer el primer elemento
+  const handleToastEvent = function(data) {
     const toastData = Array.isArray(data) && data.length > 0 ? data[0] : data;
     if (toastData && toastData.type && toastData.message) {
       window.showToast(toastData.type, toastData.message, toastData.duration || 5000);
     }
-  });
+  };
+
+  Livewire.on('showToast', handleToastEvent);
+  Livewire.on('notify', handleToastEvent);
 }
 
 // Listener para eventos de Alpine.js (si se usa)
