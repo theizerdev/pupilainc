@@ -23,6 +23,7 @@ class Index extends Component
     public $alerta = '';
     public $sortField = 'nombre';
     public $sortDirection = 'asc';
+    public $selected = [];
 
     protected $queryString = [
         'search'       => ['except' => ''],
@@ -70,6 +71,48 @@ class Index extends Component
         }
         $p->delete();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Producto eliminado.', 'duration' => 3000]);
+    }
+
+    public function deleteSelected()
+    {
+        $this->authorize('delete productos');
+        if (empty($this->selected)) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'No hay productos seleccionados.', 'duration' => 3000]);
+            return;
+        }
+
+        $ids = $this->selected;
+        $deleted = 0;
+        $skipped = [];
+
+        foreach ($ids as $id) {
+            $p = Producto::find($id);
+            if (! $p) continue;
+            if ($p->stockTotal() > 0) {
+                $skipped[] = $p->nombre;
+                continue;
+            }
+            $p->delete();
+            $deleted++;
+        }
+
+        $this->selected = [];
+
+        if ($deleted > 0) {
+            $message = "$deleted producto(s) eliminado(s).";
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'success', 'message' => $message, 'duration' => 5000]);
+        } else {
+            $message = 'No se eliminaron productos. Algunos tienen stock o no existen.';
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'error', 'message' => $message, 'duration' => 5000]);
+        }
     }
 
     public function exportarCsv(): StreamedResponse
