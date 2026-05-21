@@ -143,6 +143,25 @@
                     </button>
                 </div>
             </div>
+            <div class="mt-3 d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        wire:click="$set('selected', {{ json_encode($categorias->pluck('id')) }})">
+                    Seleccionar página
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="$set('selected', [])">
+                    Deseleccionar
+                </button>
+                @can('delete categorias-producto')
+                    <button type="button" class="btn btn-danger btn-sm"
+                            onclick="confirm('¿Eliminar las categorías seleccionadas?') || event.stopImmediatePropagation()"
+                            wire:click="deleteSelected" @if(!count($selected)) disabled @endif>
+                        <i class="ri ri-delete-bin-line me-1"></i>Eliminar seleccionados
+                        @if(count($selected))
+                            <span class="badge bg-white text-danger ms-2">{{ count($selected) }}</span>
+                        @endif
+                    </button>
+                @endcan
+            </div>
         </div>
 
         {{-- Table --}}
@@ -150,6 +169,7 @@
             <table class="datatables-products table table-categorias">
                 <thead>
                     <tr>
+                        <th style="width:40px;"></th>
                         <th wire:click="sortBy('nombre')" style="cursor: pointer;">
                             Nombre
                             @if($sortField === 'nombre')
@@ -171,6 +191,11 @@
                 <tbody>
                     @forelse($categorias as $categoria)
                         <tr class="categoria-row">
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" wire:model="selected" value="{{ $categoria->id }}">
+                                </div>
+                            </td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="rounded-circle d-inline-block" style="width:14px;height:14px;background:{{ $categoria->color }};"></span>
