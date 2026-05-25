@@ -125,17 +125,17 @@ class Medico extends Model
 
     public function getTieneEspecialidadesAttribute()
     {
-        return $this->especialidades()->where('status', true)->exists();
+        return $this->especialidades()->where('medico_especialidad.status', true)->exists();
     }
 
     public function getTieneSubespecialidadesAttribute()
     {
-        return $this->subespecialidades()->where('status', true)->exists();
+        return $this->subespecialidades()->where('medico_subespecialidad.status', true)->exists();
     }
 
     public function getEspecialidadPrincipalAttribute()
     {
-        return $this->especialidades()->where('status', true)->first();
+        return $this->especialidades()->where('medico_especialidad.status', true)->first();
     }
 
     // Métodos

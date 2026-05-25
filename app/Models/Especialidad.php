@@ -105,7 +105,7 @@ class Especialidad extends Model
 
     public function getTotalMedicosAttribute()
     {
-        return $this->medicos()->where('status', true)->count();
+        return $this->medicos()->where('medico_especialidad.status', true)->count();
     }
 
     protected static function boot()

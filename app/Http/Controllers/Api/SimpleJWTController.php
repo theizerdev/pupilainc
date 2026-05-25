@@ -13,6 +13,14 @@ class SimpleJWTController extends Controller
     public function login(Request $request)
     {
         try {
+            // Normalizar EMAIL y PASSWORD a minúsculas si vienen en mayúsculas
+            if ($request->has('EMAIL')) {
+                $request->merge(['email' => $request->input('EMAIL')]);
+            }
+            if ($request->has('PASSWORD')) {
+                $request->merge(['password' => $request->input('PASSWORD')]);
+            }
+
             $credentials = $request->validate([
                 'email' => 'required|string|email',
                 'password' => 'required|string',
