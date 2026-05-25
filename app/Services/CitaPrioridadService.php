@@ -58,7 +58,7 @@ class CitaPrioridadService
                 'subespecialidad_id' => $datos['subespecialidad_id'] ?? null,
                 'fecha_inicio' => $fechaHora,
                 'fecha_fin' => $fechaFin,
-                'estado' => $esPrioridadAltaOEmergencia ? Cita::ESTADO_CONFIRMADA : ($datos['estado'] ?? Cita::ESTADO_PENDIENTE),
+                'estado' => $esPrioridadAltaOEmergencia ? Cita::ESTADO_SALA_ESPERA : ($datos['estado'] ?? Cita::ESTADO_PENDIENTE),
                 'motivo' => $datos['motivo'] ?? null,
                 'notas' => $datos['notas'] ?? null,
                 'prioridad' => $datos['prioridad'] ?? 'normal',

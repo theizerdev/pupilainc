@@ -5,6 +5,20 @@
 
 /* ===================== CONTENEDOR DEL CALENDARIO ===================== */
 
+/* COMPACTAR ALTURA DE SLOTS - Reducir espacio entre horas */
+.fc .fc-timegrid-slot {
+    height: 24px !important; /* Reducido de ~40px a 24px para compactar la vista */
+}
+
+.fc .fc-timegrid-slot-label-cushion {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+.fc .fc-timegrid-event {
+    min-height: 20px !important; /* Altura mínima para eventos en slots compactos */
+}
+
 /* Permitir que el calendario se expanda cuando se cierra el sidebar */
 .app-calendar-wrapper {
     position: relative;
@@ -74,7 +88,32 @@
     max-width: 100%;
 }
 
-/* Asegurar que el contenedor del calendario se expanda */
+/* Event Cards - Hacer que los eventos ocupen todo el ancho disponible */
+.fc .fc-event {
+    border-radius: 4px !important;
+    border-left: 4px solid #000 !important;
+    transition: box-shadow 0.2s ease;
+    overflow: hidden;
+    width: 100% !important; /* Forzar ancho completo */
+    box-sizing: border-box; /* Incluir padding en el ancho */
+    margin-right: 0 !important; /* Eliminar margen derecho */
+}
+
+.fc .fc-event:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+/* Timegrid Event - compacto, estilo Google Calendar */
+.fc .fc-timegrid-event {
+    min-height: 0 !important;
+    border-radius: 4px !important;
+    overflow: hidden;
+    margin: 0 1px !important;
+    width: calc(100% - 2px) !important; /* Ocupar todo el ancho menos márgenes */
+    left: 0 !important; /* Alinear a la izquierda */
+    right: 0 !important; /* Alinear a la derecha */
+}
 .fc {
     width: 100% !important;
     min-width: 0 !important;
@@ -438,12 +477,26 @@
             z-index: 10;
         }
 
-        /* Timegrid Event - compacto, estilo Google Calendar */
+        /* Timegrid Event - compacto, estilo Google Calendar, FULL WIDTH */
         .fc .fc-timegrid-event {
             min-height: 0 !important;
             border-radius: 4px !important;
             overflow: hidden;
-            margin: 0 1px !important;
+            margin: 0 2px !important; /* Margen mínimo a los lados */
+            width: calc(100% - 4px) !important; /* Ocupar todo el ancho disponible */
+            max-width: 100% !important; /* No exceder el contenedor */
+        }
+
+        /* Event harness - contenedor del evento */
+        .fc .fc-timegrid-event-harness {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* Asegurar que las columnas ocupen todo el espacio */
+        .fc .fc-timegrid-col {
+            width: 100% !important;
+            max-width: 100% !important;
         }
         .fc .fc-timegrid-event .fc-event-main {
             padding: 2px 4px !important;

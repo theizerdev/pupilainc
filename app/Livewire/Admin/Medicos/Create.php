@@ -69,6 +69,18 @@ class Create extends Component
     public $sub_color = '#3B82F6';
     public $sub_icono = 'fa-stethoscope';
 
+    // Firma y sello digital
+    public $nueva_firma;
+    public $nuevo_sello;
+    public $config_firma = [
+        'mostrar_firma'  => true,
+        'mostrar_sello'  => true,
+        'posicion'       => 'centro',
+        'ancho_firma'    => 50,
+        'ancho_sello'    => 30,
+        'mostrar_en'     => ['informe', 'recipe', 'orden_estudios'],
+    ];
+
     protected function rules()
     {
         $rules = [
@@ -304,7 +316,7 @@ class Create extends Component
             }
 
             // Crear el médico
-            $medico = Medico::create([
+            $medicoData = [
                 'user_id' => $user->id,
                 'nombres' => $validated['nombres'],
                 'apellidos' => $validated['apellidos'],
@@ -318,7 +330,19 @@ class Create extends Component
                 'status' => true,
                 'empresa_id' => $user->empresa_id,
                 'sucursal_id' => $user->sucursal_id,
-            ]);
+                'config_firma' => $this->config_firma,
+            ];
+
+            if ($this->nueva_firma) {
+                $this->validate(['nueva_firma' => 'image|max:2048']);
+                $medicoData['firma_digital'] = $this->nueva_firma->store('medicos/firmas', 'public');
+            }
+            if ($this->nuevo_sello) {
+                $this->validate(['nuevo_sello' => 'image|max:2048']);
+                $medicoData['sello_digital'] = $this->nuevo_sello->store('medicos/sellos', 'public');
+            }
+
+            $medico = Medico::create($medicoData);
 
             // Asignar especialidad
             $medico->asignarEspecialidad(

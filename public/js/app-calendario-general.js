@@ -5,7 +5,10 @@
 
 'use strict';
 var globalCompanyTimezone = 'local';
+var globalCompanyTimezone = 'local';
 
+function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
+    globalCompanyTimezone = companyTimezone || 'local';
 function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
     globalCompanyTimezone = companyTimezone || 'local';
     (function ensureNowIndicatorStyle() {
@@ -105,7 +108,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
     let selectedEspecialidadId = null;
     let selectedSubespecialidadId = null;
     let fechaFlatpickr = null;
-    let currentSlotDuration = 30;
+    let currentSlotDuration = 15; // Duración predeterminada de cita en minutos (múltiplo de slotDuration 5min)
     var prefetchCache = {};
     var currentCitaId = null;
 
@@ -305,14 +308,72 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
     if (eventMedico.length) {
         eventMedico.select2({ placeholder: 'Buscar médico...', dropdownParent: eventMedico.parent(), allowClear: true, language: { noResults: function() { return 'No se encontraron médicos'; }, searching: function() { return 'Buscando...'; } } });
     }
-    if (eventEstado.length) {
-        function renderEstadoBadge(option) {
-            if (!option.id) return option.text;
-            var color = $(option.element).data('color') || 'secondary';
-            return "<span class='badge badge-dot bg-" + color + " me-2'></span>" + option.text;
-        }
-        eventEstado.select2({ placeholder: 'Seleccionar estado', dropdownParent: eventEstado.parent(), templateResult: renderEstadoBadge, templateSelection: renderEstadoBadge, minimumResultsForSearch: -1, escapeMarkup: function(es) { return es; } });
+    // Colores de estados (todos los posibles)
+    var todosEstadosColores = {
+        programada: '#ffc107', confirmada: '#0d6efd', cancelada: '#dc3545', no_asistio: '#6c757d',
+        por_llegar: '#9E9E9E', sala_espera: '#FFA726', en_enfermeria: '#EF5350',
+        en_consultorio: '#42A5F5', en_consultorio_optometrista: '#7E57C2',
+        en_gotas: '#26C6DA', dilatado: '#00BCD4', en_optica: '#AB47BC',
+        en_estudio: '#EC407A', finalizada: '#66BB6A', pagada: '#4CAF50'
+    };
+    var todosEstadosLabels = {
+        programada: 'Programada', confirmada: 'Confirmada', cancelada: 'Cancelada', no_asistio: 'No Asistió',
+        por_llegar: 'Por Llegar', sala_espera: 'Sala de Espera', en_enfermeria: 'En Enfermería',
+        en_consultorio: 'En Consultorio', en_consultorio_optometrista: 'En Consultorio Optometrista',
+        en_gotas: 'En Gotas', dilatado: 'Dilatado', en_optica: 'En Óptica',
+        en_estudio: 'En Estudio', finalizada: 'Finalizada', pagada: 'Pagada'
+    };
+
+    function renderEstadoBadge(option) {
+        if (!option.id) return option.text;
+        var color = $(option.element).data('color') || '#78909C';
+        return "<span style='display:inline-block;width:10px;height:10px;border-radius:50%;background:" + color + ";margin-right:6px;'></span>" + option.text;
     }
+
+    function actualizarEstadosOffcanvas(estadosFlujo) {
+        if (!eventEstado || !eventEstado.length) return;
+
+        var valorActual = eventEstado.val() || 'programada';
+
+        if (eventEstado.hasClass('select2-hidden-accessible')) {
+            eventEstado.select2('destroy');
+        }
+
+        eventEstado.empty();
+
+        var estadosBase = ['programada', 'confirmada', 'cancelada', 'no_asistio'];
+        var estadosMostrar = estadosBase.slice();
+
+        if (estadosFlujo && estadosFlujo.length) {
+            estadosFlujo.forEach(function(e) {
+                if (estadosBase.indexOf(e) === -1) estadosMostrar.push(e);
+            });
+        }
+
+        estadosMostrar.forEach(function(key) {
+            var label = todosEstadosLabels[key] || key;
+            var color = todosEstadosColores[key] || '#78909C';
+            var opt = new Option(label, key, false, key === valorActual);
+            $(opt).attr('data-color', color);
+            eventEstado.append(opt);
+        });
+
+        eventEstado.select2({
+            placeholder: 'Seleccionar estado',
+            dropdownParent: eventEstado.parent(),
+            templateResult: renderEstadoBadge,
+            templateSelection: renderEstadoBadge,
+            minimumResultsForSearch: -1,
+            escapeMarkup: function(es) { return es; }
+        });
+
+        var nuevoValor = estadosMostrar.indexOf(valorActual) !== -1 ? valorActual : 'programada';
+        eventEstado.val(nuevoValor).trigger('change.select2');
+    }
+    if (eventEstado.length) {
+        actualizarEstadosOffcanvas([]);
+    }
+
     if (eventTipoConsulta.length) {
         function renderTipoConsultaOption(option) {
             if (!option.id) return option.text;
@@ -742,7 +803,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             if(slotsList) slotsList.innerHTML='';
             if (!result||!result.disponible) { if(slotsMessage){slotsMessage.textContent=result?result.mensaje:'No hay horarios disponibles.';slotsMessage.classList.remove('d-none');} return; }
             if(slotsMessage) slotsMessage.classList.add('d-none');
-            currentSlotDuration = result.duracion_cita || 30;
+            currentSlotDuration = result.duracion_cita || 15; // Usar duración de la especialidad o default 15min
 
             if (result.horario_laboral) {
                 horarioLaboralMedico = result.horario_laboral;
@@ -842,6 +903,9 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         });
     }
 
+    // Mapa de especialidades por médico (cargado dinámicamente)
+    var especialidadesPorMedico = {};
+
     // Paciente -> Especialidades
     if (eventPaciente.length) {
         eventPaciente.on('change', function() {
@@ -849,8 +913,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(3);
             showEspecialidadField(false);
             comp.call('fetchMedicos', null, null).then(function(medicos) {
+                especialidadesPorMedico = {};
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                medicos.forEach(function(m){
+                    eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                    especialidadesPorMedico[m.id] = m.especialidades || [];
+                });
                 eventMedico.prop('disabled', false);
                 eventMedico.trigger('change.select2');
             });
@@ -861,6 +929,13 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         eventEspecialidad.on('change', function() {
             var espId = eventEspecialidad.val(); selectedEspecialidadId = espId||null; if(!espId){resetCascadeFrom(3);return;}
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(4);
+
+            // Buscar estados_flujo de la especialidad seleccionada en el mapa del médico actual
+            var medicoId = eventMedico.val();
+            var especialidadesMedico = medicoId ? (especialidadesPorMedico[medicoId] || []) : [];
+            var espData = especialidadesMedico.find(function(e) { return String(e.id) === String(espId); });
+            if (espData) actualizarEstadosOffcanvas(espData.estados_flujo || []);
+
             comp.call('fetchSubespecialidades', parseInt(espId)).then(function(subs) {
                 if(subs&&subs.length>0){
                     eventSubespecialidad.empty().append('<option value="">Opcional - Seleccionar subespecialidad</option>');
@@ -872,11 +947,14 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 }
             });
             comp.call('fetchMedicos', parseInt(espId), null).then(function(medicos) {
+                especialidadesPorMedico = {};
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                medicos.forEach(function(m){
+                    eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                    especialidadesPorMedico[m.id] = m.especialidades || [];
+                });
                 eventMedico.prop('disabled',false);
                 if (medicos.length === 1) {
-                    // Auto-seleccionar si solo hay un médico
                     eventMedico.val(medicos[0].id).trigger('change');
                 } else {
                     eventMedico.trigger('change.select2');
@@ -890,15 +968,50 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var subId = eventSubespecialidad.val(); selectedSubespecialidadId = subId||null; if(!selectedEspecialidadId) return;
             var comp = getLivewireComponent(); if(!comp) return; resetCascadeFrom(5); eventMedico.prop('disabled',true);
             comp.call('fetchMedicos', parseInt(selectedEspecialidadId), subId?parseInt(subId):null).then(function(medicos) {
+                especialidadesPorMedico = {};
                 eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                medicos.forEach(function(m){
+                    eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                    especialidadesPorMedico[m.id] = m.especialidades || [];
+                });
                 eventMedico.prop('disabled',false); eventMedico.trigger('change.select2');
             });
         });
     }
-    // Medico -> load slots if date set
+    // Medico -> auto-seleccionar especialidad si tiene una sola, o mostrar selector si tiene varias
     if (eventMedico.length) {
-        eventMedico.on('change', function() { var medicoId=eventMedico.val(); resetCascadeFrom(5); var currentDate=eventFecha?eventFecha.value:null; if(currentDate&&medicoId) loadSlots(medicoId,currentDate); });
+        eventMedico.on('change', function() {
+            var medicoId = eventMedico.val();
+            resetCascadeFrom(5);
+            if (!medicoId) return;
+
+            var especialidades = especialidadesPorMedico[medicoId] || [];
+
+            if (especialidades.length === 1) {
+                // Auto-seleccionar la única especialidad
+                selectedEspecialidadId = String(especialidades[0].id);
+                eventEspecialidad.val(especialidades[0].id).trigger('change.select2');
+                showEspecialidadField(false);
+                actualizarEstadosOffcanvas(especialidades[0].estados_flujo || []);
+            } else if (especialidades.length > 1) {
+                // Mostrar selector con las especialidades del médico
+                eventEspecialidad.empty().append('<option value="">Seleccionar especialidad</option>');
+                especialidades.forEach(function(e) {
+                    eventEspecialidad.append('<option value="'+e.id+'">'+e.nombre+'</option>');
+                });
+                eventEspecialidad.prop('disabled', false);
+                showEspecialidadField(true);
+                eventEspecialidad.trigger('change.select2');
+                selectedEspecialidadId = null;
+            } else {
+                // Sin especialidades registradas
+                selectedEspecialidadId = null;
+                showEspecialidadField(false);
+            }
+
+            var currentDate = eventFecha ? eventFecha.value : null;
+            if (currentDate) loadSlots(medicoId, currentDate);
+        });
     }
     // Fecha flatpickr
     if (eventFecha) {
@@ -1134,6 +1247,53 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         var nowTime = now.substring(11);
         var msg = 'No se pueden crear citas en el pasado. (Seleccionado: ' + selTime + ', Ahora: ' + nowTime + ')';
         
+    function isPastDateTime(date, info) {
+        if (!date || !info) return false;
+
+        try {
+            // FullCalendar usa 'dateStr' en clics y 'event.startStr' en arrastres
+            var rawStr = info.dateStr || (info.event ? info.event.startStr : null);
+            if (!rawStr) return false;
+
+            // 1. Obtener la cadena de la fecha seleccionada (formato ISO: YYYY-MM-DDTHH:mm:ss)
+            var selectedStr = rawStr.includes('T') ? rawStr : rawStr + 'T00:00:00';
+
+            // 2. Obtener el "ahora" en la zona horaria LOCAL del navegador
+            var now = new Date();
+            var nowStr = now.toLocaleString('sv-SE').replace(' ', 'T');
+
+            // 3. Crear objeto Date para la selección
+            var selectedDate = new Date(selectedStr);
+
+            // 4. Calcular diferencia en minutos (margen de tolerancia)
+            var diffMs = selectedDate.getTime() - now.getTime();
+            var diffMinutes = Math.floor(diffMs / 60000);
+
+            // MARGEN DE TOLERANCIA: Permitir citas hasta 5 minutos en el pasado
+            // Esto evita el error cuando se hace clic cerca de la línea roja
+            var toleranceMinutes = -5;
+
+            if (diffMinutes < toleranceMinutes) {
+                showPastAlert(selectedStr.substring(0, 16).replace('T', ' '),
+                             nowStr.substring(0, 16).replace('T', ' '));
+                return true;
+            }
+
+            // Si está dentro del margen de tolerancia (entre -5 y 0 minutos), permitir
+            return false;
+
+        } catch (e) {
+            console.error('Error in isPastDateTime:', e);
+        }
+        return false;
+    }
+
+    function showPastAlert(selected, now) {
+        // Extraer solo la hora para el mensaje
+        var selTime = selected.substring(11);
+        var nowTime = now.substring(11);
+        var msg = 'No se pueden crear citas en el pasado. (Seleccionado: ' + selTime + ', Ahora: ' + nowTime + ')';
+
         if (window.Swal) {
             Swal.fire({ 
                 icon: 'warning', 
@@ -1142,7 +1302,15 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 confirmButtonText: 'Entendido',
                 confirmButtonColor: '#ffc107'
             });
+            Swal.fire({
+                icon: 'warning',
+                title: 'Fecha no permitida',
+                text: msg,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#ffc107'
+            });
         } else {
+            alert(msg);
             alert(msg);
         }
     }
@@ -1174,6 +1342,29 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             // Fallback al comportamiento anterior si falla Intl (aunque es moderno)
             return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0') + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0') + ':' + String(date.getSeconds()).padStart(2,'0');
         }
+
+        try {
+            // NO usar timezone de empresa - usar hora local del navegador
+            // Esto evita conversiones incorrectas al guardar citas
+            var options = {
+                timeZone: undefined, // Usar timezone local del navegador
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            };
+            var formatter = new Intl.DateTimeFormat('en-US', options);
+            var parts = formatter.formatToParts(date);
+
+            var p = {};
+            parts.forEach(function(part) { p[part.type] = part.value; });
+
+            // Reconstruir formato Y-m-d H:i:s (Intl en-US da m/d/Y por defecto en format())
+            return p.year + '-' + p.month + '-' + p.day + ' ' + p.hour + ':' + p.minute + ':' + p.second;
+        } catch (e) {
+            console.error('Error formatting date:', e);
+            // Fallback: usar hora local directamente
+            return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0') + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0') + ':' + String(date.getSeconds()).padStart(2,'0');
+        }
     }
 
     function resetValues() {
@@ -1182,6 +1373,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         if(eventFecha) eventFecha.value=''; if(fechaFlatpickr) fechaFlatpickr.clear();
         if(eventPaciente.length) eventPaciente.val('').trigger('change.select2');
         if(eventEstado.length) eventEstado.val('programada').trigger('change');
+        actualizarEstadosOffcanvas([]);
         if(eventPrioridad) eventPrioridad.value = 'normal';
         updatePriorityMode();
         horarioLaboralMedico = null;
@@ -1246,6 +1438,13 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         if(btnCancelCita) btnCancelCita.classList.remove('d-none');
         if(btnReagendar) btnReagendar.classList.remove('d-none');
         if(btnReagendarAuto) btnReagendarAuto.classList.remove('d-none');
+
+        // Payment button logic: show only for finalized appointments
+        var paymentButtonContainer = document.getElementById('paymentButtonContainer');
+        var btnRegistrarPago = document.getElementById('btnRegistrarPago');
+        if (paymentButtonContainer) paymentButtonContainer.style.display = 'none';
+        if (btnRegistrarPago) btnRegistrarPago.style.display = 'none';
+
         // Modo edición: ocultar estado (se cambia desde el modal), ocultar botón nuevo paciente, deshabilitar paciente
         var estadoContainer = document.getElementById('estadoContainer');
         if(estadoContainer) estadoContainer.style.display = 'none';
@@ -1260,6 +1459,18 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         if(eventMotivo) eventMotivo.value = ep.motivo || ep.descripcion || '';
         if(eventNotas) eventNotas.value = ep.notas || '';
         if(eventEstado.length) eventEstado.val(ep.estado || 'programada').trigger('change');
+
+        // Show payment button if appointment is finalized and has a consultation
+        if (ep.estado === 'finalizada' && ep.consulta_id) {
+            var paymentButtonContainer = document.getElementById('paymentButtonContainer');
+            var btnRegistrarPago = document.getElementById('btnRegistrarPago');
+            if (paymentButtonContainer) paymentButtonContainer.style.display = 'block';
+            if (btnRegistrarPago) {
+                btnRegistrarPago.style.display = 'block';
+                btnRegistrarPago.href = '/admin/pagos/crear?consulta_id=' + ep.consulta_id;
+            }
+        }
+
         if(eventTipoConsulta.length) eventTipoConsulta.val(ep.tipo_consulta_id || '').trigger('change.select2');
         if(eventStartDate) eventStartDate.value = formatDateForLivewire(eventToUpdate.start);
         if(eventEndDate) eventEndDate.value = eventToUpdate.end ? formatDateForLivewire(eventToUpdate.end) : formatDateForLivewire(eventToUpdate.start);
@@ -1300,8 +1511,12 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                         selectedSubespecialidadId = String(ep.subespecialidad_id);
                     }
                     comp.call('fetchMedicos', parseInt(espIdToUse), subIdForMedicos).then(function(medicos) {
+                        especialidadesPorMedico = {};
                         eventMedico.empty().append('<option value="">Seleccionar médico</option>');
-                        medicos.forEach(function(m){eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');});
+                        medicos.forEach(function(m){
+                            eventMedico.append('<option value="'+m.id+'">'+m.nombre+'</option>');
+                            especialidadesPorMedico[m.id] = m.especialidades || [];
+                        });
                         eventMedico.prop('disabled',false);
                         if(ep.medico_id){eventMedico.val(ep.medico_id).trigger('change.select2');if(dateOnly) loadSlots(parseInt(ep.medico_id),dateOnly,eventStartDate?eventStartDate.value:null);}
                     });
@@ -1608,6 +1823,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             initialView: startView,
             initialDate: startDate,
             timeZone: companyTimezone || 'local',
+            timeZone: 'local', // Usar 'local' para evitar doble conversión - los eventos ya vienen con hora correcta desde PHP
             height: 'auto', // Permite que el contenedor nativo maneje el scroll
             plugins: [dayGridPlugin, interactionPlugin, listPlugin, timegridPlugin],
         events: fetchEvents,
@@ -1615,7 +1831,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         firstDay: 1,
         nowIndicator: true,
         slotEventOverlap: true,
-        slotMinTime: '06:00:00',
+        slotMinTime: '07:00:00',
         slotMaxTime: '24:00:00',
         scrollTime: (function() {
             var now = new Date();
@@ -1628,15 +1844,21 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         slotDuration: '00:10:00',
         slotLabelInterval: '01:00:00',
         snapDuration: '00:05:00',
+        slotDuration: '00:10:00',
+        slotLabelInterval: '01:00:00', // Mostrar etiquetas cada 1 hora (07:00, 08:00, 09:00...)
+        snapDuration: '00:05:00',
         slotLabelFormat: {
             hour: 'numeric',
             minute: '2-digit',
             omitZeroMinute: true,
             meridiem: 'short'
         },
+        // Compactación visual: reducir altura de slots y eventos
+        slotMinHeight: 50, // Altura mínima de cada slot en píxeles
         eventMinHeight: 20,
         eventShortHeight: 20,
         slotEventOverlap: false,
+        aspectRatio: 1.8, // Mejorar proporción para vistas de día/semana
         dayMaxEventRows: false, // Permitir que las filas crezcan infinitamente
         dayMaxEvents: false, // Quitar límite para que siempre se muestren todos
         editable: true,
@@ -1776,11 +1998,27 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             // Tiempo en estado (para consultas activas desde sala_espera en adelante)
             var tiempoBadge = '';
 
-            // Para gotas y dilatado, usar el tiempo calculado desde el backend
-            if ((ep.estado === 'en_gotas' || ep.estado === 'dilatado') && ep.tiempo_gotas_formateado) {
-                var iconoTiempo = 'ri-drop-line';
+            // Badge de aplicaciones de gotas (solo en estado en_gotas)
+            var gotasBadge = '';
+            if (ep.estado === 'en_gotas' && ep.gotas_count > 0) {
+                gotasBadge = '<span class="fc-event-gotas-badge" style="background:#e0f7fa;color:#00838f;font-size:0.55rem;padding:1px 5px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;white-space:nowrap;border:1px solid #b2ebf2;" title="' + ep.gotas_count + ' aplicación(es) de gotas"><i class="ri-drop-fill" style="font-size:0.6rem;"></i>' + ep.gotas_count + ' apps · OI:' + (ep.gotas_oi_total || 0) + ' OD:' + (ep.gotas_od_total || 0) + '</span>';
+            }
+
+            // Tiempo en estado
+            if (ep.estado === 'en_gotas') {
+                var iconoTiempo = 'ri-timer-line';
                 var colorTiempo = '#00BCD4';
-                tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo en ' + (ep.estado_label || ep.estado) + '"><i class="ri ' + iconoTiempo + '"></i>' + ep.tiempo_gotas_formateado + '</span>';
+                var textoTiempoGotas = ep.tiempo_ultima_gota || ep.tiempo_gotas_formateado || '';
+                if (textoTiempoGotas) {
+                    tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo desde última aplicación de gotas"><i class="ri ' + iconoTiempo + '"></i>' + textoTiempoGotas + '</span>';
+                }
+            } else if (ep.estado === 'dilatado') {
+                var iconoTiempo = 'ri-timer-line';
+                var colorTiempo = '#00BCD4';
+                var textoTiempoDilatado = ep.tiempo_gotas_formateado || '';
+                if (textoTiempoDilatado) {
+                    tiempoBadge = '<span class="fc-event-tiempo-badge" data-event-id="' + arg.event.id + '" style="background:' + colorTiempo + ';color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:2px;" title="Tiempo de dilatación"><i class="ri ' + iconoTiempo + '"></i>' + textoTiempoDilatado + '</span>';
+                }
             } else {
                 // Para otros estados activos, calcular el tiempo desde estado_changed_at
                 var estadosActivos = ['sala_espera', 'en_consultorio', 'en_consultorio_optometrista', 'en_optica', 'en_estudio'];
@@ -1847,34 +2085,27 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                     (tiempoBadge ? tiempoBadge : '') +
                 '</div>';
             } else if (view.type === 'timeGridDay' || view.type === 'timeGridWeek' || view.type === 'timeGridCustom') {
-                if (duracionMinutos <= 30) {
-                    // Diseño ultracompacto para citas de 30 min o menos (1 sola línea)
-                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;box-sizing:border-box;overflow:hidden;gap:3px;">' +
-                        estadoBadge +
-                        prioridadIcon +
-                        consultaIcon +
-                        '<span class="fc-event-title" style="flex:1;">' + nombreCompleto + '</span>' +
-                        (tiempoBadge ? tiempoBadge : '') +
-                        '<span class="fc-event-subtitle" style="flex-shrink:0;">' + medicoNombre + '</span>' +
-                    '</div>';
-                } else {
-                    // Diseño para citas largas (> 30 min) (2 líneas)
-                    html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:flex-start;box-sizing:border-box;overflow:hidden;gap:4px;">' +
-                        '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:1px;">' +
-                            '<div style="display:flex;align-items:center;gap:3px;">' +
-                                prioridadIcon +
-                                consultaIcon +
-                                '<span class="fc-event-title">' + nombreCompleto + '</span>' +
-                                (tiempoBadge ? tiempoBadge : '') +
-                            '</div>' +
-                            '<span class="fc-event-subtitle">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
+                // Diseño horizontal unificado: toda la info del paciente en una sola línea,
+                // alineada a la misma altura que el badge de estado (derecha).
+                // Debajo del estado va la hora inicio-fin.
+                html = '<div class="fc-event-main-frame" style="width:100%;height:100%;display:flex;flex-direction:row;align-items:center;box-sizing:border-box;overflow:hidden;gap:4px;">' +
+                    '<div style="display:flex;flex-direction:column;flex:1;min-width:0;overflow:hidden;gap:0px;justify-content:center;">' +
+                        '<div style="display:flex;align-items:center;gap:2px;overflow:hidden;">' +
+                            prioridadIcon +
+                            consultaIcon +
+                            '<span class="fc-event-title" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nombreCompleto + '</span>' +
                         '</div>' +
-                        '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:2px;">' +
+                        '<span class="fc-event-subtitle" style="font-size:0.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.85;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</span>' +
+                    '</div>' +
+                    '<div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;gap:0px;line-height:1.1;">' +
+                        '<div style="display:flex;flex-direction:row;align-items:center;gap:2px;flex-wrap:wrap;justify-content:flex-end;">' +
                             estadoBadge +
-                            '<span class="fc-event-subtitle" style="font-size:0.6rem;">' + gridTimeRange + '</span>' +
+                            (gotasBadge ? gotasBadge : '') +
+                            (tiempoBadge ? tiempoBadge : '') +
                         '</div>' +
-                    '</div>';
-                }
+                        '<span class="fc-event-subtitle" style="font-size:0.55rem;white-space:nowrap;">' + gridTimeRange + '</span>' +
+                    '</div>' +
+                '</div>';
             } else if (view.type === 'listMonth' || view.type === 'listWeek') {
                 // Horario desde - hasta
                 var listTimeStart = arg.event.start ? moment(arg.event.start).format('HH:mm') : '';
@@ -1887,7 +2118,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                         '<div style="font-size:0.75rem;color:#6c757d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr(a). ' + medicoNombre + (ep.edad ? ' · ' + ep.edad : '') + '</div>' +
                         '<div style="font-size:0.7rem;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><i class="ri-time-line" style="font-size:0.65rem;"></i> ' + listTimeRange + '</div>' +
                     '</div>' +
-                    '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;flex-wrap:nowrap;justify-content:flex-end;">' + prioridadBadge + consultaBadge + estadoBadge + tiempoBadge + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:3px;flex-shrink:0;flex-wrap:nowrap;justify-content:flex-end;">' + prioridadBadge + consultaBadge + gotasBadge + estadoBadge + tiempoBadge + '</div>' +
                 '</div>';
             } else {
                 return { html: '<div>' + arg.event.title + '</div>' };
@@ -1924,6 +2155,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         dateClick: function(info) {
             var clickedDate = info.date || new Date(info.dateStr);
             if(isPastDateTime(clickedDate, info)){return;}
+            if(isPastDateTime(clickedDate, info)){return;}
             var dateOnly = info.dateStr.substring(0,10);
 
             // Limpiar estado de edición anterior
@@ -1936,11 +2168,22 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 // Usamos la cadena de fecha de FullCalendar para obtener la hora exacta
                 // en la zona horaria del calendario (evitando desfases locales)
                 var startHour = info.dateStr.includes('T') ? info.dateStr.substring(11, 16) : '08:00';
+                // Usamos la cadena de fecha de FullCalendar para obtener la hora exacta
+                // en la zona horaria del calendario (evitando desfases locales)
+                var startHour = info.dateStr.includes('T') ? info.dateStr.substring(11, 16) : '08:00';
 
+                // Calcular hora de fin sumando la duración base (usando el objeto Date pero formateando con cuidado)
                 // Calcular hora de fin sumando la duración base (usando el objeto Date pero formateando con cuidado)
                 var endDate = new Date(clickedDate.getTime() + (currentSlotDuration * 60000));
                 var endHour = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
                 
+                // Si estamos en una vista con zona horaria, es mejor recalcular el fin basándose en el inicio de la cadena
+                if (info.dateStr.includes('T')) {
+                    var parts = startHour.split(':');
+                    var mins = parseInt(parts[0]) * 60 + parseInt(parts[1]) + currentSlotDuration;
+                    endHour = String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+                }
+
                 // Si estamos en una vista con zona horaria, es mejor recalcular el fin basándose en el inicio de la cadena
                 if (info.dateStr.includes('T')) {
                     var parts = startHour.split(':');
@@ -2001,6 +2244,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var ep = info.event.extendedProps||{};
             if(ep.tipo_evento!=='cita'){info.revert();return;}
             if(isPastDateTime(info.event.start, info)){info.revert();return;}
+            if(isPastDateTime(info.event.start, info)){info.revert();return;}
             var comp = getLivewireComponent(); if(!comp){info.revert();return;}
             var newStart = info.event.start;
             var newEnd = info.event.end;
@@ -2015,10 +2259,17 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var endStr = info.event.endStr ? info.event.endStr.replace('T', ' ').substring(0, 19) : formatDateForLivewire(newEnd);
             
             comp.call('updateCitaFechas', getCitaId(info.event.id), startStr, endStr);
+
+            // Preferimos usar la cadena con zona horaria de FullCalendar si está disponible
+            var startStr = info.event.startStr ? info.event.startStr.replace('T', ' ').substring(0, 19) : formatDateForLivewire(newStart);
+            var endStr = info.event.endStr ? info.event.endStr.replace('T', ' ').substring(0, 19) : formatDateForLivewire(newEnd);
+
+            comp.call('updateCitaFechas', getCitaId(info.event.id), startStr, endStr);
         },
         eventResize: function(info) {
             var ep = info.event.extendedProps||{};
             if(ep.tipo_evento!=='cita'){info.revert();return;}
+            if(isPastDateTime(info.event.start, info)){info.revert();return;}
             if(isPastDateTime(info.event.start, info)){info.revert();return;}
             var comp = getLivewireComponent(); if(!comp){info.revert();return;}
             comp.call('updateCitaFechas', getCitaId(info.event.id), formatDateForLivewire(info.event.start), info.event.end?formatDateForLivewire(info.event.end):formatDateForLivewire(info.event.start));
@@ -2104,8 +2355,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
 
         var ep = event.extendedProps || {};
         var currentState = ep.estado || 'programada';
-        var isConfirmed = confirmedStates.indexOf(currentState) !== -1;
-        var availableStates = isConfirmed ? postConfirmStates : preConfirmStates;
+
+        // Estados dinámicos según la especialidad de la cita
+        var estadosFlujo   = ep.estados_flujo   || Object.keys(preConfirmStates).concat(Object.keys(postConfirmStates));
+        var estadosLabels  = ep.estados_labels  || Object.assign({}, preConfirmStates, postConfirmStates);
+        var estadosColores = ep.estados_colores || citaCalendarColors;
 
         // Configurar el modal
         var selectEl = document.getElementById('estadoSelect');
@@ -2114,15 +2368,15 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         var actualEl = document.getElementById('estadoCitaActual');
 
         if (selectEl && idEl && actualEl) {
-            // Limpiar select
             selectEl.innerHTML = '<option value="">Seleccione un estado...</option>';
 
-            // Llenar opciones
-            Object.keys(availableStates).forEach(function(key) {
+            estadosFlujo.forEach(function(key) {
+                if (!estadosLabels[key]) return;
                 var option = document.createElement('option');
                 option.value = key;
-                option.textContent = availableStates[key];
-                if (key === '---') option.disabled = true;
+                option.textContent = estadosLabels[key];
+                var color = estadosColores[key] || '#78909C';
+                option.setAttribute('data-color', color);
                 if (key === currentState) option.selected = true;
                 selectEl.appendChild(option);
             });
@@ -2133,18 +2387,25 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             }
             if (window.jQuery) {
                 $(selectEl).select2({
-                    dropdownParent: $('#modalCambiarEstado')
+                    dropdownParent: $('#modalCambiarEstado'),
+                    templateResult: function(option) {
+                        if (!option.id) return option.text;
+                        var color = $(option.element).data('color') || '#78909C';
+                        return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + color + ';margin-right:6px;"></span>' + option.text + '</span>');
+                    },
+                    templateSelection: function(option) {
+                        if (!option.id) return option.text;
+                        var color = $(option.element).data('color') || '#78909C';
+                        return $('<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + color + ';margin-right:6px;"></span>' + option.text + '</span>');
+                    },
+                    escapeMarkup: function(m) { return m; }
                 });
             }
 
-            // Setear datos ocultos
             idEl.value = eventId;
             actualEl.value = currentState;
-
-            // Limpiar nota
             if (notaEl) notaEl.value = '';
 
-            // Mostrar modal
             if (modalCambiarEstado) {
                 modalCambiarEstado.show();
             } else {
@@ -2595,8 +2856,14 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
 
             // Usar siempre los mismos campos de hora
             if (fecha && horaInicio && horaFin) {
-                startDate = fecha + ' ' + horaInicio + ':00';
-                endDate = fecha + ' ' + horaFin + ':00';
+                // Crear objetos Date para manejar correctamente la zona horaria
+                var startDateTime = new Date(fecha + 'T' + horaInicio + ':00');
+                var endDateTime = new Date(fecha + 'T' + horaFin + ':00');
+
+                // Formatear como ISO 8601 con offset de zona horaria local
+                // Esto asegura que el backend reciba la hora correcta del navegador
+                startDate = startDateTime.toISOString();
+                endDate = endDateTime.toISOString();
             }
 
             var eventData = {
@@ -2610,7 +2877,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 fecha_fin: endDate,
                 motivo: eventMotivo ? eventMotivo.value : '',
                 notas: eventNotas ? eventNotas.value : '',
-                estado: isNewCita ? 'programada' : (eventEstado.val() || 'programada'),
+                estado: isNewCita ? (prioridad === 'alta' || prioridad === 'emergencia' ? 'sala_espera' : 'programada') : (eventEstado.val() || 'programada'),
                 tipo_consulta_id: eventTipoConsulta.val() || '',
                 prioridad: prioridad
             };

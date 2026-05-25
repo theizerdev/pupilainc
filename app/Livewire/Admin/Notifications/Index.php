@@ -16,7 +16,7 @@ class Index extends Component
 
     public function markAsRead($notificationId)
     {
-        $notification = Notification::where('user_id', auth()->id())->find($notificationId);
+        $notification = Notification::find($notificationId);
         if ($notification) {
             $notification->markAsRead();
         }
@@ -24,15 +24,14 @@ class Index extends Component
 
     public function markAllAsRead()
     {
-        Notification::where('user_id', auth()->id())
-            ->whereNull('read_at')
+        Notification::whereNull('read_at')
             ->update(['read_at' => now()]);
     }
 
     public function render()
     {
         return view('livewire.admin.notifications.index',[
-            'notifications' => Notification::where('user_id', auth()->id())->latest()->paginate(100),
+            'notifications' => Notification::latest()->paginate(100),
         ])->layout($this->getLayout());
     }
 }

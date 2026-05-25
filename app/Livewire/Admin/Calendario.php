@@ -8,6 +8,7 @@ use App\Models\Preconsulta;
 use App\Models\Medico;
 use App\Models\Paciente;
 use App\Models\Especialidad;
+use App\Models\EspecialidadPlantilla;
 use App\Models\Subespecialidad;
 use App\Models\MedicoHorario;
 use App\Models\TipoConsulta;
@@ -62,6 +63,8 @@ class Calendario extends Component
     public function mount()
     {
         $this->filtroEstados = Cita::ESTADOS;
+         $timezone = $this->getEmpresaTimezone();
+
     }
 
     // Métodos de formateo para el formulario de paciente rápido
@@ -122,7 +125,7 @@ class Calendario extends Component
 
     protected function fetchCitas()
     {
-        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+        $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'consulta.gotasAplicadas'])
             ->forUser()
             ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
             ->get();
@@ -147,7 +150,7 @@ class Calendario extends Component
         $eventos = [];
 
         if ($this->mostrarCitas) {
-            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta'])
+            $citas = Cita::with(['paciente', 'medico', 'tipoConsulta', 'consulta.gotasAplicadas'])
                 ->forUser()
                 ->enRango($inicioCarbon, $finCarbon)
                 ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
@@ -187,15 +190,15 @@ class Calendario extends Component
             ->forUser()
             ->whereHas('citas', function($q) {
                 $q->forUser();
-                
+
                 // Considerar solo citas activas (no canceladas ni no asistidas)
                 $q->whereNotIn('estado', [
-                    \App\Models\Cita::ESTADO_CANCELADA, 
+                    \App\Models\Cita::ESTADO_CANCELADA,
                     \App\Models\Cita::ESTADO_NO_ASISTIO
                 ]);
             })
             ->orderBy('nombres');
-            
+
         return $query->get();
     }
 
@@ -227,13 +230,16 @@ class Calendario extends Component
                 $q->where('medico_especialidad.status', true);
             })
             ->orderBy('nombre')
-            ->get(['id', 'nombre', 'duracion_consulta']);
+            ->get(['id', 'nombre', 'duracion_consulta', 'color']);
 
         return $especialidades->map(function ($e) {
+            $estadosFlujo = EspecialidadPlantilla::estadosFlujoParaEspecialidad($e->id);
             return [
-                'id' => $e->id,
-                'nombre' => $e->nombre,
-                'duracion_consulta' => $e->duracion_consulta,
+                'id'               => $e->id,
+                'nombre'           => $e->nombre,
+                'duracion_consulta'=> $e->duracion_consulta,
+                'color'            => $e->color,
+                'estados_flujo'    => $estadosFlujo,
             ];
         })->toArray();
     }
@@ -259,8 +265,7 @@ class Calendario extends Component
 
     public function fetchMedicos($especialidadId = null, $subespecialidadId = null)
     {
-        $query = Medico::activos()
-            ->forUser();
+        $query = Medico::activos()->forUser();
 
         if ($especialidadId) {
             $query->whereHas('especialidades', function ($q) use ($especialidadId) {
@@ -276,14 +281,27 @@ class Calendario extends Component
             });
         }
 
-        $medicos = $query->orderBy('nombres')->get();
+        return $query->orderBy('nombres')
+            ->with(['especialidades' => fn($q) => $q->where('medico_especialidad.status', true)])
+            ->get()
+            ->map(function ($m) {
+                $especialidades = $m->especialidades->map(function ($e) {
+                    return [
+                        'id'            => $e->id,
+                        'nombre'        => $e->nombre,
+                        'color'         => $e->color,
+                        'estados_flujo' => EspecialidadPlantilla::estadosFlujoParaEspecialidad($e->id),
+                    ];
+                })->values()->toArray();
 
-        return $medicos->map(function ($m) {
-            return [
-                'id' => $m->id,
-                'nombre' => $m->nombre_completo,
-            ];
-        })->toArray();
+                return [
+                    'id'            => $m->id,
+                    'nombre'        => $m->nombre_completo,
+                    'especialidades'=> $especialidades,
+                    // Si solo tiene una especialidad, la exponemos directamente para auto-selección
+                    'especialidad_id' => count($especialidades) === 1 ? $especialidades[0]['id'] : null,
+                ];
+            })->toArray();
     }
 
     public function fetchHorariosDisponibles($medicoId, $fecha)
@@ -433,8 +451,14 @@ class Calendario extends Component
             return;
         }
 
-        $inicio = Carbon::parse($this->fecha_inicio);
-        $fin = Carbon::parse($this->fecha_fin);
+        $timezone = $this->getEmpresaTimezone();
+
+        // Parsear las fechas ISO 8601 enviadas desde el frontend
+        // Las fechas vienen en formato ISO con zona horaria del navegador (UTC)
+        // Debemos convertirlas a la zona horaria de la empresa
+        $inicio = Carbon::parse($this->fecha_inicio)->timezone($timezone);
+        $fin = Carbon::parse($this->fecha_fin)->timezone($timezone);
+
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
@@ -496,7 +520,7 @@ class Calendario extends Component
             $this->logCitaAction('update', $cita, $oldData);
 
             if ($estadoAnterior !== $this->estado) {
-                $this->notificarCambioEstado($cita, $estadoAnterior);
+                //$this->notificarCambioEstado($cita, $estadoAnterior);
                 $cita->cambiarEstado($this->estado);
             }
 
@@ -554,11 +578,23 @@ class Calendario extends Component
                 }
             } else {
                 $data['prioridad'] = $prioridad;
+
+                // Si la prioridad es alta o emergencia, el estado debe ser sala de espera
+                if ($esPrioridadAltaOEmergencia) {
+                    $data['estado'] = Cita::ESTADO_SALA_ESPERA;
+                }
+
                 $cita = new Cita();
                 $cita->fill($data);
                 $cita->save();
 
                 $this->logCitaAction('create', $cita);
+
+                // Si es una cita de prioridad alta o emergencia, crear automáticamente la consulta en sala de espera
+                if ($esPrioridadAltaOEmergencia) {
+                    $cita->crearConsultaSiNoExiste(true);
+                }
+
                 $notificacion = $this->notificarNuevaCita($cita);
                 $cita->programarRecordatorios();
 
@@ -620,15 +656,15 @@ class Calendario extends Component
             return;
         }
 
+        // NO convertir timezone - usar la fecha exactamente como se envía desde el navegador
+        // Esto evita los errores de conversión de hora al guardar citas
         $inicio = Carbon::parse($start);
         $fin = Carbon::parse($end);
 
-        // Validación de fecha pasada con zona horaria de la empresa
-        $timezone = $this->getEmpresaTimezone();
-        $ahora    = Carbon::now($timezone);
-        $inicioTz = Carbon::parse($start, $timezone);
+        // Validación de fecha pasada (usando hora local del servidor)
+        $ahora = Carbon::now();
 
-        if ($inicioTz->lt($ahora)) {
+        if ($inicio->lt($ahora)) {
             $this->dispatch('show-alert', [
                 'type' => 'warning',
                 'title' => 'Fecha no permitida',
@@ -884,13 +920,13 @@ class Calendario extends Component
         $preconsultaResult = null;
 
         if ($nuevoEstado === Cita::ESTADO_SALA_ESPERA && $estadoAnterior !== Cita::ESTADO_SALA_ESPERA) {
-            // Issue 8: Solo enviar si la preconsulta aún no fue completada
+            // Solo enviar si la preconsulta aún no fue enviada ni completada
             if ($cita->estado_preconsulta === 'pendiente') {
                 $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
             }
         }
 
-        // Issue 9: Al confirmar manualmente, enviar preconsulta si no fue llenada
+        // Al confirmar manualmente, enviar preconsulta solo si no fue enviada ni completada
         if ($nuevoEstado === Cita::ESTADO_CONFIRMADA && $estadoAnterior !== Cita::ESTADO_CONFIRMADA) {
             if ($cita->estado_preconsulta === 'pendiente') {
                 $preconsultaResult = $cita->crearPreconsultaYEnviarWhatsApp();
@@ -1222,6 +1258,7 @@ class Calendario extends Component
             'citaEstados' => Cita::ESTADOS,
             'citaEstadoLabels' => Cita::ESTADO_LABELS,
             'citaEstadoColores' => Cita::ESTADO_COLORES,
+            'timezone' => $this->getEmpresaTimezone(),
             'timezone' => $this->getEmpresaTimezone(),
         ])->layout($this->getLayout());
     }

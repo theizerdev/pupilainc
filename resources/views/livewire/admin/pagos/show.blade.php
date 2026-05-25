@@ -140,9 +140,8 @@
                                     <th>#</th>
                                     <th>Descripción</th>
                                     <th class="text-center">Cantidad</th>
-                                    <th class="text-end">P/U (USD)</th>
-                                    <th class="text-end">P/U (Bs.)</th>
-                                    <th class="text-end">Subtotal Bs.</th>
+                                    <th class="text-end">P/U ({{ auth()->user()->empresa->pais->simbolo_moneda }})</th>
+                                    <th class="text-end">Subtotal {{ auth()->user()->empresa->pais->simbolo_moneda }}</th>
                                     <th class="text-center">IVA</th>
                                 </tr>
                             </thead>
@@ -157,9 +156,9 @@
                                         @endif
                                     </td>
                                     <td class="text-center">{{ $detalle->cantidad }}</td>
-                                    <td class="text-end text-muted"><small>{{ format_money($detalle->precio_unitario / ($pago->tasa_cambio_usd ?: 1), 2) }}</small></td>
-                                    <td class="text-end">Bs. {{ number_format($detalle->precio_unitario, 2, ',', '.') }}</td>
-                                    <td class="text-end fw-bold">Bs. {{ number_format($detalle->subtotal, 2, ',', '.') }}</td>
+
+                                    <td class="text-end">{{ money($detalle->precio_unitario, 2, ',', '.') }}</td>
+                                    <td class="text-end fw-bold">{{ money($detalle->subtotal, 2, ',', '.') }}</td>
                                     <td class="text-center">
                                         @if($detalle->exento_iva)
                                         <span class="badge badge-sm bg-warning">Exento</span>
@@ -191,47 +190,47 @@
                                     <table class="table table-sm mb-0">
                                         <tr>
                                             <td>Subtotal:</td>
-                                            <td class="text-end fw-bold">Bs. {{ number_format($pago->subtotal_bs ?: ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.') }}</td>
+                                            <td class="text-end fw-bold">{{ money($pago->subtotal_bs ?: ($pago->subtotal * $pago->tasa_cambio_usd), 2, ',', '.') }}</td>
                                         </tr>
                                         @if($pago->descuento > 0)
                                         <tr>
                                             <td>Descuento:</td>
-                                            <td class="text-end text-danger">-Bs. {{ number_format($pago->descuento * $pago->tasa_cambio_usd, 2, ',', '.') }}</td>
+                                            <td class="text-end text-danger">-{{ money($pago->descuento * $pago->tasa_cambio_usd, 2, ',', '.') }}</td>
                                         </tr>
                                         @endif
                                         @if($pago->es_factura_fiscal)
                                             @if($pago->base_imponible > 0)
                                             <tr>
                                                 <td>Base Imponible:</td>
-                                                <td class="text-end">Bs. {{ number_format($pago->base_imponible, 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ money($pago->base_imponible, 2, ',', '.') }}</td>
                                             </tr>
                                             @endif
                                             @if($pago->iva_monto > 0)
                                             <tr>
                                                 <td>IVA (16%):</td>
-                                                <td class="text-end">Bs. {{ number_format($pago->iva_monto, 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ money($pago->iva_monto, 2, ',', '.') }}</td>
                                             </tr>
                                             @endif
                                             @if($pago->iva_monto_reducida > 0)
                                             <tr>
                                                 <td>IVA Reducida (8%):</td>
-                                                <td class="text-end">Bs. {{ number_format($pago->iva_monto_reducida, 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ money($pago->iva_monto_reducida, 2, ',', '.') }}</td>
                                             </tr>
                                             @endif
                                             @if($pago->igtf_monto > 0)
                                             <tr>
                                                 <td>IGTF (3%):</td>
-                                                <td class="text-end">Bs. {{ number_format($pago->igtf_monto, 2, ',', '.') }}</td>
+                                                <td class="text-end">{{ money($pago->igtf_monto, 2, ',', '.') }}</td>
                                             </tr>
                                             @endif
                                         @endif
                                         <tr class="table-success">
                                             <td class="fw-bold fs-6">TOTAL Bs:</td>
-                                            <td class="text-end fw-bold fs-6">Bs. {{ number_format($pago->total_bs, 2, ',', '.') }}</td>
+                                            <td class="text-end fw-bold fs-6">{{ money($pago->total_bs, 2, ',', '.') }}</td>
                                         </tr>
                                         <tr>
                                             <td colspan="2" class="text-end">
-                                                <small class="text-muted">Equiv. USD: {{ format_money($pago->total_usd, 2) }} | Tasa: Bs. {{ number_format($pago->tasa_cambio_usd, 2, ',', '.') }}</small>
+                                                <small class="text-muted">Equiv. USD: {{ format_money($pago->total_usd, 2) }} | Tasa: {{ money($pago->tasa_cambio_usd, 2, ',', '.') }}</small>
                                             </td>
                                         </tr>
                                     </table>

@@ -46,13 +46,6 @@ if (!function_exists('getPermissionSectors')) {
                 'icon' => 'ri-whatsapp-line',
                 'modules' => ['whatsapp', 'whatsapp templates', 'whatsapp messages', 'chat interno']
             ],
-             'medico' => [
-                'name' => '🏥 Médico',
-                'description' => 'Gestión de pacientes, médicos, citas y especialidades',
-                'color' => 'blue',
-                'icon' => 'ri-heart-pulse-line',
-                'modules' => ['tipo-consultas', 'pacientes', 'medicos', 'citas', 'especialidades', 'subespecialidades']
-            ],
             'sistema' => [
                 'name' => '🔧 Sistema',
                 'description' => 'Configuraciones del sistema y API',
@@ -163,7 +156,7 @@ if (!function_exists('getSectorMenuItems')) {
                 'label' => 'Recepción',
                 'icon' => 'ri-service-line',
                 'items' => [
-                    [
+                   /* [
                         'label' => 'Panel Recepción',
                         'icon' => 'ri-dashboard-line',
                         'permission' => 'access recepcion dashboard',
@@ -178,7 +171,7 @@ if (!function_exists('getSectorMenuItems')) {
                         'route' => 'admin.recepcion.control-consultorios',
                         'route_horizontal' => 'admin.recepcion.control-consultorios',
                         'active' => 'admin.recepcion.control-consultorios',
-                    ],
+                    ],*/
                      [
                         'label' => 'Calendario General',
                         'icon' => 'ri-calendar-2-line',
@@ -243,17 +236,19 @@ if (!function_exists('getSectorMenuItems')) {
                         'icon' => 'ri-stethoscope-line',
                         'permission' => 'access consultas',
                         'active' => 'admin.gestion.consultas.*',
-                        'children' => [
-                            ['label' => 'Calendario', 'route' => 'admin.gestion.consultas.index', 'active' => 'admin.gestion.consultas.index', 'permission' => 'access consultas calendario'],
-                            ['label' => 'Sala de Espera', 'route' => 'admin.gestion.consultas.sala-espera', 'active' => 'admin.gestion.consultas.sala-espera', 'permission' => 'access consultas en espera'],
-                            //['label' => 'En Enfermería', 'route' => 'admin.gestion.consultas.en-enfermeria', 'active' => 'admin.gestion.consultas.en-enfermeria', 'permission' => 'access consultas en enfermeria'],
-                            ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio', 'permission' => 'access consultas en consultorio'],
-                            ['label' => 'En Gotas', 'route' => 'admin.gestion.consultas.en-gotas', 'active' => 'admin.gestion.consultas.en-gotas', 'permission' => 'access consultas en gotas'],
-                            ['label' => 'Dilatado', 'route' => 'admin.gestion.consultas.dilatado', 'active' => 'admin.gestion.consultas.dilatado', 'permission' => 'access consultas en gotas'],
-                            ['label' => 'En Óptica', 'route' => 'admin.gestion.consultas.en-optica', 'active' => 'admin.gestion.consultas.en-optica', 'permission' => 'access consultas en optica'],
-                            ['label' => 'En Estudio', 'route' => 'admin.gestion.consultas.en-estudio', 'active' => 'admin.gestion.consultas.en-estudio', 'permission' => 'access consultas en estudio'],
-                            ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas', 'permission' => 'access consultas finalizadas'],
-                        ]
+                        'children' => array_merge(
+                            [
+                                ['label' => 'Sala de Espera',  'route' => 'admin.gestion.consultas.sala-espera',   'active' => 'admin.gestion.consultas.sala-espera'],
+                                ['label' => 'En Enfermería',  'route' => 'admin.gestion.consultas.en-enfermeria',  'active' => 'admin.gestion.consultas.en-enfermeria'],
+                                ['label' => 'En Consultorio', 'route' => 'admin.gestion.consultas.en-consultorio', 'active' => 'admin.gestion.consultas.en-consultorio'],
+                            ],
+                            getEstadosConsultaMenuItems(),
+                            [
+                                ['label' => 'En Estudio',  'route' => 'admin.gestion.consultas.en-estudio',  'active' => 'admin.gestion.consultas.en-estudio'],
+                                ['label' => 'Finalizadas', 'route' => 'admin.gestion.consultas.finalizadas', 'active' => 'admin.gestion.consultas.finalizadas'],
+                                ['label' => 'Pagadas', 'route' => 'admin.gestion.consultas.pagadas', 'active' => 'admin.gestion.consultas.pagadas'],
+                            ]
+                        )
                     ],
                     [
                         'label' => 'Tipos de Atención',
@@ -264,7 +259,7 @@ if (!function_exists('getSectorMenuItems')) {
                     ],
                 ]
             ],
-            /*
+
             'administracion' => [
                 'label' => 'Administración',
                 'icon' => 'ri-money-dollar-circle-line',
@@ -277,13 +272,14 @@ if (!function_exists('getSectorMenuItems')) {
                         'children' => [
                             ['label' => 'Categorías', 'permission' => 'access categorias', 'route' => 'admin.categorias.index', 'active' => 'admin.categorias.*'],
                             ['label' => 'Pagos', 'permission' => 'access pagos', 'route' => 'admin.pagos.index', 'active' => 'admin.pagos.*'],
-                            ['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
-                            ['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
+                            //['label' => 'Notas de Crédito', 'permission' => 'access notas-credito', 'route' => 'admin.notas-credito.index', 'active' => 'admin.notas-credito.*'],
+                            //['label' => 'Notas de Débito', 'permission' => 'access notas-debito', 'route' => 'admin.notas-debito.index', 'active' => 'admin.notas-debito.*'],
                             ['label' => 'Servicios', 'permission' => 'access baremos', 'route' => 'admin.baremos.index', 'active' => 'admin.baremos.*'],
-                            ['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
-                            ['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
+                            //['label' => 'Clientes Fiscales', 'permission' => 'access clientes-fiscales', 'route' => 'admin.clientes-fiscales.index', 'active' => 'admin.clientes-fiscales.*'],
+                            //['label' => 'Conceptos de Pago', 'permission' => 'access conceptos pago', 'route' => 'admin.conceptos-pago.index', 'active' => 'admin.conceptos-pago.*'],
+                            //['label' => 'Punto de Venta', 'permission' => 'access cajas', 'route' => 'admin.pos.index', 'active' => 'admin.pos.*'],
                             ['label' => 'Caja Chica', 'permission' => 'access cajas', 'route' => 'admin.cajas.index', 'active' => 'admin.cajas.*'],
-                            ['label' => 'Anulación Talonarios', 'permission' => 'access series', 'route' => 'admin.anulacion-talonarios.index', 'active' => 'admin.anulacion-talonarios.*'],
+                            //['label' => 'Anulación Talonarios', 'permission' => 'access series', 'route' => 'admin.anulacion-talonarios.index', 'active' => 'admin.anulacion-talonarios.*'],
                         ]
                     ],
                     [
@@ -296,17 +292,17 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'Configuración Impuestos',
                         'icon' => 'ri-percent-line',
-                        'permission' => 'access impuestos',
+                        'permission' => 'view impuestos',
                         'route' => 'admin.impuestos.index',
                         'active' => 'admin.impuestos.*',
                     ],
-                    [
+                    /*[
                         'label' => 'Tasa de cambio',
                         'icon' => 'ri-exchange-dollar-line',
                         'permission' => 'view exchange-rates',
                         'route' => 'admin.exchange-rates',
                         'active' => 'admin.exchange-rates',
-                    ],
+                    ],*/
                     [
                         'label' => 'Contabilidad',
                         'icon' => 'ri-calculator-line',
@@ -321,19 +317,19 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Balance General', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.balance-general', 'active' => 'admin.contabilidad.balance-general'],
                             ['label' => 'Estado de Resultados', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.estado-resultados', 'active' => 'admin.contabilidad.estado-resultados'],
                             ['label' => 'Cierre Contable', 'permission' => 'access contabilidad', 'route' => 'admin.contabilidad.cierre-contable', 'active' => 'admin.contabilidad.cierre-contable'],
-                            ['label' => 'Libro de Ventas', 'permission' => 'access contabilidad', 'route' => 'admin.seniat.libro-ventas', 'active' => 'admin.seniat.libro-ventas'],
+                            //['label' => 'Libro de Ventas', 'permission' => 'access contabilidad', 'route' => 'admin.seniat.libro-ventas', 'active' => 'admin.seniat.libro-ventas'],
                         ]
                     ],
-                    [
+                    /*[
                         'label' => 'Anulación de Talonarios',
                         'icon' => 'ri-file-damage-line',
                         'permission' => 'access anulacion-talonarios',
                         'route' => 'admin.anulacion-talonarios.index',
                         'active' => 'admin.anulacion-talonarios.*',
-                    ],
+                    ],*/
                 ]
             ],
-            */
+
             'configuracion' => [
                 'label' => 'Configuración',
                 'icon' => 'ri-settings-3-line',
@@ -498,5 +494,61 @@ if (!function_exists('isSectorActive')) {
             }
         }
         return false;
+    }
+}
+
+if (!function_exists('getEstadosConsultaMenuItems')) {
+    /**
+     * Devuelve los ítems de menú para los estados del flujo que son exclusivos
+     * de especialidades (no los estados base comunes a todas).
+     * Se basa en los estados_flujo configurados en las plantillas activas.
+     */
+    function getEstadosConsultaMenuItems(): array
+    {
+        // Estados base que ya tienen ruta fija en el menú
+        $estadosBase = ['sala_espera', 'en_enfermeria', 'en_consultorio', 'en_consultorio_optometrista', 'en_estudio', 'finalizada', 'pagada', 'por_llegar', 'borrador'];
+
+        // Rutas fijas existentes para algunos estados especiales
+        $rutasFijas = [
+            'en_gotas'  => 'admin.gestion.consultas.en-gotas',
+            'dilatado'  => 'admin.gestion.consultas.dilatado',
+            'en_optica' => 'admin.gestion.consultas.en-optica',
+        ];
+
+        try {
+            $estadosExtra = \App\Models\EspecialidadPlantilla::where('activo', true)
+                ->pluck('estados_flujo')
+                ->filter()
+                ->flatMap(fn($flujo) => $flujo)
+                ->unique()
+                ->diff($estadosBase)
+                ->values();
+
+            $items = [];
+            foreach ($estadosExtra as $estado) {
+                $label = \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES[$estado]
+                      ?? \App\Models\Consulta::ESTADO_LABELS[$estado]
+                      ?? ucfirst(str_replace('_', ' ', $estado));
+
+                if (isset($rutasFijas[$estado])) {
+                    $items[] = [
+                        'label'  => $label,
+                        'route'  => $rutasFijas[$estado],
+                        'active' => $rutasFijas[$estado],
+                    ];
+                } else {
+                    $items[] = [
+                        'label'  => $label,
+                        'route'  => 'admin.gestion.consultas.por-estado',
+                        'params' => ['estado' => $estado],
+                        'active' => 'admin.gestion.consultas.por-estado',
+                    ];
+                }
+            }
+
+            return $items;
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 }

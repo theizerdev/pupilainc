@@ -19,6 +19,8 @@ class ClienteFiscal extends Model
         'tipo_documento',
         'numero_documento',
         'razon_social',
+        'nombre',
+        'es_cliente_rapido',
         'nombre_comercial',
         'direccion_fiscal',
         'ciudad',
@@ -29,6 +31,10 @@ class ClienteFiscal extends Model
         'paciente_id',
         'empresa_id',
         'sucursal_id'
+    ];
+
+    protected $casts = [
+        'es_cliente_rapido' => 'boolean',
     ];
 
     public function paciente()
@@ -44,6 +50,14 @@ class ClienteFiscal extends Model
     public function getDocumentoCompletoAttribute()
     {
         return $this->tipo_documento . '-' . $this->numero_documento;
+    }
+
+    public function getNombreDisplayAttribute(): string
+    {
+        if ($this->es_cliente_rapido) {
+            return $this->nombre ?? 'Consumidor Final';
+        }
+        return $this->razon_social ?? $this->nombre ?? 'Sin nombre';
     }
 
     public function getActivitylogOptions(): LogOptions

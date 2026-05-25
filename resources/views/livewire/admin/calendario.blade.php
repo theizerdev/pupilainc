@@ -126,6 +126,10 @@
                                 <i class="ri ri-add-line me-1"></i>Nueva Cita
                             </button>
                         </div>
+                         <!-- Botón limpiar filtros -->
+                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2 mb-3" id="btnLimpiarFiltros">
+                            <i class="ri ri-close-line me-1"></i>Limpiar Filtros
+                        </button>
 
                         <!-- Filtro por Médico -->
                         <div class="mb-3">
@@ -166,10 +170,7 @@
                         </div>
 
 
-                        <!-- Botón limpiar filtros -->
-                        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2" id="btnLimpiarFiltros">
-                            <i class="ri ri-close-line me-1"></i>Limpiar Filtros
-                        </button>
+
                     </div>
 
 
@@ -372,11 +373,10 @@
                             <!-- Estado -->
                             <div class="form-floating form-floating-outline mb-5" id="estadoContainer">
                                 <select class="select2 form-select" id="eventEstado" name="eventEstado">
-                                    @foreach($estadoLabels as $value => $label)
-                                        <option value="{{ $value }}" data-color="{{ $estadoColores[$value] }}" {{ $value === 'programada' ? 'selected' : '' }}>
-                                            {{ $label }}
-                                        </option>
-                                    @endforeach
+                                    <option value="programada" data-color="#ffc107" selected>Programada</option>
+                                    <option value="confirmada" data-color="#0d6efd">Confirmada</option>
+                                    <option value="cancelada" data-color="#dc3545">Cancelada</option>
+                                    <option value="no_asistio" data-color="#6c757d">No Asistió</option>
                                 </select>
                                 <label for="eventEstado">Estado</label>
                             </div>
@@ -387,6 +387,13 @@
                             <div class="form-floating form-floating-outline mb-5">
                                 <textarea class="form-control" name="eventNotas" id="eventNotas" rows="3" placeholder="Notas adicionales"></textarea>
                                 <label for="eventNotas">Notas</label>
+                            </div>
+
+                            <!-- Payment Button Container (hidden by default) -->
+                            <div id="paymentButtonContainer" class="mb-4" style="display: none;">
+                                <a id="btnRegistrarPago" href="#" class="btn btn-success w-100" style="display: none;">
+                                    <i class="ri ri-money-dollar-circle-line me-2"></i> 💳 Registrar Pago
+                                </a>
                             </div>
 
                             <!-- Buttons -->
@@ -435,7 +442,7 @@
                                     <div class="col-md-12">
                                         <div class="form-floating form-floating-outline">
                                             <input type="text" class="form-control" id="mpDocumento" placeholder="Documento de identidad" required>
-                                            <label for="mpDocumento">Documento <span class="text-danger">*</span></label>
+                                            <label for="mpDocumento">Documento</label>
                                         </div>
                                     </div>
                                     <div class="col-md-12">

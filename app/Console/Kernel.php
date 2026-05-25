@@ -27,6 +27,7 @@ class Kernel extends ConsoleKernel
         Commands\TestRecordatoriosCitas::class, // Comando de prueba para recordatorios
         Commands\VerificarRecordatoriosCitas::class, // Verificar estado de recordatorios
         Commands\ProcessConfirmationsCommand::class, // Procesar confirmaciones de citas
+        Commands\ProcessDilatacionConsultas::class,
     ];
 
     /**
@@ -96,6 +97,11 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('citas:update-estados')
                  ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->onOneServer();
+
+        $schedule->command('consultas:procesar-dilataciones')
+                 ->everyMinute()
                  ->withoutOverlapping()
                  ->onOneServer();
     }

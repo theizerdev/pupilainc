@@ -228,6 +228,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(Teacher::class);
     }
 
+    /**
+     * Get the accounting entries created by the user.
+     */
+    public function asientosContables()
+    {
+        return $this->hasMany(AsientoContable::class, 'user_id');
+    }
+
     public function scopeForUser($query)
     {
         if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {

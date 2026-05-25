@@ -13,6 +13,7 @@ class Create extends Component
     use HasDynamicLayout;
 
     public $producto_id = '';
+    public $producto_search = ''; // Búsqueda de productos
     public $almacen_id = '';
     public $tipo = 'ajuste_positivo';
     public $cantidad = 1;
@@ -65,6 +66,48 @@ class Create extends Component
         return redirect()->route('admin.inventario.movimientos.index');
     }
 
+    // Productos filtrados por búsqueda
+    public function getProductosFiltradosProperty()
+    {
+        $productos = $this->productos;
+
+        if (strlen($this->producto_search) > 0) {
+            $search = strtolower($this->producto_search);
+            $productos = $productos->filter(function ($prod) use ($search) {
+                return
+                    stripos(strtolower($prod->nombre), $search) !== false ||
+                    ($prod->codigo && stripos(strtolower($prod->codigo), $search) !== false) ||
+                    ($prod->sku && stripos(strtolower($prod->sku), $search) !== false);
+            });
+        }
+
+        return $productos->take(10); // Limitar a 10 resultados
+    }
+
+    // Producto seleccionado (modelo completo)
+    public function getProductoSeleccionadoProperty()
+    {
+        if ($this->producto_id) {
+            return Producto::find($this->producto_id);
+        }
+        return null;
+    }
+
+    // Seleccionar producto
+    public function seleccionarProducto($productoId)
+    {
+        $this->producto_id = $productoId;
+
+        if ($productoId) {
+            $producto = Producto::find($productoId);
+            $this->producto_search = $producto ? "{$producto->nombre} ({$producto->codigo})" : '';
+        } else {
+            $this->producto_search = '';
+        }
+
+        $this->actualizarStock();
+    }
+
     public function getProductosProperty()
     {
         return Producto::forUser()->activos()->orderBy('nombre')->get();
@@ -78,9 +121,11 @@ class Create extends Component
     public function render()
     {
         return view('livewire.admin.inventario.movimientos.create', [
-            'productos'      => $this->productos,
-            'almacenes'      => $this->almacenes,
-            'tiposMovimiento'=> InventarioMovimiento::TIPOS,
+            'productos'            => $this->productos,
+            'productos_filtrados'  => $this->productos_filtrados,
+            'producto_seleccionado'=> $this->producto_seleccionado,
+            'almacenes'            => $this->almacenes,
+            'tiposMovimiento'      => InventarioMovimiento::TIPOS,
         ])->layout($this->getLayout());
     }
 }

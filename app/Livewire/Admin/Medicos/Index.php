@@ -162,11 +162,16 @@ class Index extends Component
     {
         $query = Medico::forUser();
         
+        // Calcular promedio de experiencia solo para médicos con años > 0
+        $promedioExperiencia = $query->clone()
+            ->where('anios_experiencia', '>', 0)
+            ->avg('anios_experiencia');
+        
         return [
             'total' => $query->count(),
             'activos' => $query->where('status', true)->count(),
             'inactivos' => $query->where('status', false)->count(),
-            'promedio_experiencia' => round($query->avg('anios_experiencia') ?? 0, 1),
+            'promedio_experiencia' => $promedioExperiencia ? round($promedioExperiencia, 1) : 0,
         ];
     }
 

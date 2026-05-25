@@ -5,7 +5,7 @@
     <div class="navbar-brand app-brand demo d-none d-xl-flex py-0 me-6">
       <a href="{{ route('admin.dashboard') }}" class="app-brand-link gap-2">
         <span class="app-brand-logo demo">
-         <img src="/logo/auth.png" height="40px">
+         <img src="/logo/logo.png" height="80px">
         </span>
       </a>
 
@@ -32,24 +32,7 @@
     <!-- /Search -->
 
     <ul class="navbar-nav flex-row align-items-center ms-md-auto">
-      <li class="nav-item dropdown-language dropdown me-2 me-xl-0">
-        <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-          <i class="icon-base ri ri-translate-2 icon-md"></i>
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li>
-            <a class="dropdown-item {{ app()->getLocale() === 'es' ? 'active' : '' }}" href="{{ route('lang.switch', 'es') }}">
-              <span>🇪🇸 Español</span>
-            </a>
-          </li>
-          <li>
-            <a class="dropdown-item {{ app()->getLocale() === 'en' ? 'active' : '' }}" href="{{ route('lang.switch', 'en') }}">
-              <span>🇺🇸 English</span>
-            </a>
-          </li>
-        </ul>
-      </li>
-      <!--/ Language -->
+            <!--/ Language -->
 
       <!-- Style Switcher -->
       <li class="nav-item dropdown me-sm-2 me-xl-0">
@@ -98,120 +81,71 @@
         </ul>
       </li>
       <!-- / Style Switcher-->
+    <!-- Notification -->
+     <!-- Chat Internal Indicator -->
+      <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
+        @livewire('chat-notifications')
+      </li>
+      <!-- / Chat Internal Indicator -->
 
-      <!-- Quick links -->
-      <li class="nav-item dropdown-shortcuts navbar-dropdown dropdown me-sm-2 me-xl-0">
-        <a
-          class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
-          href="javascript:void(0);"
-          data-bs-toggle="dropdown"
-          data-bs-auto-close="outside"
-          aria-expanded="false">
-          <i class="icon-base ri ri-star-smile-line icon-22px"></i>
-        </a>
-        <div class="dropdown-menu dropdown-menu-end p-0">
-          <div class="dropdown-menu-header border-bottom">
-            <div class="dropdown-header d-flex align-items-center py-3">
-              <h6 class="mb-0 me-auto">Accesos rápidos</h6>
-              <a
-                href="javascript:void(0)"
-                class="btn btn-text-secondary rounded-pill btn-icon dropdown-shortcuts-add text-heading"
-                data-bs-toggle="tooltip"
-                data-bs-placement="top"
-                title="Add shortcuts">
-                <i class="icon-base ri ri-add-line text-heading"></i>
-              </a>
+      <!-- Notification -->
+      <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
+        @livewire('notification-bell')
+      </li>
+      <!--/ Notification -->
+
+      <!-- Regional Configuration Indicator -->
+      <li class="nav-item me-4 me-xl-1">
+          @livewire('regional-configuration-indicator')
+      </li>
+      <!--/ Regional Configuration Indicator -->
+    <!--/ Notification -->
+
+    <!-- User -->
+    <li class="nav-item navbar-dropdown dropdown-user dropdown">
+      <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+        <div class="avatar avatar-online">
+          @if(Auth::check() && Auth::user()->initials)
+            <span class="avatar-initials bg-primary text-white">{{ Auth::user()->initials }}</span>
+          @else
+            <img src="{{ asset('materialize/assets/img/avatars/1.png') }}" alt="avatar" class="rounded-circle" />
+          @endif
+        </div>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end mt-3 py-2">
+        <li>
+          <a class="dropdown-item" href="{{ route('admin.users.profile') }}">
+            <div class="d-flex align-items-center">
+              <div class="flex-shrink-0 me-2">
+                <div class="avatar avatar-online">
+                  @if(Auth::check() && Auth::user()->initials)
+                    <span class="avatar-initials bg-primary text-white">{{ Auth::user()->initials }}</span>
+                  @else
+                    <img src="{{ asset('materialize/assets/img/avatars/1.png') }}" alt="avatar" class="w-px-40 h-auto rounded-circle" />
+                  @endif
+                </div>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="mb-0 small">{{ Auth::check() && Auth::user() ? Auth::user()->name : 'Usuario' }}</h6>
+                <small class="text-body-secondary">{{ Auth::check() && Auth::user() ? Auth::user()->email : '' }}</small>
+              </div>
             </div>
-          </div>
-          <div class="dropdown-shortcuts-list scrollable-container">
-            <div class="row row-bordered overflow-visible g-0">
-              <div class="dropdown-shortcuts-item col">
-                <span class="dropdown-shortcuts-icon rounded-circle mb-3">
-                  <i class="icon-base ri ri-calendar-line icon-26px text-heading"></i>
-                </span>
-                <a href="{{ route('admin.dashboard') }}" class="stretched-link">Dashboard</a>
-                <small>Inicio</small>
-              </div>
-              <div class="dropdown-shortcuts-item col">
-                <span class="dropdown-shortcuts-icon rounded-circle mb-3">
-                  <i class="icon-base ri ri-user-line icon-26px text-heading"></i>
-                </span>
-                <a href="{{ route('admin.users.profile') }}" class="stretched-link">Perfil</a>
-                <small>Mi cuenta</small>
-              </div>
-            </div>
-            <div class="row row-bordered overflow-visible g-0">
-              <div class="dropdown-shortcuts-item col">
-                <span class="dropdown-shortcuts-icon rounded-circle mb-3">
-                  <i class="icon-base ri ri-settings-4-line icon-26px text-heading"></i>
-                </span>
-                <a href="{{ route('admin.users.profile') }}" class="stretched-link">Configuración</a>
-                <small>Preferencias</small>
-              </div>
-              <div class="dropdown-shortcuts-item col">
-                <span class="dropdown-shortcuts-icon rounded-circle mb-3">
-                  <i class="icon-base ri ri-question-line icon-26px text-heading"></i>
-                </span>
-                          <a href="javascript:void(0);" class="stretched-link">Ayuda</a>
-                          <small>Soporte</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-                <!--/ Quick links -->
+          </a>
+        </li>
+        <li>
+          <div class="dropdown-divider"></div>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{{ route('admin.users.profile') }}">
+            <i class="icon-base ri ri-user-3-line icon-22px me-3"></i
+            ><span class="align-middle">Mi perfil</span>
+          </a>
+        </li>
+        <li>
+          <div class="dropdown-divider"></div>
+        </li>
 
-                <!-- Notification -->
-                <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-4 me-xl-1">
-                  @livewire('notification-bell')
-                </li>
-                <!--/ Notification -->
-
-                <!-- User -->
-                <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                  <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
-                    <div class="avatar avatar-online">
-                      @if(Auth::check() && Auth::user()->initials)
-                        <span class="avatar-initials bg-primary text-white">{{ Auth::user()->initials }}</span>
-                      @else
-                        <img src="{{ asset('materialize/assets/img/avatars/1.png') }}" alt="avatar" class="rounded-circle" />
-                      @endif
-                    </div>
-                  </a>
-                  <ul class="dropdown-menu dropdown-menu-end mt-3 py-2">
-                    <li>
-                      <a class="dropdown-item" href="{{ route('admin.users.profile') }}">
-                        <div class="d-flex align-items-center">
-                          <div class="flex-shrink-0 me-2">
-                            <div class="avatar avatar-online">
-                              @if(Auth::check() && Auth::user()->initials)
-                                <span class="avatar-initials bg-primary text-white">{{ Auth::user()->initials }}</span>
-                              @else
-                                <img src="{{ asset('materialize/assets/img/avatars/1.png') }}" alt="avatar" class="w-px-40 h-auto rounded-circle" />
-                              @endif
-                            </div>
-                          </div>
-                          <div class="flex-grow-1">
-                            <h6 class="mb-0 small">{{ Auth::check() && Auth::user() ? Auth::user()->name : 'Usuario' }}</h6>
-                            <small class="text-body-secondary">{{ Auth::check() && Auth::user() ? Auth::user()->email : '' }}</small>
-                          </div>
-                        </div>
-                      </a>
-                    </li>
-                    <li>
-                      <div class="dropdown-divider"></div>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="{{ route('admin.users.profile') }}">
-                        <i class="icon-base ri ri-user-3-line icon-22px me-3"></i
-                        ><span class="align-middle">Mi perfil</span>
-                      </a>
-                    </li>
-                    <li>
-                      <div class="dropdown-divider"></div>
-                    </li>
-
-                    <li>
+          <li>
                         <div class="d-grid px-4 pt-2 pb-1">
                       <a class="btn btn-sm btn-danger d-flex" href="{{ route('logout') }}"
                         onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
@@ -223,13 +157,13 @@
                       </form>
                      </div>
                     </li>
-                  </ul>
-                </li>
-                <!--/ User -->
-              </ul>
-            </div>
-          </div>
-        </nav>
+      </ul>
+    </li>
+    <!--/ User -->
+  </ul>
+</div>
+</div>
+</nav>
  <style>
         /* Estilos para avatar con iniciales */
     .avatar-initials {
@@ -262,3 +196,35 @@
         vertical-align: middle;
     }
 </style>
+
+<script>
+// Manejador de logout robusto que maneja errores CSRF
+function handleLogout(event) {
+    event.preventDefault();
+
+    const form = document.getElementById('logout-form');
+
+    // Mostrar confirmación
+    if (!confirm('¿Estás seguro de que deseas salir del sistema?')) {
+        return;
+    }
+
+    // Intentar enviar el formulario
+    try {
+        form.submit();
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        // Si hay error, redirigir manualmente al login
+        window.location.href = '/';
+    }
+}
+
+// Evitar que Livewire muestre el modal de CSRF expirado
+// Auto-refresh cuando el token CSRF expira
+if (typeof window.Livewire !== 'undefined') {
+    window.Livewire.on('csrf-token-mismatch', () => {
+        // Simplemente recargar la página silenciosamente
+        window.location.reload();
+    });
+}
+</script>

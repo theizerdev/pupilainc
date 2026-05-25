@@ -25,8 +25,9 @@ class SucursalSeeder extends Seeder
             // Crear Super Administrador
             $superAdmin = User::create([
                 'name' => 'Super Admin ' . $empresa->razon_social,
-                'email' => 'superadmin@devtechvnzla.com',
+                'email' => 'admin@pupilainc.com',
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
                 'empresa_id' => $empresa->id,
                 'sucursal_id' => 1,
                 'status' => true,
@@ -37,8 +38,9 @@ class SucursalSeeder extends Seeder
             // Crear Administrador
             $admin = User::create([
                 'name' => 'Admin ' . $empresa->razon_social,
-                'email' => 'admin@devtechvnzla.com',
+                'email' => 'staff@pupilainc.com',
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
                 'empresa_id' => $empresa->id,
                 'sucursal_id' => 1,
                 'status' => true,

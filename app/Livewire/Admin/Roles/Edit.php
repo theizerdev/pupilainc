@@ -259,7 +259,7 @@ class Edit extends Component
                 'message' => "Rol '{$this->role->name}' actualizado exitosamente.",
                 'duration' => 4000
             ]);
-            return redirect()->route('admin.roles.index');
+            return redirect()->to('admin/roles');
         } catch (\Exception $e) {
             $this->dispatch('notify', [
                 'type' => 'error',

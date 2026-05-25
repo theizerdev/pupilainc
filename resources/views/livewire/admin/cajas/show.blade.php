@@ -1,4 +1,27 @@
 <div>
+    @section('title', 'Detalle de Caja')
+
+    @push('styles')
+    <style>
+        .caja-detail-hero { background: linear-gradient(135deg, #10B981 0%, #059669 100%); color:#fff; border-radius:.75rem; padding:1.4rem 1.6rem; }
+        .caja-detail-hero h2 { color:#fff; margin:0; }
+        .caja-detail-hero p { opacity:.9; margin:0; }
+
+        .stat-card { border:1px solid rgba(0,0,0,.06); border-radius:.65rem; padding:.9rem 1rem;
+                     transition:all .2s; display:flex; align-items:center; gap:.85rem; height:100%; background:#fff; }
+        .stat-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.07); transform:translateY(-1px); }
+        .stat-card .stat-icon { width:44px; height:44px; border-radius:11px; flex:0 0 44px;
+                                display:flex; align-items:center; justify-content:center; font-size:1.15rem; }
+        .stat-card .stat-value { font-size:1.35rem; font-weight:600; line-height:1; }
+        .stat-card .stat-label { font-size:.72rem; color:#6b7280; margin-top:.2rem; }
+
+        .filter-card { border:1px solid rgba(0,0,0,.06); border-radius:.65rem; padding:1rem; background:#fff; }
+
+        .table thead th { font-size:.75rem; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; font-weight:600; border-bottom-width:1px; }
+        .table tbody td { vertical-align:middle; }
+    </style>
+    @endpush
+
     @if (session()->has('message'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('message') }}
@@ -13,300 +36,296 @@
         </div>
     @endif
 
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header border-bottom">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-1">Detalle de Caja - {{ format_date($caja->fecha) }}</h5>
-                            <p class="mb-0">
-                                Estado:
-                                @if($caja->estado === 'abierta')
-                                    <span class="badge bg-success">Abierta</span>
-                                @else
-                                    <span class="badge bg-secondary">Cerrada</span>
-                                @endif
-                            </p>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-success" wire:click="exportarExcel">
-                                <i class="ri ri-file-excel-2-line"></i> Exportar Excel
-                            </button>
-                            @if($caja->estado === 'abierta')
-                                @can('edit cajas')
-                                <button type="button" class="btn btn-warning" wire:click="abrirModalCerrar">
-                                    <i class="ri ri-lock-line"></i> Cerrar Caja
-                                </button>
-                                @endcan
-                            @else
-                                @can('edit cajas')
-                                <button type="button" class="btn btn-info" wire:click="recalcularMontos">
-                                    <i class="ri ri-calculator-line"></i> Recalcular Montos
-                                </button>
-                                @endcan
-                            @endif
-                            <a href="{{ route('admin.cajas.index') }}" class="btn btn-secondary">
-                                <i class="ri ri-arrow-left-line"></i> Volver
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    {{-- Hero Section --}}
+    <div class="caja-detail-hero mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h2 class="fw-semibold"><i class="ri ri-safe-line me-2"></i>Detalle de Caja - {{ format_date($caja->fecha) }}</h2>
+            <p class="mt-1">
+                Estado:
+                @if($caja->estado === 'abierta')
+                    <span class="badge bg-light text-success"><i class="ri ri-checkbox-circle-line me-1"></i>Abierta</span>
+                @else
+                    <span class="badge bg-light text-secondary"><i class="ri ri-lock-line me-1"></i>Cerrada</span>
+                @endif
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light btn-sm" wire:click="exportarExcel">
+                <i class="ri ri-file-excel-2-line me-1"></i> Reporte Conglomerado
+            </button>
+            @if($caja->estado === 'abierta')
+                @can('edit cajas')
+                <button type="button" class="btn btn-warning btn-sm" wire:click="abrirModalCerrar">
+                    <i class="ri ri-lock-line me-1"></i> Cerrar Caja
+                </button>
+                @endcan
+            @else
+                @can('edit cajas')
+                <button type="button" class="btn btn-info btn-sm" wire:click="recalcularMontos">
+                    <i class="ri ri-calculator-line me-1"></i> Recalcular Montos
+                </button>
+                @endcan
+            @endif
+            <a href="{{ route('admin.cajas.index') }}" class="btn btn-light btn-sm">
+                <i class="ri ri-arrow-left-line me-1"></i> Volver
+            </a>
         </div>
     </div>
 
-    <!-- Resumen General -->
+    {{-- KPI Cards --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card border-start border-primary border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Monto Inicial</h6>
-                            <h3 class="mb-0">
-                                <x-dual-currency :amount="$caja->monto_inicial" />
-                            </h3>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-money-dollar-circle-line text-primary" style="font-size: 1.5rem;"></i>
-                        </div>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="ri ri-money-dollar-circle-line"></i></div>
+                <div>
+                    <div class="stat-label">Monto Inicial</div>
+                    @php
+                        $esVenezuela = auth()->user()->empresa->pais->nombre == 'Venezuela';
+                        $montoInicial = $esVenezuela ? $caja->monto_inicial_bs : $caja->monto_inicial;
+                        $simboloInicial = $esVenezuela ? 'Bs' : '$';
+                    @endphp
+                    <div class="stat-value">{{ money($montoInicial, 2) }}</div>
+                    @if($esVenezuela)
+                    <small class="text-muted">{{ money($caja->monto_inicial, 2) }}</small>
+                    @endif
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-start border-success border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Total Ingresos</h6>
-                            <h3 class="mb-0">
-                                <x-dual-currency :amount="$caja->total_ingresos" />
-                            </h3>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-arrow-up-circle-line text-success" style="font-size: 1.5rem;"></i>
-                        </div>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="ri ri-arrow-up-circle-line"></i></div>
+                <div>
+                    <div class="stat-label">Total Ingresos</div>
+                    @php
+                        $totalIngresos = $esVenezuela ? $caja->total_ingresos_bs : $caja->total_ingresos;
+                        $simboloIngresos = $esVenezuela ? 'Bs' : '$';
+                    @endphp
+                    <div class="stat-value">{{ money($totalIngresos, 2) }}</div>
+                    @if($esVenezuela)
+                    <small class="text-muted">{{ money($caja->total_ingresos, 2) }}</small>
+                    @endif
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-start border-info border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Monto Final</h6>
-                            <h3 class="mb-0">
-                                <x-dual-currency :amount="$caja->monto_final" />
-                            </h3>
-                        </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-safe-line text-info" style="font-size: 1.5rem;"></i>
-                        </div>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#cffafe;color:#0891b2;"><i class="ri ri-safe-line"></i></div>
+                <div>
+                    <div class="stat-label">Monto Final</div>
+                    @php
+                        $montoFinal = $esVenezuela ? $caja->monto_final_ajustado_bs : $caja->monto_final_ajustado;
+                        $simboloFinal = $esVenezuela ? 'Bs' : '$';
+                    @endphp
+                    <div class="stat-value">{{ money($montoFinal, 2) }}</div>
+                    @if($esVenezuela)
+                    <small class="text-muted">{{ money($caja->monto_final_ajustado, 2) }}</small>
+                    @endif
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-start border-warning border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Total Pagos</h6>
-                            <h3 class="mb-0">{{ $caja->pagos->where('estado', 'aprobado')->filter(fn($p) => !$p->notasCredito()->where('estado', 'aprobado')->exists())->count() }}</h3>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-file-list-3-line text-warning" style="font-size: 1.5rem;"></i>
-                        </div>
-                    </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fef3c7;color:#d97706;"><i class="ri ri-file-list-3-line"></i></div>
+                <div>
+                    <div class="stat-label">Total Pagos</div>
+                    <div class="stat-value">{{ $caja->pagos->where('estado', 'aprobado')->filter(fn($p) => !$p->notasCredito()->where('estado', 'aprobado')->exists())->count() }}</div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row">
-        <!-- Resumen por Método de Pago -->
+        {{-- Resumen por Método de Pago --}}
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Resumen por Método de Pago</h6>
+            <div class="filter-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-semibold mb-0"><i class="ri ri-bank-card-line me-2"></i>Resumen por Método de Pago</h6>
+                    <button type="button" class="btn btn-sm btn-success" wire:click="exportarResumenPorMetodoExcel">
+                        <i class="ri ri-file-excel-2-line me-1"></i> Exportar Excel
+                    </button>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Método</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($this->resumenPorMetodo as $metodo)
                                 <tr>
-                                    <th>Método</th>
-                                    <th class="text-end">Cantidad</th>
-                                    <th class="text-end">Total</th>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @php
+                                                $iconClass = \App\Helpers\MetodoPagoHelper::getIcono($metodo->metodo_pago);
+                                                $nombreMostrar = \App\Helpers\MetodoPagoHelper::getNombreAmigable($metodo->metodo_pago);
+                                            @endphp
+                                            <i class="{{ $iconClass }} me-2"></i>
+                                            {{ $nombreMostrar }}
+                                        </div>
+                                    </td>
+                                    <td class="text-end">{{ $metodo->cantidad }}</td>
+                                    <td class="text-end fw-semibold">
+                                        @php
+                                            $totalMetodo = $esVenezuela ? ($metodo->total_bs ?? 0) : $metodo->total_usd;
+                                        @endphp
+                                        {{ money($totalMetodo, 2) }}
+                                        @if($esVenezuela && isset($metodo->total_usd))
+                                        <br><small class="text-muted">{{ money($metodo->total_usd, 2) }}</small>
+                                        @endif
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($this->resumenPorMetodo as $metodo)
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                @php
-                                                    $iconClass = match($metodo->metodo_pago) {
-                                                        'efectivo' => 'ri ri-money-dollar-circle-line text-success',
-                                                        'transferencia' => 'ri ri-bank-line text-info',
-                                                        'tarjeta' => 'ri ri-bank-card-line text-primary',
-                                                        default => 'ri ri-question-line text-muted'
-                                                    };
-                                                @endphp
-                                                <i class="{{ $iconClass }} me-2"></i>
-                                                {{ ucfirst($metodo->metodo_pago) }}
-                                            </div>
-                                        </td>
-                                        <td class="text-end">{{ $metodo->cantidad }}</td>
-                                        <td class="text-end fw-semibold">
-                                            <x-dual-currency :amount="$metodo->total" class="fw-semibold" />
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted">No hay pagos registrados</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No hay pagos registrados</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Resumen por Concepto -->
+        {{-- Resumen por Concepto --}}
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Resumen por Concepto</h6>
+            <div class="filter-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-semibold mb-0"><i class="ri ri-file-text-line me-2"></i>Resumen por Concepto</h6>
+                    <button type="button" class="btn btn-sm btn-success" wire:click="exportarResumenConceptosExcel">
+                        <i class="ri ri-file-excel-2-line me-1"></i> Exportar
+                    </button>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th class="text-end">Cantidad</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($this->resumenPorConcepto as $concepto)
                                 <tr>
-                                    <th>Concepto</th>
-                                    <th class="text-end">Cantidad</th>
-                                    <th class="text-end">Total</th>
+                                    <td>{{ $concepto['concepto'] }}</td>
+                                    <td class="text-end">{{ $concepto['cantidad'] }}</td>
+                                    <td class="text-end fw-semibold">
+                                        @php
+                                            $totalConcepto = $esVenezuela ? ($concepto['total_bs'] ?? 0) : $concepto['total'];
+                                        @endphp
+                                        {{ money($totalConcepto, 2) }}
+                                        @if($esVenezuela && isset($concepto['total']))
+                                        <br><small class="text-muted">{{ money($concepto['total'], 2) }}</small>
+                                        @endif
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($this->resumenPorConcepto as $concepto)
-                                    <tr>
-                                        <td>{{ $concepto['concepto'] }}</td>
-                                        <td class="text-end">{{ $concepto['cantidad'] }}</td>
-                                        <td class="text-end fw-semibold"><x-dual-currency :amount="$concepto['total']" /></td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="text-center text-muted">No hay conceptos registrados</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No hay conceptos registrados</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Detalle de Pagos -->
+    {{-- Detalle de Pagos --}}
     <div class="row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="card-title mb-0">Detalle de Pagos</h6>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>N° Factura</th>
-                                    <th>Control Fiscal</th>
-                                    <th>Paciente</th>
-                                    <th>Método</th>
-                                    <th class="text-end">Total</th>
-                                    <th>Hora</th>
-                                    <th>Estado</th>
+            <div class="filter-card">
+                <h6 class="fw-semibold mb-3"><i class="ri ri-file-list-3-line me-2"></i>Detalle de Pagos</h6>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>N° Factura</th>
+                                <th>Control Fiscal</th>
+                                <th>Paciente</th>
+                                <th>Método</th>
+                                <th class="text-end">Total ({{ auth()->user()->empresa->pais->moneda_principal ?? 'USD' }})</th>
+                                <th>Hora</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($caja->pagos as $pago)
+                                @php
+                                    $tieneNotaCredito = $pago->notasCredito()->where('estado', 'aprobado')->exists();
+                                    $esVzla = auth()->user()->empresa->pais->nombre == 'Venezuela';
+                                    $totalPrincipal = $esVzla ? $pago->total_bs : $pago->total_usd;
+                                    $totalSecundario = $esVzla ? $pago->total_usd : $pago->total_bs;
+                                    $simboloPrincipal = $esVzla ? 'Bs' : '$';
+                                    $simboloSecundario = $esVzla ? '$' : 'Bs';
+                                @endphp
+                                <tr class="{{ $tieneNotaCredito ? 'text-danger' : '' }}">
+                                    <td>
+                                        <div class="fw-medium {{ $tieneNotaCredito ? 'text-danger' : 'text-primary' }}">
+                                            {{ $pago->numero_completo }}
+                                            @if($tieneNotaCredito)
+                                                <span class="badge bg-danger ms-1">ANULADA</span>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if($pago->numero_control_fiscal)
+                                            <span class="badge bg-info">{{ $pago->numero_control_fiscal }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($pago->consulta && $pago->consulta->paciente)
+                                            <div>{{ $pago->consulta->paciente->nombre_completo }}</div>
+                                            <small class="text-muted">{{ $pago->consulta->paciente->documento_identidad }}</small>
+                                        @elseif($pago->clienteFiscal)
+                                            <div>{{ $pago->clienteFiscal->razon_social }}</div>
+                                            <small class="text-muted">{{ $pago->clienteFiscal->documento_completo }}</small>
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @php
+                                            $iconClass = \App\Helpers\MetodoPagoHelper::getIcono($pago->metodo_pago);
+                                            $nombreMetodo = \App\Helpers\MetodoPagoHelper::getNombreAmigable($pago->metodo_pago);
+                                        @endphp
+                                        <i class="{{ $iconClass }} me-1"></i>
+                                        {{ $nombreMetodo }}
+                                    </td>
+                                    <td class="text-end fw-semibold">
+                                        @if($tieneNotaCredito)
+                                            <del>{{ money($totalPrincipal, 2) }}</del>
+                                        @else
+                                            {{ money($totalPrincipal, 2) }}
+                                        @endif
+                                        @if($esVzla && $totalSecundario > 0)
+                                        <br><small class="text-muted">{{ money($totalSecundario, 2) }}</small>
+                                        @endif
+                                    </td>
+                                    <td>{{ $pago->created_at->format('H:i') }}</td>
+                                    <td>
+                                        @if($tieneNotaCredito)
+                                            <span class="badge bg-danger">Anulada</span>
+                                        @elseif($pago->estado === 'aprobado')
+                                            <span class="badge bg-success">Aprobado</span>
+                                        @elseif($pago->estado === 'pendiente')
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        @else
+                                            <span class="badge bg-danger">Cancelado</span>
+                                        @endif
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($caja->pagos as $pago)
-                                    @php
-                                        $tieneNotaCredito = $pago->notasCredito()->where('estado', 'aprobado')->exists();
-                                    @endphp
-                                    <tr class="{{ $tieneNotaCredito ? 'text-danger' : '' }}">
-                                        <td>
-                                            <div class="fw-medium {{ $tieneNotaCredito ? 'text-danger' : 'text-primary' }}">
-                                                {{ $pago->numero_completo }}
-                                                @if($tieneNotaCredito)
-                                                    <span class="badge bg-danger ms-1">ANULADA</span>
-                                                @endif
-                                            </div>
-                                        </td>
-                                        <td>
-                                            @if($pago->numero_control_fiscal)
-                                                <span class="badge bg-info">{{ $pago->numero_control_fiscal }}</span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($pago->consulta && $pago->consulta->paciente)
-                                                <div>{{ $pago->consulta->paciente->nombre_completo }}</div>
-                                                <small class="text-muted">{{ $pago->consulta->paciente->documento_identidad }}</small>
-                                            @elseif($pago->clienteFiscal)
-                                                <div>{{ $pago->clienteFiscal->razon_social }}</div>
-                                                <small class="text-muted">{{ $pago->clienteFiscal->documento_completo }}</small>
-                                            @else
-                                                <span class="text-muted">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @php
-                                                $iconClass = match($pago->metodo_pago) {
-                                                    'efectivo' => 'ri ri-money-dollar-circle-line text-success',
-                                                    'transferencia' => 'ri ri-bank-line text-info',
-                                                    'tarjeta' => 'ri ri-bank-card-line text-primary',
-                                                    default => 'ri ri-question-line text-muted'
-                                                };
-                                            @endphp
-                                            <i class="{{ $iconClass }} me-1"></i>
-                                            {{ ucfirst($pago->metodo_pago) }}
-                                        </td>
-                                        <td class="text-end fw-semibold">
-                                            @if($tieneNotaCredito)
-                                                <del><x-dual-currency :amount="$pago->total" /></del>
-                                            @else
-                                                <x-dual-currency :amount="$pago->total" />
-                                            @endif
-                                        </td>
-                                        <td>{{ $pago->created_at->format('H:i') }}</td>
-                                        <td>
-                                            @if($tieneNotaCredito)
-                                                <span class="badge bg-danger">Anulada</span>
-                                            @elseif($pago->estado === 'aprobado')
-                                                <span class="badge bg-success">Aprobado</span>
-                                            @elseif($pago->estado === 'pendiente')
-                                                <span class="badge bg-warning">Pendiente</span>
-                                            @else
-                                                <span class="badge bg-danger">Cancelado</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted">No hay pagos registrados en esta caja</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No hay pagos registrados en esta caja</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -332,11 +351,23 @@
                         <div class="row mb-3">
                             <div class="col-6">
                                 <label class="form-label">Monto Final Calculado:</label>
-                                <div class="fw-bold text-success"><x-dual-currency :amount="$caja->monto_final" /></div>
+                                @php
+                                    $montoFinalCierre = $esVenezuela ? $caja->monto_final_ajustado_bs : $caja->monto_final_ajustado;
+                                @endphp
+                                <div class="fw-bold text-success">{{ money($montoFinalCierre, 2) }}</div>
+                                @if($esVenezuela)
+                                <small class="text-muted">{{ money($caja->monto_final_ajustado, 2) }}</small>
+                                @endif
                             </div>
                             <div class="col-6">
                                 <label class="form-label">Total Ingresos:</label>
-                                <div class="fw-bold text-primary"><x-dual-currency :amount="$caja->total_ingresos" /></div>
+                                @php
+                                    $totalIngresosCierre = $esVenezuela ? $caja->total_ingresos_bs : $caja->total_ingresos;
+                                @endphp
+                                <div class="fw-bold text-primary">{{ money($totalIngresosCierre, 2) }}</div>
+                                @if($esVenezuela)
+                                <small class="text-muted">{{ money($caja->total_ingresos, 2) }}</small>
+                                @endif
                             </div>
                         </div>
 
@@ -379,11 +410,23 @@
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label">Monto Actual:</label>
-                            <div class="fw-bold">$ {{ format_money($caja->monto_final, 2, '.', ',') }}</div>
+                            @php
+                                $montoActualRecalc = $esVenezuela ? $caja->monto_final_ajustado_bs : $caja->monto_final_ajustado;
+                            @endphp
+                            <div class="fw-bold">{{ money($montoActualRecalc, 2) }}</div>
+                            @if($esVenezuela)
+                            <small class="text-muted">{{ money($caja->monto_final_ajustado, 2) }}</small>
+                            @endif
                         </div>
                         <div class="col-6">
                             <label class="form-label">Total Ingresos:</label>
-                            <div class="fw-bold">$ {{ format_money($caja->total_ingresos, 2, '.', ',') }}</div>
+                            @php
+                                $totalIngresosRecalc = $esVenezuela ? $caja->total_ingresos_bs : $caja->total_ingresos;
+                            @endphp
+                            <div class="fw-bold">{{ money($totalIngresosRecalc, 2) }}</div>
+                            @if($esVenezuela)
+                            <small class="text-muted">{{ money($caja->total_ingresos, 2) }}</small>
+                            @endif
                         </div>
                     </div>
                 </div>

@@ -26,6 +26,7 @@ use App\Livewire\Dashboard;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Admin\ExchangeRates;
 use App\Livewire\Admin\ExchangeRateConfig\Index as ExchangeRateConfigIndex;
+use App\Livewire\Admin\POS\PuntoDeVenta;
 
 // Recepción
 Route::prefix('recepcion')->name('recepcion.')->group(function () {
@@ -40,6 +41,7 @@ Route::prefix('consulta')->name('consulta.')->group(function () {
     Route::get('/{id}/informe', [\App\Http\Controllers\Admin\InformeMedicoController::class, 'generar'])->name('informe')->middleware('checkAdminPermission:access consultas');
     Route::get('/{id}/justificativo', [\App\Http\Controllers\Admin\JustificativoController::class, 'generar'])->name('justificativo')->middleware('checkAdminPermission:access consultas');
     Route::get('/{id}/reposo', [\App\Http\Controllers\Admin\ReposoController::class, 'generar'])->name('reposo')->middleware('checkAdminPermission:access consultas');
+    Route::get('/{id}/constancia', [\App\Http\Controllers\Admin\ConstanciaAsistenciaController::class, 'generar'])->name('constancia')->middleware('checkAdminPermission:access consultas');
 });
 
 // Consultorios
@@ -62,6 +64,10 @@ Route::middleware(['checkAdminPermission:access especialidades'])->group(functio
     Route::get('/especialidades/crear', \App\Livewire\Admin\Especialidades\Create::class)->name('especialidades.create');
     Route::get('/especialidades/{especialidad}/editar', \App\Livewire\Admin\Especialidades\Edit::class)->name('especialidades.edit');
     Route::get('/especialidades/{especialidad}', \App\Livewire\Admin\Especialidades\Show::class)->name('especialidades.show');
+    Route::get('/especialidades/{especialidad}/plantilla', \App\Livewire\Admin\Especialidades\PlantillaConsulta::class)->name('especialidades.plantilla');
+
+
+    Route::get('/especialidades/{especialidad}/cuestionario', \App\Livewire\Admin\Especialidades\CuestionarioConsulta::class)->name('especialidades.cuestionario');
 });
 
 // Tipos de Consulta
@@ -167,6 +173,16 @@ Route::prefix('monitoreo')->as('monitoreo.')->group(function () {
 Route::get('/tasas-cambio', ExchangeRates::class)->name('exchange-rates')->middleware('checkAdminPermission:view exchange-rates');
 Route::get('/tasas-cambio/configuracion', ExchangeRateConfigIndex::class)->name('exchange-rate-config.index')->middleware('checkAdminPermission:edit exchange-rates');
 
+// Configuración de Notificaciones
+Route::get('/configuracion/notificaciones', \App\Livewire\Admin\Configuracion\ConfigurarNotificaciones::class)
+    ->name('configuracion.notificaciones')
+    ->middleware('checkAdminPermission:access empresas');
+
+// Configuración de Wizard de Consultas
+Route::get('/configuracion/wizard-consultas', \App\Livewire\Admin\Configuracion\ConfigurarWizardConsultas::class)
+    ->name('configuracion.wizard-consultas')
+    ->middleware('checkAdminPermission:access empresas');
+
 // Pagos/Facturación
 Route::middleware(['checkAdminPermission:access pagos'])->group(function () {
     Route::get('/pagos', \App\Livewire\Admin\Pagos\Index::class)->name('pagos.index');
@@ -219,12 +235,16 @@ Route::middleware(['checkAdminPermission:access series'])->group(function () {
 // Registro de Actividad
 Route::get('/activity-log', \App\Livewire\Admin\ActivityLog::class)->name('activity-log')->middleware('checkAdminPermission:access activity log');
 
+// Punto de Venta
+Route::get('/pos', PuntoDeVenta::class)->name('pos.index')->middleware('checkAdminPermission:access cajas');
+
 // Cajas
 Route::middleware(['checkAdminPermission:access cajas'])->group(function () {
     Route::get('/cajas', \App\Livewire\Admin\Cajas\Index::class)->name('cajas.index');
     Route::get('/cajas/crear', \App\Livewire\Admin\Cajas\Create::class)->name('cajas.create');
     Route::get('/cajas/{caja}', \App\Livewire\Admin\Cajas\Show::class)->name('cajas.show');
     Route::get('/cajas/{caja}/export', [\App\Http\Controllers\Admin\CajaExportController::class, 'export'])->name('cajas.export');
+    Route::get('/cajas/egresos', \App\Livewire\Admin\Cajas\ListadoEgresos::class)->name('cajas.egresos');
 });
 
 // Reglas de Morosidad
@@ -265,6 +285,7 @@ Route::get('/chat-interno', \App\Livewire\Admin\Chat\ChatInterno::class)->name('
 
 // Exportador de Base de Datos
 Route::get('/exportar-base-datos', \App\Livewire\Admin\DatabaseExport::class)->name('database-export')->middleware('checkAdminPermission:access database export');
+Route::get('/exportar-base-datos/download/{file}', [\App\Http\Controllers\Admin\DatabaseDownloadController::class, 'download'])->name('database-download')->middleware('checkAdminPermission:access database export');
 
 // WhatsApp (Ruta legacy fuera del grupo)
 Route::get('/whatsapp', \App\Livewire\Admin\Whatsapp\Index::class)->name('whatsapp.index')->middleware('checkAdminPermission:access whatsapp');
@@ -294,17 +315,22 @@ Route::middleware(['checkAdminPermission:access citas'])->group(function () {
     // Gestión de Consultas
     Route::prefix('gestion')->as('gestion.')->group(function () {
         Route::get('/consultas', function () {
-        return redirect()->to('admin/calendario');
-    })->name('consultas.index')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/sala-espera', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-enfermeria', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-gotas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-gotas')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/dilatado', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.dilatado')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-optica', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/en-estudio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware('checkAdminPermission:access consultas');
-    Route::get('/consultas/finalizadas', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware('checkAdminPermission:access consultas');
-});
+            return redirect()->to('admin/calendario');
+        })->name('consultas.index')->middleware('checkAdminPermission:access consultas');
+
+        $middleware = 'checkAdminPermission:access consultas';
+        Route::get('/consultas/sala-espera',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.sala-espera')->middleware($middleware);
+        Route::get('/consultas/en-enfermeria',  \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-enfermeria')->middleware($middleware);
+        Route::get('/consultas/en-consultorio', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-consultorio')->middleware($middleware);
+        Route::get('/consultas/en-gotas',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-gotas')->middleware($middleware);
+        Route::get('/consultas/dilatado',       \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.dilatado')->middleware($middleware);
+        Route::get('/consultas/en-optica',      \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-optica')->middleware($middleware);
+        Route::get('/consultas/en-estudio',     \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.en-estudio')->middleware($middleware);
+        Route::get('/consultas/finalizadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.finalizadas')->middleware($middleware);
+        Route::get('/consultas/pagadas',    \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.pagadas')->middleware($middleware);
+        // Ruta dinámica por estado — para estados específicos de especialidades (en_consultorio_optometrista, etc.)
+        Route::get('/consultas/estado/{estado}', \App\Livewire\Admin\Gestion\Consultas\ListaPorEstado::class)->name('consultas.por-estado')->middleware($middleware);
+    });
 
 // Contabilidad
 Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermission:access contabilidad'])->group(function () {
@@ -315,6 +341,7 @@ Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermi
     Route::get('/estado-resultados', \App\Livewire\Admin\Contabilidad\EstadoResultados::class)->name('estado-resultados');
     Route::get('/libro-mayor', \App\Livewire\Admin\Contabilidad\LibroMayor::class)->name('libro-mayor');
     Route::get('/libro-diario', \App\Livewire\Admin\Contabilidad\LibroDiario::class)->name('libro-diario');
+    Route::get('/conciliacion-bancaria', \App\Livewire\Admin\Contabilidad\ConciliacionBancaria::class)->name('conciliacion-bancaria');
 
     Route::get('/balance-comprobacion/pdf', [\App\Http\Controllers\Admin\ContabilidadPdfController::class, 'balanceComprobacion'])->name('balance-comprobacion.pdf');
     Route::get('/balance-general/pdf', [\App\Http\Controllers\Admin\ContabilidadPdfController::class, 'balanceGeneral'])->name('balance-general.pdf');
@@ -325,13 +352,16 @@ Route::prefix('contabilidad')->as('contabilidad.')->middleware(['checkAdminPermi
     Route::get('/libro-mayor/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroMayor'])->name('libro-mayor.excel');
     Route::get('/balance-comprobacion/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'balanceComprobacion'])->name('balance-comprobacion.excel');
     Route::get('/cierre-contable', \App\Livewire\Admin\Contabilidad\CierreContable::class)->name('cierre-contable');
+    Route::get('/honorarios-medicos', \App\Livewire\Admin\Contabilidad\HonorariosMedicos::class)->name('honorarios-medicos');
 });
 
 // Libro de Ventas SENIAT
 Route::prefix('seniat')->as('seniat.')->middleware(['checkAdminPermission:access pagos'])->group(function () {
-    Route::get('/libro-ventas', [\App\Http\Controllers\Admin\LibroVentasController::class, 'index'])->name('libro-ventas');
+    Route::get('/libro-ventas', \App\Livewire\Admin\Seniat\LibroVentas::class)->name('libro-ventas');
+    Route::get('/libro-compras', \App\Livewire\Admin\Seniat\LibroCompras::class)->name('libro-compras');
     Route::get('/libro-ventas/txt', [\App\Http\Controllers\Admin\LibroVentasController::class, 'exportTxt'])->name('libro-ventas.export-txt');
     Route::get('/libro-ventas/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroVentas'])->name('libro-ventas.excel');
+    Route::get('/libro-compras/excel', [\App\Http\Controllers\Admin\ContabilidadExcelController::class, 'libroCompras'])->name('libro-compras.excel');
 });
 Route::get('/impuestos', \App\Livewire\Admin\Impuestos\Index::class)->name('impuestos.index');
 
@@ -367,7 +397,7 @@ Route::prefix('inventario')->name('inventario.')->group(function () {
         Route::get('/proveedores/{proveedor}/editar', \App\Livewire\Admin\Inventario\Proveedores\Form::class)->name('proveedores.edit');
     });
 
-    Route::middleware(['checkAdminPermission:access productos'])->group(function () {
+      Route::middleware(['checkAdminPermission:access productos'])->group(function () {
         Route::get('/productos', \App\Livewire\Admin\Inventario\Productos\Index::class)->name('productos.index');
         Route::get('/productos/crear', \App\Livewire\Admin\Inventario\Productos\Form::class)->name('productos.create');
         Route::get('/productos/{producto}/editar', \App\Livewire\Admin\Inventario\Productos\Form::class)->name('productos.edit');
@@ -382,6 +412,7 @@ Route::prefix('inventario')->name('inventario.')->group(function () {
     Route::middleware(['checkAdminPermission:access ordenes-compra'])->group(function () {
         Route::get('/ordenes-compra', \App\Livewire\Admin\Inventario\OrdenesCompra\Index::class)->name('ordenes-compra.index');
         Route::get('/ordenes-compra/crear', \App\Livewire\Admin\Inventario\OrdenesCompra\Form::class)->name('ordenes-compra.create');
+        Route::get('/ordenes-compra/{orden}/editar', \App\Livewire\Admin\Inventario\OrdenesCompra\Form::class)->name('ordenes-compra.edit');
     });
 
     Route::middleware(['checkAdminPermission:access alertas-inventario'])->group(function () {

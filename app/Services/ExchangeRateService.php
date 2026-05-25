@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\ExchangeRate;
-use App\Models\ExchangeRateConfig;
 use App\Models\ExchangeRateMonthlyHistory;
 use App\Models\ExchangeRateDailyHistory;
 use Illuminate\Support\Facades\Http;
@@ -15,65 +14,10 @@ class ExchangeRateService
     private const DOLARVZLA_API = 'https://api.dolarvzla.com/public/exchange-rate';
     private const BACKUP_API = 'https://api.exchangerate-api.com/v4/latest/USD';
 
-    /**
-     * Obtener configuración actual del país
-     */
-    private function getCurrentConfig(): ?ExchangeRateConfig
-    {
-        return ExchangeRateConfig::getCurrentConfig();
-    }
-
-    /**
-     * Obtener tasa para un país específico
-     */
-    public function getRateForPais($paisId = null): ?float
-    {
-        if (!$paisId) {
-            $config = $this->getCurrentConfig();
-            $paisId = $config?->pais_id;
-        }
-
-        // Si usa tasa fija, retornarla
-        $config = ExchangeRateConfig::find($paisId);
-        if ($config && $config->getFixedRate()) {
-            return $config->getFixedRate();
-        }
-
-        // Si no, obtener de la base de datos
-        return ExchangeRate::getLatestRate('USD', $paisId);
-    }
-
     public function fetchAndStoreRates($paisId = null): bool
     {
         try {
-            // Si no se proporciona país, usar el actual
-            if (!$paisId) {
-                $config = $this->getCurrentConfig();
-                $paisId = $config?->pais_id;
-            }
-
-            // Obtener configuración del país
-            $config = ExchangeRateConfig::find($paisId);
-            
-            // Si usa tasa fija, no hacer nada
-            if ($config && $config->getFixedRate()) {
-                Log::info('País usa tasa fija, no se actualiza desde API', [
-                    'pais_id' => $paisId,
-                    'tasa_fija' => $config->getFixedRate()
-                ]);
-                return false;
-            }
-
-            // Intentar obtener tasas según configuración
-            $rates = null;
-            
-            if ($config && $config->usesBCVApi()) {
-                // Venezuela - Usar API del BCV
-                $rates = $this->fetchFromDolarVzla();
-            } else {
-                // Otros países - Usar API de respaldo
-                $rates = $this->fetchFromBackupAPI();
-            }
+            $rates = $this->fetchFromDolarVzla() ?? $this->fetchFromBackupAPI();
 
             if ($rates) {
                 return $this->storeRates($rates, $paisId);
@@ -120,102 +64,154 @@ class ExchangeRateService
         return null;
     }
 
+    public function backfillMonthBCV(int $year, int $month, $paisId = null): int
+    {
+        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+        $list = $this->fetchHistoricalBCV($startDate->toDateString(), $endDate->toDateString());
+        if (!$list) {
+            return 0;
+        }
+        $byDate = [];
+        foreach ($list as $item) {
+            if (!isset($item['date'])) {
+                continue;
+            }
+            $d = Carbon::parse($item['date'])->toDateString();
+            $byDate[$d] = $item;
+        }
+        $prevStart = $startDate->copy()->subMonth()->startOfMonth()->toDateString();
+        $prevEnd = $startDate->copy()->subMonth()->endOfMonth()->toDateString();
+        $prevList = $this->fetchHistoricalBCV($prevStart, $prevEnd) ?? [];
+        $prevLast = null;
+        if (!empty($prevList)) {
+            usort($prevList, function ($a, $b) {
+                return strcmp($a['date'], $b['date']);
+            });
+            $prevLast = end($prevList);
+            if ($prevLast && isset($prevLast['usd'])) {
+                $prevLast = [
+                    'usd' => (float)$prevLast['usd'],
+                    'eur' => array_key_exists('eur', $prevLast) && $prevLast['eur'] !== null ? (float)$prevLast['eur'] : null,
+                    'date' => Carbon::parse($prevLast['date'])->toDateString(),
+                ];
+            } else {
+                $prevLast = null;
+            }
+        }
+        $lastKnownUsd = $prevLast['usd'] ?? null;
+        $lastKnownEur = $prevLast['eur'] ?? null;
+        $lastKnownDate = $prevLast['date'] ?? null;
+        $count = 0;
+        $period = new \Carbon\CarbonPeriod($startDate, $endDate);
+        foreach ($period as $day) {
+            $dateStr = $day->toDateString();
+            if (isset($byDate[$dateStr]) && isset($byDate[$dateStr]['usd'])) {
+                $usd = (float)$byDate[$dateStr]['usd'];
+                $eur = array_key_exists('eur', $byDate[$dateStr]) && $byDate[$dateStr]['eur'] !== null ? (float)$byDate[$dateStr]['eur'] : null;
+                ExchangeRate::updateOrCreate(
+                    ['date' => $dateStr, 'pais_id' => $paisId, 'fetch_time' => '10:00:00'],
+                    [
+                        'usd_rate' => $usd,
+                        'eur_rate' => $eur,
+                        'source' => 'bcv',
+                        'raw_data' => $byDate[$dateStr],
+                    ]
+                );
+                $lastKnownUsd = $usd;
+                $lastKnownEur = $eur;
+                $lastKnownDate = $dateStr;
+                $count++;
+            } else {
+                if ($lastKnownUsd !== null) {
+                    ExchangeRate::updateOrCreate(
+                        ['date' => $dateStr, 'pais_id' => $paisId, 'fetch_time' => '10:00:00'],
+                        [
+                            'usd_rate' => $lastKnownUsd,
+                            'eur_rate' => $lastKnownEur,
+                            'source' => 'bcv',
+                            'raw_data' => [
+                                'filled' => true,
+                                'filled_ref_date' => $lastKnownDate,
+                            ],
+                        ]
+                    );
+                    $count++;
+                }
+            }
+        }
+        return $count;
+    }
 
-    /**
-     * Fetch from DolarVzla API (Venezuela BCV)
-     */
     private function fetchFromDolarVzla(): ?array
     {
         try {
-            $response = Http::timeout(10)->get(self::DOLARVZLA_API);
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 15,
+                    'method' => 'GET',
+                    'header' => 'User-Agent: Mozilla/5.0'
+                ]
+            ]);
 
-            if ($response->successful()) {
-                $data = $response->json();
-                
-                if (isset($data['usd'], $data['eur'])) {
+            $response = file_get_contents(self::DOLARVZLA_API, false, $context);
+
+            if ($response !== false) {
+                $data = json_decode($response, true);
+
+                if (isset($data['current']['usd'])) {
+                    $usdRate = (float) $data['current']['usd'];
+                    $eurRate = (float) $data['current']['eur'];
+
+                    Log::info('DolarVzla rates fetched successfully', ['usd' => $usdRate, 'eur' => $eurRate]);
+
                     return [
-                        'usd_rate' => (float) $data['usd'],
-                        'eur_rate' => (float) $data['eur'],
-                        'source' => 'dolarvzla',
-                        'raw_data' => $data
+                        'usd_rate' => $usdRate,
+                        'eur_rate' => $eurRate,
+                        'source' => 'dolarvzla'
                     ];
                 }
             }
-
-            return null;
         } catch (\Exception $e) {
-            Log::error('Error fetching from DolarVzla: ' . $e->getMessage());
-            return null;
+            Log::warning('DolarVzla API fetch failed: ' . $e->getMessage());
         }
+
+        return null;
     }
 
-    /**
-     * Fetch from Backup API (otros países)
-     */
     private function fetchFromBackupAPI(): ?array
     {
         try {
-            $response = Http::timeout(10)->get(self::BACKUP_API);
+            $response = Http::timeout(15)->get(self::BACKUP_API);
 
             if ($response->successful()) {
                 $data = $response->json();
-                
-                if (isset($data['rates']['USD'])) {
+
+                $vesRate = $data['rates']['VES'] ?? null;
+                $eurRate = $data['rates']['EUR'] ?? null;
+
+                if ($vesRate) {
                     return [
-                        'usd_rate' => (float) $data['rates']['USD'],
-                        'eur_rate' => (float) ($data['rates']['EUR'] ?? 0),
-                        'source' => 'backup_api',
-                        'raw_data' => $data
+                        'usd_rate' => $vesRate,
+                        'eur_rate' => $eurRate ? $vesRate / $eurRate : null,
+                        'source' => 'backup_api'
                     ];
                 }
             }
-
-            return null;
         } catch (\Exception $e) {
-            Log::error('Error fetching from backup API: ' . $e->getMessage());
-            return null;
+            Log::warning('Backup API fetch failed: ' . $e->getMessage());
         }
+
+        return null;
     }
 
-    /**
-     * Almacenar tasas en la base de datos
-     */
-    private function storeRates(array $rates, $paisId = null): bool
-    {
-        try {
-            // Actualizar o crear la tasa del día para este país
-            ExchangeRate::updateOrCreate(
-                [
-                    'date' => today(),
-                    'pais_id' => $paisId
-                ],
-                [
-                    'usd_rate' => $rates['usd_rate'],
-                    'eur_rate' => $rates['eur_rate'],
-                    'source' => $rates['source'],
-                    'fetch_time' => now()->format('H:i:s'),
-                    'raw_data' => $rates
-                ]
-            );
-
-            Log::info('Exchange rates stored successfully', [
-                'pais_id' => $paisId,
-                'rates' => $rates
-            ]);
-            
-            return true;
-        } catch (\Exception $e) {
-            Log::error('Error storing exchange rates: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    public function ensureMonthlyHistory(int $year, int $month): ?\App\Models\ExchangeRateMonthlyHistory
+    public function ensureMonthlyHistory(int $year, int $month, $paisId = null): ?\App\Models\ExchangeRateMonthlyHistory
     {
         $start = Carbon::create($year, $month, 1)->startOfMonth();
         $end = Carbon::create($year, $month, 1)->endOfMonth();
-        $this->backfillMonthBCV((int)$start->year, (int)$start->month);
+        $this->backfillMonthBCV((int)$start->year, (int)$start->month, $paisId);
         $rates = ExchangeRate::whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->where('pais_id', $paisId)
             ->orderBy('date')
             ->get();
         $count = $rates->count();
@@ -242,7 +238,7 @@ class ExchangeRateService
             ];
         }
         $monthly = ExchangeRateMonthlyHistory::updateOrCreate(
-            ['year' => (int)$start->year, 'month' => (int)$start->month],
+            ['year' => (int)$start->year, 'month' => (int)$start->month, 'pais_id' => $paisId],
             [
                 'usd_avg' => $usdAvg,
                 'usd_min' => $usdMin,
@@ -290,108 +286,36 @@ class ExchangeRateService
         $rate = ExchangeRate::whereDate('date', $date->toDateString())->first();
         return $rate ? (float)$rate->usd_rate : null;
     }
-    public function getLatestRate(string $currency = 'USD', $paisId = null): ?float
+    private function storeRates(array $rates, $paisId = null): bool
     {
-        return ExchangeRate::getLatestRate($currency, $paisId);
+        try {
+            // Actualizar o crear la tasa del día (solo una por día por país)
+            ExchangeRate::updateOrCreate(
+                ['date' => today(), 'pais_id' => $paisId],
+                [
+                    'usd_rate' => $rates['usd_rate'],
+                    'eur_rate' => $rates['eur_rate'],
+                    'source' => $rates['source'],
+                    'fetch_time' => now()->format('H:i:s'),
+                    'raw_data' => $rates
+                ]
+            );
+
+            Log::info('Exchange rates stored successfully', array_merge($rates, ['pais_id' => $paisId]));
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Error storing exchange rates: ' . $e->getMessage());
+            return false;
+        }
     }
 
-    public function getTodayRates($paisId = null)
+    public function getLatestRate(string $currency = 'USD'): ?float
     {
-        return ExchangeRate::getTodayRate($paisId);
+        return ExchangeRate::getLatestRate($currency);
     }
 
-    /**
-     * Rellenar histórico mensual para un país
-     */
-    public function backfillMonthBCV(int $year, int $month, $paisId = null): int
+    public function getTodayRates()
     {
-        // Solo funciona para Venezuela con API del BCV
-        $config = ExchangeRateConfig::find($paisId);
-        
-        if (!$config || !$config->usesBCVApi()) {
-            Log::warning('backfillMonthBCV solo disponible para países con API BCV');
-            return 0;
-        }
-
-        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-        
-        $list = $this->fetchHistoricalBCV($startDate->toDateString(), $endDate->toDateString());
-        
-        if (!$list) {
-            return 0;
-        }
-
-        $byDate = [];
-        foreach ($list as $item) {
-            if (!isset($item['date'])) {
-                continue;
-            }
-            $d = Carbon::parse($item['date'])->toDateString();
-            $byDate[$d] = $item;
-        }
-
-        $prevStart = $startDate->copy()->subMonth()->startOfMonth()->toDateString();
-        $prevEnd = $startDate->copy()->subMonth()->endOfMonth()->toDateString();
-        $prevList = $this->fetchHistoricalBCV($prevStart, $prevEnd) ?? [];
-        $prevLast = null;
-        
-        if (!empty($prevList)) {
-            usort($prevList, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
-            $prevLast = end($prevList);
-        }
-
-        $updated = 0;
-        $daysInMonth = (int) $startDate->copy()->endOfMonth()->format('j');
-        
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $dateStr = $startDate->copy()->day($day)->toDateString();
-            
-            if (isset($byDate[$dateStr])) {
-                $item = $byDate[$dateStr];
-                $usd = (float) ($item['usd'] ?? $item['price'] ?? 0);
-                $eur = isset($item['eur']) ? (float) $item['eur'] : null;
-                
-                if ($usd > 0) {
-                    ExchangeRate::updateOrCreate(
-                        ['date' => $dateStr, 'pais_id' => $paisId],
-                        [
-                            'usd_rate' => $usd,
-                            'eur_rate' => $eur,
-                            'source' => 'BCV (Histórico)',
-                            'fetch_time' => '12:00:00',
-                            'raw_data' => array_merge($item, [
-                                'backfilled' => true,
-                                'backfilled_at' => now()->toISOString(),
-                            ])
-                        ]
-                    );
-                    $updated++;
-                }
-            } elseif ($prevLast) {
-                $usd = (float) ($prevLast['usd'] ?? $prevLast['price'] ?? 0);
-                $eur = isset($prevLast['eur']) ? (float) $prevLast['eur'] : null;
-                
-                if ($usd > 0) {
-                    ExchangeRate::updateOrCreate(
-                        ['date' => $dateStr, 'pais_id' => $paisId],
-                        [
-                            'usd_rate' => $usd,
-                            'eur_rate' => $eur,
-                            'source' => 'BCV (Estimado)',
-                            'fetch_time' => '12:00:00',
-                            'raw_data' => array_merge($prevLast, [
-                                'estimated' => true,
-                                'estimated_from' => $prevLast['date'],
-                                'backfilled_at' => now()->toISOString(),
-                            ])
-                        ]
-                    );
-                    $updated++;
-                }
-            }
-        }
-
-        return $updated;
+        return ExchangeRate::getTodayRates();
     }
 }

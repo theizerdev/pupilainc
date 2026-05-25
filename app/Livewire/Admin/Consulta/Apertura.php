@@ -43,10 +43,11 @@ class Apertura extends Component
         $hoy = now()->startOfDay();
         $empresaId = auth()->user()->empresa_id;
 
-        // Cargar cuestionario activo
+        // Cuestionario genérico (sin especialidad) como fallback
         $this->cuestionarioActivo = Cuestionario::where('empresa_id', $empresaId)
             ->where('activo', true)
             ->where('tipo', 'preconsulta')
+            ->whereNull('especialidad_id')
             ->first();
 
         // Citas de hoy
@@ -104,37 +105,46 @@ class Apertura extends Component
         $this->validate();
 
         DB::transaction(function () {
-            // Actualizar estado de la cita
             $this->citaSeleccionada->update([
                 'estado' => 'finalizada',
                 'motivo' => $this->motivoConsulta,
             ]);
 
-            // Si hay cuestionario, crear respuestas pendientes
-            if ($this->cuestionarioActivo) {
+            // Buscar cuestionario: primero por especialidad, luego genérico
+            $cuestionario = null;
+            if ($this->citaSeleccionada->especialidad_id) {
+                $cuestionario = Cuestionario::where('empresa_id', auth()->user()->empresa_id)
+                    ->where('activo', true)
+                    ->where('tipo', 'preconsulta')
+                    ->where('especialidad_id', $this->citaSeleccionada->especialidad_id)
+                    ->first();
+            }
+            if (!$cuestionario) {
+                $cuestionario = $this->cuestionarioActivo;
+            }
+
+            if ($cuestionario) {
                 $token = Str::random(32);
 
-                foreach ($this->cuestionarioActivo->preguntas as $pregunta) {
+                foreach ($cuestionario->preguntas as $pregunta) {
                     RespuestaPreconsulta::create([
                         'paciente_id' => $this->citaSeleccionada->paciente_id,
-                        'cita_id' => $this->citaSeleccionada->id,
+                        'cita_id'     => $this->citaSeleccionada->id,
                         'pregunta_id' => $pregunta->id,
                         'token_unico' => $token,
-                        'empresa_id' => auth()->user()->empresa_id,
+                        'empresa_id'  => auth()->user()->empresa_id,
                     ]);
                 }
 
-                // Actualizar cita con token de preconsulta
                 $this->citaSeleccionada->update([
                     'estado_preconsulta' => 'enviado',
-                    'token_preconsulta' => $token,
+                    'token_preconsulta'  => $token,
                 ]);
             }
         });
 
         $this->cerrarModalIniciar();
         $this->cargarDatos();
-
         session()->flash('success', 'Consulta iniciada. Se ha generado el cuestionario de pre-consulta.');
     }
 

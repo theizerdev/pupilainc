@@ -8,10 +8,10 @@
           document.write(new Date().getFullYear());
         </script>
         , Sistema desarrollado por
-        <a href="https://innovacionmovil.com/" target="_blank" class="footer-link fw-medium">Innovación Movil</a>
+        <a href="https://innovacionmovil.com" target="_blank" class="footer-link fw-medium">Innovación Móvil</a>
       </div>
       <div class="d-flex flex-column flex-md-row gap-2 gap-md-0">
-        
+        <a href="https://innovacionmovil.com" target="_blank" class="footer-link fw-medium"> <img src="/logo/Innovacion Movil Logo Transparente Grande.webp" alt=""></a>
       </div>
     </div>
   </div>

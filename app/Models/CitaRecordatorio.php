@@ -12,7 +12,7 @@ class CitaRecordatorio extends Model
 
     protected $table = 'cita_recordatorios';
 
-    const TIPOS = ['24h', '2h', 'personalizado'];
+    const TIPOS = ['48h', '24h', '2h', 'personalizado'];
     const ESTADOS = ['pendiente', 'enviado', 'fallido', 'cancelado'];
     const CANALES = ['whatsapp', 'email', 'sms'];
 

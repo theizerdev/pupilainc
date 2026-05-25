@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Gestion\Consultas;
 
 use App\Models\Consulta;
+use App\Models\Especialidad;
+use App\Models\EspecialidadPlantilla;
 use App\Models\Medico;
 use App\Models\Paciente;
 use Livewire\Component;
@@ -13,42 +15,67 @@ class Index extends Component
 {
     use HasDynamicLayout;
 
-    public $filtroEstados = [];
-    public $filtroMedico = '';
-    public $filtroPaciente = '';
+    public $filtroEstados    = [];
+    public $filtroMedico     = '';
+    public $filtroPaciente   = '';
+    public $filtroEspecialidad = '';
 
-    public function mount()
+    // Estados y labels resueltos dinámicamente
+    public $estadosActivos   = [];  // estados del flujo según especialidad seleccionada
+    public $estadoLabels     = [];  // label de cada estado activo
+    public $estadoColores    = [];  // color de cada estado activo
+
+    public function mount(): void
     {
-        $this->filtroEstados = [
-            Consulta::ESTADO_POR_LLEGAR,
-            Consulta::ESTADO_SALA_ESPERA,
-            Consulta::ESTADO_EN_ENFERMERIA,
-            Consulta::ESTADO_EN_CONSULTORIO,
-            Consulta::ESTADO_EN_CONSULTORIO_OPTOMETRISTA,
-            Consulta::ESTADO_EN_GOTAS,
-            Consulta::ESTADO_DILATADO,
-            Consulta::ESTADO_EN_OPTICA,
-            Consulta::ESTADO_EN_ESTUDIO,
-            Consulta::ESTADO_FINALIZADA,
-        ];
+        $this->resolverEstados();
+        $this->filtroEstados = $this->estadosActivos;
     }
 
-    public function getEventosProperty()
+    // ── Resolución dinámica de estados ───────────────────────────────────────
+
+    public function updatedFiltroEspecialidad(): void
     {
-        return $this->fetchEventos();
+        $this->resolverEstados();
+        $this->filtroEstados = $this->estadosActivos;
+        $this->dispatch('estadosActualizados', estados: $this->estadosActivos);
     }
 
-    public function getEventosFresh()
+    private function resolverEstados(): void
     {
-        return $this->fetchEventos();
+        if ($this->filtroEspecialidad) {
+            $plantilla = EspecialidadPlantilla::where('especialidad_id', $this->filtroEspecialidad)
+                ->where('activo', true)
+                ->latest()
+                ->first();
+
+            if ($plantilla) {
+                $this->estadosActivos = $plantilla->getEstadosEfectivos();
+                $this->estadoLabels   = array_intersect_key(
+                    EspecialidadPlantilla::ESTADOS_DISPONIBLES,
+                    array_flip($this->estadosActivos)
+                );
+                $this->estadoColores  = array_intersect_key(
+                    Consulta::ESTADO_COLORES,
+                    array_flip($this->estadosActivos)
+                );
+                return;
+            }
+        }
+
+        // Sin especialidad: todos los estados del sistema
+        $this->estadosActivos = array_keys(EspecialidadPlantilla::ESTADOS_DISPONIBLES);
+        $this->estadoLabels   = EspecialidadPlantilla::ESTADOS_DISPONIBLES;
+        $this->estadoColores  = Consulta::ESTADO_COLORES;
     }
+
+    // ── Query base ────────────────────────────────────────────────────────────
 
     protected function buildBaseQuery()
     {
         $query = Consulta::with(['paciente', 'medico', 'especialidad']);
 
         if (auth()->user()->hasRole('Doctor')) {
-            $medico = \App\Models\Medico::where('user_id', auth()->id())->first();
+            $medico = Medico::where('user_id', auth()->id())->first();
             if ($medico) {
                 $query->where('medico_id', $medico->id);
             }
@@ -57,64 +84,71 @@ class Index extends Component
         return $query;
     }
 
-    protected function mapConsultaToEvent($consulta)
+    protected function mapConsultaToEvent($consulta): array
     {
-        $nickname = $consulta->paciente->nickname ?? '';
-        $nombreCompleto = $consulta->paciente->nombre_completo;
-        $edad = $consulta->paciente->edad;
-        $edadTexto = $edad !== null ? (int) $edad . ' años' : '';
+        $title = $consulta->paciente->nombre_completo;
 
-        // Formato título: (nickname) Nombre Apellido (sin edad, la edad se muestra solo en vista semana/día vía JS)
-        $title = $nombreCompleto;
-        if (!empty($nickname)) {
-            $title = "({$nickname}) {$title}";
+        if (!empty($consulta->paciente->nickname)) {
+            $title = "({$consulta->paciente->nickname}) {$title}";
         }
-        
-        // Si está en sala de espera, agregar tiempo de espera
+
         if ($consulta->estado === Consulta::ESTADO_SALA_ESPERA && $consulta->tiempo_sala_espera !== null) {
             $title .= ' [' . $consulta->tiempo_espera_formateado . ']';
         }
-        
-        // Si está en gotas o dilatado, agregar tiempo en gotas
-        if (in_array($consulta->estado, [Consulta::ESTADO_EN_GOTAS, Consulta::ESTADO_DILATADO]) && $consulta->tiempo_gotas_formateado !== null) {
+
+        if (in_array($consulta->estado, [Consulta::ESTADO_EN_GOTAS, Consulta::ESTADO_DILATADO])
+            && $consulta->tiempo_gotas_formateado !== null) {
             $title .= ' [' . $consulta->tiempo_gotas_formateado . ']';
         }
-        
+
+        $color = $this->estadoColores[$consulta->estado]
+            ?? Consulta::ESTADO_COLORES[$consulta->estado]
+            ?? '#78909C';
+
+        $label = $this->estadoLabels[$consulta->estado]
+            ?? EspecialidadPlantilla::ESTADOS_DISPONIBLES[$consulta->estado]
+            ?? ucfirst($consulta->estado);
+
         return [
-            'id' => $consulta->id,
-            'title' => $title,
-            'start' => $consulta->fecha_consulta->toIso8601String(),
-            'end' => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
-            'backgroundColor' => $this->getEstadoColor($consulta->estado),
-            'borderColor' => $this->getEstadoColor($consulta->estado),
-            'extendedProps' => [
-                'calendar' => $consulta->estado,
-                'codigo' => $consulta->codigo,
-                'paciente' => $consulta->paciente->nombre_completo,
-                'nickname' => $consulta->paciente->nickname ?? '',
-                'edad' => $consulta->paciente->edad !== null ? $consulta->paciente->edad . ' años' : '',
-                'medico' => $consulta->medico->nombre_completo ?? 'Sin médico',
-                'medico_full' => $consulta->medico->nombre_completo ?? 'Sin médico',
-                'medico_id' => $consulta->medico_id,
-                'especialidad' => $consulta->especialidad->nombre ?? 'Sin especialidad',
-                'estado' => $consulta->estado,
-                'estado_label' => $this->getEstadoLabel($consulta->estado),
-                'estadoLabel' => $this->getEstadoLabel($consulta->estado),
-                'estado_changed_at' => $consulta->estado_changed_at?->toIso8601String(),
-                'motivo' => $consulta->motivo_consulta,
-                'preconsulta' => $consulta->preconsulta,
-                'tiempo_espera' => $consulta->tiempo_sala_espera,
+            'id'              => $consulta->id,
+            'title'           => $title,
+            'start'           => $consulta->fecha_consulta->toIso8601String(),
+            'end'             => $consulta->fecha_consulta->copy()->addMinutes(30)->toIso8601String(),
+            'backgroundColor' => $color,
+            'borderColor'     => $color,
+            'extendedProps'   => [
+                'calendar'               => $consulta->estado,
+                'codigo'                 => $consulta->codigo,
+                'paciente'               => $consulta->paciente->nombre_completo,
+                'nickname'               => $consulta->paciente->nickname ?? '',
+                'edad'                   => $consulta->paciente->edad !== null ? $consulta->paciente->edad . ' años' : '',
+                'medico'                 => $consulta->medico->nombre_completo ?? 'Sin médico',
+                'medico_full'            => $consulta->medico->nombre_completo ?? 'Sin médico',
+                'medico_id'              => $consulta->medico_id,
+                'especialidad'           => $consulta->especialidad->nombre ?? 'Sin especialidad',
+                'especialidad_id'        => $consulta->especialidad_id,
+                'estado'                 => $consulta->estado,
+                'estado_label'           => $label,
+                'estadoLabel'            => $label,
+                'estado_changed_at'      => $consulta->estado_changed_at?->toIso8601String(),
+                'motivo'                 => $consulta->motivo_consulta,
+                'preconsulta'            => $consulta->preconsulta,
+                'tiempo_espera'          => $consulta->tiempo_sala_espera,
                 'tiempo_espera_formateado' => $consulta->tiempo_espera_formateado,
-                'tiempo_gotas_formateado' => $consulta->tiempo_gotas_formateado,
+                'tiempo_gotas_formateado'  => $consulta->tiempo_gotas_formateado,
+                // Estados disponibles para cambiar desde el calendario
+                'estados_flujo'          => $this->estadosActivos,
+                'estados_labels'         => $this->estadoLabels,
             ],
         ];
     }
 
-    protected function fetchEventos()
+    protected function fetchEventos(): array
     {
         $consultas = $this->buildBaseQuery()
-            ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
-            ->when($this->filtroPaciente, fn($q) => $q->where('paciente_id', $this->filtroPaciente))
+            ->when($this->filtroMedico,     fn($q) => $q->porMedico($this->filtroMedico))
+            ->when($this->filtroPaciente,   fn($q) => $q->where('paciente_id', $this->filtroPaciente))
+            ->when($this->filtroEspecialidad, fn($q) => $q->where('especialidad_id', $this->filtroEspecialidad))
             ->when(!empty($this->filtroEstados), fn($q) => $q->whereIn('estado', $this->filtroEstados))
             ->orderBy('fecha_consulta', 'desc')
             ->get();
@@ -122,56 +156,109 @@ class Index extends Component
         return $consultas->map(fn($c) => $this->mapConsultaToEvent($c))->toArray();
     }
 
-    public function fetchEventosRango($inicio, $fin)
+    public function getEventosProperty(): array
+    {
+        return $this->fetchEventos();
+    }
+
+    public function getEventosFresh(): array
+    {
+        return $this->fetchEventos();
+    }
+
+    public function fetchEventosRango($inicio, $fin): array
     {
         try {
             $inicioCarbon = Carbon::parse($inicio);
-            $finCarbon = Carbon::parse($fin);
-        } catch (\Exception $e) {
+            $finCarbon    = Carbon::parse($fin);
+        } catch (\Exception) {
             return [];
         }
 
         $consultas = $this->buildBaseQuery()
             ->whereBetween('fecha_consulta', [$inicioCarbon, $finCarbon])
-            ->when($this->filtroMedico, fn($q) => $q->porMedico($this->filtroMedico))
-            ->when($this->filtroPaciente, fn($q) => $q->where('paciente_id', $this->filtroPaciente))
+            ->when($this->filtroMedico,       fn($q) => $q->porMedico($this->filtroMedico))
+            ->when($this->filtroPaciente,     fn($q) => $q->where('paciente_id', $this->filtroPaciente))
+            ->when($this->filtroEspecialidad, fn($q) => $q->where('especialidad_id', $this->filtroEspecialidad))
             ->get();
 
         return $consultas->map(fn($c) => $this->mapConsultaToEvent($c))->toArray();
     }
 
-    public function cambiarEstado($consultaId, $nuevoEstado)
+    // ── Cambio de estado ──────────────────────────────────────────────────────
+
+    public function cambiarEstado($consultaId, $nuevoEstado): void
     {
-        $consulta = Consulta::findOrFail($consultaId);
+        $consulta = Consulta::with('especialidad')->findOrFail($consultaId);
+
+        // Validar contra el flujo de la plantilla de la especialidad
+        $estadosValidos = $this->obtenerEstadosValidosPara($consulta->especialidad_id);
+
+        if (!in_array($nuevoEstado, $estadosValidos)) {
+            $this->dispatch('show-toast', [
+                'type'    => 'error',
+                'message' => 'Estado no válido para esta especialidad.',
+            ]);
+            return;
+        }
+
         $consulta->cambiarEstado($nuevoEstado);
 
+        $label = EspecialidadPlantilla::ESTADOS_DISPONIBLES[$nuevoEstado] ?? ucfirst($nuevoEstado);
+
         $this->dispatch('show-toast', [
-            'type' => 'success',
-            'message' => 'Estado actualizado a: ' . $this->getEstadoLabel($nuevoEstado)
+            'type'    => 'success',
+            'message' => "Estado actualizado a: {$label}",
         ]);
 
         $this->dispatch('consulta-saved');
     }
 
-    public function getStatsProperty()
+    private function obtenerEstadosValidosPara(?int $especialidadId): array
+    {
+        if ($especialidadId) {
+            $plantilla = EspecialidadPlantilla::where('especialidad_id', $especialidadId)
+                ->where('activo', true)->latest()->first();
+
+            if ($plantilla) {
+                return $plantilla->getEstadosEfectivos();
+            }
+        }
+
+        return array_keys(EspecialidadPlantilla::ESTADOS_DISPONIBLES);
+    }
+
+    // ── Propiedades computadas ────────────────────────────────────────────────
+
+    public function getStatsProperty(): array
     {
         $query = Consulta::query();
 
-        // Si es doctor, solo ver sus consultas
         if (auth()->user()->hasRole('Doctor')) {
-            $medico = \App\Models\Medico::where('user_id', auth()->id())->first();
+            $medico = Medico::where('user_id', auth()->id())->first();
             if ($medico) {
                 $query->where('medico_id', $medico->id);
             }
         }
 
+        if ($this->filtroEspecialidad) {
+            $query->where('especialidad_id', $this->filtroEspecialidad);
+        }
+
         $hoy = Carbon::today();
 
+        // Conteo dinámico por cada estado activo
+        $porEstado = [];
+        foreach ($this->estadosActivos as $estado) {
+            $porEstado[$estado] = (clone $query)->porEstado($estado)->count();
+        }
+
         return [
-            'total_hoy' => (clone $query)->whereDate('fecha_consulta', $hoy)->count(),
-            'sala_espera' => (clone $query)->porEstado(Consulta::ESTADO_SALA_ESPERA)->count(),
-            'en_consultorio' => (clone $query)->porEstado(Consulta::ESTADO_EN_CONSULTORIO)->count(),
+            'total_hoy'       => (clone $query)->whereDate('fecha_consulta', $hoy)->count(),
+            'sala_espera'     => (clone $query)->porEstado(Consulta::ESTADO_SALA_ESPERA)->count(),
+            'en_consultorio'  => (clone $query)->porEstado(Consulta::ESTADO_EN_CONSULTORIO)->count(),
             'finalizadas_hoy' => (clone $query)->porEstado(Consulta::ESTADO_FINALIZADA)->whereDate('fecha_consulta', $hoy)->count(),
+            'por_estado'      => $porEstado,
         ];
     }
 
@@ -185,14 +272,9 @@ class Index extends Component
         return Paciente::activos()->orderBy('nombres')->limit(50)->get();
     }
 
-    protected function getEstadoLabel($estado)
+    public function getEspecialidadesProperty()
     {
-        return Consulta::ESTADO_LABELS[$estado] ?? ucfirst($estado);
-    }
-
-    protected function getEstadoColor($estado)
-    {
-        return Consulta::ESTADO_COLORES[$estado] ?? '#78909C';
+        return Especialidad::activas()->forUser()->orderBy('nombre')->get();
     }
 
     protected function getPageTitle(): string
@@ -203,7 +285,7 @@ class Index extends Component
     protected function getBreadcrumb(): array
     {
         return [
-            'admin.dashboard' => 'Dashboard',
+            'admin.dashboard'               => 'Dashboard',
             'admin.gestion.consultas.index' => 'Gestión de Consultas',
         ];
     }
@@ -211,13 +293,15 @@ class Index extends Component
     public function render()
     {
         return view('livewire.admin.gestion.consultas.index', [
-            'eventos' => $this->eventos,
-            'stats' => $this->stats,
-            'medicos' => $this->medicos,
-            'pacientes' => $this->pacientes,
-            'estados' => $this->filtroEstados,
-            'estadoLabels' => Consulta::ESTADO_LABELS,
-            'estadoColores' => Consulta::ESTADO_COLORES,
+            'eventos'        => $this->eventos,
+            'stats'          => $this->stats,
+            'medicos'        => $this->medicos,
+            'pacientes'      => $this->pacientes,
+            'especialidades' => $this->especialidades,
+            'estados'        => $this->filtroEstados,
+            'estadoLabels'   => $this->estadoLabels,
+            'estadoColores'  => $this->estadoColores,
+            'estadosActivos' => $this->estadosActivos,
         ])->layout($this->getLayout());
     }
 }

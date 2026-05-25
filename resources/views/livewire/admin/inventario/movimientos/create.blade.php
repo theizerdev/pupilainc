@@ -15,19 +15,46 @@
                     <div class="card-header"><h5 class="mb-0">Datos del Movimiento</h5></div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label>Producto *</label>
-                                    <select class="form-control @error('producto_id') is-invalid @enderror" wire:model.change="producto_id">
-                                        <option value="">Seleccionar producto</option>
-                                        @foreach($productos as $p)
-                                            <option value="{{ $p->id }}">{{ $p->nombre }} ({{ $p->codigo }})</option>
-                                        @endforeach
-                                    </select>
-                                    @error('producto_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                    <div class="position-relative">
+                                        <input type="text" class="form-control @error('producto_id') is-invalid @enderror"
+                                               wire:model.live="producto_search"
+                                               placeholder="Buscar producto..."
+                                               autocomplete="off"
+                                               @if($producto_seleccionado) value="{{ $producto_seleccionado->nombre }} ({{ $producto_seleccionado->codigo }})" @endif>
+
+                                        @if(strlen($producto_search) > 0 && count($productos_filtrados) > 0)
+                                        <div class="position-absolute w-100" style="z-index: 1000;">
+                                            <div class="list-group shadow-sm" style="max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #ced4da; border-radius: 0.375rem; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;">
+                                                @foreach($productos_filtrados as $prod)
+                                                <button type="button" class="list-group-item list-group-item-action"
+                                                        wire:click="seleccionarProducto({{ $prod->id }})"
+                                                        style="background-color: #ffffff; border-left: none; border-right: none; border-bottom: 1px solid #f8f9fa; padding: 0.75rem 1rem; transition: background-color 0.2s;">
+                                                    <strong style="color: #212529;">{{ $prod->nombre }}</strong><br>
+                                                    <small class="text-muted" style="color: #6c757d;">
+                                                        Código: {{ $prod->codigo }}
+                                                        @if($prod->sku) | SKU: {{ $prod->sku }} @endif
+                                                    </small>
+                                                </button>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        @endif
+
+                                        @if($producto_seleccionado)
+                                        <div class="mt-2">
+                                            <span class="badge bg-success">
+                                                <i class="ri ri-check-line"></i> {{ $producto_seleccionado->nombre }} ({{ $producto_seleccionado->codigo }})
+                                            </span>
+                                        </div>
+                                        @endif
+                                        @error('producto_id') <span class="invalid-feedback d-block">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <div class="form-group mb-3">
                                     <label>Almacén *</label>
                                     <select class="form-control @error('almacen_id') is-invalid @enderror" wire:model.change="almacen_id">

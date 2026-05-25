@@ -9,12 +9,13 @@ class AsientoDetalle extends Model
     protected $table = 'asientos_detalles';
 
     protected $fillable = [
-        'asiento_id', 'cuenta_id', 'debe', 'haber', 'descripcion'
+        'asiento_id', 'cuenta_id', 'debe', 'haber', 'descripcion', 'conciliado'
     ];
 
     protected $casts = [
         'debe' => 'decimal:2',
-        'haber' => 'decimal:2'
+        'haber' => 'decimal:2',
+        'conciliado' => 'boolean'
     ];
 
     public function asiento()
@@ -25,5 +26,10 @@ class AsientoDetalle extends Model
     public function cuenta()
     {
         return $this->belongsTo(CuentaContable::class, 'cuenta_id');
+    }
+
+    public function movimientoBancario()
+    {
+        return $this->hasOne(MovimientoBancario::class);
     }
 }

@@ -87,7 +87,7 @@ class Login extends Component
             ->first();
 
         if ($userRecord && $userRecord->locked_until && $userRecord->locked_until->isFuture()) {
-            
+
             $this->registrarEventoSeguridad('Intento de acceso a cuenta bloqueada', [
                 'identificador' => $this->email,
                 'bloqueado_hasta' => 'Permanente',
@@ -203,7 +203,7 @@ class Login extends Component
 
         $medico = \App\Models\Medico::where('user_id', $user->id)->first();
         if ($medico) {
-            return redirect()->to('admin/citas');
+            return redirect()->to('admin/gestion/consultas/en-consultorio');
         }
 
         if ($user->hasRole('admin')) {
@@ -348,6 +348,6 @@ class Login extends Component
         return view('livewire.auth.login', [
             'hasError' => $this->hasError(...),
             'getError' => $this->getError(...),
-        ])->layout('components.layouts.auth-basic', ['title' => 'Login']);
+        ])->layout('components.layouts.auth-cover', ['title' => 'Login']);
     }
 }

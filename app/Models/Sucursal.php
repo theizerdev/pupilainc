@@ -38,12 +38,13 @@ class Sucursal extends Model
     public function scopeForUser($query)
     {
         if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {
+            // Los usuarios ven todas las sucursales de su empresa
             if (auth()->user()->empresa_id) {
                 $query->where('empresa_id', auth()->user()->empresa_id);
             }
-            if (auth()->user()->sucursal_id) {
-                $query->where('id', auth()->user()->sucursal_id);
-            }
+            // NO filtrar por sucursal_id del usuario - eso limitaría demasiado
+            // El sucursal_id del usuario es para saber en qué sucursal trabaja,
+            // no para limitar qué sucursales puede ver
         }
         return $query;
     }

@@ -1,256 +1,203 @@
-<div>
-    <!-- Tarjetas de estadísticas -->
-    <div class="row g-4 mb-4">
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="avatar">
-                            <div class="avatar-initial bg-primary bg-opacity-10 text-primary rounded">
-                                <i class="ri ri-group-line ri-24px"></i>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <h3 class="mb-0">{{ format_money($stats['total']) }}</h3>
-                            <small class="text-muted">Total Sesiones</small>
-                        </div>
+<div class="w-100">
+    @section('title', 'Sesiones Activas')
+
+    @push('styles')
+    <style>
+        .sessions-hero { background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%); color:#fff; border-radius:.75rem; padding:1.4rem 1.6rem; }
+        .sessions-hero h2 { color:#fff; margin:0; }
+        .sessions-hero p { opacity:.9; margin:0; }
+
+        .stat-card { border:1px solid rgba(0,0,0,.06); border-radius:.65rem; padding:.9rem 1rem;
+                     transition:all .2s; display:flex; align-items:center; gap:.85rem; height:100%; background:#fff; }
+        .stat-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.07); transform:translateY(-1px); }
+        .stat-card .stat-icon { width:44px; height:44px; border-radius:11px; flex:0 0 44px;
+                                display:flex; align-items:center; justify-content:center; font-size:1.15rem; }
+        .stat-card .stat-value { font-size:1.35rem; font-weight:600; line-height:1; }
+        .stat-card .stat-label { font-size:.72rem; color:var(--bs-secondary-color);
+                                 text-transform:uppercase; letter-spacing:.4px; font-weight:600; }
+
+        .session-row { transition:background .12s; }
+        .session-row:hover { background:#f8f9ff; }
+    </style>
+    @endpush
+
+    {{-- Hero Section --}}
+    <div class="sessions-hero mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h2 class="fw-semibold"><i class="ri ri-group-line me-2"></i>Sesiones Activas</h2>
+            <p class="mt-1">Administra y monitorea las sesiones activas del sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-light btn-sm" wire:click="loadSessions">
+                <i class="ri ri-refresh-line me-1"></i>Actualizar
+            </button>
+        </div>
+    </div>
+
+    {{-- Stat Cards --}}
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="ri ri-group-line"></i></div>
+                <div>
+                    <div class="stat-label">Total sesiones</div>
+                    <div class="stat-value">{{ $stats['total'] }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#dcfce7;color:#16a34a;"><i class="ri ri-door-open-line"></i></div>
+                <div>
+                    <div class="stat-label">Sesiones activas</div>
+                    <div class="stat-value">{{ $stats['active'] }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#cffafe;color:#0891b2;"><i class="ri ri-computer-line"></i></div>
+                <div>
+                    <div class="stat-label">Sesión actual</div>
+                    <div class="stat-value">{{ $stats['current'] }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fef3c7;color:#d97706;"><i class="ri ri-smartphone-line"></i></div>
+                <div>
+                    <div class="stat-label">Dispositivos móviles</div>
+                    <div class="stat-value">{{ $stats['mobile'] }}</div>
+                </div>
+            </div>
+        </div>
+
+
+    {{-- Main Card with Table --}}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary text-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="ri ri-list-check me-2"></i>Listado de sesiones</h5>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmBulkTerminate()" @if(count($selectedSessions) === 0) disabled @endif>
+                        <i class="ri ri-stop-circle-line me-1"></i>Terminar Seleccionadas
+                    </button>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ri ri-download-line me-1"></i>Exportar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><button class="dropdown-item" wire:click="exportSessions('csv')"><i class="ri ri-file-text-line me-2"></i>CSV</button></li>
+                            <li><button class="dropdown-item" wire:click="exportSessions('json')"><i class="ri ri-code-line me-2"></i>JSON</button></li>
+                            <li><button class="dropdown-item" wire:click="exportSessions('xml')"><i class="ri ri-code-s-slash-line me-2"></i>XML</button></li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="avatar">
-                            <div class="avatar-initial bg-success bg-opacity-10 text-success rounded">
-                                <i class="ri ri-door-open-line ri-24px"></i>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <h3 class="mb-0">{{ format_money($stats['active']) }}</h3>
-                            <small class="text-muted">Sesiones Activas</small>
-                        </div>
+
+        {{-- Compact Filters --}}
+        <div class="card-body border-bottom">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold mb-1">
+                        <i class="ri ri-search-line me-1"></i>Buscar
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" placeholder="Usuario, IP, ubicación..." wire:model.live.debounce.300ms="search">
+                        @if($search)
+                            <button class="btn btn-outline-secondary" type="button" wire:click="$set('search', '')">
+                                <i class="ri ri-close-line"></i>
+                            </button>
+                        @endif
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="avatar">
-                            <div class="avatar-initial bg-info bg-opacity-10 text-info rounded">
-                                <i class="ri ri-computer-line ri-24px"></i>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <h3 class="mb-0">{{ format_money($stats['current']) }}</h3>
-                            <small class="text-muted">Sesión Actual</small>
-                        </div>
-                    </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold mb-1">
+                        <i class="ri ri-filter-line me-1"></i>Estado
+                    </label>
+                    <select class="form-select form-select-sm" wire:model.live="status">
+                        <option value="">Todos</option>
+                        <option value="active">Activas</option>
+                        <option value="inactive">Inactivas</option>
+                        <option value="current">Sesión actual</option>
+                    </select>
                 </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div class="avatar">
-                            <div class="avatar-initial bg-warning bg-opacity-10 text-warning rounded">
-                                <i class="ri ri-smartphone-line ri-24px"></i>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <h3 class="mb-0">{{ format_money($stats['mobile']) }}</h3>
-                            <small class="text-muted">Dispositivos Móviles</small>
-                        </div>
-                    </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold mb-1">
+                        <i class="ri ri-device-line me-1"></i>Dispositivo
+                    </label>
+                    <select class="form-select form-select-sm" wire:model.live="deviceType">
+                        <option value="">Todos</option>
+                        <option value="mobile">Móvil</option>
+                        <option value="tablet">Tablet</option>
+                        <option value="desktop">Escritorio</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold mb-1">
+                        <i class="ri ri-list-check me-1"></i>Mostrar
+                    </label>
+                    <select class="form-select form-select-sm" wire:model.live="perPage">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" wire:click="clearFilters">
+                        <i class="ri ri-broom-line me-1"></i>Limpiar
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-gradient-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="card-title mb-1">
-                                <i class="ri ri-list-check ri-20px me-2"></i>
-                                Gestión de Sesiones Activas
-                            </h5>
-                            <p class="mb-0">Administra y monitorea las sesiones activas del sistema</p>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmBulkTerminate()" @if(count($selectedSessions) === 0) disabled @endif>
-                                <i class="ri ri-stop-circle-line"></i> Terminar Seleccionadas
-                            </button>
-                            <div class="dropdown">
-                                <button type="button" class="btn btn-light" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="ri ri-download-line ri-16px me-1"></i>
-                                    Exportar
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <button class="dropdown-item" wire:click="exportSessions('csv')">
-                                            <i class="ri ri-file-text-line ri-16px me-2"></i>CSV
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item" wire:click="exportSessions('json')">
-                                            <i class="ri ri-code-line ri-16px me-2"></i>JSON
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button class="dropdown-item" wire:click="exportSessions('xml')">
-                                            <i class="ri ri-code-s-slash-line ri-16px me-2"></i>XML
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
-                            <button type="button" class="btn btn-light" wire:click="loadSessions" 
-                                    data-bs-toggle="tooltip" title="Actualizar lista">
-                                <i class="ri ri-refresh-line ri-16px"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filtros mejorados -->
-                <div class="card-header bg-light">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">
-                                <i class="ri ri-search-line me-2"></i>Buscar
-                            </label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Usuario, IP, ubicación, dispositivo..."
-                                       wire:model.live.debounce.300ms="search">
-                                @if($search)
-                                    <button class="btn btn-outline-secondary" type="button" wire:click="$set('search', '')">
-                                        <i class="ri ri-close-line"></i>
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">
-                                <i class="ri ri-filter-line me-2"></i>Estado
-                            </label>
-                            <select class="form-select" wire:model.live="status">
-                                <option value="">Todos</option>
-                                <option value="active">Activas</option>
-                                <option value="inactive">Inactivas</option>
-                                <option value="current">Sesión actual</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">
-                                <i class="ri ri-device-line me-2"></i>Dispositivo
-                            </label>
-                            <select class="form-select" wire:model.live="deviceType">
-                                <option value="">Todos</option>
-                                <option value="mobile">Móvil</option>
-                                <option value="tablet">Tablet</option>
-                                <option value="desktop">Escritorio</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold">
-                                <i class="ri ri-list-check me-2"></i>Mostrar
-                            </label>
-                            <select class="form-select" wire:model.live="perPage">
-                                <option value="10">10</option>
-                                <option value="25">25</option>
-                                <option value="50">50</option>
-                                <option value="100">100</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-2 d-flex align-items-end gap-2">
-                            <button type="button" class="btn btn-outline-secondary w-100" wire:click="clearFilters" 
-                                    data-bs-toggle="tooltip" title="Limpiar todos los filtros">
-                                <i class="ri ri-broom-line"></i> Limpiar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Indicadores de filtros activos -->
-                    @if($search || $status || $deviceType)
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <div class="d-flex flex-wrap gap-2 align-items-center">
-                                    <span class="text-muted">Filtros activos:</span>
-                                    @if($search)
-                                        <span class="badge bg-primary">Búsqueda: {{ $search }}</span>
-                                    @endif
-                                    @if($status)
-                                        <span class="badge bg-success">Estado: {{ ucfirst($status) }}</span>
-                                    @endif
-                                    @if($deviceType)
-                                        <span class="badge bg-info">Dispositivo: {{ ucfirst($deviceType) }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Tabla mejorada -->
-                <div class="card-datatable table-responsive">
-                    <table class="table table-hover table-striped">
-                        <thead class="table-light">
-                            <tr>
-                                <th width="50">
-                                    <input type="checkbox" wire:model.live="selectAll" 
-                                           class="form-check-input">
-                                </th>
-                                <th wire:click="sortBy('user.name')" style="cursor: pointer;" class="fw-bold">
-                                    <i class="ri ri-user-line me-2"></i>Usuario 
-                                    @if($sortBy === 'user.name') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i> 
-                                    @endif
-                                </th>
-                                <th wire:click="sortBy('user_agent')" style="cursor: pointer;" class="fw-bold">
-                                    <i class="ri ri-device-line me-2"></i>Dispositivo 
-                                    @if($sortBy === 'user_agent') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i> 
-                                    @endif
-                                </th>
-                                <th wire:click="sortBy('ip_address')" style="cursor: pointer;" class="fw-bold">
-                                    <i class="ri ri-global-line me-2"></i>IP 
-                                    @if($sortBy === 'ip_address') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i> 
-                                    @endif
-                                </th>
-                                <th class="fw-bold">
-                                    <i class="ri ri-map-pin-line me-2"></i>Ubicación
-                                </th>
-                                <th wire:click="sortBy('last_activity')" style="cursor: pointer;" class="fw-bold">
-                                    <i class="ri ri-time-line me-2"></i>Última Actividad 
-                                    @if($sortBy === 'last_activity') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i> 
-                                    @endif
-                                </th>
-                                <th class="fw-bold">
-                                    <i class="ri ri-information-line me-2"></i>Estado
-                                </th>
-                                <th class="text-center fw-bold">
-                                    <i class="ri ri-settings-line me-2"></i>Acciones
-                                </th>
-                            </tr>
-                        </thead>
+        {{-- Main Table --}}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-primary text-white">
+                    <tr>
+                        <th width="50" class="ps-3">
+                            <input type="checkbox" wire:model.live="selectAll" class="form-check-input">
+                        </th>
+                        <th wire:click="sortBy('user.name')" style="cursor: pointer;">
+                            <i class="ri ri-user-line me-1"></i>Usuario
+                            @if($sortBy === 'user.name')
+                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                            @endif
+                        </th>
+                        <th wire:click="sortBy('user_agent')" style="cursor: pointer;">
+                            <i class="ri ri-device-line me-1"></i>Dispositivo
+                            @if($sortBy === 'user_agent')
+                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                            @endif
+                        </th>
+                        <th wire:click="sortBy('ip_address')" style="cursor: pointer;">
+                            <i class="ri ri-global-line me-1"></i>IP
+                            @if($sortBy === 'ip_address')
+                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                            @endif
+                        </th>
+                        <th><i class="ri ri-map-pin-line me-1"></i>Ubicación</th>
+                        <th wire:click="sortBy('last_activity')" style="cursor: pointer;">
+                            <i class="ri ri-time-line me-1"></i>Última Actividad
+                            @if($sortBy === 'last_activity')
+                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                            @endif
+                        </th>
+                        <th><i class="ri ri-information-line me-1"></i>Estado</th>
+                        <th class="text-center"><i class="ri ri-settings-line me-1"></i>Acciones</th>
+                    </tr>
+                </thead>
                         <tbody>
                             @forelse($sessions as $session)
                                 <tr @if($session->is_current) class="table-info" @endif>
                                     <td>
                                         @if(!$session->is_current)
-                                            <input type="checkbox" wire:model="selectedSessions" 
+                                            <input type="checkbox" wire:model="selectedSessions"
                                                    value="{{ $session->id }}" class="form-check-input">
                                         @else
                                             <span class="text-muted" title="Sesión actual">
@@ -354,8 +301,8 @@
                                     </td>
                                     <td class="text-center">
                                         @if(!$session->is_current)
-                                            <button class="btn btn-sm btn-danger" 
-                                                    wire:click="terminateSession('{{ $session->id }}')" 
+                                            <button class="btn btn-sm btn-danger"
+                                                    wire:click="terminateSession('{{ $session->id }}')"
                                                     wire:confirm="¿Estás seguro de terminar esta sesión?"
                                                     data-bs-toggle="tooltip" title="Terminar sesión">
                                                 <i class="ri ri-logout-box-line"></i>
@@ -473,7 +420,7 @@
     // Función para confirmar eliminación masiva
     function confirmBulkTerminate() {
         const selectedCount = document.querySelectorAll('input[type="checkbox"]:checked:not([wire\:model="selectAll"])').length;
-        
+
         if (selectedCount === 0) {
             if (typeof showToast === 'function') {
                 showToast('warning', 'Por favor selecciona al menos una sesión para terminar');

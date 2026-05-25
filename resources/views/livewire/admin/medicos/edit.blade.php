@@ -1,38 +1,144 @@
 <div>
  @section('title', 'Editar Médico')
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">
-            <i class="fas fa-user-md me-2"></i>Editar Médico
-        </h2>
-        <a href="{{ route('admin.medicos.index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Volver
+    @push('styles')
+    <style>
+        /* Hero Section */
+        .medico-edit-hero {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #fff;
+            border-radius: 0.75rem;
+            padding: 1.4rem 1.6rem;
+        }
+        .medico-edit-hero h2 {
+            color: #fff;
+            margin: 0;
+        }
+        .medico-edit-hero p {
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        /* Form Cards - Clean Style */
+        .form-card {
+            border: 1px solid rgba(0,0,0,.08);
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,.04);
+            transition: all 0.2s;
+            background: #fff;
+        }
+        .form-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,.08);
+        }
+        .form-card .card-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,.06);
+            padding: 1rem 1.25rem;
+        }
+        .form-card .card-header h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            color: #2d3748;
+        }
+        .form-card .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Form Inputs */
+        .form-control, .form-select {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+        }
+        label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Checkbox Styling */
+        .subespecialidad-item {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+        .subespecialidad-item:hover {
+            background: #f7fafc;
+            border-color: #cbd5e0;
+        }
+        .subespecialidad-data {
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 0.75rem;
+        }
+
+        /* Schedule Table */
+        .schedule-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            color: #718096;
+        }
+        .schedule-table td {
+            vertical-align: middle;
+        }
+
+        /* Action Buttons */
+        .btn-action {
+            border-radius: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        }
+
+        /* Image Preview */
+        .image-preview {
+            border: 2px dashed #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            text-align: center;
+            background: #f8f9fa;
+        }
+        .image-preview img {
+            max-height: 80px;
+            max-width: 100%;
+        }
+    </style>
+    @endpush
+
+    <!-- Hero Section -->
+    <div class="medico-edit-hero mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <h2 class="fw-semibold"><i class="ri ri-user-settings-line me-2"></i>Editar Médico</h2>
+            <p class="mt-1">Modifique la información del médico seleccionado</p>
+        </div>
+        <a href="{{ route('admin.medicos.index') }}" class="btn btn-light btn-sm">
+            <i class="ri ri-arrow-left-line me-1"></i>Volver al Listado
         </a>
     </div>
-
-    <!-- Mensajes -->
-    @if (session()->has('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if (session()->has('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
 <form wire:submit.prevent="save">
-        <div class="row">
-            <!-- Información Personal -->
-            <div class="col-md-8">
-                <div class="card mb-4">
+        <div class="row g-4">
+                <!-- Información Personal -->
+                <div class="form-card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-user me-2"></i>Información Personal</h5>
+                        <h5 class="mb-0"><i class="ri ri-user-line me-2"></i>Información Personal</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -83,28 +189,25 @@
                                 </div>
                             </div>
                             <div class="col-md-12">
-                              <div class="form-group mb-3">
-                                <label for="telefono" class="fw-bold">
-                                    <i class="fas fa-phone me-1"></i>Teléfono
-                                </label>
-                                <input type="tel"
-                                    class="form-control form-control @error('telefono') is-invalid @enderror"
-                                    id="telefono"
-                                    wire:model.blur="telefono"
-                                    wire:change="formatPhone"
-                                    placeholder="Ej: +58 412 1234567"
-                                    autocomplete="tel"
-                                    pattern="[\d\s\-\+\(\)]+"
-                                    title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
-                                    onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
-                                @error('telefono')
-                                    <span class="invalid-feedback">{{ $message }}</span>
-                                @enderror
-                                <small class="text-muted mt-1 d-block">
-                                    <i class="fas fa-info-circle me-1"></i>Solo se permiten números y caracteres de teléfono
-                                </small>
-                            </div>
-                           </div>
+                                    <label for="telefono" class="fw-bold">
+                                        <i class="ri ri-phone-line me-1"></i>Teléfono
+                                    </label>
+                                    <input type="tel"
+                                        class="form-control @error('telefono') is-invalid @enderror"
+                                        id="telefono"
+                                        wire:model.blur="telefono"
+                                        wire:change="formatPhone"
+                                        placeholder="Ej: +58 412 1234567"
+                                        autocomplete="tel"
+                                        pattern="[\d\s\-\+\(\)]+"
+                                        title="Solo números y caracteres válidos (+, -, espacios, paréntesis)"
+                                        onkeypress="return /[0-9+\-()\s]/.test(String.fromCharCode(event.keyCode))">
+                                    @error('telefono')
+                                        <span class="invalid-feedback">{{ $message }}</span>
+                                    @enderror
+                                    <small class="text-muted mt-1 d-block">
+                                        <i class="ri ri-information-line me-1"></i>Solo se permiten números y caracteres de teléfono
+                                    </small>
                         </div>
                         <div class="row">
                             <div class="col-md-12">
@@ -120,10 +223,10 @@
                         </div>
                     </div>
                 </div>
-                 <!-- Credenciales de Acceso -->
-                <div class="card mb-4">
+                <!-- Credenciales de Acceso -->
+                <div class="form-card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-key me-2"></i>Credenciales de Acceso</h5>
+                        <h5 class="mb-0"><i class="ri ri-key-2-line me-2"></i>Credenciales de Acceso</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -143,7 +246,7 @@
                                     <input type="text" class="form-control @error('password') is-invalid @enderror"
                                            id="password" wire:model="password" placeholder="Contraseña temporal">
                                     <small class="form-text text-muted">
-                                        La contraseña por defecto es "password". El médico deberá cambiarla al iniciar sesión.
+                                        Para cambiar la contraseña, use la opción "Restablecer Contraseña" en el listado.
                                     </small>
                                     @error('password')
                                         <span class="invalid-feedback">{{ $message }}</span>
@@ -154,9 +257,9 @@
                     </div>
                 </div>
                 <!-- Información Profesional -->
-                <div class="card mb-4">
+                <div class="form-card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Información Profesional</h5>
+                        <h5 class="mb-0"><i class="ri ri-stethoscope-line me-2"></i>Información Profesional</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -210,9 +313,9 @@
                     </div>
                 </div>
                 <!-- Especialidad y Subespecialidades -->
-                <div class="card mb-4">
+                <div class="form-card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-user-md me-2"></i>Especialidad y Subespecialidades</h5>
+                        <h5 class="mb-0"><i class="ri ri-medical-kit-line me-2"></i>Especialidad y Subespecialidades</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -237,58 +340,57 @@
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <label class="fw-bold">Subespecialidades (Opcional)</label>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" wire:click="openSubespecialidadModal">
-                                            <i class="fas fa-plus me-1"></i> Nueva Subespecialidad
+                                        <label class="fw-bold mb-0">Subespecialidades (Opcional)</label>
+                                        <button type="button"
+                                                class="btn btn-outline-primary btn-sm"
+                                                style="border-radius: 0.5rem;"
+                                                wire:click="openSubespecialidadModal">
+                                            <i class="ri ri-add-line me-1"></i>Nueva Subespecialidad
                                         </button>
                                     </div>
-                                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                        <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
                                             @forelse($subespecialidades as $subespecialidad)
-                                                <div class="form-check mb-2">
-                                                    <input class="form-check-input" type="checkbox"
-                                                           id="subespecialidad_{{ $subespecialidad->id }}"
-                                                           value="{{ $subespecialidad->id }}"
-                                                           wire:model.live="subespecialidades_seleccionadas">
-                                                    <label class="form-check-label" for="subespecialidad_{{ $subespecialidad->id }}">
-                                                        {{ $subespecialidad->nombre }}
-                                                    </label>
-                                                </div>
+                                                <div class="subespecialidad-item">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               id="subespecialidad_{{ $subespecialidad->id }}"
+                                                               value="{{ $subespecialidad->id }}"
+                                                               wire:model.live="subespecialidades_seleccionadas">
+                                                        <label class="form-check-label fw-medium" for="subespecialidad_{{ $subespecialidad->id }}">
+                                                            {{ $subespecialidad->nombre }}
+                                                        </label>
+                                                    </div>
 
-                                                @if(in_array($subespecialidad->id, $subespecialidades_seleccionadas))
-                                                    <div class="ms-4 mb-3 p-2 bg-light rounded">
-                                                        <div class="row">
-                                                            <div class="col-md-4">
-                                                                <div class="form-group mb-2">
-                                                                    <label class="small">Experiencia (años)</label>
+                                                    @if(in_array($subespecialidad->id, $subespecialidades_seleccionadas))
+                                                        <div class="subespecialidad-data">
+                                                            <div class="row g-3">
+                                                                <div class="col-md-4">
+                                                                    <label class="small fw-bold">Experiencia (años)</label>
                                                                     <input type="number" class="form-control form-control-sm"
                                                                            wire:model="subespecialidades_data.{{ $subespecialidad->id }}.experiencia_anios"
                                                                            min="0" max="50">
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <div class="form-group mb-2">
-                                                                    <label class="small">Nivel</label>
-                                                                    <select class="form-control form-control-sm"
+                                                                <div class="col-md-4">
+                                                                    <label class="small fw-bold">Nivel</label>
+                                                                    <select class="form-select form-select-sm"
                                                                             wire:model="subespecialidades_data.{{ $subespecialidad->id }}.nivel_experiencia">
                                                                         <option value="Básico">Básico</option>
                                                                         <option value="Intermedio">Intermedio</option>
                                                                         <option value="Avanzado">Avanzado</option>
                                                                     </select>
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-md-4">
-                                                                <div class="form-group mb-2">
-                                                                    <label class="small">Tarifa (opcional)</label>
+                                                                <div class="col-md-4">
+                                                                    <label class="small fw-bold">Tarifa (opcional)</label>
                                                                     <input type="number" class="form-control form-control-sm"
                                                                            wire:model="subespecialidades_data.{{ $subespecialidad->id }}.tarifa_consulta"
                                                                            step="0.01" min="0">
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                @endif
+                                                    @endif
+                                                </div>
                                             @empty
-                                                <p class="text-muted">No hay subespecialidades disponibles para esta especialidad.</p>
+                                                <p class="text-muted text-center py-3 mb-0">No hay subespecialidades disponibles para esta especialidad.</p>
                                             @endforelse
                                         </div>
                                     </div>
@@ -296,14 +398,14 @@
                             </div>
                         @endif
                     </div>
-                     <!-- Horarios de Atención -->
-                <div class="card mb-4">
+                <!-- Horarios de Atención -->
+                <div class="form-card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Horario de Atención</h5>
+                        <h5 class="mb-0"><i class="ri ri-time-line me-2"></i>Horario de Atención</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-sm">
+                            <table class="table table-sm schedule-table mb-0">
                                 <thead>
                                     <tr>
                                         <th>Día</th>
@@ -364,13 +466,109 @@
                     </div>
                 </div>
             </div>
-            <!-- Panel Derecho - Resumen y Empresa/Sucursal -->
-            <div class="col-md-4">
+            <!-- Panel Derecho - Firma, Sello y Acciones -->
+            <div class="col-md-12">
+                <!-- Firma y Sello Digital -->
+                <div class="form-card mb-4" style="border-left: 3px solid #f59e0b;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                        <h5 class="mb-0"><i class="ri ri-quill-pen-line me-2" style="color: #f59e0b;"></i>Firma y Sello Digital</h5>
+                    </div>
+                    <div class="card-body">
+
+                        {{-- FIRMA --}}
+                        <div class="mb-3">
+                            <label class="fw-bold"><i class="ri ri-quill-pen-line me-1"></i>Firma Digital</label>
+                            @if($firma_digital_actual)
+                                <div class="image-preview mb-2">
+                                    <img src="{{ Storage::url($firma_digital_actual) }}" alt="Firma">
+                                </div>
+                                <button type="button" class="btn btn-outline-danger btn-sm w-100 mb-2"
+                                        wire:click="eliminarFirma"
+                                        wire:confirm="¿Eliminar la firma digital?"
+                                        style="border-radius: 0.5rem;">
+                                    <i class="ri ri-delete-bin-line me-1"></i>Eliminar firma
+                                </button>
+                            @endif
+                            <input type="file" class="form-control form-control-sm @error('nueva_firma') is-invalid @enderror"
+                                   wire:model="nueva_firma" accept="image/*">
+                            <small class="text-muted">PNG con fondo transparente recomendado. Máx 2MB.</small>
+                            @error('nueva_firma')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                        </div>
+
+                        {{-- SELLO --}}
+                        <div class="mb-3">
+                            <label class="fw-bold"><i class="ri ri-stamp-line me-1"></i>Sello Digital</label>
+                            @if($sello_digital_actual)
+                                <div class="image-preview mb-2">
+                                    <img src="{{ Storage::url($sello_digital_actual) }}" alt="Sello">
+                                </div>
+                                <button type="button" class="btn btn-outline-danger btn-sm w-100 mb-2"
+                                        wire:click="eliminarSello"
+                                        wire:confirm="¿Eliminar el sello digital?"
+                                        style="border-radius: 0.5rem;">
+                                    <i class="ri ri-delete-bin-line me-1"></i>Eliminar sello
+                                </button>
+                            @endif
+                            <input type="file" class="form-control form-control-sm @error('nuevo_sello') is-invalid @enderror"
+                                   wire:model="nuevo_sello" accept="image/*">
+                            <small class="text-muted">PNG con fondo transparente recomendado. Máx 2MB.</small>
+                            @error('nuevo_sello')<span class="invalid-feedback d-block">{{ $message }}</span>@enderror
+                        </div>
+
+                        <hr>
+
+                        {{-- CONFIGURACIÓN --}}
+                        <label class="fw-bold"><i class="ri ri-settings-3-line me-1"></i>Configuración en Informes</label>
+
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="mostrar_firma" wire:model="config_firma.mostrar_firma">
+                            <label class="form-check-label" for="mostrar_firma">Mostrar firma</label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="mostrar_sello" wire:model="config_firma.mostrar_sello">
+                            <label class="form-check-label" for="mostrar_sello">Mostrar sello</label>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="small fw-bold">Posición</label>
+                            <select class="form-select form-select-sm" wire:model="config_firma.posicion">
+                                <option value="izquierda">Izquierda</option>
+                                <option value="centro">Centro</option>
+                                <option value="derecha">Derecha</option>
+                            </select>
+                        </div>
+
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <label class="small fw-bold">Ancho firma (mm)</label>
+                                <input type="number" class="form-control form-control-sm" wire:model="config_firma.ancho_firma" min="20" max="100">
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold">Ancho sello (mm)</label>
+                                <input type="number" class="form-control form-control-sm" wire:model="config_firma.ancho_sello" min="15" max="80">
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <label class="small fw-bold">Mostrar en:</label>
+                            @foreach(['informe' => 'Informe Médico', 'recipe' => 'Recipe Médico', 'orden_estudios' => 'Orden de Estudios'] as $key => $label)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           id="mostrar_en_{{ $key }}"
+                                           value="{{ $key }}"
+                                           wire:model="config_firma.mostrar_en">
+                                    <label class="form-check-label small" for="mostrar_en_{{ $key }}">{{ $label }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+
+                    </div>
+                </div>
                 <!-- Empresa y Sucursal -->
                 @if(auth()->user()->hasRole('Super Administrador'))
-                    <div class="card mb-4">
+                    <div class="form-card mb-4">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-building me-2"></i>Empresa y Sucursal</h5>
+                            <h5 class="mb-0"><i class="ri ri-building-line me-2"></i>Empresa y Sucursal</h5>
                         </div>
                         <div class="card-body">
                             <div class="form-group mb-3">
@@ -402,15 +600,15 @@
                         </div>
                     </div>
                 @else
-                    <div class="card mb-4">
+                    <div class="form-card mb-4">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-building me-2"></i>Información de la Empresa</h5>
+                            <h5 class="mb-0"><i class="ri ri-building-line me-2"></i>Información de la Empresa</h5>
                         </div>
                         <div class="card-body">
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                El médico será registrado automáticamente en:
-                                <hr>
+                            <div class="alert alert-info" style="border-radius: 0.5rem;">
+                                <i class="ri ri-information-line me-2"></i>
+                                El médico está registrado en:
+                                <hr class="my-2">
                                 <strong>Empresa:</strong> {{ auth()->user()->empresa->razon_social }}<br>
                                 <strong>Sucursal:</strong> {{ auth()->user()->sucursal->nombre }}
                             </div>
@@ -418,34 +616,34 @@
                     </div>
                 @endif
 
-                <!-- Resumen -->
-                <div class="card mb-4">
+                <!-- Botones de Acción -->
+                <div class="form-card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Resumen</h5>
+                        <h5 class="mb-0"><i class="ri ri-save-line me-2"></i>Acciones</h5>
                     </div>
                     <div class="card-body">
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-save me-2"></i>Editar Médico
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" >
+                                <i class="ri ri-check-line me-2"></i>Guardar Cambios
                             </button>
-                            <a href="{{ route('admin.medicos.index') }}" class="btn btn-secondary mt-2">
-                                <i class="fas fa-times me-2"></i>Cancelar
+                            <a href="{{ route('admin.medicos.index') }}" class="btn btn-outline-secondary btn-action">
+                                <i class="ri ri-close-line me-2"></i>Cancelar
                             </a>
                         </div>
                     </div>
                 </div>
 
                 <!-- Nota Importante -->
-                <div class="card">
-                    <div class="card-header bg-warning">
-                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Importante</h5>
+                <div class="form-card" style="border-left: 3px solid #f59e0b;">
+                    <div class="card-header" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+                        <h5 class="mb-0"><i class="ri ri-alert-line me-2" style="color: #f59e0b;"></i>Importante</h5>
                     </div>
                     <div class="card-body">
-                        <ul class="small mb-0">
-                            <li>El médico recibirá un correo de bienvenida con sus credenciales.</li>
-                            <li>La contraseña temporal es "password".</li>
-                            <li>Se Editará automáticamente un usuario con rol de Médico.</li>
-                            <li>El médico deberá cambiar su contraseña al primer inicio de sesión.</li>
+                        <ul class="small mb-0" style="padding-left: 1.25rem;">
+                            <li class="mb-2">Los cambios se guardarán inmediatamente.</li>
+                            <li class="mb-2">Para cambiar la contraseña, use la opción "Restablecer Contraseña" en el listado.</li>
+                            <li class="mb-2">El rol de Médico se mantendrá sin cambios.</li>
+                            <li>Los horarios actualizados afectarán las citas futuras.</li>
                         </ul>
                     </div>
                 </div>

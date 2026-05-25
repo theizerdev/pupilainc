@@ -36,6 +36,7 @@ class Cita extends Model
     const ESTADO_EN_OPTICA = 'en_optica';
     const ESTADO_EN_ESTUDIO = 'en_estudio';
     const ESTADO_FINALIZADA = 'finalizada';
+    const ESTADO_COMPLETADA = 'finalizada';
     const ESTADO_PAGADA = 'pagada';
 
     const ESTADOS = [
@@ -315,19 +316,19 @@ class Cita extends Model
                     'estado_changed_at' => now(),
                 ]);
             }
-            
+
             // Verificar si es el primer cambio al estado de sala de espera y si la preconsulta aún está pendiente
             // y si no se han completado las respuestas de preconsulta
-            if ($nuevoEstado === self::ESTADO_SALA_ESPERA && 
+            if ($nuevoEstado === self::ESTADO_SALA_ESPERA &&
                 $estadoAnterior !== self::ESTADO_SALA_ESPERA) {
-                
+
                 // Verificar si ya se completaron las respuestas de preconsulta
                 $yaTieneRespuestas = $this->respuestasPreconsulta()
                     ->where('completado', true)
                     ->exists();
-                
+
                 // Solo enviar el formulario si no ha sido completado previamente
-                if ($this->estado_preconsulta === 'pendiente' && !$yaTieneRespuestas) {
+                if ($this->estado_preconsulta === 'pendiente') {
                     $this->crearPreconsultaYEnviarWhatsApp();
                 }
             }
@@ -336,7 +337,7 @@ class Cita extends Model
             $yaTieneRespuestas = $this->respuestasPreconsulta()
                 ->where('completado', true)
                 ->exists();
-                
+
             if ($this->estado_preconsulta === 'pendiente' && !$yaTieneRespuestas) {
                 $this->crearPreconsultaYEnviarWhatsApp();
             }
@@ -355,7 +356,23 @@ class Cita extends Model
             $token = \Illuminate\Support\Str::random(32);
             $resultado['token'] = $token;
 
-            $cuestionario = \App\Models\Cuestionario::where('activo', true)->first();
+            // Buscar cuestionario: primero por especialidad, luego genérico
+            $cuestionario = null;
+            if ($this->especialidad_id) {
+                $cuestionario = \App\Models\Cuestionario::where('activo', true)
+                    ->where('empresa_id', $this->empresa_id)
+                    ->where('tipo', 'preconsulta')
+                    ->where('especialidad_id', $this->especialidad_id)
+                    ->first();
+            }
+            if (!$cuestionario) {
+                $cuestionario = \App\Models\Cuestionario::where('activo', true)
+                    ->where('empresa_id', $this->empresa_id)
+                    ->where('tipo', 'preconsulta')
+                    ->whereNull('especialidad_id')
+                    ->first();
+            }
+
             if ($cuestionario) {
                 foreach ($cuestionario->preguntas as $pregunta) {
                     \App\Models\RespuestaPreconsulta::create([
@@ -375,6 +392,15 @@ class Cita extends Model
 
             $whatsappEnviado = $this->enviarCuestionarioWhatsApp($token);
             $resultado['whatsapp_enviado'] = $whatsappEnviado;
+
+            // Actualizar el estado de la preconsulta a 'enviado' después de enviar el cuestionario
+            if ($whatsappEnviado) {
+                $this->update([
+                    'estado_preconsulta' => 'enviado',
+                    'token_preconsulta' => $token,
+                    'fecha_envio_preconsulta' => now(),
+                ]);
+            }
 
             \Log::info('Preconsulta creada para cita', ['cita_id' => $this->id, 'token' => $token, 'resultado' => $resultado]);
         } catch (\Exception $e) {
@@ -537,6 +563,16 @@ class Cita extends Model
             return;
         }
 
+        // Recordatorio 48 horas antes
+        if ($this->fecha_inicio->subHours(48) > now()) {
+            $this->recordatorios()->create([
+                'tipo' => '48h',
+                'fecha_envio_programado' => $this->fecha_inicio->copy()->subHours(48),
+                'canal' => 'whatsapp',
+                'mensaje' => $this->generarMensajeRecordatorio('48h')
+            ]);
+        }
+
         // Recordatorio 24 horas antes
         if ($this->fecha_inicio->subDay() > now()) {
             $this->recordatorios()->create([
@@ -566,6 +602,32 @@ class Cita extends Model
         $sucursal = $this->sucursal->nombre;
 
         switch ($tipo) {
+            case '48h':
+                $mensaje = "🩺 *Recordatorio de Cita Médica*\n\n" .
+                           "Hola {$this->paciente->nombre_completo},\n\n" .
+                           "Le recordamos que tiene una cita médica programada:\n\n" .
+                           "📅 *Fecha:* {$fecha}\n" .
+                           "👨‍⚕️ *Médico:* {$medico}\n" .
+                           "🏥 *Especialidad:* {$especialidad}\n" .
+                           "🏢 *Sucursal:* {$sucursal}\n\n";
+
+                // Incluir formulario de preconsulta si aún no ha sido completado
+                if ($this->estado_preconsulta !== 'completado') {
+                    // Generar token si no existe
+                    if (!$this->token_preconsulta) {
+                        $token = \Illuminate\Support\Str::random(32);
+                        $this->update(['token_preconsulta' => $token]);
+                    }
+
+                    $mensaje .= "📋 *FORMULARIO DE PRECONSULTA*\n\n" .
+                               "Para agilizar su atención, le solicitamos completar el formulario de preconsulta:\n\n" .
+                               "🔗 Complete su preconsulta aquí: " . route('preconsulta.formulario', ['token' => $this->token_preconsulta]) . "\n\n" .
+                               "⏰ Recuerde completarlo antes de su cita.\n\n";
+                }
+
+                $mensaje .= "Por favor confirme su asistencia respondiendo *SI* o *NO*";
+                return $mensaje;
+
             case '24h':
                 return "🩺 *Recordatorio de Cita Médica*\n\n" .
                        "Hola {$this->paciente->nombre_completo},\n\n" .
@@ -613,19 +675,50 @@ class Cita extends Model
         // Información de la consulta asociada si existe
         $consultaEstadoLabel = null;
         $tiempoGotasFormateado = null;
+        $gotasCount = 0;
+        $gotasOdTotal = 0;
+        $gotasOiTotal = 0;
+        $tiempoUltimaGota = null;
         if ($this->consulta) {
             $consultaEstadoLabel = Consulta::ESTADO_LABELS[$this->consulta->estado] ?? ucfirst($this->consulta->estado);
             // Agregar tiempo en gotas si aplica
             if (in_array($this->consulta->estado, ['en_gotas', 'dilatado'])) {
                 $tiempoGotasFormateado = $this->consulta->tiempo_gotas_formateado;
             }
+            // Datos de gotas aplicadas (como en lista-por-estado.blade.php)
+            $gotasAplicadas = $this->consulta->gotasAplicadas;
+            $gotasCount = $gotasAplicadas->count();
+            if ($gotasCount > 0) {
+                $gotasOdTotal = (int) $gotasAplicadas->sum('gotas_od');
+                $gotasOiTotal = (int) $gotasAplicadas->sum('gotas_oi');
+                $ultimaGota = $gotasAplicadas->last();
+                if ($ultimaGota && $ultimaGota->created_at) {
+                    $tiempoUltimaGota = $ultimaGota->created_at->diffForHumans(null, true, true);
+                }
+            }
         }
+
+        // Convertir las fechas de UTC a la zona horaria del usuario para mostrarlas correctamente
+        $timezone = session('timezone', config('app.timezone', 'America/Caracas'));
+        $inicioLocal = $this->fecha_inicio->tz($timezone);
+        $finLocal = $this->fecha_fin->tz($timezone);
+
+        // Estados dinámicos según la especialidad de la cita
+        $estadosFlujo = \App\Models\EspecialidadPlantilla::estadosFlujoParaEspecialidad($this->especialidad_id);
+        $estadosLabels = array_intersect_key(
+            array_merge(self::ESTADO_LABELS, \App\Models\EspecialidadPlantilla::ESTADOS_DISPONIBLES),
+            array_flip($estadosFlujo)
+        );
+        $estadosColores = array_intersect_key(
+            self::ESTADO_COLORES,
+            array_flip($estadosFlujo)
+        );
 
         return [
             'id' => $this->id,
             'title' => $nombrePaciente,
-            'start' => $this->fecha_inicio->format('Y-m-d\TH:i:s'),
-            'end' => $this->fecha_fin->format('Y-m-d\TH:i:s'),
+            'start' => $inicioLocal->format('Y-m-d\TH:i:s'),
+            'end' => $finLocal->format('Y-m-d\TH:i:s'),
             'allDay' => false,
             'extendedProps' => [
                 'tipo_evento' => 'cita',
@@ -653,8 +746,16 @@ class Cita extends Model
                 'prioridad_label' => self::PRIORIDAD_LABELS[$this->prioridad ?? 'normal'] ?? 'Normal',
                 'tiene_consulta' => $tieneConsulta,
                 'consulta_id' => $this->consulta?->id,
-                'consulta_estado_label' => $consultaEstadoLabel, // Etiqueta del estado de la consulta asociada
-                'tiempo_gotas_formateado' => $tiempoGotasFormateado, // Tiempo en gotas si aplica
+                'consulta_estado_label' => $consultaEstadoLabel,
+                'tiempo_gotas_formateado' => $tiempoGotasFormateado,
+                'gotas_count' => $gotasCount,
+                'gotas_od_total' => $gotasOdTotal,
+                'gotas_oi_total' => $gotasOiTotal,
+                'tiempo_ultima_gota' => $tiempoUltimaGota,
+                // Estados dinámicos según especialidad
+                'estados_flujo'   => $estadosFlujo,
+                'estados_labels'  => $estadosLabels,
+                'estados_colores' => $estadosColores,
             ],
         ];
     }
@@ -707,6 +808,15 @@ class Cita extends Model
         static::created(function ($cita) {
             \Log::info('Cita creada con estado: ' . $cita->estado, ['cita_id' => $cita->id]);
             \Log::info('Cita ' . $cita->id . ' creada - confirmación se enviará integrada en la notificación');
+
+            // Citas de alta prioridad o emergencia: enviar cuestionario inmediatamente
+            if (in_array($cita->prioridad, [self::PRIORIDAD_ALTA, self::PRIORIDAD_EMERGENCIA])) {
+                \Log::info('Cita de alta prioridad/emergencia: enviando cuestionario inmediatamente', [
+                    'cita_id'   => $cita->id,
+                    'prioridad' => $cita->prioridad,
+                ]);
+                $cita->crearPreconsultaYEnviarWhatsApp();
+            }
         });
     }
 }

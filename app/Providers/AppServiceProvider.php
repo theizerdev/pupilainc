@@ -32,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
         }
 
+
+
+
         // Configurar vista de paginación personalizada para Livewire
         Paginator::defaultView('livewire.pagination');
         Paginator::defaultSimpleView('livewire.pagination');

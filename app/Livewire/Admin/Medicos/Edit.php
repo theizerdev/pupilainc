@@ -66,6 +66,20 @@ class Edit extends Component
     public $sub_color = '#3B82F6';
     public $sub_icono = 'fa-stethoscope';
 
+    // Firma y sello digital
+    public $firma_digital_actual;
+    public $sello_digital_actual;
+    public $nueva_firma;
+    public $nuevo_sello;
+    public $config_firma = [
+        'mostrar_firma'  => true,
+        'mostrar_sello'  => true,
+        'posicion'       => 'centro',   // izquierda | centro | derecha
+        'ancho_firma'    => 50,         // mm
+        'ancho_sello'    => 30,         // mm
+        'mostrar_en'     => ['informe', 'recipe', 'orden_estudios'], // secciones
+    ];
+
     protected function rules()
     {
         $rules = [
@@ -134,6 +148,11 @@ class Edit extends Component
         $this->status = $medico->status;
         $this->empresa_id = $medico->empresa_id;
         $this->sucursal_id = $medico->sucursal_id;
+
+        // Firma y sello
+        $this->firma_digital_actual = $medico->firma_digital;
+        $this->sello_digital_actual = $medico->sello_digital;
+        $this->config_firma = array_merge($this->config_firma, $medico->config_firma ?? []);
 
         // Cargar especialidad principal
         $especialidadPrincipal = $medico->especialidades()->first();
@@ -314,28 +333,48 @@ class Edit extends Component
         $this->validate();
 
         try {
-            // Actualizar datos del médico
             $medico = Medico::findOrFail($this->medico_id);
-            $medico->update([
-                'nombres' => $this->nombres,
-                'apellidos' => $this->apellidos,
-                'genero' => $this->genero,
-                'documento_identidad' => $this->documento_identidad,
-                'telefono' => $this->telefono,
-                'direccion' => $this->direccion,
-                'licencia_medica' => $this->licencia_medica,
-                'anios_experiencia' => $this->anios_experiencia,
-                'nivel_experiencia' => $this->nivel_experiencia,
-                'status' => $this->status,
-                'empresa_id' => $this->empresa_id,
-                'sucursal_id' => $this->sucursal_id,
-            ]);
+
+            $data = [
+                'nombres'            => $this->nombres,
+                'apellidos'          => $this->apellidos,
+                'genero'             => $this->genero,
+                'documento_identidad'=> $this->documento_identidad,
+                'telefono'           => $this->telefono,
+                'direccion'          => $this->direccion,
+                'licencia_medica'    => $this->licencia_medica,
+                'anios_experiencia'  => $this->anios_experiencia,
+                'nivel_experiencia'  => $this->nivel_experiencia,
+                'status'             => $this->status,
+                'empresa_id'         => $this->empresa_id,
+                'sucursal_id'        => $this->sucursal_id,
+                'config_firma'       => $this->config_firma,
+            ];
+
+            // Procesar firma digital
+            if ($this->nueva_firma) {
+                $this->validate(['nueva_firma' => 'image|max:2048']);
+                if ($medico->firma_digital) {
+                    \Storage::disk('public')->delete($medico->firma_digital);
+                }
+                $data['firma_digital'] = $this->nueva_firma->store('medicos/firmas', 'public');
+            }
+
+            // Procesar sello digital
+            if ($this->nuevo_sello) {
+                $this->validate(['nuevo_sello' => 'image|max:2048']);
+                if ($medico->sello_digital) {
+                    \Storage::disk('public')->delete($medico->sello_digital);
+                }
+                $data['sello_digital'] = $this->nuevo_sello->store('medicos/sellos', 'public');
+            }
+
+            $medico->update($data);
 
             // Actualizar datos del usuario
-            $user = $medico->user;
-            $user->update([
-                'name' => "{$this->nombres} {$this->apellidos}",
-                'email' => $this->email,
+            $medico->user->update([
+                'name'   => "{$this->nombres} {$this->apellidos}",
+                'email'  => $this->email,
                 'status' => $this->status,
             ]);
 
@@ -350,42 +389,39 @@ class Edit extends Component
             // Actualizar subespecialidades con experiencia y nivel
             $subespecialidades_sync = [];
             foreach ($this->subespecialidades_seleccionadas as $subespecialidadId) {
-                $data = $this->subespecialidades_data[$subespecialidadId] ?? [
+                $data2 = $this->subespecialidades_data[$subespecialidadId] ?? [
                     'experiencia_anios' => 0,
                     'nivel_experiencia' => 'Básico',
-                    'tarifa_consulta' => null,
+                    'tarifa_consulta'   => null,
                 ];
-
                 $subespecialidades_sync[$subespecialidadId] = [
-                    'experiencia_anios' => $data['experiencia_anios'] ?? 0,
-                    'nivel_experiencia' => $data['nivel_experiencia'] ?? 'Básico',
-                    'tarifa_consulta' => $data['tarifa_consulta'] ?? null,
-                    'status' => true,
+                    'experiencia_anios' => $data2['experiencia_anios'] ?? 0,
+                    'nivel_experiencia' => $data2['nivel_experiencia'] ?? 'Básico',
+                    'tarifa_consulta'   => $data2['tarifa_consulta'] ?? null,
+                    'status'            => true,
                 ];
             }
-
             $medico->subespecialidades()->sync($subespecialidades_sync);
 
             // Actualizar horarios del médico
-            $medico->horarios()->delete(); // Eliminar horarios anteriores
-
+            $medico->horarios()->delete();
             foreach ($this->horarios as $dia => $horario) {
                 $medico->horarios()->updateOrCreate(
                     ['dia_semana' => $dia],
                     [
-                        'hora_inicio' => $horario['hora_inicio'],
-                        'hora_fin' => $horario['hora_fin'],
-                        'duracion_cita' => $horario['duracion_cita'],
-                        'activo' => $horario['activo'],
-                        'empresa_id' => $medico->empresa_id,
-                        'sucursal_id' => $medico->sucursal_id,
+                        'hora_inicio'  => $horario['hora_inicio'],
+                        'hora_fin'     => $horario['hora_fin'],
+                        'duracion_cita'=> $horario['duracion_cita'],
+                        'activo'       => $horario['activo'],
+                        'empresa_id'   => $medico->empresa_id,
+                        'sucursal_id'  => $medico->sucursal_id,
                     ]
                 );
             }
 
             $this->dispatch('notify', [
-                'type' => 'success',
-                'message' => 'Horarios del médico actualizados exitosamente.',
+                'type'     => 'success',
+                'message'  => 'Médico actualizado exitosamente.',
                 'duration' => 5000
             ]);
 
@@ -393,6 +429,26 @@ class Edit extends Component
 
         } catch (\Exception $e) {
             session()->flash('error', 'Error al actualizar el médico: ' . $e->getMessage());
+        }
+    }
+
+    public function eliminarFirma()
+    {
+        $medico = Medico::findOrFail($this->medico_id);
+        if ($medico->firma_digital) {
+            \Storage::disk('public')->delete($medico->firma_digital);
+            $medico->update(['firma_digital' => null]);
+            $this->firma_digital_actual = null;
+        }
+    }
+
+    public function eliminarSello()
+    {
+        $medico = Medico::findOrFail($this->medico_id);
+        if ($medico->sello_digital) {
+            \Storage::disk('public')->delete($medico->sello_digital);
+            $medico->update(['sello_digital' => null]);
+            $this->sello_digital_actual = null;
         }
     }
 

@@ -15,6 +15,7 @@ class Index extends Component
     public $status = '';
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
+    public $selected = [];
 
     protected $queryString = [
         'search'        => ['except' => ''],
@@ -68,6 +69,47 @@ class Index extends Component
             'message'  => 'Marca eliminada exitosamente.',
             'duration' => 3000,
         ]);
+    }
+
+    public function deleteSelected()
+    {
+        $this->authorize('delete marcas');
+        if (empty($this->selected)) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'No hay marcas seleccionadas.', 'duration' => 3000]);
+            return;
+        }
+
+        $deleted = 0;
+        $skipped = [];
+
+        foreach ($this->selected as $id) {
+            $m = Marca::find($id);
+            if (! $m) continue;
+            if (\App\Models\Producto::where('marca_id', $id)->exists()) {
+                $skipped[] = $m->nombre;
+                continue;
+            }
+            $m->delete();
+            $deleted++;
+        }
+
+        $this->selected = [];
+
+        if ($deleted > 0) {
+            $message = "$deleted marca(s) eliminada(s).";
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'success', 'message' => $message, 'duration' => 5000]);
+        } else {
+            $message = 'No se eliminaron marcas. Algunos registros tienen relaciones.';
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'error', 'message' => $message, 'duration' => 5000]);
+        }
     }
 
     public function getMarcasProperty()

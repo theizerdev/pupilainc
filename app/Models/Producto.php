@@ -17,15 +17,20 @@ class Producto extends Model
         'nombre', 'codigo', 'sku', 'descripcion',
         'categoria_producto_id', 'marca_id', 'proveedor_id',
         'unidad_medida', 'precio_costo', 'precio_venta',
+        'aplica_iva', 'exento_iva', 'iva_alicuota', 'codigo_fiscal', 'categoria_fiscal',
         'stock_minimo', 'stock_maximo', 'punto_reorden',
         'fecha_vencimiento', 'ubicacion_fisica',
         'requiere_receta', 'es_medicamento', 'status', 'imagen',
+        'codigo_barras', 'peso', 'dimensiones',
         'empresa_id', 'sucursal_id',
     ];
 
     protected $casts = [
         'precio_costo'      => 'decimal:2',
         'precio_venta'      => 'decimal:2',
+        'aplica_iva'        => 'boolean',
+        'exento_iva'        => 'boolean',
+        'iva_alicuota'      => 'decimal:2',
         'stock_minimo'      => 'integer',
         'stock_maximo'      => 'integer',
         'punto_reorden'     => 'integer',
@@ -33,6 +38,7 @@ class Producto extends Model
         'requiere_receta'   => 'boolean',
         'es_medicamento'    => 'boolean',
         'status'            => 'boolean',
+        'peso'              => 'decimal:3',
     ];
 
     // ─── Relaciones ───────────────────────────────────────────────
@@ -55,6 +61,26 @@ class Producto extends Model
     public function ordenesDetalle()
     {
         return $this->hasMany(OrdenCompraDetalle::class);
+    }
+
+    public function variantes()
+    {
+        return $this->hasMany(ProductoVariante::class)->orderBy('orden')->orderBy('id');
+    }
+
+    public function imagenes()
+    {
+        return $this->hasMany(ProductoImagen::class)->orderBy('orden');
+    }
+
+    public function imagenPrincipal()
+    {
+        return $this->hasOne(ProductoImagen::class)->where('principal', true)->orderBy('orden');
+    }
+
+    public function ventasProductos()
+    {
+        return $this->hasMany(VentaProducto::class);
     }
 
     // ─── Stock ────────────────────────────────────────────────────
@@ -97,6 +123,25 @@ class Producto extends Model
     public function getValorizacionAttribute(): float
     {
         return $this->stockTotal() * (float) $this->precio_costo;
+    }
+
+    public function getPrecioConIvaAttribute(): float
+    {
+        if ($this->exento_iva || !$this->aplica_iva) {
+            return (float) $this->precio_venta;
+        }
+        
+        return (float) $this->precio_venta * (1 + ($this->iva_alicuota / 100));
+    }
+
+    public function calcularIva(float $cantidad = 1): float
+    {
+        if ($this->exento_iva || !$this->aplica_iva) {
+            return 0;
+        }
+        
+        $subtotal = $cantidad * (float) $this->precio_venta;
+        return $subtotal * ($this->iva_alicuota / 100);
     }
 
     // ─── Scopes ───────────────────────────────────────────────────
@@ -142,6 +187,14 @@ class Producto extends Model
         static::creating(function ($p) {
             if (!$p->codigo) {
                 $p->codigo = 'PROD-' . str_pad(static::withoutGlobalScopes()->count() + 1, 5, '0', STR_PAD_LEFT);
+            }
+            if (empty($p->fecha_vencimiento)) {
+                $p->fecha_vencimiento = null;
+            }
+        });
+        static::saving(function ($p) {
+            if (empty($p->fecha_vencimiento)) {
+                $p->fecha_vencimiento = null;
             }
         });
     }

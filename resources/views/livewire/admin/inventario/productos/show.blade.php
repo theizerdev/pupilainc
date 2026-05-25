@@ -42,7 +42,7 @@
                 <div class="card-body">
                     <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Stock Total</div>
                     <div class="h4 mb-0 font-weight-bold text-primary">{{ $producto->stockTotal() }}</div>
-                    <small class="text-muted">Valorización: ${{ number_format($producto->valorizacion, 2) }}</small>
+                    <small class="text-muted">Valorización: {{ money($producto->valorizacion, 2) }}</small>
                 </div>
             </div>
         </div>

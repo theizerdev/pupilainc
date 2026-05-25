@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Pago;
 use Illuminate\Http\Request;
 
+
 class LibroVentasController extends Controller
 {
+   
+
     public function index(Request $request)
     {
         $desde = $request->get('desde', now()->startOfMonth()->format('Y-m-d'));

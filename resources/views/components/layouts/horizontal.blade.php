@@ -12,11 +12,12 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-    <title>{{ 'PUPILAINC' }}</title>
+    <title>{{ 'PUPILA INC' }}</title>
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-      <link rel="icon" type="image/x-icon" href="/logo/app.png" height="200px" />
+      <link rel="icon" type="image/x-icon" href="/logo/1719430882.png" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -105,7 +106,7 @@
             <div class="container-fluid flex-grow-1 container-p-y">
 
               <!-- Componente de notificaciones global -->
-              <x-notifications />
+
 
               {{ $slot }}
             </div>
@@ -156,9 +157,28 @@
     <!-- Toast Container -->
 
     @include('components.toast-container')
-    
+
     <!-- Widget de Chat Flotante Global -->
     @livewire('floating-chat-widget')
+
+    <!-- Timer Global de Dilatación -->
+    @livewire('dilatation-timer')
+
+    <!-- Script global para manejar eventos de notificaciones -->
+
+     <!-- Configuración de Livewire para manejar CSRF automáticamente -->
+    <script>
+        // Configurar Livewire para auto-refresh cuando el token CSRF expira
+        // en lugar de mostrar el modal de "Page Expired"
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof Livewire !== 'undefined') {
+                Livewire.on('csrf-token-mismatch', function() {
+                    // Auto-refresh silencioso sin mostrar modal
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
 
     @stack('scripts')
   </body>

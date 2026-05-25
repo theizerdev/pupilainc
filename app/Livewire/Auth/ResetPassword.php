@@ -106,6 +106,6 @@ class ResetPassword extends Component
         return view('livewire.auth.reset-password', [
             'hasError' => $this->hasError(...),
             'getError' => $this->getError(...),
-        ])->layout('components.layouts.auth-basic', ['title' => 'Restablecer Contraseña']);
+        ])->layout('components.layouts.auth-cover', ['title' => 'Restablecer Contraseña']);
     }
 }

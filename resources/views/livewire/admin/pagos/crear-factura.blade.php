@@ -8,13 +8,19 @@
     @endif
 
     <div class="row">
-        <div class="col-12">
+        {{-- Panel lateral de gestión de caja --}}
+        <div class="col-md-4 col-lg-3">
+            @livewire('admin.cajas.gestion-caja-rapida')
+        </div>
+
+        {{-- Contenido principal --}}
+        <div class="col-md-8 col-lg-9">
             <div class="card">
                 <div class="card-header pb-0">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="mb-0">
-                                <i class="fas fa-file-invoice-dollar me-2"></i>
+                                <i class="fas fa-file-invoice-dollar me-2 mb-4"></i>
                                 Registrar Pago
                                 @if($consulta_seleccionada)
                                     - Consulta #{{ $consulta_seleccionada->codigo }}
@@ -28,64 +34,140 @@
                             </small>
                             @endif
                         </div>
-                        <span class="badge bg-info">Tasa BCV: $1 =  {{ format_money($tasa_usd, 2) }}</span>
+                        @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                        <span class="badge bg-info">Tasa BCV: $1 = {{ format_money($tasa_usd) }}</span>
+                        @endif
                     </div>
                 </div>
                 <div class="card-body">
-                    {{-- ============ BUSCAR CONSULTA (si no viene de una consulta) ============ --}}
-                    @if(!$consulta_seleccionada)
+                    {{-- ============ BUSCADOR UNIFICADO ============ --}}
+                    @if(!$consulta_seleccionada && !$cliente_seleccionado && !$mostrar_form_cliente_nuevo)
                     <div class="card border border-primary mb-3">
                         <div class="card-header py-2 bg-primary bg-opacity-10">
-                            <h6 class="mb-0 text-sm text-primary"><i class="fas fa-search me-2"></i>Buscar Consulta</h6>
+                            <h6 class="mb-0 text-sm text-primary"><i class="fas fa-search me-2"></i>Buscar Consulta o Cliente</h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="position-relative">
+                                <input wire:model.live.debounce.300ms="search_principal"
+                                       type="text"
+                                       class="form-control"
+                                       placeholder="Buscar por nombre, documento, código de consulta o teléfono..."
+                                       autocomplete="off">
+
+                                @if(count($resultados_busqueda) > 0)
+                                <div class="position-absolute w-100 bg-white border rounded shadow mt-1" style="z-index:1000; max-height:420px; overflow-y:auto;">
+                                    @foreach($resultados_busqueda as $i => $res)
+                                    <div wire:click="seleccionarConsultaOCliente({{ $i }})" class="p-3 border-bottom" style="cursor:pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                @if($res['_tipo'] === 'consulta')
+                                                    <span class="badge bg-primary me-1"><i class="fas fa-stethoscope"></i> Consulta</span>
+                                                @else
+                                                    <span class="badge bg-success me-1"><i class="fas fa-user"></i> Cliente</span>
+                                                @endif
+                                                <strong>{{ $res['titulo'] }}</strong>
+                                                <br><small class="text-muted">{{ $res['subtitulo'] }}</small>
+                                            </div>
+                                            @if($res['_tipo'] === 'consulta')
+                                            <small class="text-muted">{{ $res['fecha'] }}</small>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @endforeach
+
+                                    {{-- Opción crear cliente nuevo --}}
+                                    <div wire:click="mostrarFormNuevoCliente" class="p-3 text-center" style="cursor:pointer; background:#f0f7ff;" onmouseover="this.style.backgroundColor='#dbeafe'" onmouseout="this.style.backgroundColor='#f0f7ff'">
+                                        <i class="fas fa-user-plus text-primary me-1"></i>
+                                        <span class="text-primary fw-bold">Crear nuevo cliente: "{{ $search_principal }}"</span>
+                                    </div>
+                                </div>
+                                @elseif(strlen($search_principal) >= 2 && count($resultados_busqueda) === 0)
+                                <div class="position-absolute w-100 bg-white border rounded shadow mt-1" style="z-index:1000;">
+                                    <div class="p-3 text-muted text-center">
+                                        <i class="fas fa-search me-1"></i> No se encontraron resultados
+                                    </div>
+                                    <div wire:click="mostrarFormNuevoCliente" class="p-3 text-center border-top" style="cursor:pointer; background:#f0f7ff;" onmouseover="this.style.backgroundColor='#dbeafe'" onmouseout="this.style.backgroundColor='#f0f7ff'">
+                                        <i class="fas fa-user-plus text-primary me-1"></i>
+                                        <span class="text-primary fw-bold">Crear nuevo cliente: "{{ $search_principal }}"</span>
+                                    </div>
+                                </div>
+                                @endif
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Busca una consulta finalizada o un cliente existente. Si no existe, puedes crearlo.
+                            </small>
+                        </div>
+                    </div>
+
+                    {{-- Formulario crear cliente nuevo --}}
+                    @elseif($mostrar_form_cliente_nuevo)
+                    <div class="card border border-warning mb-3">
+                        <div class="card-header py-2 bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-sm text-warning"><i class="fas fa-user-plus me-2"></i>Nuevo Cliente</h6>
+                            <button type="button" wire:click="limpiarSeleccion" class="btn btn-sm btn-link text-muted p-0">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                         <div class="card-body py-3">
                             <div class="row">
-                                <div class="col-12">
-                                    <label class="form-label fw-bold">Buscar por Paciente (Nombre, Apellido o Documento)</label>
-                                    <div class="position-relative">
-                                        <input wire:model.live.debounce.300ms="search_consulta" type="text" class="form-control" placeholder="Ej: Juan Pérez, 12345678..." autocomplete="off">
 
-                                        {{-- Dropdown de resultados --}}
-                                        @if(count($consultas) > 0)
-                                        <div class="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style="z-index: 1000; max-height: 400px; overflow-y: auto;">
-                                            @foreach($consultas as $consulta)
-                                            <div wire:click="seleccionarConsulta({{ $consulta->id }})" class="p-3 border-bottom cursor-pointer" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
-                                                <div class="d-flex justify-content-between align-items-start">
-                                                    <div>
-                                                        <strong class="text-primary">Consulta #{{ $consulta->codigo ?? $consulta->id }}</strong>
-                                                        <br><strong>{{ $consulta->paciente->nombre_completo }}</strong>
-                                                        <br><small class="text-muted">Doc: {{ $consulta->paciente->documento_identidad ?? 'N/A' }}</small>
-                                                        @if($consulta->medico)
-                                                        <br><small class="text-info">Dr(a). {{ $consulta->medico->nombre_completo }}</small>
-                                                        @endif
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <small class="text-muted">{{ $consulta->fecha_consulta->format('d/m/Y') }}</small>
-                                                        <br><span class="badge bg-success">{{ ucfirst($consulta->estado) }}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            @endforeach
-                                        </div>
-                                        @endif
-                                    </div>
-                                    <small class="text-muted mt-2 d-block"><i class="fas fa-info-circle me-1"></i>Busque una consulta finalizada para asociar el pago</small>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-xs fw-bold">N° Documento *</label>
+                                    <input wire:model="fiscal_numero_documento" type="text" class="form-control form-control-sm @error('fiscal_numero_documento') is-invalid @enderror" placeholder="Ej: 12345678">
+                                    @error('fiscal_numero_documento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-xs fw-bold">Nombre / Razón Social *</label>
+                                    <input wire:model="fiscal_razon_social" type="text" class="form-control form-control-sm @error('fiscal_razon_social') is-invalid @enderror" placeholder="Nombre completo">
+                                    @error('fiscal_razon_social') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-xs fw-bold">Teléfono *</label>
+                                    <input wire:model="fiscal_telefono" type="text" class="form-control form-control-sm @error('fiscal_telefono') is-invalid @enderror" placeholder="0414-1234567">
+                                    @error('fiscal_telefono') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-8 mb-2">
+                                    <label class="form-label text-xs fw-bold">Dirección *</label>
+                                    <input wire:model="fiscal_direccion" type="text" class="form-control form-control-sm @error('fiscal_direccion') is-invalid @enderror" placeholder="Dirección fiscal">
+                                    @error('fiscal_direccion') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <label class="form-label text-xs">Email</label>
+                                    <input wire:model="fiscal_email" type="email" class="form-control form-control-sm" placeholder="correo@ejemplo.com">
+                                </div>
+                            </div>
+                            <div class="text-end mt-2">
+                                <button type="button" wire:click="limpiarSeleccion" class="btn btn-sm btn-secondary me-2">Cancelar</button>
+                                <button type="button" wire:click="crearYSeleccionarCliente" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-save me-1"></i> Guardar y continuar
+                                </button>
                             </div>
                         </div>
                     </div>
+
                     @else
-                    <div class="alert alert-success mb-3">
+                    {{-- Estado: consulta o cliente ya seleccionado --}}
+                    <div class="alert {{ $modo_venta_directa ? 'alert-success' : 'alert-primary' }} mb-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <i class="fas fa-check-circle me-2"></i>
-                                <strong>Consulta Asociada:</strong> {{ $consulta_seleccionada->codigo }}
-                                | Paciente: {{ $consulta_seleccionada->paciente->nombre_completo }}
-                                @if($consulta_seleccionada->medico)
-                                | Médico: Dr(a). {{ $consulta_seleccionada->medico->nombre }} {{ $consulta_seleccionada->medico->apellido }}
+                                @if($modo_venta_directa)
+                                    <i class="fas fa-user me-2"></i>
+                                    <strong>Cliente:</strong> {{ $cliente_seleccionado['razon_social'] ?? $cliente_seleccionado['nombre'] ?? '' }}
+                                    &nbsp;·&nbsp;
+                                    @if($cliente_seleccionado['telefono'] ?? '')
+                                        &nbsp;·&nbsp; {{ $cliente_seleccionado['telefono'] }}
+                                    @endif
+                                @else
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Consulta:</strong> #{{ $consulta_seleccionada->codigo }}
+                                    &nbsp;·&nbsp; {{ $consulta_seleccionada->paciente->nombre_completo }}
+                                    @if($consulta_seleccionada->medico)
+                                        &nbsp;·&nbsp; Dr(a). {{ $consulta_seleccionada->medico->nombres }} {{ $consulta_seleccionada->medico->apellidos }}
+                                    @endif
                                 @endif
                             </div>
-                            <button type="button" wire:click="$set('consulta_seleccionada', null)" class="btn btn-sm btn-outline-secondary">
+                            <button type="button" wire:click="limpiarSeleccion" class="btn btn-sm btn-outline-secondary">
                                 <i class="fas fa-times me-1"></i> Cambiar
                             </button>
                         </div>
@@ -105,7 +187,7 @@
                                         <label class="form-label fw-bold">Tipo Documento *</label>
                                         <select wire:model.live="tipo_pago" wire:change="obtenerProximoNumero" class="form-select">
                                             <option value="recibo">Recibo</option>
-                                            <option value="factura">Factura</option>
+
                                             <option value="boleta">Boleta</option>
                                         </select>
                                         @if($proximo_numero)
@@ -135,15 +217,12 @@
                                     <!-- Método de Pago -->
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label fw-bold">Método de Pago *</label>
-                                        <select wire:model.live="metodo_pago" class="form-select">
-                                            <option value="efectivo_bs">Efectivo Bs</option>
-                                            <option value="efectivo_usd">Efectivo USD</option>
-                                            <option value="transferencia_bs">Transferencia Bs</option>
-                                            <option value="transferencia_usd">Transferencia USD</option>
-                                            <option value="pago_movil">Pago Móvil</option>
-                                            <option value="zelle">Zelle</option>
-                                            <option value="paypal">PayPal</option>
-                                            <option value="mixto">Mixto</option>
+                                        <select required wire:model.live="metodo_pago" class="form-select">
+                                            <option value="">SELECCIONE</option>
+                                            <option value="efectivo">EFECTIVO</option>
+                                            <option value="transferencia">TRANSFERENCIA</option>
+                                            <option value="tarjeta_credito">TARJETA DE CREDITO</option>
+                                            <option value="tarjeta_debito">TARJETA DE DEBITO</option>
                                         </select>
                                     </div>
                                     <!-- Condición de Pago -->
@@ -162,7 +241,7 @@
                                     </div>
                                 </div>
 
-                                
+
 
                                 {{-- Datos Fiscales SENIAT (del Paciente) --}}
                                 @if($es_factura_fiscal)
@@ -183,6 +262,7 @@
                                     <div class="col-md-2 mb-2 mt-2">
                                         <label class="form-label text-xs fw-bold">Tipo *</label>
                                         <select wire:model="fiscal_tipo_documento" class="form-select form-select-sm">
+                                            <option value="P">Cliente genérico</option>
                                             <option value="V">V - Venezolano</option>
                                             <option value="E">E - Extranjero</option>
                                             <option value="J">J - Jurídico</option>
@@ -191,7 +271,7 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3 mb-2 mt-2">
-                                        <label class="form-label text-xs fw-bold">N° Documento / RIF *</label>
+                                        <label class="form-label text-xs fw-bold">Documento de identidad</label>
                                         <input wire:model="fiscal_numero_documento" type="text" class="form-control form-control-sm @error('fiscal_numero_documento') is-invalid @enderror" placeholder="Ej: 12345678">
                                         @error('fiscal_numero_documento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
@@ -275,33 +355,34 @@
                                     </div>
                                 </div>
                                 @endforeach
-                                
+
                                 <div class="row mt-3">
                                     <div class="col-12">
                                         <div class="alert alert-info py-2 mb-2">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <strong>Total a Pagar:</strong> Bs. {{ number_format($total, 2, ',', '.') }}
+                                                    <strong>Total a Pagar:</strong> {{ format_money($es_venezuela ? $total * $tasa_usd : $total) }}
                                                 </div>
                                                 <div>
                                                     @php
                                                         $totalPagado = collect($pagos_mixtos)->sum(function($p) use ($tasa_usd) {
                                                             return (floatval($p['monto_bs'] ?? 0)) + (floatval($p['monto_usd'] ?? 0) * floatval($tasa_usd));
                                                         });
-                                                        $balance = floatval($total) - $totalPagado;
+                                                        $totalLocal  = $es_venezuela ? $total * $tasa_usd : $total;
+                                                        $balance     = $totalLocal - $totalPagado;
                                                     @endphp
-                                                    <strong>Total Pagado:</strong> Bs. {{ number_format($totalPagado, 2, ',', '.') }}
+                                                    <strong>Total Pagado:</strong> {{ format_money($totalPagado) }}
                                                 </div>
                                                 <div>
                                                     <strong class="{{ $balance > 0 ? 'text-danger' : ($balance < 0 ? 'text-warning' : 'text-success') }}">
-                                                        Balance: Bs. {{ number_format($balance, 2, ',', '.') }}
+                                                        Balance: {{ format_money($balance) }}
                                                     </strong>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <button type="button" wire:click="agregarPagoMixto" class="btn btn-sm btn-outline-info mt-1">
                                     <i class="fas fa-plus me-1"></i> Agregar Método de Pago
                                 </button>
@@ -318,36 +399,48 @@
                                 {{-- Formulario agregar item --}}
                                 <div class="card border-primary mb-3">
                                     <div class="card-header py-2 bg-primary bg-opacity-10">
-                                        <small class="fw-bold text-primary"><i class="fas fa-shopping-cart me-1"></i>Buscar y Agregar Servicios</small>
+                                        <small class="fw-bold text-primary"><i class="fas fa-shopping-cart me-1"></i>Buscar y Agregar Servicios o Productos</small>
                                     </div>
                                     <div class="card-body py-2">
                                         <div class="row align-items-end">
                                             <div class="col-md-5 mb-2">
-                                                <label class="form-label text-xs fw-bold mb-1">Buscar Servicio</label>
+                                                <label class="form-label text-xs fw-bold mb-1">Buscar Servicio o Producto</label>
                                                 <div class="position-relative">
-                                                    <input wire:model.live.debounce.300ms="buscar_baremo" type="text" class="form-control form-control-sm" placeholder="Buscar por nombre, código o descripción..." autocomplete="off">
+                                                    <input wire:model.live.debounce.300ms="buscar_baremo" type="text" class="form-control form-control-sm" placeholder="Buscar por nombre o código..." autocomplete="off">
                                                     @if($buscar_baremo)
                                                     <button type="button" wire:click="limpiarBusqueda" class="btn btn-sm btn-link position-absolute end-0 top-0 text-danger">
                                                         <i class="fas fa-times"></i>
                                                     </button>
                                                     @endif
 
-                                                    {{-- Dropdown de resultados --}}
+                                                    {{-- Dropdown unificado servicios + productos --}}
                                                     @if(count($baremos_filtrados) > 0)
-                                                    <div class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; max-height: 300px; overflow-y: auto;">
-                                                        @foreach($baremos_filtrados as $baremo)
-                                                        <div wire:click="seleccionarBaremo({{ $baremo['id'] }})" class="p-2 border-bottom cursor-pointer hover-bg-light" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
+                                                    <div class="position-absolute w-100 bg-white border rounded shadow-sm" style="z-index: 1000; max-height: 350px; overflow-y: auto;">
+                                                        @foreach($baremos_filtrados as $item)
+                                                        <div wire:click="seleccionarResultado({{ $item['id'] }}, '{{ $item['_tipo'] }}')" class="p-2 border-bottom" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='white'">
                                                             <div class="d-flex justify-content-between align-items-start">
                                                                 <div>
-                                                                    <strong class="text-primary">{{ $baremo['nombre_servicio'] }}</strong>
-                                                                    <br><small class="text-muted">Código: {{ $baremo['codigo'] }}</small>
-                                                                    @if($baremo['exento_iva'])
-                                                                    <span class="badge badge-sm bg-warning text-dark ms-1">Exento IVA</span>
+                                                                    @if($item['_tipo'] === 'producto')
+                                                                        <span class="badge bg-success badge-sm"><i class="fas fa-pills"></i> Producto</span>
+                                                                        @if($item['categoria'] ?? '')
+                                                                            <span class="badge bg-light text-dark badge-sm">{{ $item['categoria'] }}</span>
+                                                                        @endif
+                                                                    @else
+                                                                        <span class="badge bg-primary badge-sm"><i class="fas fa-stethoscope"></i> Servicio</span>
+                                                                        @if($item['exento_iva'] ?? false)
+                                                                            <span class="badge badge-sm bg-warning text-dark">Exento IVA</span>
+                                                                        @endif
+                                                                    @endif
+                                                                    <br>
+                                                                    <strong class="text-dark">{{ $item['nombre_servicio'] }}</strong>
+                                                                    <br><small class="text-muted">Código: {{ $item['codigo'] }}</small>
+                                                                    @if($item['_tipo'] === 'producto')
+                                                                        <span class="ms-1 badge badge-sm {{ ($item['stock'] ?? 0) > 10 ? 'bg-success' : (($item['stock'] ?? 0) > 0 ? 'bg-warning' : 'bg-danger') }}">Stock: {{ $item['stock'] ?? 0 }}</span>
                                                                     @endif
                                                                 </div>
                                                                 <div class="text-end">
-                                                                    <strong class="text-success">{{ format_money($baremo['costo_usd'], 2) }}</strong>
-                                                                    <br><small class="text-muted">Bs. {{ number_format($baremo['costo_usd'] * $tasa_usd, 2, ',', '.') }}</small>
+                                                                    <strong class="text-success">{{ format_money($es_venezuela ? $item['costo_usd'] * $tasa_usd : $item['costo_usd']) }}</strong>
+                                                                    @if($es_venezuela)<br><small class="text-muted">{{ money($item['costo_usd'], 2) }}</small>@endif
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -366,11 +459,14 @@
                                                 <input wire:model="cantidad" type="number" min="1" step="0.01" class="form-control form-control-sm text-center" placeholder="1">
                                             </div>
                                             <div class="col-md-2 mb-2">
-                                                <label class="form-label text-xs fw-bold mb-1">Precio USD *</label>
+                                                <label class="form-label text-xs fw-bold mb-1">Precio Unitario *</label>
                                                 <div class="input-group input-group-sm">
                                                     <span class="input-group-text">$</span>
                                                     <input wire:model="precio_unitario" type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
                                                 </div>
+                                                @if($es_venezuela && $precio_unitario > 0)
+                                                <small class="text-muted">= {{ format_money($precio_unitario * $tasa_usd) }}</small>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="row">
@@ -383,30 +479,99 @@
                                     </div>
                                 </div>
 
+
+
+
+
+
                                 @error('detalles') <div class="alert alert-danger py-2 mb-3"><small><i class="fas fa-exclamation-triangle me-1"></i>{{ $message }}</small></div> @enderror
 
-                                {{-- Tabla de items --}}
-                                @if(count($detalles) > 0)
+                                {{-- Carrito de Servicios y Productos --}}
+                                @if(count($carrito) > 0 || count($detalles) > 0)
                                 <div class="table-responsive">
                                     <table class="table table-sm table-hover align-items-center mb-0">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="text-center">#</th>
+                                                <th>Tipo</th>
                                                 <th>Descripción</th>
                                                 <th class="text-center">Cant.</th>
-                                                <th class="text-end">P/U USD</th>
-                                                <th class="text-end">P/U Bs.</th>
-                                                <th class="text-end">Subtotal USD</th>
-                                                <th class="text-end">Subtotal Bs.</th>
-                                                <th class="text-center">IVA</th>
+                                                <th class="text-end">P/U</th>
+                                                <th class="text-center">Stock</th>
                                                 <th class="text-center"></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($detalles as $index => $detalle)
+                                            {{-- Items del carrito (productos y servicios) --}}
+                                            @php $itemIndex = 0; @endphp
+                                            @foreach($carrito as $key => $item)
+                                            @php $itemIndex++; @endphp
                                             <tr>
                                                 <td class="text-center">
-                                                    <span class="badge bg-secondary">{{ $index + 1 }}</span>
+                                                    <span class="badge bg-secondary">{{ $itemIndex }}</span>
+                                                </td>
+                                                <td>
+                                                    @if($item['tipo'] === 'producto')
+                                                        <span class="badge bg-success"><i class="fas fa-pills me-1"></i>Producto</span>
+                                                        @if($item['es_medicamento'] ?? false)
+                                                            <br><span class="badge bg-info badge-sm">Medicamento</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="badge bg-primary"><i class="fas fa-stethoscope me-1"></i>Servicio</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <strong>{{ $item['descripcion'] }}</strong>
+                                                    <br><small class="text-muted">Código: {{ $item['codigo'] }}</small>
+                                                    @if(isset($item['categoria']) && $item['categoria'])
+                                                        <br><small class="text-info">{{ $item['categoria'] }}</small>
+                                                    @endif
+                                                    @if(isset($item['marca']) && $item['marca'])
+                                                        <br><small class="text-muted">Marca: {{ $item['marca'] }}</small>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <input type="number" wire:change="actualizarCantidad('{{ $key }}', $event.target.value)"
+                                                           value="{{ $item['cantidad'] }}" min="1"
+                                                           @if($item['tipo'] === 'producto') max="{{ $item['stock_disponible'] ?? 999 }}" @endif
+                                                           class="form-control form-control text-center">
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong>{{ format_money($es_venezuela ? $item['precio_unitario'] * $tasa_usd : $item['precio_unitario']) }}</strong>
+                                                </td>
+
+
+                                                <td class="text-center">
+                                                    @if($item['tipo'] === 'producto')
+                                                        @php $stockDisponible = $item['stock_disponible'] ?? 0; @endphp
+                                                        @if($stockDisponible > 10)
+                                                            <span class="badge bg-success">{{ $stockDisponible }}</span>
+                                                        @elseif($stockDisponible > 0)
+                                                            <span class="badge bg-warning">{{ $stockDisponible }}</span>
+                                                        @else
+                                                            <span class="badge bg-danger">Sin stock</span>
+                                                        @endif
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" wire:click="eliminarItem('{{ $key }}')" class="btn btn-sm btn-danger p-1" title="Eliminar">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+
+                                            {{-- Items de detalles (servicios manuales) --}}
+                                            @foreach($detalles as $index => $detalle)
+                                            @php $itemIndex++; @endphp
+                                            <tr>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary">{{ $itemIndex }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary"><i class="fas fa-stethoscope me-1"></i>Servicio</span>
                                                 </td>
                                                 <td>
                                                     <strong>{{ $detalle['descripcion'] }}</strong>
@@ -417,26 +582,24 @@
                                                 <td class="text-center">
                                                     <span class="badge bg-info">{{ $detalle['cantidad'] }}</span>
                                                 </td>
-                                                <td class="text-end text-muted">
-                                                    <small>{{ format_money($detalle['precio_unitario'], 2) }}</small>
+                                                <td class="text-end">
+                                                    <strong>{{ format_money($es_venezuela ? $detalle['precio_unitario'] * $tasa_usd : $detalle['precio_unitario']) }}</strong>
                                                 </td>
                                                 <td class="text-end">
-                                                    <strong>Bs. {{ number_format($detalle['precio_unitario'] * $tasa_usd, 2, ',', '.') }}</strong>
+                                                    <strong class="text-success">{{ format_money($es_venezuela ? $detalle['subtotal'] * $tasa_usd : $detalle['subtotal']) }}</strong>
                                                 </td>
-                                                <td class="text-end text-muted">
-                                                    <small>{{ format_money($detalle['subtotal'], 2) }}</small>
-                                                </td>
-                                                <td class="text-end">
-                                                    <strong class="text-success">Bs. {{ number_format($detalle['subtotal'] * $tasa_usd, 2, ',', '.') }}</strong>
-                                                </td>
-                                                <td class="text-center">
+                                               {{--  <td class="text-center">
                                                     @if($detalle['exento_iva'] ?? false)
-                                                    <span class="badge badge-sm bg-warning text-dark">Exento</span>
-                                                    @elseif($detalle['aplica_iva'] ?? true)
-                                                    <span class="badge badge-sm bg-success">{{ $detalle['iva_alicuota'] ?? 16 }}%</span>
+                                                        <span class="badge badge-sm bg-warning text-dark">Exento</span>
+                                                    @elseif($detalle['aplica_iva'] ?? false)
+                                                        <span class="badge badge-sm bg-success">{{ $detalle['iva_alicuota'] ?? 0 }}%</span>
                                                     @else
-                                                    <span class="badge badge-sm bg-secondary">N/A</span>
+                                                        <span class="badge badge-sm bg-secondary">Sin IVA</span>
                                                     @endif
+                                                </td>
+                                                 --}}
+                                                <td class="text-center">
+                                                    <span class="text-muted">-</span>
                                                 </td>
                                                 <td class="text-center">
                                                     <button type="button" wire:click="eliminarDetalle({{ $index }})" class="btn btn-sm btn-danger p-1" title="Eliminar">
@@ -448,10 +611,9 @@
                                         </tbody>
                                         <tfoot class="table-light">
                                             <tr>
-                                                <td colspan="5" class="text-end fw-bold">Subtotal Items:</td>
-                                                <td class="text-end fw-bold">{{ format_money(collect($detalles)->sum('subtotal'), 2) }}</td>
-                                                <td class="text-end fw-bold text-success">Bs. {{ number_format(collect($detalles)->sum('subtotal') * $tasa_usd, 2, ',', '.') }}</td>
-                                                <td colspan="2"></td>
+                                                <td colspan="5" class="text-end fw-bold">Subtotal:</td>
+                                                <td class="text-end fw-bold">{{ format_money($es_venezuela ? $subtotal * $tasa_usd : $subtotal) }}</td>
+                                                <td colspan="3"></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -500,7 +662,7 @@
                                             <tbody>
                                                 <tr>
                                                     <td>Subtotal:</td>
-                                                    <td class="text-end fw-bold">{{ format_money(collect($detalles)->sum('subtotal'), 2) }}</td>
+                                                    <td class="text-end fw-bold">{{ format_money($es_venezuela ? $subtotal * $tasa_usd : $subtotal) }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td>Descuento:</td>
@@ -512,44 +674,66 @@
                                                     </td>
                                                 </tr>
 
-                                                @if($es_factura_fiscal)
+                                                @if(($es_factura_fiscal || $mostrar_impuestos) && ($base_imponible > 0 || $monto_exento > 0))
                                                 <tr class="table-light">
-                                                    <td colspan="2"><small class="fw-bold text-primary">Desglose Fiscal SENIAT</small></td>
+                                                    <td colspan="2"><small class="fw-bold text-primary">Desglose de Impuestos</small></td>
                                                 </tr>
+                                                @if($base_imponible > 0)
                                                 <tr>
-                                                    <td><small>Base Imponible (16%):</small></td>
-                                                    <td class="text-end"><small>{{ money($base_imponible, 2) }}</small></td>
-                                                </tr>
-                                                <tr>
-                                                    <td><small class="fw-bold">IVA (16%):</small></td>
-                                                    <td class="text-end"><small class="fw-bold">{{ money($iva_monto, 2) }}</small></td>
-                                                </tr>
-                                                @if($igtf_monto > 0)
-                                                <tr class="table-warning">
-                                                    <td><small class="fw-bold">IGTF (3%) - Divisas:</small></td>
-                                                    <td class="text-end"><small class="fw-bold">{{ money($igtf_monto, 2) }}</small></td>
+                                                    <td><small>Base Imponible:</small></td>
+                                                    <td class="text-end"><small>{{ format_money($es_venezuela ? $base_imponible * $tasa_usd : $base_imponible) }}</small></td>
                                                 </tr>
                                                 @endif
+                                                @if($monto_exento > 0)
+                                                <tr class="table-info">
+                                                    <td><small class="fw-bold text-info">Valor Exento:</small></td>
+                                                    <td class="text-end"><small class="fw-bold text-info">{{ format_money($es_venezuela ? $monto_exento * $tasa_usd : $monto_exento) }}</small></td>
+                                                </tr>
+                                                @endif
+                                                @if($base_imponible > 0)
+                                                <tr>
+                                                    <td><small class="fw-bold">IVA:</small></td>
+                                                    <td class="text-end"><small class="fw-bold">{{ format_money($es_venezuela ? $iva_monto * $tasa_usd : $iva_monto) }}</small></td>
+                                                </tr>
+                                                @endif
+                                                @if($es_venezuela && $igtf_monto > 0)
+                                                <tr class="table-warning">
+                                                    <td><small class="fw-bold">IGTF (3%) - Divisas:</small></td>
+                                                    <td class="text-end"><small class="fw-bold">{{ format_money($es_venezuela ? $igtf_monto * $tasa_usd : $igtf_monto) }}</small></td>
+                                                </tr>
+                                                @endif
+                                                @if($es_factura_fiscal)
                                                 <tr>
                                                     <td><small class="text-muted">Condición:</small></td>
                                                     <td class="text-end"><small class="text-muted">{{ $condicion_pago === 'credito' ? 'Crédito' : 'Contado' }}</small></td>
                                                 </tr>
                                                 @endif
+                                                @endif
 
                                                 <tr>
                                                     <td colspan="2"><hr class="my-1"></td>
                                                 </tr>
+                                                @if($es_venezuela != false)
                                                 <tr class="table-primary">
-                                                    <td class="fw-bold fs-6">Total USD:</td>
-                                                    <td class="text-end fw-bold fs-6">{{ format_money(collect($detalles)->sum('subtotal') - $descuento + ($es_factura_fiscal ? ($iva_monto + $igtf_monto) / $tasa_usd : 0), 2) }}</td>
-                                                </tr>
-                                                <tr class="table-success">
-                                                    <td class="fw-bold">Total Bs:</td>
+                                                    <td class="fw-bold">Total USD:</td>
                                                     <td class="text-end fw-bold">{{ money($total, 2) }}</td>
                                                 </tr>
+                                                <tr class="table-success">
+                                                    <td class="fw-bold fs-6">Total Bs.:</td>
+                                                    <td class="text-end fw-bold fs-6">{{ format_money($total * $tasa_usd) }}</td>
+                                                </tr>
+
+                                                @else
+                                                <tr class="table-success">
+                                                    <td class="fw-bold fs-6">Total:</td>
+                                                    <td class="text-end fw-bold fs-6">{{ format_money($total) }}</td>
+                                                </tr>
+                                                @endif
                                                 <tr>
                                                     <td colspan="2" class="text-end">
-                                                        <small class="text-muted">Tasa BCV: $1 =  {{ money($tasa_usd, 2) }}</small>
+                                                        @if(auth()->user()->empresa->pais->nombre == 'Venezuela')
+                                                        <span class="badge bg-info">Tasa BCV: $1 = {{ format_money($tasa_usd) }}</span>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             </tbody>
@@ -564,7 +748,7 @@
                             <a href="{{ route('admin.pagos.index') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-1"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary btn-lg" @if(count($detalles) === 0) disabled @endif>
+                            <button type="submit" class="btn btn-primary btn-lg" @if(count($detalles) === 0 && count($carrito) === 0) disabled @endif>
                                 <i class="fas fa-save me-1"></i>
                                 @if($es_factura_fiscal)
                                     Emitir Factura Fiscal
@@ -577,5 +761,6 @@
                 </div>
             </div>
         </div>
+        {{-- Fin contenido principal --}}
     </div>
 </div>

@@ -478,6 +478,9 @@ class WhatsAppService {
       
       while (attempt <= maxRetries) {
         try {
+          // Simular escritura humana
+          await this.simulateTyping(jid, messageContent);
+          
           result = await this.sock.sendMessage(jid, messageContent, options);
           
           logger.message('sent', {
@@ -617,6 +620,43 @@ class WhatsAppService {
 
   getQRCode() {
     return this.qrCode;
+  }
+
+  /**
+   * Simula que el usuario está escribiendo o grabando audio
+   */
+  async simulateTyping(jid, content) {
+    try {
+      if (!this.sock) return;
+
+      // Determinar el estado de presencia (composing o recording)
+      let presence = 'composing';
+      let typingTime = 2000; // Base de 2 segundos
+
+      if (typeof content === 'object') {
+        if (content.audio) {
+          presence = 'recording';
+          typingTime = 3000 + Math.random() * 2000;
+        } else if (content.text) {
+          // Calcular tiempo basado en longitud del texto (aprox 100ms por carácter)
+          typingTime = Math.min(Math.max(content.text.length * 50, 1500), 5000);
+        }
+      } else if (typeof content === 'string') {
+        typingTime = Math.min(Math.max(content.length * 50, 1500), 5000);
+      }
+
+      // Añadir un poco de aleatoriedad
+      typingTime += Math.random() * 1000;
+
+      logger.whatsapp(`Simulando ${presence} para ${jid} durante ${Math.round(typingTime)}ms`);
+      
+      await this.sock.sendPresenceUpdate(presence, jid);
+      await new Promise(resolve => setTimeout(resolve, typingTime));
+      await this.sock.sendPresenceUpdate('paused', jid);
+    } catch (error) {
+      logger.error('Error al simular escritura:', error);
+      // No lanzamos error para no interrumpir el envío del mensaje real
+    }
   }
 
   async logout() {

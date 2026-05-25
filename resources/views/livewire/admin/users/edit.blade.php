@@ -22,9 +22,13 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Usuario (Username)</label>
-                    <input type="text" class="form-control" value="{{ $username }}" disabled>
-                    <small class="text-muted">El username no se puede editar</small>
+                    <label class="form-label">Usuario (Username) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control @error('username') is-invalid @enderror"
+                           wire:model="username" placeholder="Se genera automáticamente desde el nombre">
+                    <small class="text-muted">El username se genera automáticamente al escribir el nombre, pero puedes editarlo manualmente</small>
+                    @error('username')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="col-md-6 mb-3">

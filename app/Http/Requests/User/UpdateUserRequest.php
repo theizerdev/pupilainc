@@ -41,6 +41,14 @@ class UpdateUserRequest extends FormRequest
                 'max:255',
                 'regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/u',
             ],
+            'username' => [
+                'sometimes',
+                'string',
+                'min:3',
+                'max:255',
+                'alpha_dash',
+                Rule::unique('users', 'username')->ignore($userId),
+            ],
             'email' => [
                 'sometimes',
                 'string',
@@ -203,6 +211,10 @@ class UpdateUserRequest extends FormRequest
             'name.min' => 'El nombre debe tener al menos 2 caracteres.',
             'name.max' => 'El nombre no puede exceder 255 caracteres.',
             'name.regex' => 'El nombre solo puede contener letras y espacios.',
+            'username.min' => 'El nombre de usuario debe tener al menos 3 caracteres.',
+            'username.max' => 'El nombre de usuario no puede exceder 255 caracteres.',
+            'username.alpha_dash' => 'El nombre de usuario solo puede contener letras, números, guiones y guiones bajos.',
+            'username.unique' => 'Este nombre de usuario ya está registrado.',
             'email.email' => 'El correo electrónico debe ser una dirección válida.',
             'email.unique' => 'Este correo electrónico ya está registrado.',
             'password.confirmed' => 'Las contraseñas no coinciden.',
@@ -242,6 +254,7 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name' => 'nombre',
+            'username' => 'nombre de usuario',
             'email' => 'correo electrónico',
             'password' => 'contraseña',
             'password_confirmation' => 'confirmación de contraseña',

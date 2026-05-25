@@ -12,11 +12,13 @@
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
-    <title>{{  'PUPILAINC' }}</title>
+
+    <title>{{ config('app.name') }}</title>
     <meta name="description" content="{{ config('app.name') }} - {{ config('app.description') }}" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicon -->
-      <link rel="icon" type="image/x-icon" href="/logo/app.png" height="200px" />
+      <link rel="icon" type="image/png" href="{{ asset('logo/1719430882.png') }}" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -34,7 +36,7 @@
     <!-- build:css assets/vendor/css/theme.css -->
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+
     <link rel="stylesheet" href="/materialize/assets/vendor/libs/node-waves/node-waves.css" />
 
     <script src="/materialize/assets/vendor/libs/@algolia/autocomplete-js.js"></script>
@@ -66,18 +68,18 @@
     <!--? Config: Mandatory theme config file contain global vars & default theme options, Set your preferred theme option in this file. -->
 
     <script src="/materialize/assets/js/config.js"></script>
-    
+
     @include('components.template-config')
 
      <!-- Cropper.js CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
-    
+
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    
+
     <!-- Chat y Biblioteca CSS -->
     <link rel="stylesheet" href="{{ asset('css/chat-biblioteca.css') }}">
-    
+
     @if(isset($templateSettings) && $templateSettings->primary_color)
     <style>
       :root {
@@ -196,7 +198,7 @@
 
             <!-- Content -->
             <div class="container-fluid flex-grow-1 container-p-y">
-              
+
               <!-- Componente de notificaciones global -->
               <x-notifications />
 
@@ -224,7 +226,7 @@
 
     <!-- Toast Container -->
     @include('components.toast-container')
-    
+
     <!-- Widget de Chat Flotante Global -->
     @livewire('floating-chat-widget')
 
@@ -268,6 +270,21 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     @stack('scripts')
+
+    <!-- Configuración de Livewire para manejar CSRF automáticamente -->
+    <script>
+        // Configurar Livewire para auto-refresh cuando el token CSRF expira
+        // en lugar de mostrar el modal de "Page Expired"
+        window.addEventListener('DOMContentLoaded', function() {
+            if (typeof Livewire !== 'undefined') {
+                Livewire.on('csrf-token-mismatch', function() {
+                    // Auto-refresh silencioso sin mostrar modal
+                    window.location.reload();
+                });
+            }
+        });
+    </script>
+
     @livewireScripts
     <!-- Accessibility improvements -->
     <script>
@@ -307,9 +324,11 @@
         });
       });
     </script>
-    
+
     <!-- Sistema de Notificaciones Global -->
     <x-notifications />
-    
+    <!-- Timer Global de Dilatación -->
+
+
   </body>
 </html>

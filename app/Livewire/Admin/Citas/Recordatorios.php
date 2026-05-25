@@ -141,6 +141,7 @@ class Recordatorios extends Component
                 'cancelado' => 'Cancelado',
             ],
             'tipos' => [
+                '48h' => '48 Horas',
                 '24h' => '24 Horas',
                 '2h' => '2 Horas',
                 'personalizado' => 'Personalizado',

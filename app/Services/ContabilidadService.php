@@ -15,11 +15,34 @@ class ContabilidadService
         return config('contabilidad.cuentas.' . $clave);
     }
 
+    private function getCuentaProducto(string $tipo): string
+    {
+        $map = [
+            'venta_productos' => '4.1.03',
+            'venta_medicamentos' => '4.1.04',
+            'costo_productos' => '5.1.01.002',
+            'costo_medicamentos' => '5.1.01.003',
+            'inventario_productos' => '1.1.03.001',
+            'inventario_medicamentos' => '1.1.03.002',
+        ];
+
+        return $map[$tipo] ?? '4.1.03';
+    }
+
     public function generarAsientoFactura(Pago $pago)
     {
         if (!in_array($pago->tipo_pago, ['factura', 'boleta', 'recibo'])) {
             return null;
         }
+
+        \Log::info('Generando asiento para pago', [
+            'pago_id' => $pago->id,
+            'total_bs' => $pago->total_bs,
+            'subtotal_bs' => $pago->subtotal_bs,
+            'subtotal' => $pago->subtotal,
+            'tasa_cambio_usd' => $pago->tasa_cambio_usd,
+            'metodo_pago' => $pago->metodo_pago
+        ]);
 
         return DB::transaction(function () use ($pago) {
             $asiento = AsientoContable::create([
@@ -37,9 +60,9 @@ class ContabilidadService
 
             // DEBE: Cuenta según condición de pago
             $esCredito = strtolower($pago->condicion_pago ?? 'contado') === 'credito';
-            
+
             $codigoCuenta = $esCredito ? $this->getCodigoCuenta('cxc') : $this->getCodigoCuentaPago($pago->metodo_pago);
-            
+
             $cuentaPago = CuentaContable::where('codigo', $codigoCuenta)
                 ->where('empresa_id', $pago->empresa_id)
                 ->first();
@@ -49,11 +72,17 @@ class ContabilidadService
                 $totalDebe = ($pago->total_con_impuestos ?? $pago->total_bs) ?: $pago->total_bs;
             }
 
+            \Log::info('Calculando montos del asiento', [
+                'total_debe' => $totalDebe,
+                'cuenta_pago_encontrada' => $cuentaPago ? $cuentaPago->codigo : 'NO ENCONTRADA',
+                'codigo_cuenta_buscado' => $codigoCuenta
+            ]);
+
             if ($cuentaPago) {
-                $descripcionDebe = $esCredito 
+                $descripcionDebe = $esCredito
                     ? "Cuenta por cobrar factura {$pago->numero_completo}"
                     : "Cobro factura {$pago->numero_completo}";
-                    
+
                 $asiento->detalles()->create([
                     'cuenta_id' => $cuentaPago->id,
                     'debe' => $totalDebe,
@@ -62,17 +91,34 @@ class ContabilidadService
                 ]);
             }
 
-            // HABER: Ingresos por Consultas
+            // HABER: Ingresos por Consultas (excluyendo ventas de productos)
             $cuentaIngreso = CuentaContable::where('codigo', $this->getCodigoCuenta('ingreso'))
                 ->where('empresa_id', $pago->empresa_id)
                 ->first();
 
-            $subtotal = $pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd);
-            if ($cuentaIngreso) {
+            $subtotalTotal = $pago->subtotal_bs ?? ($pago->subtotal * $pago->tasa_cambio_usd);
+
+            // Calcular subtotal de ventas de productos para restarlo del ingreso por consultas
+            $subtotalVentasProductos = 0;
+            if ($pago->ventasProductos()->exists()) {
+                $subtotalVentasProductos = $pago->ventasProductos()->sum('subtotal');
+            }
+
+            // El ingreso por consulta es el total menos las ventas de productos
+            $subtotalConsultas = $subtotalTotal - $subtotalVentasProductos;
+
+            \Log::info('Calculando ingresos', [
+                'subtotal_total' => $subtotalTotal,
+                'subtotal_ventas_productos' => $subtotalVentasProductos,
+                'subtotal_consultas' => $subtotalConsultas,
+                'cuenta_ingreso_encontrada' => $cuentaIngreso ? $cuentaIngreso->codigo : 'NO ENCONTRADA'
+            ]);
+
+            if ($cuentaIngreso && $subtotalConsultas > 0) {
                 $asiento->detalles()->create([
                     'cuenta_id' => $cuentaIngreso->id,
                     'debe' => 0,
-                    'haber' => $subtotal,
+                    'haber' => $subtotalConsultas,
                     'descripcion' => 'Ingreso por consulta médica'
                 ]);
             }
@@ -107,6 +153,16 @@ class ContabilidadService
                         'descripcion' => 'IGTF por pagar'
                     ]);
                 }
+            }
+
+            // Generar asiento de honorarios médicos si es una consulta
+            if ($pago->consulta_id) {
+                $this->generarAsientoHonorarios($asiento, $pago);
+            }
+
+            // Generar asientos de ventas de productos si existen
+            if ($pago->ventasProductos()->exists()) {
+                $this->generarAsientosVentasProductos($asiento, $pago);
             }
 
             self::validarPartidaDoble($asiento);
@@ -338,6 +394,51 @@ class ContabilidadService
     {
         $map = config('contabilidad.metodos_pago');
         return $map[$metodoPago] ?? $this->getCodigoCuenta('caja');
+    }
+
+    /**
+     * Generar asientos de honorarios médicos
+     */
+    private function generarAsientoHonorarios(AsientoContable $asiento, Pago $pago): void
+    {
+        if (!$pago->consulta_id) {
+            return;
+        }
+
+        // Buscar si ya se calcularon los honorarios
+        $honorarios = \App\Models\ConsultaHonorario::where('pago_id', $pago->id)->first();
+
+        if (!$honorarios || $honorarios->total_honorarios_medico_bs <= 0) {
+            return;
+        }
+
+        // DEBE: Gastos de Honorarios Médicos
+        $cuentaHonorarios = CuentaContable::where('codigo', '5.1.01.001')
+            ->where('empresa_id', $pago->empresa_id)
+            ->first();
+
+        if ($cuentaHonorarios) {
+            $asiento->detalles()->create([
+                'cuenta_id' => $cuentaHonorarios->id,
+                'debe' => $honorarios->total_honorarios_medico_bs,
+                'haber' => 0,
+                'descripcion' => "Honorarios médicos - {$pago->consulta->medico->nombre_completo}"
+            ]);
+        }
+
+        // HABER: Cuentas por Pagar - Médicos
+        $cuentaPorPagarMedicos = CuentaContable::where('codigo', '2.1.02.001')
+            ->where('empresa_id', $pago->empresa_id)
+            ->first();
+
+        if ($cuentaPorPagarMedicos) {
+            $asiento->detalles()->create([
+                'cuenta_id' => $cuentaPorPagarMedicos->id,
+                'debe' => 0,
+                'haber' => $honorarios->total_honorarios_medico_bs,
+                'descripcion' => "Cuenta por pagar - Dr. {$pago->consulta->medico->nombre_completo}"
+            ]);
+        }
     }
 
     /**
@@ -668,6 +769,170 @@ class ContabilidadService
         $haber = (float) (clone $query)->sum('haber');
 
         return $cuenta->naturaleza === 'deudora' ? ($debe - $haber) : ($haber - $debe);
+    }
+
+    /**
+     * Generar asientos de ventas de productos
+     */
+    private function generarAsientosVentasProductos(AsientoContable $asiento, Pago $pago): void
+    {
+        $ventasProductos = $pago->ventasProductos()->with('producto')->get();
+
+        foreach ($ventasProductos as $venta) {
+            $producto = $venta->producto;
+
+            // Determinar cuentas según tipo de producto
+            $cuentaVenta = $producto->es_medicamento ?
+                $this->getCuentaProducto('venta_medicamentos') :
+                $this->getCuentaProducto('venta_productos');
+
+            $cuentaCosto = $producto->es_medicamento ?
+                $this->getCuentaProducto('costo_medicamentos') :
+                $this->getCuentaProducto('costo_productos');
+
+            $cuentaInventario = $producto->es_medicamento ?
+                $this->getCuentaProducto('inventario_medicamentos') :
+                $this->getCuentaProducto('inventario_productos');
+
+            // HABER: Ventas de Productos
+            $cuentaVentaObj = CuentaContable::where('codigo', $cuentaVenta)
+                ->where('empresa_id', $pago->empresa_id)
+                ->first();
+
+            if ($cuentaVentaObj) {
+                $asiento->detalles()->create([
+                    'cuenta_id' => $cuentaVentaObj->id,
+                    'debe' => 0,
+                    'haber' => $venta->subtotal,
+                    'descripcion' => "Venta de {$producto->nombre} (Cant: {$venta->cantidad})"
+                ]);
+            }
+
+            // Asiento de costo de ventas si hay costo unitario
+            if ($venta->costo_total && $venta->costo_total > 0) {
+                // DEBE: Costo de Ventas
+                $cuentaCostoObj = CuentaContable::where('codigo', $cuentaCosto)
+                    ->where('empresa_id', $pago->empresa_id)
+                    ->first();
+
+                if ($cuentaCostoObj) {
+                    $asiento->detalles()->create([
+                        'cuenta_id' => $cuentaCostoObj->id,
+                        'debe' => $venta->costo_total,
+                        'haber' => 0,
+                        'descripcion' => "Costo de venta - {$producto->nombre}"
+                    ]);
+                }
+
+                // HABER: Inventario
+                $cuentaInventarioObj = CuentaContable::where('codigo', $cuentaInventario)
+                    ->where('empresa_id', $pago->empresa_id)
+                    ->first();
+
+                if ($cuentaInventarioObj) {
+                    $asiento->detalles()->create([
+                        'cuenta_id' => $cuentaInventarioObj->id,
+                        'debe' => 0,
+                        'haber' => $venta->costo_total,
+                        'descripcion' => "Salida de inventario - {$producto->nombre}"
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * Generar asiento contable para egreso de caja
+     */
+    public function generarAsientoEgresoCaja(\App\Models\GastoCaja $gasto)
+    {
+        return DB::transaction(function () use ($gasto) {
+            $asiento = AsientoContable::create([
+                'numero' => AsientoContable::generarNumero($gasto->empresa_id),
+                'fecha' => $gasto->fecha_gasto,
+                'tipo' => 'diario',
+                'descripcion' => "Egreso de caja - {$gasto->concepto}",
+                'estado' => 'aprobado',
+                'referencia_tipo' => 'egreso_caja',
+                'referencia_id' => $gasto->id,
+                'user_id' => $gasto->user_id,
+                'empresa_id' => $gasto->empresa_id,
+                'sucursal_id' => $gasto->sucursal_id
+            ]);
+
+            // DEBE: Cuenta de gasto según categoría
+            $cuentaGasto = $this->obtenerCuentaGastoPorCategoria($gasto->categoria, $gasto->empresa_id);
+
+            if ($cuentaGasto) {
+                $asiento->detalles()->create([
+                    'cuenta_id' => $cuentaGasto->id,
+                    'debe' => $gasto->monto_bs,
+                    'haber' => 0,
+                    'descripcion' => "{$gasto->concepto} - {$gasto->metodo_pago}"
+                ]);
+            } else {
+                // Si no hay cuenta específica, usar cuenta genérica de gastos
+                $cuentaGenerica = CuentaContable::where('codigo', $this->getCodigoCuenta('gastos_operativos'))
+                    ->where('empresa_id', $gasto->empresa_id)
+                    ->first();
+
+                if ($cuentaGenerica) {
+                    $asiento->detalles()->create([
+                        'cuenta_id' => $cuentaGenerica->id,
+                        'debe' => $gasto->monto_bs,
+                        'haber' => 0,
+                        'descripcion' => "{$gasto->concepto} - {$gasto->metodo_pago} (sin categoría específica)"
+                    ]);
+                }
+            }
+
+            // HABER: Caja
+            $cuentaCaja = CuentaContable::where('codigo', $this->getCodigoCuenta('caja'))
+                ->where('empresa_id', $gasto->empresa_id)
+                ->first();
+
+            if ($cuentaCaja) {
+                $asiento->detalles()->create([
+                    'cuenta_id' => $cuentaCaja->id,
+                    'debe' => 0,
+                    'haber' => $gasto->monto_bs,
+                    'descripcion' => "Salida de caja - {$gasto->metodo_pago}"
+                ]);
+            }
+
+            // Validar partida doble
+            self::validarPartidaDoble($asiento);
+
+            return $asiento;
+        });
+    }
+
+    /**
+     * Obtener cuenta contable de gasto según categoría
+     */
+    private function obtenerCuentaGastoPorCategoria(?string $categoria, int $empresaId): ?CuentaContable
+    {
+        // Mapeo de categorías a cuentas contables
+        $mapeoCategorias = [
+            'combustible' => '5.1.04.001',      // Gastos de combustible
+            'materiales' => '5.1.05.001',       // Materiales y suministros
+            'servicios' => '5.1.06.001',        // Servicios públicos
+            'mantenimiento' => '5.1.07.001',    // Mantenimiento y reparaciones
+            'transporte' => '5.1.08.001',       // Gastos de transporte
+            'alimentacion' => '5.1.09.001',     // Alimentación
+            'papeleria' => '5.1.10.001',        // Papelería y útiles
+            'otros' => '5.1.99.001',            // Otros gastos
+        ];
+
+        $codigoCuenta = $mapeoCategorias[strtolower($categoria ?? '')] ?? null;
+
+        if (!$codigoCuenta) {
+            return null;
+        }
+
+        return CuentaContable::where('codigo', $codigoCuenta)
+            ->where('empresa_id', $empresaId)
+            ->first();
     }
 
     /**

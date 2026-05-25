@@ -235,7 +235,8 @@ class Index extends Component
         if (!$medicoId || !$fecha) return [];
 
         try {
-            $fechaCarbon = Carbon::parse($fecha);
+            $timezone = $this->getEmpresaTimezone();
+            $fechaCarbon = Carbon::parse($fecha, $timezone);
         } catch (\Exception $e) {
             return [];
         }
@@ -264,8 +265,8 @@ class Index extends Component
 
         foreach ($horarios as $horario) {
             $duracion = $horario->duracion_cita ?? 30;
-            $inicio = Carbon::parse($fechaCarbon->toDateString() . ' ' . Carbon::parse($horario->hora_inicio)->format('H:i'));
-            $finJornada = Carbon::parse($fechaCarbon->toDateString() . ' ' . Carbon::parse($horario->hora_fin)->format('H:i'));
+            $inicio = Carbon::parse($fechaCarbon->toDateString() . ' ' . Carbon::parse($horario->hora_inicio)->format('H:i'), $timezone);
+            $finJornada = Carbon::parse($fechaCarbon->toDateString() . ' ' . Carbon::parse($horario->hora_fin)->format('H:i'), $timezone);
 
             while ($inicio->copy()->addMinutes($duracion)->lte($finJornada)) {
                 $finSlot = $inicio->copy()->addMinutes($duracion);
@@ -338,8 +339,10 @@ class Index extends Component
 
         $this->validate();
 
-        $inicio = Carbon::parse($this->fecha_inicio);
-        $fin = Carbon::parse($this->fecha_fin);
+        // Parsear las fechas manteniendo la zona horaria especificada
+        $timezone = $this->getEmpresaTimezone();
+        $inicio = Carbon::parse($this->fecha_inicio, $timezone)->tz('UTC');
+        $fin = Carbon::parse($this->fecha_fin, $timezone)->tz('UTC');
 
         $conflictos = Cita::sinConflicto($this->medico_id, $inicio, $fin, $this->citaId)->count();
         if ($conflictos > 0) {
@@ -430,8 +433,11 @@ class Index extends Component
     public function updateCitaFechas($id, $start, $end)
     {
         $cita = Cita::findOrFail($id);
-        $inicio = Carbon::parse($start);
-        $fin = Carbon::parse($end);
+        
+        // Parsear las fechas con la zona horaria de la empresa antes de convertirlas a UTC
+        $timezone = $this->getEmpresaTimezone();
+        $inicio = Carbon::parse($start, $timezone)->tz('UTC');
+        $fin = Carbon::parse($end, $timezone)->tz('UTC');
 
         $conflictos = Cita::sinConflicto($cita->medico_id, $inicio, $fin, $id)->count();
         if ($conflictos > 0) {
@@ -701,6 +707,23 @@ class Index extends Component
         }
 
         return false;
+    }
+
+    protected function getEmpresaTimezone(): string
+    {
+        try {
+            $empresaId = auth()->user()?->empresa_id;
+            if ($empresaId) {
+                $paisId = \DB::table('empresas')->where('id', $empresaId)->value('pais_id');
+                if ($paisId) {
+                    $tz = \DB::table('pais')->where('id', $paisId)->value('zona_horaria');
+                    if ($tz) return $tz;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('No se pudo obtener timezone de empresa', ['error' => $e->getMessage()]);
+        }
+        return config('app.timezone', 'UTC');
     }
 
     protected function notificarNuevaCita(Cita $cita): array

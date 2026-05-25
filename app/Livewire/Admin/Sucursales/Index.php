@@ -92,8 +92,12 @@ class Index extends Component
             ->when($this->search, function ($query) {
                 $query->where('nombre', 'like', '%' . $this->search . '%');
             })
-            ->when($this->status, function ($query) {
-                $query->where('status', $this->status);
+            ->when($this->status !== '', function ($query) {
+                // Convertir string a booleano para la comparación
+                $statusBool = $this->status === 'active' ? true : ($this->status === 'inactive' ? false : null);
+                if ($statusBool !== null) {
+                    $query->where('status', $statusBool);
+                }
             })
             ->when($this->empresa_id, function ($query) {
                 $query->where('empresa_id', $this->empresa_id);
@@ -106,12 +110,12 @@ class Index extends Component
             ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate($this->perPage);
 
-        $empresas = Empresa::forUser()->where('status', 'active')->get();
+        $empresas = Empresa::forUser()->where('status', true)->get();
 
         // Calcular estadísticas
         $totalSucursales = Sucursal::forUser()->count();
-        $sucursalesActivas = Sucursal::forUser()->where('status', 'active')->count();
-        $sucursalesInactivas = Sucursal::forUser()->where('status', 'inactive')->count();
+        $sucursalesActivas = Sucursal::forUser()->where('status', true)->count();
+        $sucursalesInactivas = Sucursal::forUser()->where('status', false)->count();
 
         return view('livewire.admin.sucursales.index', compact('sucursales', 'empresas', 'totalSucursales', 'sucursalesActivas', 'sucursalesInactivas'))
             ->layout($this->getLayout(), [
@@ -127,10 +131,15 @@ class Index extends Component
             return;
         }
 
-        $sucursal->status = $sucursal->status === 'active' ? 'inactive' : 'active';
+        // Alternar status como booleano
+        $sucursal->status = !$sucursal->status;
         $sucursal->save();
 
-        session()->flash('message', 'Estado de sucursal actualizado correctamente.');
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Estado de sucursal actualizado correctamente.',
+            'duration' => 4000
+        ]);
     }
 
     public function delete(Sucursal $sucursal)

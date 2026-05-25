@@ -11,6 +11,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 use App\Traits\HasSpanishActivityLog;
 use App\Traits\FiscalAuditable;
+use Illuminate\Support\Facades\DB;
 
 class Pago extends Model
 {
@@ -149,6 +150,11 @@ class Pago extends Model
         return $this->hasMany(PagoDetalle::class);
     }
 
+    public function ventasProductos()
+    {
+        return $this->hasMany(VentaProducto::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -234,47 +240,74 @@ class Pago extends Model
 
     public static function generarNumero($tipo, $empresaId, $sucursalId, $serieId = null)
     {
-        if ($serieId) {
-            $serieModel = Serie::find($serieId);
-        } else {
-            $serieModel = Serie::where('tipo_documento', $tipo)
-                ->where('empresa_id', $empresaId)
-                ->where('sucursal_id', $sucursalId)
-                ->where('activo', true)
-                ->first();
-        }
+        return DB::transaction(function () use ($tipo, $empresaId, $sucursalId, $serieId) {
+            if ($serieId) {
+                $serieModel = Serie::lockForUpdate()->find($serieId);
+                if (!$serieModel) {
+                    throw new \Exception("Serie con ID {$serieId} no encontrada");
+                }
+            } else {
+                // Buscar serie existente para este tipo de documento
+                $serieModel = Serie::lockForUpdate()
+                    ->where('tipo_documento', $tipo)
+                    ->where('empresa_id', $empresaId)
+                    ->where('sucursal_id', $sucursalId)
+                    ->where('activo', true)
+                    ->first();
 
-        if (!$serieModel) {
-            $prefijos = [
-                'factura' => 'F001',
-                'boleta' => 'B001',
-                'nota_credito' => 'NC01',
-                'nota_debito' => 'ND01',
-                'recibo' => 'R001'
+                if (!$serieModel) {
+                    $prefijos = [
+                        'factura' => 'F001',
+                        'boleta' => 'B001',
+                        'nota_credito' => 'NC01',
+                        'nota_debito' => 'ND01',
+                        'recibo' => 'R001'
+                    ];
+
+                    $seriePrefijo = $prefijos[$tipo] ?? 'DOC1';
+
+                    // Intentar crear la serie usando firstOrCreate para evitar duplicados
+                    try {
+                        $serieModel = Serie::firstOrCreate(
+                            [
+                                'tipo_documento' => $tipo,
+                                'empresa_id' => $empresaId,
+                                'sucursal_id' => $sucursalId,
+                                'activo' => true
+                            ],
+                            [
+                                'serie' => $seriePrefijo,
+                                'correlativo_actual' => 0,
+                                'control_fiscal_actual' => '00000000',
+                                'longitud_correlativo' => 8,
+                                'longitud_control_fiscal' => 8,
+                            ]
+                        );
+                    } catch (\Exception $e) {
+                        // Si falla, buscar cualquier serie existente para este tipo
+                        $serieModel = Serie::where('tipo_documento', $tipo)
+                            ->where('empresa_id', $empresaId)
+                            ->where('sucursal_id', $sucursalId)
+                            ->where('activo', true)
+                            ->first();
+
+                        if (!$serieModel) {
+                            throw new \Exception("No se pudo crear o encontrar una serie para {$tipo}: " . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            $numero = $serieModel->obtenerSiguienteNumero();
+            $controlFiscal = $serieModel->numero_control_fiscal;
+
+            return [
+                'serie_id' => $serieModel->id,
+                'serie' => $serieModel->serie,
+                'numero' => $numero,
+                'control_fiscal' => $controlFiscal
             ];
-
-            $serieModel = Serie::create([
-                'tipo_documento' => $tipo,
-                'serie' => $prefijos[$tipo] ?? 'DOC1',
-                'correlativo_actual' => 0,
-                'control_fiscal_actual' => '00000000',
-                'longitud_correlativo' => 8,
-                'longitud_control_fiscal' => 8,
-                'activo' => true,
-                'empresa_id' => $empresaId,
-                'sucursal_id' => $sucursalId
-            ]);
-        }
-
-        $numero = $serieModel->obtenerSiguienteNumero();
-        $controlFiscal = $serieModel->numero_control_fiscal;
-
-        return [
-            'serie_id' => $serieModel->id,
-            'serie' => $serieModel->serie,
-            'numero' => $numero,
-            'control_fiscal' => $controlFiscal
-        ];
+        });
     }
 
     protected static function boot()
@@ -295,7 +328,7 @@ class Pago extends Model
                         $pago->serie = $numeracion['serie'];
                         $pago->numero = $numeracion['numero'];
 
-                        if (!$pago->numero_control_fiscal && $pago->es_factura_fiscal 
+                        if (!$pago->numero_control_fiscal && $pago->es_factura_fiscal
                             && in_array($pago->tipo_pago, [self::TIPO_FACTURA, self::TIPO_NOTA_CREDITO, self::TIPO_NOTA_DEBITO])) {
                             $pago->numero_control_fiscal = $numeracion['control_fiscal'];
                         }
@@ -333,12 +366,12 @@ class Pago extends Model
                 $auditService = app(\App\Services\Audit\AuditService::class);
                 $oldAttributes = $pago->_oldAttributes ?? [];
                 $newAttributes = $pago->getAttributes();
-                
+
                 $action = 'pago.updated';
                 if (isset($oldAttributes['estado']) && $oldAttributes['estado'] !== $newAttributes['estado']) {
                     $action = "pago.estado.changed.{$oldAttributes['estado']}_to_{$newAttributes['estado']}";
                 }
-                
+
                 $auditService->logModelEvent($action, $pago, $oldAttributes, $newAttributes);
             } catch (\Exception $e) {
                 \Log::error('Error en auditoría de pago actualizado: ' . $e->getMessage());
@@ -355,10 +388,23 @@ class Pago extends Model
         });
 
         static::saved(function ($pago) {
+            // Actualizar estado de consulta si aplica
             if ($pago->consulta_id && $pago->estado === self::ESTADO_APROBADO) {
                 $consulta = $pago->consulta;
                 if ($consulta && $consulta->estado === Consulta::ESTADO_FINALIZADA) {
                     $consulta->cambiarEstado('pagada');
+                }
+            }
+
+            // Actualizar totales de la caja si el pago está aprobado y tiene caja asociada
+            if ($pago->estado === self::ESTADO_APROBADO && $pago->caja_id) {
+                try {
+                    $caja = \App\Models\Caja::find($pago->caja_id);
+                    if ($caja) {
+                        $caja->calcularTotales();
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Error al actualizar totales de caja después de guardar pago: ' . $e->getMessage());
                 }
             }
         });
@@ -366,10 +412,22 @@ class Pago extends Model
 
     public function calcularTotales()
     {
-        $subtotal = $this->detalles()->sum('subtotal');
-        $total = $subtotal - $this->descuento;
+        // Sumar subtotales de servicios (detalles de pago)
+        $subtotalServicios = $this->detalles()->sum('subtotal');
 
-        $tasaUSD = ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1;
+        // Sumar subtotales de productos (ventas de productos)
+        $subtotalProductos = $this->ventasProductos()->sum('subtotal');
+
+        // Subtotal total = servicios + productos (sin impuestos)
+        $subtotal = $subtotalServicios + $subtotalProductos;
+        $totalBase = $subtotal - $this->descuento;
+
+        // Determinar tasa de cambio según país de la empresa
+        $empresa = $this->empresa ?? \App\Models\Empresa::find($this->empresa_id);
+        $esVenezuela = $empresa && strtolower($empresa->pais->nombre ?? '') === 'venezuela';
+
+        // Solo usar tasa de cambio si es Venezuela, de lo contrario tasa = 1
+        $tasaUSD = $esVenezuela ? (ExchangeRate::getLatestRate('USD') ?? $this->tasa_cambio_usd ?? 1) : 1;
 
         $totalUSD = 0;
         $totalBS = 0;
@@ -379,75 +437,136 @@ class Pago extends Model
             foreach ($this->detalles_pago_mixto as $detalle) {
                 $metodo = $detalle['metodo'];
 
-                if (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal'])) {
+                // Pagos en USD (aplican IGTF)
+                if (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt',
+                                      'tarjeta', 'tarjeta_debito', 'tarjeta_credito',
+                                      'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr',
+                                      'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr',
+                                      'bod_dr', 'bod_cr'])) {
                     $montoUSD = $detalle['monto_usd'] ?? 0;
                     $totalUSD += $montoUSD;
                     $totalBS += $montoUSD * $tasaUSD;
                     $aplicaIGTF = true;
                 }
-
-                if (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
+                // Pagos en Bolívares
+                elseif (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
                     $montoBS = $detalle['monto_bs'] ?? 0;
                     $totalBS += $montoBS;
                     $totalUSD += $montoBS / $tasaUSD;
                 }
             }
         } else {
-            switch ($this->metodo_pago) {
-                case 'efectivo_bs':
-                case 'transferencia_bs':
-                case 'pago_movil':
-                    $totalBS = $total * $tasaUSD;
-                    $totalUSD = $total;
-                    break;
+            // Clasificar método de pago
+            $metodo = $this->metodo_pago;
 
-                case 'efectivo_usd':
-                case 'transferencia_usd':
-                case 'zelle':
-                case 'paypal':
-                    $totalUSD = $total;
-                    $totalBS = $total * $tasaUSD;
-                    $aplicaIGTF = true;
-                    break;
+            // Pagos en Bolívares
+            if (in_array($metodo, ['efectivo_bs', 'transferencia_bs', 'pago_movil'])) {
+                $totalBS = $totalBase * $tasaUSD;
+                $totalUSD = $totalBase;
+            }
+            // Pagos en USD (aplican IGTF)
+            elseif (in_array($metodo, ['efectivo_usd', 'transferencia_usd', 'zelle', 'paypal', 'usdt'])) {
+                $totalUSD = $totalBase;
+                $totalBS = $totalBase * $tasaUSD;
+                $aplicaIGTF = true;
+            }
+            // Tarjetas de débito/crédito y bancos (aplican IGTF)
+            elseif (in_array($metodo, ['tarjeta', 'tarjeta_debito', 'tarjeta_credito', 'bbva_dr', 'bbva_cr', 'mercantil_dr', 'mercantil_cr', 'banesco_dr', 'banesco_cr', 'provincial_dr', 'provincial_cr', 'bod_dr', 'bod_cr'])) {
+                $totalUSD = $totalBase;
+                $totalBS = $totalBase * $tasaUSD;
+                $aplicaIGTF = true;
+            }
+            // Default: tratar como USD
+            else {
+                $totalUSD = $totalBase;
+                $totalBS = $totalBase * $tasaUSD;
             }
         }
 
         $updateData = [
             'subtotal' => $subtotal,
-            'total' => $total,
+            'total' => $totalBase,
             'tasa_cambio_usd' => $tasaUSD,
             'total_usd' => $totalUSD,
             'total_bs' => $totalBS,
             'aplica_igtf' => $aplicaIGTF,
         ];
 
-        $fiscal = FiscalCalculator::calcular($this);
-        $updateData = array_merge($updateData, [
-            'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
-            'igtf_monto' => $fiscal['igtf_monto'],
-            'aplica_igtf' => $fiscal['aplica_igtf'],
-        ]);
-
+        // Calcular datos fiscales si es factura fiscal
         if ($this->es_factura_fiscal) {
-
-            $baseImponible16 = $total * $tasaUSD;
+            $fiscal = FiscalCalculator::calcular($this);
 
             $updateData = array_merge($updateData, [
-                'base_imponible' => $baseImponible16,
+                'base_imponible' => $fiscal['base_imponible'],
                 'monto_exento' => $fiscal['monto_exento'],
                 'base_imponible_general' => $fiscal['base_imponible_general'],
                 'iva_monto_general' => $fiscal['iva_monto_general'],
                 'base_imponible_reducida' => $fiscal['base_imponible_reducida'],
                 'iva_monto_reducida' => $fiscal['iva_monto_reducida'],
-                'iva_porcentaje' => $fiscal['iva_porcentaje'] ?? $this->iva_porcentaje,
+                'iva_porcentaje' => $fiscal['iva_porcentaje'],
                 'iva_monto' => $fiscal['iva_monto'],
+                'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
+                'igtf_monto' => $fiscal['igtf_monto'],
+                'aplica_igtf' => $fiscal['aplica_igtf'],
                 'total_con_impuestos' => $fiscal['total_con_impuestos'],
                 'seniat_tipo_documento' => $fiscal['seniat_tipo_documento'] ?? $this->getSeniatTipoDocumentoCode(),
             ]);
 
+            // Actualizar totales en USD y BS con impuestos incluidos
             $totalConImpuestos = $fiscal['total_con_impuestos'];
-            $updateData['total_bs'] = $totalConImpuestos * $tasaUSD;
-            $updateData['total_usd'] = $totalConImpuestos;
+
+            // El total final debe incluir IVA e IGTF (solo si aplica)
+            $igtfMonto = $fiscal['aplica_igtf'] ? $fiscal['igtf_monto'] : 0;
+            $totalFinal = $totalBase + $fiscal['iva_monto'] + $igtfMonto;
+
+            if ($this->es_pago_mixto && $this->detalles_pago_mixto) {
+                // Para pagos mixtos, mantener la distribución original pero ajustar proporcionalmente
+                $factor = $totalFinal / $totalBase;
+                $updateData['total_usd'] = $totalUSD * $factor;
+                $updateData['total_bs'] = $totalBS * $factor;
+            } else {
+                switch ($this->metodo_pago) {
+                    case 'efectivo_bs':
+                    case 'transferencia_bs':
+                    case 'pago_movil':
+                        $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                        $updateData['total_usd'] = $totalFinal;
+                        break;
+                    case 'efectivo_usd':
+                    case 'transferencia_usd':
+                    case 'zelle':
+                    case 'paypal':
+                        $updateData['total_usd'] = $totalFinal;
+                        $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                        break;
+                    default:
+                        $updateData['total_usd'] = $totalFinal;
+                        $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                        break;
+                }
+            }
+
+            // Actualizar el total con impuestos incluidos
+            $updateData['total'] = $totalFinal;
+        } else {
+            // Para documentos no fiscales, calcular impuestos si hay items con IVA
+            $fiscal = FiscalCalculator::calcular($this);
+            $updateData = array_merge($updateData, [
+                'iva_porcentaje' => $fiscal['iva_porcentaje'],
+                'iva_monto' => $fiscal['iva_monto'],
+                'igtf_porcentaje' => $fiscal['igtf_porcentaje'],
+                'igtf_monto' => $fiscal['igtf_monto'],
+                'aplica_igtf' => $fiscal['aplica_igtf'],
+            ]);
+
+            // Si hay IVA, actualizar el total para incluirlo
+            if ($fiscal['iva_monto'] > 0 || $fiscal['igtf_monto'] > 0) {
+                $totalFinal = $totalBase + $fiscal['iva_monto'] + $fiscal['igtf_monto'];
+                $updateData['total'] = $totalFinal;
+                $updateData['total_usd'] = $totalFinal;
+                $updateData['total_bs'] = $totalFinal * $tasaUSD;
+                $updateData['total_con_impuestos'] = $totalFinal;
+            }
         }
 
         $this->updateQuietly($updateData);

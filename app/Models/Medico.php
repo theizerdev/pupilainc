@@ -31,12 +31,16 @@ class Medico extends Model
         'nivel_experiencia',
         'status',
         'empresa_id',
-        'sucursal_id'
+        'sucursal_id',
+        'firma_digital',
+        'sello_digital',
+        'config_firma',
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'status'      => 'boolean',
         'anios_experiencia' => 'integer',
+        'config_firma' => 'array',
     ];
 
     protected $attributes = [

@@ -34,14 +34,13 @@ return new class extends Migration
             
             // Método de pago principal
             $table->enum('metodo_pago', [
-                'efectivo_bs',
-                'efectivo_usd', 
-                'transferencia_bs',
-                'transferencia_usd',
-                'pago_movil',
-                'zelle',
-                'paypal',
-                'mixto'
+                'efectivo',
+                'bbva_dr', 
+                'mifel_dra',
+                'cuenta_dr',
+                'cuenta_dra',
+                'tarjeta_credito',
+                'tarjeta_debito'
             ]);
             $table->string('referencia')->nullable();
             

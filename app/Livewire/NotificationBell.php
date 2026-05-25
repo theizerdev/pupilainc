@@ -10,27 +10,27 @@ class NotificationBell extends Component
 {
     public function markAsRead($notificationId)
     {
-        $notification = Notification::where('user_id', auth()->id())->find($notificationId);
+        $notification = Notification::find($notificationId);
         if ($notification) {
             $notification->markAsRead();
 
             // Emitir evento para actualizar el contador
             $this->dispatch('notification-read');
         }
-        // No re-render to maintain dropdown state
         $this->skipRender();
     }
 
     public function markAllAsRead()
     {
-        $updated = Notification::where('user_id', auth()->id())
-            ->whereNull('read_at')
+        $updated = Notification::whereNull('read_at')
             ->update(['read_at' => now()]);
 
         if ($updated > 0) {
             // Emitir evento para actualizar el contador
             $this->dispatch('notification-read');
         }
+
+        $this->skipRender();
     }
 
     public function viewAllNotifications()
@@ -50,17 +50,21 @@ class NotificationBell extends Component
         // Livewire automáticamente re-renderiza
     }
 
+    public function refreshBadge()
+    {
+        // Método solo para actualizar el badge vía poll
+    }
+
     public function render()
     {
-        // Obtener las últimas 10 notificaciones (tanto leídas como no leídas)
-        $notifications = Notification::where('user_id', auth()->id())
-            ->orderBy('created_at', 'desc')
+        // Obtener las últimas 10 notificaciones no leídas
+        $notifications = Notification::orderBy('created_at', 'desc')
+            ->whereNull('read_at')
             ->take(10)
             ->get();
 
-        // Contar solo las no leídas
-        $unreadCount = Notification::where('user_id', auth()->id())
-            ->whereNull('read_at')
+        // Contar solo las no leídas del usuario actual
+        $unreadCount = Notification::whereNull('read_at')
             ->count();
 
         return view('livewire.notification-bell', [

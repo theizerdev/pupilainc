@@ -84,7 +84,7 @@ class Dashboard extends Component
             ->whereDate('fecha_inicio', '>=', $hoy)
             ->whereDate('fecha_inicio', '<=', Carbon::now()->endOfWeek())
             ->orderBy('fecha_inicio', 'asc')
-        
+
             ->limit(10)
             ->get();
 
@@ -103,20 +103,33 @@ class Dashboard extends Component
         $citasPorDia = Cita::selectRaw('DATE(fecha_inicio) as fecha, COUNT(*) as total')
             ->where('medico_id', $this->medico->id)
             ->whereDate('fecha_inicio', '>=', Carbon::now()->subDays(6))
-            ->groupBy('fecha_inicio')
-            ->orderBy('fecha_inicio')
-            ->get();
+            ->groupBy('fecha')
+            ->orderBy('fecha')
+            ->get()
+            ->pluck('total', 'fecha')
+            ->toArray();
+
+        // Generar labels y data para los últimos 7 días completos
+        $labels = [];
+        $data = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $dateStr = $date->format('Y-m-d');
+            $labels[] = $date->format('d/m');
+            $data[] = $citasPorDia[$dateStr] ?? 0;
+        }
 
         $this->citasChartData = [
-            'labels' => $citasPorDia->pluck('fecha_inicio')->map(fn($fecha) => Carbon::parse($fecha)->format('d/m'))->toArray(),
-            'data' => $citasPorDia->pluck('total')->toArray()
+            'labels' => $labels,
+            'data' => $data
         ];
 
         // Gráfico de ingresos por mes (últimos 6 meses)
         $ingresosPorMes = 0;;
 
         $meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        
+
         $this->ingresosChartData = [
             'labels' => 100,
             'data' => 200

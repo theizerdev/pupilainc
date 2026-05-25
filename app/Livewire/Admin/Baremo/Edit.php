@@ -23,6 +23,8 @@ class Edit extends Component
     public $aplica_iva = true;
     public $exento_iva = false;
     public $duracion_minutos = 30;
+    public $porcentaje_medico = 60.00;
+    public $porcentaje_clinica = 40.00;
     public $activo = true;
     
     public $empresa_id = null;
@@ -45,6 +47,8 @@ class Edit extends Component
             'aplica_iva' => 'boolean',
             'exento_iva' => 'boolean',
             'duracion_minutos' => 'nullable|integer|min:5',
+            'porcentaje_medico' => 'required|numeric|min:0|max:100',
+            'porcentaje_clinica' => 'required|numeric|min:0|max:100',
             'activo' => 'boolean',
             'empresa_id' => 'required_if:auth.user.role,Super Administrador|exists:empresas,id',
             'sucursal_id' => 'required_if:auth.user.role,Super Administrador|exists:sucursales,id',
@@ -64,6 +68,8 @@ class Edit extends Component
         $this->aplica_iva = $baremo->aplica_iva;
         $this->exento_iva = $baremo->exento_iva;
         $this->duracion_minutos = $baremo->duracion_minutos;
+        $this->porcentaje_medico = $baremo->porcentaje_medico ?? 60.00;
+        $this->porcentaje_clinica = $baremo->porcentaje_clinica ?? 40.00;
         $this->activo = $baremo->activo;
         $this->empresa_id = $baremo->empresa_id;
         $this->sucursal_id = $baremo->sucursal_id;
@@ -88,6 +94,20 @@ class Edit extends Component
         } while (Baremo::where('codigo', $this->codigo)->where('id', '!=', $this->baremo->id)->exists());
     }
 
+    public function updatedPorcentajeMedico()
+    {
+        if ($this->porcentaje_medico !== null && $this->porcentaje_medico >= 0 && $this->porcentaje_medico <= 100) {
+            $this->porcentaje_clinica = 100 - $this->porcentaje_medico;
+        }
+    }
+
+    public function updatedPorcentajeClinica()
+    {
+        if ($this->porcentaje_clinica !== null && $this->porcentaje_clinica >= 0 && $this->porcentaje_clinica <= 100) {
+            $this->porcentaje_medico = 100 - $this->porcentaje_clinica;
+        }
+    }
+
     public function updatedEmpresaId()
     {
         if ($this->empresa_id) {
@@ -100,6 +120,12 @@ class Edit extends Component
 
     public function update()
     {
+        // Validar que los porcentajes sumen 100%
+        if (abs(($this->porcentaje_medico + $this->porcentaje_clinica) - 100) > 0.01) {
+            $this->addError('porcentaje_medico', 'Los porcentajes deben sumar exactamente 100%');
+            return;
+        }
+
         $this->validate();
 
         try {
@@ -113,6 +139,8 @@ class Edit extends Component
                 'aplica_iva' => $this->aplica_iva,
                 'exento_iva' => $this->exento_iva,
                 'duracion_minutos' => $this->duracion_minutos ?? 30,
+                'porcentaje_medico' => $this->porcentaje_medico,
+                'porcentaje_clinica' => $this->porcentaje_clinica,
                 'activo' => $this->activo,
                 'empresa_id' => $this->empresa_id,
                 'sucursal_id' => $this->sucursal_id,

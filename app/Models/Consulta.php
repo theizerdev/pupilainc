@@ -88,7 +88,6 @@ class Consulta extends Model
         'pio',
         'dilatacion_pupilar',
         'fondo_ojo',
-        'diagnosticos',
         'plan_tratamiento',
         'medicamentos',
         'observaciones',
@@ -111,7 +110,6 @@ class Consulta extends Model
         'pio' => 'array',
         'dilatacion_pupilar' => 'array',
         'fondo_ojo' => 'array',
-        'diagnosticos' => 'array',
         'medicamentos' => 'array',
     ];
 
@@ -128,6 +126,12 @@ class Consulta extends Model
                     }
                 }
                 $consulta->codigo = $candidate ?? (string) random_int(10000000, 99999999);
+            }
+        });
+
+        static::updating(function (self $consulta) {
+            if ($consulta->isDirty('estado')) {
+                $consulta->estado_changed_at = now();
             }
         });
     }
@@ -306,6 +310,21 @@ class Consulta extends Model
     public function gotasAplicadas()
     {
         return $this->hasMany(ConsultaGota::class);
+    }
+
+    public function estadoDatos()
+    {
+        return $this->hasMany(ConsultaEstadoDato::class);
+    }
+
+    public function notas()
+    {
+        return $this->hasMany(ConsultaNota::class)->orderBy('created_at', 'desc');
+    }
+
+    public function getDatosEstado(string $estado): array
+    {
+        return $this->estadoDatos()->where('estado', $estado)->first()?->datos ?? [];
     }
 
     public function scopePorEstado($query, $estado)
