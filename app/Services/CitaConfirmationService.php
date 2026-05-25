@@ -172,6 +172,10 @@ class CitaConfirmationService
      */
     protected function enviarConfirmacion(CitaConfirmacion $confirmacion): bool
     {
+        if (! WhatsAppNotificationGate::allows($confirmacion->empresa_id ?? $this->empresaId, 'citas', 'confirmacion_inicial', 'paciente')) {
+            return false;
+        }
+
         Log::info('Iniciando envío de confirmación', [
             'confirmacion_id' => $confirmacion->id,
             'metodo' => $confirmacion->metodo,
@@ -514,6 +518,10 @@ class CitaConfirmationService
 
     protected function solicitarClarificacion(CitaConfirmacion $confirmacion): void
     {
+        if (! WhatsAppNotificationGate::allows($confirmacion->empresa_id ?? $this->empresaId, 'citas', 'confirmacion_clarificacion', 'paciente')) {
+            return;
+        }
+
         // Intentar enviar mensaje interactivo de clarificación
         $mensajeInteractivo = [
             'type' => 'interactive',

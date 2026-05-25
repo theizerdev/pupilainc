@@ -413,6 +413,10 @@ class Cita extends Model
     protected function enviarCuestionarioWhatsApp(string $token): bool
     {
         try {
+            if (! \App\Services\WhatsAppNotificationGate::allows($this->empresa_id, 'citas', 'preconsulta', 'paciente')) {
+                return false;
+            }
+
             $paciente = $this->paciente;
             if (!$paciente) return false;
 

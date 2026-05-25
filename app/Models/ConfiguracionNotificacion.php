@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
 
 class ConfiguracionNotificacion extends Model
 {
@@ -52,6 +53,18 @@ class ConfiguracionNotificacion extends Model
      */
     public static function debeEnviar(int $empresaId, string $tipoDestinatario, string $estadoCita): bool
     {
+        if (Schema::hasTable('whatsapp_notification_settings')) {
+            $setting = WhatsAppNotificationSetting::where('empresa_id', $empresaId)
+                ->where('module_key', 'citas')
+                ->where('action_key', 'estado_'.$estadoCita)
+                ->where('recipient_key', $tipoDestinatario)
+                ->first();
+
+            if ($setting) {
+                return $setting->enabled;
+            }
+        }
+
         $config = self::where('empresa_id', $empresaId)
             ->where('tipo_destinatario', $tipoDestinatario)
             ->where('estado_cita', $estadoCita)
@@ -129,6 +142,17 @@ class ConfiguracionNotificacion extends Model
             $resultado[$item->tipo_destinatario][$item->estado_cita] = $item->enviar_notificacion;
         }
 
+        if (Schema::hasTable('whatsapp_notification_settings')) {
+            WhatsAppNotificationSetting::where('empresa_id', $empresaId)
+                ->where('module_key', 'citas')
+                ->where('action_key', 'like', 'estado_%')
+                ->get()
+                ->each(function ($item) use (&$resultado) {
+                    $estado = substr($item->action_key, strlen('estado_'));
+                    $resultado[$item->recipient_key][$estado] = $item->enabled;
+                });
+        }
+
         // Rellenar con valores por defecto los que faltan
         $estados = array_keys((new \App\Models\Cita)::ESTADO_LABELS);
 
@@ -161,6 +185,16 @@ class ConfiguracionNotificacion extends Model
                         'enviar_notificacion' => $enviar,
                     ]
                 );
+
+                if (Schema::hasTable('whatsapp_notification_settings')) {
+                    WhatsAppNotificationSetting::setValue(
+                        $empresaId,
+                        'citas',
+                        'estado_'.$estado,
+                        $tipoDestinatario,
+                        (bool) $enviar
+                    );
+                }
             }
         }
     }

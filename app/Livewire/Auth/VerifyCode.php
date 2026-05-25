@@ -96,7 +96,7 @@ class VerifyCode extends Component
         // Verificar si el usuario tiene teléfono y WhatsApp habilitado
         $hasWhatsApp = !empty($telefono) && $user->whatsapp_verification_enabled;
 
-        if ($hasWhatsApp) {
+        if ($hasWhatsApp && \App\Services\WhatsAppNotificationGate::allows($user->empresa_id, 'usuarios', 'codigo_verificacion', 'usuario')) {
             // Enviar por WhatsApp
             try {
                 $whatsAppService = new WhatsAppService();

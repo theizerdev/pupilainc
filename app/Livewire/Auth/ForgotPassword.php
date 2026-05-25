@@ -135,7 +135,7 @@ class ForgotPassword extends Component
 
             $whatsApp = new WhatsAppService($user->empresa_id);
 
-            if ($whatsApp->isConfigured()) {
+            if ($whatsApp->isConfigured() && \App\Services\WhatsAppNotificationGate::allows($user->empresa_id, 'usuarios', 'restablecer_password', 'usuario')) {
                 try {
                     $whatsApp->setTimeout(8);
                     $result = $whatsApp->sendMessage($telefono, $message, true);

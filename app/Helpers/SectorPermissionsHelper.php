@@ -374,10 +374,12 @@ if (!function_exists('getSectorMenuItems')) {
                     [
                         'label' => 'WhatsApp',
                         'icon' => 'ri-whatsapp-line',
-                        'permission' => 'access whatsapp',
-                        'route' => 'admin.whatsapp.index',
-                        'route_horizontal' => 'admin.whatsapp.index',
                         'active' => 'admin.whatsapp.*',
+                        'permissions' => ['access whatsapp', 'view whatsapp notifications'],
+                        'children' => [
+                            ['label' => 'Panel WhatsApp', 'permission' => 'access whatsapp', 'route' => 'admin.whatsapp.index', 'active' => 'admin.whatsapp.index'],
+                            ['label' => 'Notificaciones', 'permission' => 'view whatsapp notifications', 'route' => 'admin.whatsapp.notifications', 'active' => 'admin.whatsapp.notifications'],
+                        ],
                     ],
                 ]
             ],

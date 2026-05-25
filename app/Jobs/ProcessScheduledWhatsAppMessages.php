@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\WhatsAppScheduledMessage;
+use App\Services\WhatsAppNotificationGate;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -42,6 +43,14 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
 
         foreach ($messages as $message) {
             try {
+                if (! $this->notificationIsAllowed($message)) {
+                    $message->update([
+                        'status' => 'cancelled',
+                        'error_message' => 'Envio desactivado por configuracion de notificaciones WhatsApp.',
+                    ]);
+                    continue;
+                }
+
                 // Incrementar intentos
                 $message->increment('attempts');
 
@@ -126,5 +135,23 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
     public function failed(\Throwable $exception)
     {
         Log::error('Error en job ProcessScheduledWhatsAppMessages: ' . $exception->getMessage());
+    }
+
+    private function notificationIsAllowed(WhatsAppScheduledMessage $message): bool
+    {
+        $action = match ($message->notification_type) {
+            'cita_recordatorio_12h' => 'recordatorio_12h',
+            'cita_recordatorio_6h' => 'recordatorio_6h',
+            'cita_recordatorio_1h' => 'recordatorio_1h',
+            'manual' => 'recordatorio_manual',
+            'nueva_cita' => 'nueva_cita',
+            default => $message->notification_type,
+        };
+
+        if (! $message->empresa_id || ! $action) {
+            return true;
+        }
+
+        return WhatsAppNotificationGate::allows($message->empresa_id, 'citas', $action, 'paciente');
     }
 }

@@ -159,7 +159,9 @@ class Preconsulta extends Component
                 if (!empty($telefono) && trim($telefono) !== '') {
                     $telefono = $this->formatearTelefono($telefono);
                     $whatsapp = new WhatsAppService($consulta->empresa_id);
-                    $resultado = $whatsapp->sendMessage($telefono, $mensaje);
+                    $resultado = \App\Services\WhatsAppNotificationGate::allows($consulta->empresa_id, 'citas', 'preconsulta', 'paciente')
+                        ? $whatsapp->sendMessage($telefono, $mensaje)
+                        : null;
 
                     if ($resultado) {
                         $flashType = 'success';

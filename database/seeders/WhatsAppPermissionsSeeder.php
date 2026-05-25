@@ -49,6 +49,10 @@ class WhatsAppPermissionsSeeder extends Seeder
             // Permisos para estadísticas
             'view whatsapp statistics' => 'whatsapp',
             'export whatsapp statistics' => 'whatsapp',
+
+            // Permisos para configuracion de notificaciones
+            'view whatsapp notifications' => 'whatsapp',
+            'manage whatsapp notifications' => 'whatsapp',
             
             // Permisos generales que ya existen pero nos aseguramos
             'access whatsapp' => 'whatsapp',

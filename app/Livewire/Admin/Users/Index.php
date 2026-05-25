@@ -201,7 +201,7 @@ class Index extends Component
                     $whatsappService = \App\Services\WhatsAppService::forCompany($user->empresa_id);
                 }
 
-                if ($whatsappService->isConfigured()) {
+                if ($whatsappService->isConfigured() && \App\Services\WhatsAppNotificationGate::allows($user->empresa_id, 'usuarios', 'codigo_verificacion', 'usuario')) {
                     $mensaje = "Hola {$user->name}, tu cuenta ha sido desbloqueada exitosamente por el administrador. Ya puedes acceder al sistema nuevamente.";
                     $whatsappService->sendMessage($user->phone, $mensaje);
                 }

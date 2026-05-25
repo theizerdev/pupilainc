@@ -105,12 +105,15 @@ class CitaNotificationService
     {
         $cita->loadMissing(['paciente.tutor', 'medico', 'especialidad']);
 
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+        $empresaId = $cita->empresa_id ?? $this->empresaId;
         $resultado = false;
         $errores = [];
+        $confirmacion = null;
 
-        // Crear confirmación y enviar mensaje unificado (notificación + confirmación)
+        if ($this->puedeEnviarNotificacion('nueva_cita', 'paciente', $empresaId)) {
+            $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
 
+            // Crear confirmación y enviar mensaje unificado (notificación + confirmación)
             $confirmacion = $this->crearConfirmacion($cita);
             if ($confirmacion) {
                 $mensajePaciente = $this->construirMensajeNuevaCitaConConfirmacion($cita, $confirmacion);
@@ -119,15 +122,16 @@ class CitaNotificationService
             }
 
 
-        foreach ($telefonos as $telefono) {
-            if ($this->enviar($telefono, $mensajePaciente)) {
-                $resultado = true;
-            } else {
-                $errores[] = "No se pudo enviar notificación al paciente: {$telefono}";
+            foreach ($telefonos as $telefono) {
+                if ($this->enviar($telefono, $mensajePaciente)) {
+                    $resultado = true;
+                } else {
+                    $errores[] = "No se pudo enviar notificación al paciente: {$telefono}";
+                }
             }
         }
 
-        if ($cita->medico && $cita->medico->telefono) {
+        if ($cita->medico && $cita->medico->telefono && $this->puedeEnviarNotificacion('nueva_cita', 'doctor', $empresaId)) {
             $mensajeMedico = $this->construirMensajeNuevaCitaMedico($cita);
             $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
             if ($this->enviar($telefonoMedico, $mensajeMedico)) {
@@ -171,6 +175,17 @@ class CitaNotificationService
         foreach ($recordatorios as $tipo => $fechaEnvio) {
             if ($fechaEnvio->isPast()) continue;
 
+            $action = match ($tipo) {
+                'cita_recordatorio_12h' => 'recordatorio_12h',
+                'cita_recordatorio_6h' => 'recordatorio_6h',
+                'cita_recordatorio_1h' => 'recordatorio_1h',
+                default => $tipo,
+            };
+
+            if (! $this->puedeEnviarNotificacion($action, 'paciente', $cita->empresa_id ?? $this->empresaId)) {
+                continue;
+            }
+
             // Issue 10: En el recordatorio de 12h incluir preconsulta si no fue llenada
             $incluirPreconsulta = ($tipo === 'cita_recordatorio_12h')
                 && ($cita->estado_preconsulta === 'pendiente')
@@ -208,13 +223,11 @@ class CitaNotificationService
     public function notificarCambioEstado(Cita $cita, string $estadoAnterior): bool
     {
         $cita->loadMissing(['paciente.tutor', 'medico']);
+        $action = WhatsAppNotificationCatalog::actionKeyForAppointmentState($cita->estado);
+        $empresaId = $cita->empresa_id ?? $this->empresaId;
 
         // Verificar si se debe enviar notificación al paciente
-        if (\App\Models\ConfiguracionNotificacion::debeEnviar(
-            $cita->empresa_id ?? $this->empresaId,
-            'paciente',
-            $cita->estado
-        )) {
+        if ($this->puedeEnviarNotificacion($action, 'paciente', $empresaId)) {
             $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
 
             // Si el estado es 'confirmada', usar mensaje específico
@@ -231,11 +244,7 @@ class CitaNotificationService
 
         // Verificar si se debe enviar notificación al médico
         if ($cita->medico && $cita->medico->telefono) {
-            if (\App\Models\ConfiguracionNotificacion::debeEnviar(
-                $cita->empresa_id ?? $this->empresaId,
-                'doctor',
-                $cita->estado
-            )) {
+            if ($this->puedeEnviarNotificacion($action, 'doctor', $empresaId)) {
                 // Si el estado es 'confirmada', usar mensaje específico de confirmación
                 if ($cita->estado === Cita::ESTADO_CONFIRMADA) {
                     $mensajeMedico = $this->construirMensajeConfirmacionMedico($cita);
@@ -256,17 +265,21 @@ class CitaNotificationService
         $cita->loadMissing(['paciente.tutor', 'medico']);
 
         $this->cancelarRecordatoriosPendientes($cita);
+        $empresaId = $cita->empresa_id ?? $this->empresaId;
+        $action = WhatsAppNotificationCatalog::actionKeyForAppointmentState(Cita::ESTADO_CANCELADA);
 
         // Notificar Paciente
-        $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-        $mensajePaciente = $this->construirMensajeCancelacion($cita);
+        if ($this->puedeEnviarNotificacion($action, 'paciente', $empresaId)) {
+            $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+            $mensajePaciente = $this->construirMensajeCancelacion($cita);
 
-        foreach ($telefonos as $telefono) {
-            $this->enviar($telefono, $mensajePaciente);
+            foreach ($telefonos as $telefono) {
+                $this->enviar($telefono, $mensajePaciente);
+            }
         }
 
         // Notificar Médico
-        if ($cita->medico && $cita->medico->telefono) {
+        if ($cita->medico && $cita->medico->telefono && $this->puedeEnviarNotificacion($action, 'doctor', $empresaId)) {
             $mensajeMedico = $this->construirMensajeCancelacionMedico($cita);
             $telefonoMedico = $this->formatearTelefono($cita->medico->telefono);
             $this->enviar($telefonoMedico, $mensajeMedico);
@@ -278,6 +291,14 @@ class CitaNotificationService
     public function enviarRecordatorio(Cita $cita): array
     {
         $cita->loadMissing(['paciente.tutor', 'medico']);
+
+        if (! $this->puedeEnviarNotificacion('recordatorio_manual', 'paciente', $cita->empresa_id ?? $this->empresaId)) {
+            return [
+                'success' => false,
+                'errors' => ['El recordatorio manual por WhatsApp esta desactivado para esta empresa'],
+                'message' => 'Recordatorio desactivado'
+            ];
+        }
 
         $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
         if (empty($telefonos)) {
@@ -387,6 +408,11 @@ class CitaNotificationService
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    protected function puedeEnviarNotificacion(string $action, string $recipient, ?int $empresaId = null): bool
+    {
+        return WhatsAppNotificationGate::allows($empresaId ?? $this->empresaId, 'citas', $action, $recipient);
     }
 
     // ===== ENVÍO DIRECTO (SÍNCRONO VÍA HTTP A NODE.JS) =====

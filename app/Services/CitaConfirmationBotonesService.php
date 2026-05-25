@@ -25,6 +25,10 @@ class CitaConfirmationBotonesService
     public function enviarConfirmacionConBotones(CitaConfirmacion $confirmacion): bool
     {
         try {
+            if (! WhatsAppNotificationGate::allows($confirmacion->empresa_id ?? $this->empresaId, 'citas', 'confirmacion_inicial', 'paciente')) {
+                return false;
+            }
+
             Log::info('Iniciando envío de confirmación con botones alternativos', [
                 'confirmacion_id' => $confirmacion->id,
                 'destinatario' => $confirmacion->destinatario

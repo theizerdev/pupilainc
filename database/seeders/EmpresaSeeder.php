@@ -26,7 +26,7 @@ class EmpresaSeeder extends Seeder
 
         foreach ($empresas as $empresaData) {
             $empresa = Empresa::create($empresaData);
-            \Artisan::call('whatsapp:sync-company 1');
+            \Artisan::call('whatsapp:sync-company', ['empresa' => $empresa->id]);
         }
 
     }

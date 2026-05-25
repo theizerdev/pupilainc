@@ -284,7 +284,7 @@ class Create extends Component
             // Enviar mensaje por WhatsApp
             $whatsAppService = new WhatsAppService($user->empresa_id);
             
-            if ($whatsAppService->isConfigured()) {
+            if ($whatsAppService->isConfigured() && \App\Services\WhatsAppNotificationGate::allows($user->empresa_id, 'enfermeros', 'bienvenida', 'enfermero')) {
                 $resultado = $whatsAppService->sendMessage($telefono, $mensaje, true);
                 
                 if ($resultado) {

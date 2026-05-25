@@ -270,6 +270,11 @@ Route::prefix('whatsapp')->as('whatsapp.')->middleware(['checkAdminPermission:ac
     // Historial
     Route::get('/history', \App\Livewire\Admin\Whatsapp\WhatsAppHistory::class)->name('history');
 
+    // Configuracion de notificaciones
+    Route::get('/notifications', \App\Livewire\Admin\Whatsapp\WhatsAppNotifications::class)
+        ->name('notifications')
+        ->middleware('checkAdminPermission:view whatsapp notifications');
+
     // Mensajes programados
     Route::get('/scheduled-messages', \App\Livewire\Admin\Whatsapp\WhatsAppScheduledMessages::class)->name('scheduled-messages');
 

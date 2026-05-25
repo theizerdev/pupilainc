@@ -166,6 +166,10 @@ class CitaPrioridadService
     protected function enviarCuestionarioWhatsApp(Cita $cita, array $preconsultaData, array $datos): bool
     {
         try {
+            if (! WhatsAppNotificationGate::allows($cita->empresa_id, 'citas', 'preconsulta', 'paciente')) {
+                return false;
+            }
+
             $paciente = $cita->paciente;
             if (!$paciente) return false;
 

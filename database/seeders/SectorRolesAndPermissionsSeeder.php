@@ -531,7 +531,9 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                 'whatsapp' => [
                     'name' => 'WhatsApp',
                     'permissions' => [
-                        'access whatsapp'
+                        'access whatsapp',
+                        'view whatsapp notifications',
+                        'manage whatsapp notifications',
 
                     ]
                 ],

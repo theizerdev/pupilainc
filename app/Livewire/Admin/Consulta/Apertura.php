@@ -185,6 +185,11 @@ class Apertura extends Component
         $mensaje .= "Gracias por su cooperación.";
 
         try {
+            if (! \App\Services\WhatsAppNotificationGate::allows($empresa->id, 'consulta_apertura', 'preconsulta', 'paciente')) {
+                session()->flash('error', 'El cuestionario por WhatsApp esta desactivado para esta empresa.');
+                return;
+            }
+
             $service = WhatsAppService::forCompany($empresa->id);
             $resultado = $service->sendMessage($telefonoFormateado, $mensaje);
 

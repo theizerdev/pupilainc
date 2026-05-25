@@ -89,6 +89,10 @@ class PacienteCarnetMenorController extends Controller
 
         $to = $this->formatWhatsAppJid($tutorTelefono, $data['empresaCodigoPais']);
 
+        if (! \App\Services\WhatsAppNotificationGate::allows($paciente->empresa_id, 'pacientes', 'carnet_menor', 'tutor')) {
+            return back()->with('error', 'El envio de carnets por WhatsApp esta desactivado para esta empresa.');
+        }
+
         $dir = storage_path('app/tmp/carnets');
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
