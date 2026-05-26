@@ -264,11 +264,10 @@ class CitaNotificationService
         $empresaId = $cita->empresa_id ?? $this->empresaId;
         $action = WhatsAppNotificationCatalog::actionKeyForAppointmentState(Cita::ESTADO_CANCELADA);
 
-        // Determinar si es primera vez o subsecuente
-        $esPrimeraVez = $this->esPrimeraVez($cita);
-
         // Notificar Paciente
-
+        if ($this->puedeEnviarNotificacion($action, 'paciente', $empresaId)) {
+            $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
+            $mensajePaciente = $this->construirMensajeCancelacion($cita);
             foreach ($telefonos as $telefono) {
                 $this->enviar($telefono, $mensajePaciente);
             }

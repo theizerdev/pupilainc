@@ -29,9 +29,14 @@ class WhatsAppNotificationsSettingsTest extends TestCase
     {
         [$empresa, $user] = $this->userWithNotificationPermissions();
 
-        Livewire::actingAs($user)
+        $component = Livewire::actingAs($user)
             ->test(WhatsAppNotifications::class)
-            ->assertSee('Notificaciones WhatsApp')
+            ->assertSee('Notificaciones WhatsApp');
+
+        $this->assertArrayHasKey('pedidos', $component->get('sectors')['administracion']['modules']);
+        $this->assertArrayNotHasKey('roles', $component->get('sectors')['configuracion']['modules']);
+
+        $component
             ->set('settings.citas.nueva_cita.paciente', false)
             ->call('save');
 
@@ -51,11 +56,11 @@ class WhatsAppNotificationsSettingsTest extends TestCase
             'documento' => 'J-20000001',
         ]);
 
-        WhatsAppNotificationSetting::setValue($empresa->id, 'citas', 'recordatorio_manual', 'paciente', false);
+        WhatsAppNotificationSetting::setValue($empresa->id, 'citas', 'recordatorio_12h', 'paciente', false);
 
         $message = WhatsAppScheduledMessage::create([
             'empresa_id' => $empresa->id,
-            'notification_type' => 'manual',
+            'notification_type' => 'cita_recordatorio_12h',
             'recipient_phone' => '+580000000000',
             'recipient_name' => 'Paciente',
             'message_content' => 'Recordatorio',
@@ -78,11 +83,11 @@ class WhatsAppNotificationsSettingsTest extends TestCase
             'documento' => 'J-20000002',
         ]);
 
-        WhatsAppNotificationSetting::setValue($empresa->id, 'citas', 'recordatorio_manual', 'paciente', true);
+        WhatsAppNotificationSetting::setValue($empresa->id, 'citas', 'recordatorio_12h', 'paciente', true);
 
         $message = WhatsAppScheduledMessage::create([
             'empresa_id' => $empresa->id,
-            'notification_type' => 'manual',
+            'notification_type' => 'cita_recordatorio_12h',
             'recipient_phone' => '+580000000001',
             'recipient_name' => 'Paciente',
             'message_content' => 'Recordatorio',

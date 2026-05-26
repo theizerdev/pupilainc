@@ -59,13 +59,14 @@ class WhatsAppNotificationGateTest extends TestCase
         $this->assertTrue(WhatsAppNotificationGate::allows($empresa->id, 'usuarios', 'bienvenida', 'usuario'));
     }
 
-    public function test_pending_catalog_events_start_disabled(): void
+    public function test_non_whatsapp_events_are_not_listed_in_catalog(): void
     {
         $empresa = Empresa::create([
             'razon_social' => 'Clinica Test',
             'documento' => 'J-10000004',
         ]);
 
-        $this->assertFalse(WhatsAppNotificationGate::allows($empresa->id, 'pagos', 'create', 'cliente'));
+        $this->assertNull(\App\Services\WhatsAppNotificationCatalog::event('pagos', 'create', 'cliente'));
+        $this->assertTrue(WhatsAppNotificationGate::allows($empresa->id, 'pagos', 'create', 'cliente'));
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Caja;
 use App\Models\ExchangeRate;
 use App\Models\Empresa;
 use App\Helpers\MetodoPagoHelper;
+use App\Services\WhatsAppNotificationGate;
 use App\Traits\HasDynamicLayout;
 use App\Traits\HasRegionalFormatting;
 use App\Traits\HasDualCurrency;
@@ -883,6 +884,14 @@ class Show extends Component
 
             if (!$empresa || !$empresa->telefono) {
                 \Log::warning('No se puede enviar notificación WhatsApp: empresa sin teléfono registrado', [
+                    'caja_id' => $this->caja->id,
+                    'empresa_id' => $this->caja->empresa_id
+                ]);
+                return;
+            }
+
+            if (! WhatsAppNotificationGate::allows($this->caja->empresa_id, 'cajas', 'cierre_reporte', 'administrador')) {
+                \Log::info('Notificación WhatsApp de cierre de caja desactivada', [
                     'caja_id' => $this->caja->id,
                     'empresa_id' => $this->caja->empresa_id
                 ]);

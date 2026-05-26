@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\HistoricoPedido;
 use App\Models\PedidoPago;
 use App\Services\WhatsAppService;
+use App\Services\WhatsAppNotificationGate;
 use App\Events\PedidoActualizado;
 use Illuminate\Support\Facades\DB;
 
@@ -52,17 +53,11 @@ class PedidoService
             $pedido->load(['user.empresa.pais', 'detalles.producto']);
             $empleado->load(['user']);
             
-            // Enviar notificaciones por WhatsApp usando Jobs
+            // Enviar notificaciones por WhatsApp
             try {
-                \App\Jobs\SendOrderAssignmentNotification::dispatch($pedido, $empleado);
-                
-                // Procesar el Job inmediatamente si no hay worker activo
-                try {
-                    \Artisan::call('queue:work', ['--once' => true, '--quiet' => true]);
-                } catch (\Exception $e) {
-                    \Log::info('Queue worker no disponible, Job se procesará cuando esté activo');
-                }
-                
+                $this->enviarAsignacionEmpleado($pedido, $empleado);
+                $this->enviarAsignacionCliente($pedido, $empleado);
+
                 \Log::info('Notificaciones de asignación enviadas', [
                     'pedido_id' => $pedido->id,
                     'empleado_id' => $empleado->id
@@ -426,6 +421,7 @@ class PedidoService
     {
         $cliente = $pedido->user;
         if (!$cliente->telefono) return;
+        if (! $this->whatsappAllowed($pedido, 'pago_confirmado', 'cliente')) return;
 
         $message = "¡Hola {$cliente->name}! 🎉\n\n";
         $message .= "Tu pago ha sido confirmado exitosamente.\n\n";
@@ -446,6 +442,7 @@ class PedidoService
     private function enviarAsignacionEmpleado(Pedido $pedido, Empleado $empleado)
     {
         if (!$empleado->telefono) return;
+        if (! $this->whatsappAllowed($pedido, 'empleado_asignado', 'empleado')) return;
 
         $cliente = $pedido->user;
         $detalles = $pedido->detalles()->with('producto')->get();
@@ -485,6 +482,7 @@ class PedidoService
     {
         $cliente = $pedido->user;
         if (!$cliente->telefono) return;
+        if (! $this->whatsappAllowed($pedido, 'empleado_asignado', 'cliente')) return;
 
         $message = "¡Hola {$cliente->name}! 📦\n\n";
         $message .= "Tu pedido ha sido asignado a uno de nuestros empleados para su entrega.\n\n";
@@ -637,6 +635,7 @@ class PedidoService
     {
         $cliente = $pedido->user;
         if (!$cliente->telefono) return;
+        if (! $this->whatsappAllowed($pedido, 'pedido_cancelado', 'cliente')) return;
 
         $message = "Hola {$cliente->name} 😔\n\n";
         $message .= "Lamentamos informarte que tu pedido ha sido cancelado.\n\n";
@@ -658,6 +657,7 @@ class PedidoService
     {
         $cliente = $pedido->user;
         if (!$cliente->telefono) return;
+        if (! $this->whatsappAllowed($pedido, 'entrega_confirmada', 'cliente')) return;
 
         $message = "¡Hola {$cliente->name}! ✅\n\n";
         $message .= "Tu pedido ha sido entregado exitosamente.\n\n";
@@ -687,6 +687,7 @@ class PedidoService
     {
         $cliente = $pedido->user;
         if (!$cliente->telefono) return;
+        if (! $this->whatsappAllowed($pedido, 'pedido_reversion', 'cliente')) return;
 
         $titulo = match($tipoReversion) {
             'cancelacion' => '❌ Pedido Cancelado',
@@ -756,6 +757,7 @@ class PedidoService
 
         foreach ($empleados as $empleado) {
             if (!$empleado->telefono) continue;
+            if (! $this->whatsappAllowed($pedido, 'pedido_reversion', 'empleado')) continue;
 
             $message = "¡Hola {$empleado->nombres}! {$titulo}\n\n";
             $message .= "El siguiente pedido está {$tipoAccion}:\n\n";
@@ -782,5 +784,15 @@ class PedidoService
 
             $this->whatsappService->sendMessage($empleado->telefono, $message);
         }
+    }
+
+    private function whatsappAllowed(Pedido $pedido, string $action, string $recipient): bool
+    {
+        $empresaId = $pedido->empresa_id
+            ?? $pedido->empresaId
+            ?? $pedido->user->empresa_id
+            ?? null;
+
+        return WhatsAppNotificationGate::allows($empresaId, 'pedidos', $action, $recipient);
     }
 }
