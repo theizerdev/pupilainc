@@ -5,10 +5,7 @@
 
 'use strict';
 var globalCompanyTimezone = 'local';
-var globalCompanyTimezone = 'local';
 
-function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
-    globalCompanyTimezone = companyTimezone || 'local';
 function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
     globalCompanyTimezone = companyTimezone || 'local';
     (function ensureNowIndicatorStyle() {
@@ -1266,13 +1263,14 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             });
         } else {
             alert(msg);
-            alert(msg);
         }
     }
 
     // ===================== FORM HELPERS =====================
     function formatDateForLivewire(date) {
         if (!date) return '';
+        try {
+            var options = {
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit', second: '2-digit',
                 hour12: false
