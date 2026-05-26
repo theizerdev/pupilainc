@@ -239,15 +239,74 @@ class Index extends Component
             return;
         }
 
-        $nombreUsuario = $user->name;
-        $user->delete();
+        try {
+            // Verificar si el usuario tiene registros relacionados que impidan la eliminación
+            $relatedRecords = $this->checkRelatedRecords($user);
+            
+            if (!empty($relatedRecords)) {
+                $this->dispatch('notify', [
+                    'type' => 'warning',
+                    'message' => "No se puede eliminar el usuario '{$user->name}' porque tiene registros relacionados: " . implode(', ', $relatedRecords) . '. Considera desactivar el usuario en lugar de eliminarlo.',
+                    'duration' => 6000
+                ]);
+                return;
+            }
+
+            $nombreUsuario = $user->name;
+            
+            // Eliminar el usuario (las relaciones en cascada se manejarán automáticamente)
+            $user->delete();
+            
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => "Usuario '{$nombreUsuario}' eliminado exitosamente.",
+                'duration' => 4000
+            ]);
+            $this->resetPage();
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Capturar errores de clave foránea
+            if ($e->getCode() === '23000') {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => "No se puede eliminar el usuario '{$user->name}' porque tiene registros relacionados en el sistema. Por seguridad, solo se pueden eliminar usuarios sin datos asociados. Considera desactivar el usuario en lugar de eliminarlo.",
+                    'duration' => 6000
+                ]);
+            } else {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => "Error al eliminar el usuario: " . $e->getMessage(),
+                    'duration' => 6000
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "Error inesperado al eliminar el usuario: " . $e->getMessage(),
+                'duration' => 6000
+            ]);
+        }
+    }
+
+    /**
+     * Verifica si el usuario tiene registros relacionados que impidan su eliminación
+     */
+    private function checkRelatedRecords(User $user): array
+    {
+        $relatedRecords = [];
         
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => "Usuario '{$nombreUsuario}' eliminado exitosamente.",
-            'duration' => 4000
-        ]);
-        $this->resetPage();
+        // Verificar si el usuario tiene un perfil de médico
+        if ($user->medico && $user->medico->citas()->exists()) {
+            $relatedRecords[] = 'citas médicas';
+        }
+        
+        // Verificar si el usuario tiene un perfil de enfermero
+        if (method_exists($user, 'enfermero') && $user->enfermero) {
+            $relatedRecords[] = 'registro de enfermería';
+        }
+        
+        // Verificar otros registros relacionados según sea necesario
+        
+        return $relatedRecords;
     }
 
     public function clearFilters()
