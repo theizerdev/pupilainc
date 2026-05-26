@@ -122,31 +122,31 @@ npm install
 npm start
 ```
 
-## Variables De Entorno Clave
+## Variables De Entorno
 
 ```env
-APP_NAME="Pupila Inc."
+APP_NAME="Nombre de la aplicación"
 APP_ENV=local
 APP_DEBUG=true
-APP_URL=http://127.0.0.1:8097
+APP_URL=http://localhost
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=pupiladev
-DB_USERNAME=pupiladev_user
-DB_PASSWORD=
+DB_DATABASE=database_name
+DB_USERNAME=database_user
+DB_PASSWORD=database_password
 
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 SESSION_DRIVER=database
 
-WHATSAPP_API_URL=http://127.0.0.1:8098
-WHATSAPP_API_KEY=
-WHATSAPP_WEBHOOK_URL=http://127.0.0.1:8097/api/whatsapp/webhook
+WHATSAPP_API_URL=http://localhost:3001
+WHATSAPP_API_KEY=change_me
+WHATSAPP_WEBHOOK_URL=http://localhost/api/whatsapp/webhook
 ```
 
-> No subas credenciales reales al repositorio. Mantener `.env` fuera de control de versiones es parte del flujo esperado.
+Usa `.env.example` como plantilla y configura los valores reales solo en tu entorno local.
 
 ## Estructura Del Proyecto
 
