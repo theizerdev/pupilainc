@@ -5,7 +5,10 @@
 
 'use strict';
 var globalCompanyTimezone = 'local';
+var globalCompanyTimezone = 'local';
 
+function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
+    globalCompanyTimezone = companyTimezone || 'local';
 function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone) {
     globalCompanyTimezone = companyTimezone || 'local';
     (function ensureNowIndicatorStyle() {
@@ -1264,6 +1267,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             });
         } else {
             alert(msg);
+            alert(msg);
         }
     }
 
@@ -2079,6 +2083,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         dateClick: function(info) {
             var clickedDate = info.date || new Date(info.dateStr);
             if(isPastDateTime(clickedDate, info)){return;}
+            if(isPastDateTime(clickedDate, info)){return;}
             var dateOnly = info.dateStr.substring(0,10);
 
             // Limpiar estado de edición anterior
@@ -2091,7 +2096,11 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
                 // Usamos la cadena de fecha de FullCalendar para obtener la hora exacta
                 // en la zona horaria del calendario (evitando desfases locales)
                 var startHour = info.dateStr.includes('T') ? info.dateStr.substring(11, 16) : '08:00';
+                // Usamos la cadena de fecha de FullCalendar para obtener la hora exacta
+                // en la zona horaria del calendario (evitando desfases locales)
+                var startHour = info.dateStr.includes('T') ? info.dateStr.substring(11, 16) : '08:00';
 
+                // Calcular hora de fin sumando la duración base (usando el objeto Date pero formateando con cuidado)
                 // Calcular hora de fin sumando la duración base (usando el objeto Date pero formateando con cuidado)
                 var endDate = new Date(clickedDate.getTime() + (currentSlotDuration * 60000));
                 var endHour = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
@@ -2156,6 +2165,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
             var ep = info.event.extendedProps||{};
             if(ep.tipo_evento!=='cita'){info.revert();return;}
             if(isPastDateTime(info.event.start, info)){info.revert();return;}
+            if(isPastDateTime(info.event.start, info)){info.revert();return;}
             var comp = getLivewireComponent(); if(!comp){info.revert();return;}
             var newStart = info.event.start;
             var newEnd = info.event.end;
@@ -2174,6 +2184,7 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
         eventResize: function(info) {
             var ep = info.event.extendedProps||{};
             if(ep.tipo_evento!=='cita'){info.revert();return;}
+            if(isPastDateTime(info.event.start, info)){info.revert();return;}
             if(isPastDateTime(info.event.start, info)){info.revert();return;}
             var comp = getLivewireComponent(); if(!comp){info.revert();return;}
             comp.call('updateCitaFechas', getCitaId(info.event.id), formatDateForLivewire(info.event.start), info.event.end?formatDateForLivewire(info.event.end):formatDateForLivewire(info.event.start));

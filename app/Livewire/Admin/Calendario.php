@@ -1258,6 +1258,7 @@ class Calendario extends Component
             'citaEstadoLabels' => Cita::ESTADO_LABELS,
             'citaEstadoColores' => Cita::ESTADO_COLORES,
             'timezone' => $this->getEmpresaTimezone(),
+            'timezone' => $this->getEmpresaTimezone(),
         ])->layout($this->getLayout());
     }
 }
