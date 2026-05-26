@@ -462,9 +462,6 @@ class Calendario extends Component
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
-        $ahora    = Carbon::now($timezone);
-        $inicioTz = Carbon::parse($this->fecha_inicio)->timezone($timezone);
-
         Log::info('Validando cita', [
             'fecha_inicio_raw' => $this->fecha_inicio,
             'inicio_tz' => $inicioTz->toDateTimeString(),
@@ -667,7 +664,6 @@ class Calendario extends Component
             $this->dispatch('show-alert', [
                 'type' => 'warning',
                 'title' => 'Fecha no permitida',
-                'message' => 'No se permite en el pasado. (Cita: ' . $inicio->format('H:i') . ', Ahora: ' . $ahora->format('H:i') . ')',
                 'icon' => 'warning'
             ]);
             $this->dispatch('cita-saved');

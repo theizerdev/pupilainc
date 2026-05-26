@@ -1212,7 +1212,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
     // ===================== DATE VALIDATION =====================
     function isPastDateTime(date, info) {
         if (!date || !info) return false;
-
         try {
             // FullCalendar usa 'dateStr' en clics y 'event.startStr' en arrastres
             var rawStr = info.dateStr || (info.event ? info.event.startStr : null);
@@ -1274,12 +1273,6 @@ function initCalendarioGeneral(events, citaColores, citaLabels, companyTimezone)
     // ===================== FORM HELPERS =====================
     function formatDateForLivewire(date) {
         if (!date) return '';
-
-        try {
-            // NO usar timezone de empresa - usar hora local del navegador
-            // Esto evita conversiones incorrectas al guardar citas
-            var options = {
-                timeZone: undefined, // Usar timezone local del navegador
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit', second: '2-digit',
                 hour12: false

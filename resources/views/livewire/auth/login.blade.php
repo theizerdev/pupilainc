@@ -67,11 +67,11 @@
           </div>
 
           <div class="mb-5">
-            <div class="form-password-toggle form-control-validation">
+            <div class="form-password-toggle form-control-validation" x-data="{ showPassword: false }">
               <div class="input-group input-group-merge">
                 <div class="form-floating form-floating-outline">
                   <input
-                    type="password"
+                    :type="showPassword ? 'text' : 'password'"
                     id="password"
                     class="form-control @if($hasError('password')) is-invalid @endif"
                     name="password"
@@ -80,8 +80,8 @@
                     aria-describedby="password" />
                   <label for="password">{{ __('auth_ui.password') }}</label>
                 </div>
-                <span class="input-group-text cursor-pointer" onclick="togglePassword()">
-                  <i class="icon-base ri ri-eye-off-line icon-20px" id="passwordToggleIcon"></i>
+                <span class="input-group-text cursor-pointer" @click="showPassword = !showPassword" style="cursor: pointer;">
+                  <i class="icon-base ri icon-20px" :class="showPassword ? 'ri-eye-line' : 'ri-eye-off-line'" id="passwordToggleIcon"></i>
                 </span>
               </div>
               @if($hasError('password'))
@@ -101,9 +101,9 @@
           </div>
 
           <div class="mb-5">
-            <button class="btn btn-primary d-grid w-100" type="submit" wire:loading.attr="disabled">
-              <span wire:loading.remove>{{ __('auth_ui.login_button') }}</span>
-              <span wire:loading>
+            <button class="btn btn-primary d-grid w-100" type="submit" wire:loading.attr="disabled" wire:target="authenticate">
+              <span wire:loading.remove wire:target="authenticate">{{ __('auth_ui.login_button') }}</span>
+              <span wire:loading wire:target="authenticate">
                 <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                 Iniciando sesión...
               </span>
@@ -140,22 +140,6 @@
 
 @push('scripts')
 <script>
-  // Toggle password visibility
-  function togglePassword() {
-    const passwordInput = document.getElementById('password');
-    const passwordIcon = document.getElementById('passwordToggleIcon');
-
-    if (passwordInput.type === 'password') {
-      passwordInput.type = 'text';
-      passwordIcon.classList.remove('ri-eye-off-line');
-      passwordIcon.classList.add('ri-eye-line');
-    } else {
-      passwordInput.type = 'password';
-      passwordIcon.classList.remove('ri-eye-line');
-      passwordIcon.classList.add('ri-eye-off-line');
-    }
-  }
-
   // Geolocation
   document.addEventListener('livewire:initialized', () => {
     if (navigator.geolocation) {
@@ -165,15 +149,9 @@
           @this.longitude = position.coords.longitude;
         },
         (error) => {
-          @this.dispatch('setError', {
-            error: error.message
-          });
+          console.warn('Geolocation error:', error.message);
         }
       );
-    } else {
-      @this.dispatch('setError', {
-        error: "Geolocalización no es soportada por este navegador."
-      });
     }
   });
 </script>

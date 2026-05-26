@@ -33,7 +33,7 @@ class SyncCompanyToWhatsAppAPI extends Command
             ['id' => $companyId],
             [
                 'name' => $empresa->name ?? 'U.E JOSE MARIA VARGAS',
-                'apiKey' => $empresa->api_key,
+                'apiKey' => $empresa->whatsapp_api_key,
                 'webhookUrl' => null,
                 'rateLimitPerMinute' => 60,
                 'isActive' => 1,
@@ -43,6 +43,6 @@ class SyncCompanyToWhatsAppAPI extends Command
         );
 
         $this->info("✅ Empresa U.E JOSE MARIA VARGAS sincronizada con API de WhatsApp");
-        $this->info("🔑 Token: {$empresa->api_key}");
+        $this->info("🔑 Token: {$empresa->whatsapp_api_key}");
     }
 }

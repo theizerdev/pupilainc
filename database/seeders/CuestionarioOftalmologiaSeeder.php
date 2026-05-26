@@ -25,28 +25,81 @@ class CuestionarioOftalmologiaSeeder extends Seeder
             ->delete();
 
         $c = Cuestionario::create([
-            'titulo'          => 'Preconsulta — Oftalmología',
-            'descripcion'     => 'Cuestionario previo a su consulta oftalmológica.',
+            'titulo'          => 'Formulario A — Paciente de Primera Vez (Oftalmología)',
+            'descripcion'     => 'Cuestionario completo para pacientes de primera vez en oftalmología.',
             'tipo'            => 'preconsulta',
             'activo'          => true,
             'empresa_id'      => $empresa->id,
             'especialidad_id' => $especialidad->id,
         ]);
 
+        // NOTA: Los campos PRE-LLENADO CRM se generan automáticamente desde el componente Livewire
+        // No se crean como preguntas en la base de datos
+
         $this->preguntas($c->id, [
-            ['¿Cuál es el motivo de su consulta oftalmológica?',             null,                                                                                          'texto',    null,                                                                                                           true,  1],
-            ['¿Presenta alguno de estos síntomas visuales?',                 null,                                                                                          'multiple', ['Visión borrosa', 'Dolor ocular', 'Ojo rojo', 'Secreción', 'Visión de destellos', 'Manchas flotantes', 'Ninguno'], true, 2],
-            ['¿El problema es en uno o ambos ojos?',                         null,                                                                                          'opcion',   ['Ojo derecho', 'Ojo izquierdo', 'Ambos ojos', 'No estoy seguro'],                                       true,  3],
-            ['¿Usa lentes o gafas actualmente?',                             null,                                                                                          'opcion',   ['No', 'Lentes oftálmicos', 'Lentes de contacto', 'Ambos'],                                              true,  4],
-            ['¿Cuándo fue su última revisión oftalmológica?',                null,                                                                                          'opcion',   ['Nunca', 'Hace menos de 1 año', 'Hace 1-2 años', 'Hace más de 2 años'],                                 false, 5],
-            ['¿Tiene diabetes?',                                             null,                                                                                          'opcion',   ['No', 'Tipo 1', 'Tipo 2', 'No sé'],                                                                    true,  6],
-            ['¿Tiene presión arterial alta?',                                null,                                                                                          'opcion',   ['No', 'Sí — controlada', 'Sí — no controlada'],                                                        true,  7],
-            ['¿Ha tenido alguna cirugía ocular previa?',                     'LASIK, cataratas, glaucoma, etc.',                                                            'si_no',    null,                                                                                                           false, 8],
-            ['¿Tiene antecedentes familiares de glaucoma o degeneración macular?', null,                                                                                    'si_no',    null,                                                                                                           false, 9],
-            ['¿Toma algún medicamento que pueda afectar la visión?',         'Corticoides, antipalúdicos, etc.',                                                            'si_no',    null,                                                                                                           false, 10],
+            // SECCIÓN 2: MOTIVO Y SÍNTOMAS
+            ['Motivo principal de consulta', null, 'texto', null, true, 1],
+            ['Síntomas actuales', 'Seleccione todos los que apliquen', 'multiple', ['Visión borrosa', 'Dolor ocular', 'Ojo rojo', 'Sensación de cuerpo extraño', 'Secreción', 'Lagrimeo excesivo', 'Visión de destellos', 'Manchas flotantes', 'Otro'], true, 2],
+            ['Tiempo de evolución del problema', null, 'tiempo_evolucion', null, true, 3],
+
+            // SECCIÓN 3: HISTORIAL OCULAR
+            ['¿Usa lentes o anteojos actualmente?', null, 'si_no', null, true, 4],
+            ['¿Ha tenido cirugías oculares previas?', 'LASIK, cataratas, glaucoma, etc.', 'si_no_detalle', null, true, 5],
+
+            // SECCIÓN 4: ANTECEDENTES MÉDICOS
+            ['Enfermedades sistémicas (diabetes, HTA, otras)', 'Si Sí, especifique cuáles', 'si_no_detalle', null, true, 6],
+            ['Cirugías en otras partes del cuerpo', 'Si Sí, indique cuáles y fecha aproximada', 'si_no_detalle', null, true, 7],
+            ['Alergias conocidas', 'Medicamentos, alimentos, etc. Si Sí, especifique', 'si_no_detalle', null, true, 8],
+
+            // SECCIÓN 5: ANTECEDENTES FAMILIARES OFTALMOLÓGICOS
+            ['Familiar con queratocono', null, 'si_no_no_se', null, false, 9],
+            ['Familiar con degeneración macular', null, 'si_no_no_se', null, false, 10],
+            ['Familiar con glaucoma', null, 'si_no_no_se', null, false, 11],
+            ['Familiar con estrabismo o ambliopía', null, 'si_no_no_se', null, false, 12],
+            ['Familiar con cataratas antes de 60 años', null, 'si_no_no_se', null, false, 13],
+            ['Familiar con retinopatía diabética', null, 'si_no_no_se', null, false, 14],
+            ['Familiar con desprendimiento de retina', null, 'si_no_no_se', null, false, 15],
+            ['Enfermedades importantes en familia', 'Diabetes, HTA, enfermedades autoinmunes u otras. Si Sí, especifique', 'si_no_detalle', null, false, 16],
+
+            // SECCIÓN 6: LOGÍSTICA
+            ['¿Viene con acompañante?', null, 'si_no', null, false, 17],
+            ['¿Requiere factura?', 'Si Sí, se solicitará RFC y razón social', 'si_no_factura', null, false, 18],
         ]);
 
-        $this->command->info('✓ Cuestionario Oftalmología creado.');
+        $this->command->info('✓ Cuestionario Oftalmología actualizado con ' . count($this->getPreguntas()) . ' preguntas según Formulario A.');
+    }
+
+    private function getPreguntas(): array
+    {
+        return [
+            // SECCIÓN 2: MOTIVO Y SÍNTOMAS
+            ['Motivo principal de consulta', null, 'texto', null, true, 1],
+            ['Síntomas actuales', 'Seleccione todos los que apliquen', 'multiple', ['Visión borrosa', 'Dolor ocular', 'Ojo rojo', 'Sensación de cuerpo extraño', 'Secreción', 'Lagrimeo excesivo', 'Visión de destellos', 'Manchas flotantes', 'Otro'], true, 2],
+            ['Tiempo de evolución del problema', null, 'tiempo_evolucion', null, true, 3],
+
+            // SECCIÓN 3: HISTORIAL OCULAR
+            ['¿Usa lentes o anteojos actualmente?', null, 'si_no', null, true, 4],
+            ['¿Ha tenido cirugías oculares previas?', 'LASIK, cataratas, glaucoma, etc.', 'si_no_detalle', null, true, 5],
+
+            // SECCIÓN 4: ANTECEDENTES MÉDICOS
+            ['Enfermedades sistémicas (diabetes, HTA, otras)', 'Si Sí, especifique cuáles', 'si_no_detalle', null, true, 6],
+            ['Cirugías en otras partes del cuerpo', 'Si Sí, indique cuáles y fecha aproximada', 'si_no_detalle', null, true, 7],
+            ['Alergias conocidas', 'Medicamentos, alimentos, etc. Si Sí, especifique', 'si_no_detalle', null, true, 8],
+
+            // SECCIÓN 5: ANTECEDENTES FAMILIARES OFTALMOLÓGICOS
+            ['Familiar con queratocono', null, 'si_no_no_se', null, false, 9],
+            ['Familiar con degeneración macular', null, 'si_no_no_se', null, false, 10],
+            ['Familiar con glaucoma', null, 'si_no_no_se', null, false, 11],
+            ['Familiar con estrabismo o ambliopía', null, 'si_no_no_se', null, false, 12],
+            ['Familiar con cataratas antes de 60 años', null, 'si_no_no_se', null, false, 13],
+            ['Familiar con retinopatía diabética', null, 'si_no_no_se', null, false, 14],
+            ['Familiar con desprendimiento de retina', null, 'si_no_no_se', null, false, 15],
+            ['Enfermedades importantes en familia', 'Diabetes, HTA, enfermedades autoinmunes u otras. Si Sí, especifique', 'si_no_detalle', null, false, 16],
+
+            // SECCIÓN 6: LOGÍSTICA
+            ['¿Viene con acompañante?', null, 'si_no', null, false, 17],
+            ['¿Requiere factura?', 'Si Sí, se solicitará RFC y razón social', 'si_no_factura', null, false, 18],
+        ];
     }
 
     private function preguntas(int $cid, array $items): void

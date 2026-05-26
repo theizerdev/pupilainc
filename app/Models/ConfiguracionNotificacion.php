@@ -85,8 +85,9 @@ class ConfiguracionNotificacion extends Model
     {
         // Configuración recomendada para pacientes
         $configPaciente = [
-            'confirmada' => true,           // ✅ Enviar confirmación
-            'sala_espera' => false,         // ❌ No enviar (interno)
+            'programada' => true,           // ✅ Enviar confirmación inicial (con mensaje específico)
+            'confirmada' => true,           // ✅ Enviar confirmación explícita
+            'sala_espera' => true,          // ✅ Enviar bienvenida al llegar
             'en_enfermeria' => false,       // ❌ No enviar (interno)
             'en_consultorio' => false,      // ❌ No enviar (interno)
             'en_consultorio_optometrista' => false, // ❌ No enviar (interno)
@@ -94,27 +95,28 @@ class ConfiguracionNotificacion extends Model
             'dilatado' => false,            // ❌ No enviar (interno)
             'en_optica' => false,           // ❌ No enviar (interno)
             'en_estudio' => false,          // ❌ No enviar (interno)
-            'finalizada' => false,          // ❌ No enviar
-            'pagada' => true,               // ✅ Enviar confirmación de pago
+            'finalizada' => true,           // ✅ Enviar agradecimiento
+            'pagada' => true,               // ✅ Enviar comprobante de pago
             'cancelada' => true,            // ✅ Enviar cancelación
-            'no_asistio' => false,          // ❌ No enviar
+            'no_asistio' => true,           // ✅ Enviar seguimiento post-no-asistencia
         ];
 
         // Configuración recomendada para doctores
         $configDoctor = [
-            'confirmada' => true,           // ✅ Agenda confirmada
-            'sala_espera' => true,          // ⚠️ Paciente llegó (opcional)
+            'programada' => true,           // ✅ Nueva cita agendada
+            'confirmada' => true,           // ✅ Paciente confirmó asistencia
+            'sala_espera' => true,          // ✅ Paciente llegó (importante)
             'en_enfermeria' => false,       // ❌ No enviar
-            'en_consultorio' => false,      // ❌ No enviar (ya está presente)
+            'en_consultorio' => false,      //  No enviar (ya está presente)
             'en_consultorio_optometrista' => false, // ❌ No enviar
             'en_gotas' => false,            // ❌ No enviar
             'dilatado' => false,            // ❌ No enviar
             'en_optica' => false,           // ❌ No enviar
             'en_estudio' => false,          // ❌ No enviar
-            'finalizada' => false,          // ❌ No enviar
-            'pagada' => false,              // ❌ No enviar (administrativo)
+            'finalizada' => true,           // ✅ Consulta finalizada
+            'pagada' => true,               // ✅ Pago registrado
             'cancelada' => true,            // ✅ Liberar agenda
-            'no_asistio' => false,          // ❌ No enviar
+            'no_asistio' => true,           // ✅ Paciente no asistió
         ];
 
         if ($tipoDestinatario === 'paciente') {

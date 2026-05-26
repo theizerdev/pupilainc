@@ -15,6 +15,7 @@ class Index extends Component
     public $status = '';
     public $sortField = 'nombre';
     public $sortDirection = 'asc';
+    public $selected = [];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -51,6 +52,47 @@ class Index extends Component
         }
         $p->delete();
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Proveedor eliminado.', 'duration' => 3000]);
+    }
+
+    public function deleteSelected()
+    {
+        $this->authorize('delete proveedores');
+        if (empty($this->selected)) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'No hay proveedores seleccionados.', 'duration' => 3000]);
+            return;
+        }
+
+        $deleted = 0;
+        $skipped = [];
+
+        foreach ($this->selected as $id) {
+            $p = Proveedor::find($id);
+            if (! $p) continue;
+            if ($p->productos()->exists() || $p->ordenesCompra()->exists()) {
+                $skipped[] = $p->nombre;
+                continue;
+            }
+            $p->delete();
+            $deleted++;
+        }
+
+        $this->selected = [];
+
+        if ($deleted > 0) {
+            $message = "$deleted proveedor(es) eliminado(s).";
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'success', 'message' => $message, 'duration' => 5000]);
+        } else {
+            $message = 'No se eliminaron proveedores. Algunos tienen relaciones o no existen.';
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'error', 'message' => $message, 'duration' => 5000]);
+        }
     }
 
     public function getProveedoresProperty()

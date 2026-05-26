@@ -143,6 +143,25 @@
                     </select>
                 </div>
             </div>
+            <div class="mt-3 d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        wire:click="$set('selected', {{ json_encode($proveedores->pluck('id')) }})">
+                    Seleccionar página
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" wire:click="$set('selected', [])">
+                    Deseleccionar
+                </button>
+                @can('delete proveedores')
+                    <button type="button" class="btn btn-danger btn-sm"
+                            onclick="confirm('¿Eliminar los proveedores seleccionados?') || event.stopImmediatePropagation()"
+                            wire:click="deleteSelected" @if(!count($selected)) disabled @endif>
+                        <i class="ri ri-delete-bin-line me-1"></i>Eliminar seleccionados
+                        @if(count($selected))
+                            <span class="badge bg-white text-danger ms-2">{{ count($selected) }}</span>
+                        @endif
+                    </button>
+                @endcan
+            </div>
         </div>
 
         {{-- Table --}}
@@ -150,6 +169,7 @@
             <table class="datatables-products table table-proveedores">
                 <thead>
                     <tr>
+                        <th style="width:40px;"></th>
                         <th wire:click="sortBy('nombre')" style="cursor: pointer;">
                             Nombre
                             @if($sortField === 'nombre')
@@ -168,6 +188,11 @@
                 <tbody>
                     @forelse($proveedores as $proveedor)
                         <tr class="proveedor-row">
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" wire:model="selected" value="{{ $proveedor->id }}">
+                                </div>
+                            </td>
                             <td>
                                 <div class="fw-semibold">{{ $proveedor->nombre }}</div>
                                 @if($proveedor->email)

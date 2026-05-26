@@ -15,6 +15,7 @@ class Index extends Component
     public $status = '';
     public $sortField = 'created_at';
     public $sortDirection = 'desc';
+    public $selected = [];
 
     protected $queryString = [
         'search' => ['except' => ''],
@@ -68,6 +69,48 @@ class Index extends Component
             'message' => 'Categoría eliminada exitosamente.',
             'duration' => 3000,
         ]);
+    }
+
+    public function deleteSelected()
+    {
+        $this->authorize('delete categorias-producto');
+        if (empty($this->selected)) {
+            $this->dispatch('notify', ['type' => 'warning', 'message' => 'No hay categorías seleccionadas.', 'duration' => 3000]);
+            return;
+        }
+
+        $deleted = 0;
+        $skipped = [];
+
+        foreach ($this->selected as $id) {
+            $c = CategoriaProducto::find($id);
+            if (! $c) continue;
+            // Evitar eliminar si hay productos relacionados
+            if (\App\Models\Producto::where('categoria_producto_id', $id)->exists()) {
+                $skipped[] = $c->nombre;
+                continue;
+            }
+            $c->delete();
+            $deleted++;
+        }
+
+        $this->selected = [];
+
+        if ($deleted > 0) {
+            $message = "$deleted categoría(s) eliminada(s).";
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'success', 'message' => $message, 'duration' => 5000]);
+        } else {
+            $message = 'No se eliminaron categorías. Algunos registros tienen relaciones.';
+            if (count($skipped)) {
+                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
+                if (count($skipped) > 5) $message .= '...';
+            }
+            $this->dispatch('notify', ['type' => 'error', 'message' => $message, 'duration' => 5000]);
+        }
     }
 
     public function getCategoriasProperty()
