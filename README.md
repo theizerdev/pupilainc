@@ -239,6 +239,6 @@ tail -f storage/logs/laravel.log
 
 ## Licencia Y Propiedad
 
-Este proyecto es propiedad de Pupila Inc. y su equipo de desarrollo. Todos los derechos reservados.
+Este proyecto es propiedad de TheizerDev. Todos los derechos reservados.
 
 Laravel es software open source distribuido bajo licencia MIT.
