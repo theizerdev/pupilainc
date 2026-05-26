@@ -1,322 +1,244 @@
-# Sistema de Gestión Médica Vargas
-
 <p align="center">
-  Sistema integral de gestión médica desarrollado con Laravel
+  <img src="public/logo/auth.png" alt="Pupila Inc. - Oftalmología Integral" width="260">
 </p>
 
-## Índice
+<h1 align="center">Pupila Inc.</h1>
 
-- [Descripción](#descripción)
-- [Características Principales](#características-principales)
-- [Requisitos del Sistema](#requisitos-del-sistema)
-- [Instalación](#instalación)
-- [Configuración](#configuración)
-- [Arquitectura](#arquitectura)
-- [Documentación Adicional](#documentación-adicional)
+<p align="center">
+  Plataforma integral para gestión clínica oftalmológica, agenda médica, consultas, pagos, caja, notificaciones y comunicación por WhatsApp.
+</p>
 
-## Descripción
+<p align="center">
+  <strong>Laravel 12</strong> · <strong>Livewire 3</strong> · <strong>MySQL 8</strong> · <strong>Docker</strong> · <strong>WhatsApp Service</strong>
+</p>
 
-El Sistema de Gestión Educativa Vargas es una plataforma integral diseñada para administrar todos los aspectos de una institución educativa con servicios médicos integrados. Desarrollado con Laravel, ofrece una solución robusta y escalable que incluye gestión de estudiantes, matrículas, pagos, control de acceso, comunicaciones, atención médica y gestión de citas médicas.
+---
 
-## Características Principales
+## Visión General
 
-### 1. Gestión de Pacientes
-- ✅ Registro completo de pacientes con información médica y personal
-- ✅ Gestión de datos de tutores para pacientes menores de edad
-- ✅ Historial médico completo
-- ✅ Cálculo automático de edad
-- ✅ Gestión de fotografías y documentos médicos
-- ✅ Control de estado activo/inactivo
-- ✅ Información de contacto y emergencia
+Pupila Inc. es un sistema de gestión médica orientado a clínicas oftalmológicas. Centraliza la operación diaria de recepción, agenda, atención médica, administración, caja, pagos, reportes y comunicación con pacientes en una sola plataforma.
 
-### 2. Gestión de Médicos
-- ✅ Registro completo de médicos con especialidades y subespecialidades
-- ✅ Gestión de licencias médicas y años de experiencia
-- ✅ Asignación de especialidades médicas
-- ✅ Control de horarios de atención
-- ✅ Perfiles profesionales con tarifas de consulta
-- ✅ Gestión de niveles de experiencia
-- ✅ Control de estado activo/inactivo
+El proyecto está construido sobre Laravel y Livewire, con una arquitectura preparada para operar por empresa y sucursal, integrarse con servicios externos y mantener trazabilidad de las acciones importantes del sistema.
 
-### 3. Sistema de Citas Médicas
-- ✅ Calendario integrado para gestión de citas
-- ✅ Estados de citas (pendiente, confirmada, en curso, completada, cancelada, no asistió)
-- ✅ Confirmaciones automáticas vía WhatsApp
-- ✅ Recordatorios automáticos (24h y 2h antes)
-- ✅ Sistema de botones interactivos para confirmaciones
-- ✅ Reintentos automáticos de mensajes fallidos
-- ✅ Gestión de tipos de consulta
-- ✅ Control de conflictos de horarios
+## Módulos Principales
 
-### 4. Sistema de Pagos
-- ✅ Múltiples métodos de pago (efectivo, transferencia, tarjeta, pago móvil)
-- ✅ Soporte para pagos mixtos
-- ✅ Cronograma de pagos con control de cuotas
-- ✅ Cálculo automático de recargos por morosidad
-- ✅ Sistema de tasas de cambio (USD/EUR)
-- ✅ Gestión de comprobantes digitales
-- ✅ Control de series y numeración de documentos
-- ✅ Generación de facturas, boletas y recibos
+| Área | Capacidades |
+| --- | --- |
+| Pacientes | Expediente, datos personales, contactos, tutores, fotografías, documentos e historial clínico. |
+| Médicos | Especialidades, subespecialidades, horarios, tarifas, perfiles profesionales y disponibilidad. |
+| Agenda | Calendario general, control de citas, reagendamiento, estados, conflictos de horario y vistas operativas. |
+| Consultas | Flujo de atención, signos vitales, notas médicas, cuestionarios, diagnósticos y seguimiento. |
+| Caja y pagos | Apertura/cierre de caja, pagos mixtos, comprobantes, cuotas, saldos, tasas de cambio y reportes. |
+| WhatsApp | Confirmaciones, recordatorios, mensajes programados, reintentos, webhooks y estado de conexión. |
+| Notificaciones | Alertas internas, prioridades, lectura, eventos de sistema y comunicación en tiempo real. |
+| Usuarios y roles | Autenticación, permisos con Spatie, 2FA, perfiles, sesiones y auditoría. |
+| Reportes | Exportaciones a Excel, CSV y PDF con filtros, columnas dinámicas y procesos asíncronos. |
+| Multitenancia | Soporte multiempresa y multisucursal con configuración aislada por tenant. |
 
-### 5. Gestión de Caja
-- ✅ Apertura y cierre de caja
-- ✅ Control de montos por método de pago
-- ✅ Reportes detallados de operaciones
-- ✅ Integración con exportación a Excel
-- ✅ Notificaciones de cierre de caja por WhatsApp
-- ✅ Control de usuarios responsables
-- ✅ Registro de observaciones de apertura y cierre
+## Stack Técnico
 
-### 6. Sistema de Control de Acceso
-- ✅ Registro de entradas y salidas de pacientes
-- ✅ Control por usuario autorizado
-- ✅ Múltiples métodos de acceso
-- ✅ Registro de observaciones
-- ✅ Logs de acceso de pacientes
-- ✅ Generación de reportes de asistencia
+| Capa | Tecnología |
+| --- | --- |
+| Backend | PHP 8.2+, Laravel 12 |
+| UI dinámica | Livewire 3, Blade, Materialize Admin |
+| Frontend build | Vite, Tailwind CSS |
+| Base de datos | MySQL 8 |
+| Autorización | Spatie Laravel Permission |
+| Auditoría | Spatie Activity Log |
+| Exportaciones | Laravel Excel, PhpSpreadsheet, DomPDF |
+| Autenticación API | JWT |
+| 2FA | Google2FA |
+| Contenedores | Docker Compose |
+| Mensajería externa | Servicio Node.js para WhatsApp |
 
-### 7. Sistema de Notificaciones
-- ✅ Notificaciones en tiempo real
-- ✅ Sistema de prioridades (baja, media, alta, urgente)
-- ✅ Historial completo de notificaciones
-- ✅ Marcado de leídos/no leídos
-- ✅ Notificaciones por correo electrónico
-- ✅ Notificaciones push en tiempo real
+## Requisitos
 
-### 8. Integración con WhatsApp
-- ✅ Envío de mensajes de texto
-- ✅ Envío de documentos (Excel, PDF, Word)
-- ✅ Programación de mensajes
-- ✅ Reintento automático de mensajes fallidos
-- ✅ Plantillas de mensajes personalizables
-- ✅ Notificaciones de cierre de caja
-- ✅ Control de estado de conexión
-- ✅ Sistema de colas para envío masivo
+### Con Docker
 
-### 9. Sistema de Mensajería Interna
-- ✅ Mensajes entre usuarios del sistema
-- ✅ Múltiples destinatarios
-- ✅ Priorización de mensajes
-- ✅ Adjuntar archivos
-- ✅ Control de lectura y archivado
-- ✅ Historial de conversaciones
+- Docker
+- Docker Compose
+- Puertos disponibles: `8097`, `8098`, `8099`, `3318`
 
-### 10. Biblioteca Digital
-- ✅ Gestión de archivos médicos por categorías
-- ✅ Control de visibilidad (público, privado, restringido)
-- ✅ Registro de descargas
-- ✅ Etiquetas y metadatos médicos
-- ✅ Usuarios autorizados por archivo
-- ✅ Múltiples formatos de archivo
-- ✅ Control de tamaño y tipo MIME
+### Instalación manual
 
-### 11. Gestión de Especialidades Médicas
-- ✅ Especialidades médicas configurables
-- ✅ Subespecialidades médicas
-- ✅ Asignación de médicos a especialidades
-- ✅ Tarifas de consulta por especialidad
-- ✅ Niveles de experiencia requeridos
-- ✅ Horarios de atención por especialidad
-
-### 12. Sistema de Auditoría
-- ✅ Registro de todas las acciones médicas
-- ✅ Control de cambios en datos médicos
-- ✅ Seguimiento por usuario médico
-- ✅ Registro de IPs y user agents
-- ✅ Tags y metadatos personalizables
-- ✅ Exportación de logs de auditoría médica
-
-### 13. Gestión de Usuarios y Roles
-- ✅ Sistema de autenticación robusto
-- ✅ Verificación de correo electrónico
-- ✅ Autenticación de dos factores (2FA)
-- ✅ Gestión de roles y permisos médicos (Spatie)
-- ✅ Perfiles de usuario con avatar
-- ✅ Control de sesiones activas
-- ✅ Códigos de verificación temporales
-
-### 14. Multitenancia
-- ✅ Soporte multiempresa para clínicas
-- ✅ Soporte multisucursal
-- ✅ Aislamiento de datos por empresa/sucursal
-- ✅ Configuración independiente por tenant
-- ✅ API Keys por empresa
-
-### 15. Exportación de Datos
-- ✅ Exportación dinámica de cualquier tabla médica
-- ✅ Múltiples formatos (Excel, CSV, PDF)
-- ✅ Filtros avanzados con múltiples condiciones
-- ✅ Selección de columnas específicas
-- ✅ Interfaz web amigable
-- ✅ Comando Artisan para automatización
-- ✅ Proceso asíncrono con barra de progreso
-
-### 16. Configuración Regional
-- ✅ Formato de fechas localizado
-- ✅ Formato de monedas configurable
-- ✅ Configuración por empresa/sucursal
-- ✅ Soporte para múltiples monedas
-- ✅ Formato de números y decimales
-
-### 17. Sistema de Tareas Programadas (Jobs)
-- ✅ Procesamiento de mensajes de WhatsApp
-- ✅ Reintento automático de mensajes fallidos
-- ✅ Envío de notificaciones automáticas
-- ✅ Procesamiento de eventos programados
-- ✅ Sistema de colas eficiente
-
-### 18. Sistema de Reportes
-- ✅ Reportes de pacientes
-- ✅ Reportes de citas médicas
-- ✅ Reportes de pagos
-- ✅ Reportes de caja
-- ✅ Reportes de asistencia médica
-- ✅ Exportación a múltiples formatos
-
-## Requisitos del Sistema
-
-- PHP >= 8.1
+- PHP `8.2` o superior
 - Composer
-- MySQL >= 5.7 o PostgreSQL >= 10
-- Node.js >= 16 (para servicio de WhatsApp)
-- Redis (opcional, para colas y caché)
-- Extensión de PHP: BCMath, Ctype, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML
+- MySQL `8.0` o compatible
+- Node.js `18` o superior
+- NPM
+- Extensiones PHP comunes de Laravel: `pdo_mysql`, `mbstring`, `openssl`, `xml`, `ctype`, `json`, `bcmath`, `gd`, `zip`
 
-## Instalación
+## Puesta En Marcha Con Docker
 
-1. **Clonar el repositorio**
+Desde la raíz del entorno, un nivel arriba de este directorio:
+
 ```bash
-git clone [url-del-repositorio]
-cd vargas
+cd /root/pupila-dev
+docker compose up -d --build
 ```
 
-2. **Instalar dependencias de PHP**
+Servicios disponibles:
+
+| Servicio | URL local |
+| --- | --- |
+| Aplicación Laravel | `http://127.0.0.1:8097` |
+| WhatsApp Service | `http://127.0.0.1:8098` |
+| phpMyAdmin | `http://127.0.0.1:8099` |
+| MySQL | `127.0.0.1:3318` |
+
+Comandos útiles:
+
+```bash
+docker compose logs -f pupiladev_app
+docker compose logs -f pupiladev_whatsapp
+docker compose ps
+docker compose exec pupiladev_app php artisan migrate
+docker compose exec pupiladev_app php artisan optimize:clear
+```
+
+## Instalación Manual
+
 ```bash
 composer install
-```
-
-3. **Instalar dependencias de Node.js (opcional, para WhatsApp)**
-```bash
-cd resources/js/whatsapp
-npm install
-```
-
-4. **Configurar el archivo .env**
-```bash
 cp .env.example .env
-```
-
-5. **Generar clave de aplicación**
-```bash
 php artisan key:generate
-```
-
-6. **Ejecutar migraciones**
-```bash
 php artisan migrate
-```
-
-7. **Iniciar el servidor de desarrollo**
-```bash
+npm install
+npm run build
 php artisan serve
 ```
 
-8. **Iniciar el servicio de WhatsApp (opcional)**
+Para desarrollo con Vite:
+
+```bash
+npm run dev
+```
+
+Para ejecutar el servicio de WhatsApp:
+
 ```bash
 cd resources/js/whatsapp
+npm install
 npm start
 ```
 
-## Configuración
-
-### Variables de Entorno Principales
+## Variables De Entorno Clave
 
 ```env
-# Base de Datos
+APP_NAME="Pupila Inc."
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8097
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=vargas
-DB_USERNAME=your_username
-DB_PASSWORD=your_password
+DB_DATABASE=pupiladev
+DB_USERNAME=pupiladev_user
+DB_PASSWORD=
 
-# WhatsApp
-WHATSAPP_API_URL=http://82.165.213.124:8092
-WHATSAPP_API_KEY=test-api-key-vargas-centro
-
-# Correo Electrónico
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
-MAIL_ENCRYPTION=null
-MAIL_FROM_ADDRESS="hello@example.com"
-MAIL_FROM_NAME="${APP_NAME}"
-
-# Colas
 QUEUE_CONNECTION=database
+CACHE_STORE=database
+SESSION_DRIVER=database
+
+WHATSAPP_API_URL=http://127.0.0.1:8098
+WHATSAPP_API_KEY=
+WHATSAPP_WEBHOOK_URL=http://127.0.0.1:8097/api/whatsapp/webhook
 ```
 
-## Arquitectura
+> No subas credenciales reales al repositorio. Mantener `.env` fuera de control de versiones es parte del flujo esperado.
 
-El sistema sigue una arquitectura modular con los siguientes patrones de diseño:
+## Estructura Del Proyecto
 
-- **Repository Pattern**: Para abstracción del acceso a datos
-- **Service Layer**: Para lógica de negocio
-- **Domain-Driven Design**: Para organización del dominio
-- **Event-Driven Architecture**: Para manejo de eventos y notificaciones
-
-### Estructura del Proyecto
-
-```
+```text
 app/
-├── Application/      # Lógica de aplicación
-│   ├── DTOs/        # Data Transfer Objects
-│   ├── Events/      # Eventos del dominio
-│   └── Services/    # Servicios de aplicación
-├── Domain/          # Dominio del negocio
-│   ├── Contracts/   # Contratos e interfaces
-│   ├── Entities/    # Entidades del dominio
-│   └── ValueObjects/# Objetos de valor
-├── Infrastructure/   # Infraestructura
-│   └── Repositories/# Implementaciones de repositorios
-├── Http/            # Capa HTTP
-│   ├── Controllers/
-│   ├── Middleware/
-│   ├── Requests/
-│   └── Resources/
-├── Models/          # Modelos Eloquent
-├── Services/        # Servicios del sistema
-└── Traits/          # Traits reutilizables
+  Console/              Comandos Artisan y tareas operativas
+  Domain/               Entidades, contratos y objetos de valor
+  Http/                 Controladores, middleware, requests y recursos
+  Livewire/             Componentes interactivos de la aplicación
+  Models/               Modelos Eloquent
+  Services/             Servicios de negocio e integraciones
+  Traits/               Comportamientos reutilizables
+database/
+  migrations/           Estructura de base de datos
+  seeders/              Datos iniciales y catálogos
+public/
+  js/                   Scripts publicados del sistema
+  logo/                 Identidad visual de Pupila Inc.
+resources/
+  views/                Plantillas Blade
+  js/whatsapp/          Servicio Node.js de WhatsApp
+docs/                   Guías técnicas y documentación funcional
 ```
 
-## Documentación Adicional
+## Flujo De Desarrollo
 
-- [Documentación de Exportación de Base de Datos](EXPORTADOR_BASE_DATOS.md)
-- [Documentación de Integración WhatsApp](WHATSAPP_DOCUMENT_IMPLEMENTATION.md)
-- [Documentación del Sistema de Confirmación de Citas](docs/CITA_CONFIRMATION_SYSTEM.md)
-- [Registro de Cambios](CHANGELOG.md)
+```bash
+php artisan optimize:clear
+php artisan migrate
+php artisan test
+npm run build
+```
 
-## Seguridad
+Validaciones recomendadas antes de publicar cambios:
 
-El sistema implementa múltiples capas de seguridad:
+- Revisar logs de Laravel y del contenedor web.
+- Validar que las migraciones corran en un entorno limpio.
+- Ejecutar pruebas de backend cuando aplique.
+- Compilar assets con Vite.
+- Probar los flujos críticos: login, calendario, citas, pagos, caja y WhatsApp.
 
-- ✅ Autenticación de dos factores (2FA)
-- ✅ Control de acceso basado en roles (RBAC)
-- ✅ Registro exhaustivo de auditoría
-- ✅ Validación de datos en servidor y cliente
-- ✅ Protección contra CSRF
-- ✅ Sanitización de entradas
-- ✅ Rate limiting en APIs
-- ✅ Encriptación de datos sensibles
+## Seguridad Y Operación
 
-## Soporte
+- Control de acceso basado en roles y permisos.
+- Autenticación de dos factores.
+- Protección CSRF en formularios web.
+- Auditoría de acciones relevantes.
+- Validación de datos en servidor.
+- Separación por empresa y sucursal.
+- API keys para integraciones externas.
+- Manejo de colas para procesos asíncronos.
 
-Para soporte técnico, consulte la documentación oficial de Laravel o contacte al equipo de desarrollo.
+## Documentación Relacionada
 
-## Licencia
+- [Sistema de confirmación de citas](docs/CITA_CONFIRMATION_SYSTEM.md)
+- [Sistema de gestión de caja](docs/SISTEMA_GESTION_CAJA.md)
+- [Sistema de reintentos de WhatsApp](docs/WHATSAPP_RETRY_SYSTEM.md)
+- [Configuración regional](docs/REGIONAL_CONFIGURATION_GUIDE.md)
+- [Guía de métodos de pago](docs/GUIA_METODOS_PAGO.md)
+- [Proceso de consulta](docs/PROCESO_CONSULTA_SYSTEM.md)
+- [Signos vitales y enfermería](docs/SIGNOS_VITALES_ENFERMERIA.md)
+- [Inventario de mensajes de WhatsApp](WHATSAPP_MESSAGE_INVENTORY.md)
+- [Registro de cambios](CHANGELOG.md)
 
-Este proyecto es propiedad de TheizerDev. Todos los derechos reservados.
+## Mantenimiento
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Limpieza de cachés:
+
+```bash
+php artisan optimize:clear
+```
+
+Reconstrucción de assets:
+
+```bash
+npm run build
+```
+
+Ejecución de colas:
+
+```bash
+php artisan queue:work
+```
+
+Revisión de logs:
+
+```bash
+tail -f storage/logs/laravel.log
+```
+
+## Licencia Y Propiedad
+
+Este proyecto es propiedad de Pupila Inc. y su equipo de desarrollo. Todos los derechos reservados.
+
+Laravel es software open source distribuido bajo licencia MIT.
