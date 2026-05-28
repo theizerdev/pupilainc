@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\MessagingProvider;
 
 class DatabaseSeeder extends Seeder
 {
@@ -39,6 +40,9 @@ class DatabaseSeeder extends Seeder
             //BaremoSeeder::class, // Servicios médicos por especialidad
             //ProductosSeeder::class, // Productos e insumos médicos
             //MedicosSeeder::class, // Médicos y sus usuarios
+
+            // Sistema de mensajería multi-proveedor
+            MessagingProvidersSeeder::class,
 
         ]);
     }

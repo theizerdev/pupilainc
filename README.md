@@ -49,7 +49,7 @@ El proyecto está construido sobre Laravel y Livewire, con una arquitectura prep
 | Autenticación API | JWT |
 | 2FA | Google2FA |
 | Contenedores | Docker Compose |
-| Mensajería externa | Servicio Node.js para WhatsApp |
+| Mensajería externa | Servicio Node.js para WhatsApp (multi-proveedor) |
 
 ## Requisitos
 
@@ -144,6 +144,11 @@ SESSION_DRIVER=database
 WHATSAPP_API_URL=http://localhost:3001
 WHATSAPP_API_KEY=change_me
 WHATSAPP_WEBHOOK_URL=http://localhost/api/whatsapp/webhook
+
+# Mensajería Multi-Proveedor (opcional)
+MESSAGING_USE_UNIFIED_SERVICE=false
+MESSAGING_DEFAULT_PROVIDER=whatsapp_lite
+MESSAGING_CACHE_TTL=300
 ```
 
 Usa `.env.example` como plantilla y configura los valores reales solo en tu entorno local.
@@ -208,7 +213,8 @@ Validaciones recomendadas antes de publicar cambios:
 - [Guía de métodos de pago](docs/GUIA_METODOS_PAGO.md)
 - [Proceso de consulta](docs/PROCESO_CONSULTA_SYSTEM.md)
 - [Signos vitales y enfermería](docs/SIGNOS_VITALES_ENFERMERIA.md)
-- [Inventario de mensajes de WhatsApp](WHATSAPP_MESSAGE_INVENTORY.md)
+- [Sistema Multi-Proveedor de Mensajería](docs/MULTI_PROVIDER_MESSAGING_PLAN.md)
+- [Guía de Migración de Mensajería](docs/MESSAGING_MIGRATION_GUIDE.md)
 - [Registro de cambios](CHANGELOG.md)
 
 ## Mantenimiento

@@ -292,6 +292,12 @@ Route::get('/chat-interno', \App\Livewire\Admin\Chat\ChatInterno::class)->name('
 Route::get('/exportar-base-datos', \App\Livewire\Admin\DatabaseExport::class)->name('database-export')->middleware('checkAdminPermission:access database export');
 Route::get('/exportar-base-datos/download/{file}', [\App\Http\Controllers\Admin\DatabaseDownloadController::class, 'download'])->name('database-download')->middleware('checkAdminPermission:access database export');
 
+// Mensajería Multi-Provider
+Route::prefix('messaging')->as('messaging.')->group(function () {
+    Route::get('/connections', \App\Livewire\Admin\Messaging\Connections::class)->name('connections');
+    Route::get('/channels', \App\Livewire\Admin\Messaging\ModuleNotificationChannels::class)->name('channels');
+});
+
 // WhatsApp (Ruta legacy fuera del grupo)
 Route::get('/whatsapp', \App\Livewire\Admin\Whatsapp\Index::class)->name('whatsapp.index')->middleware('checkAdminPermission:access whatsapp');
 

@@ -6,6 +6,7 @@ use App\Models\Cita;
 use App\Models\CitaConfirmacion;
 use App\Models\Paciente;
 use App\Models\WhatsAppScheduledMessage;
+use App\Services\Messaging\UnifiedNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +20,10 @@ class CitaNotificationService
     protected ?int $empresaId;
     protected ?string $codigoPais = null;
     protected ?string $apiKey = null;
+    
+    // Nuevo sistema de mensajería unificado
+    protected ?UnifiedNotificationService $unifiedService = null;
+    protected bool $useUnifiedService = false;
 
     public function __construct(?int $empresaId = null)
     {
@@ -30,6 +35,24 @@ class CitaNotificationService
             $this->empresaId = auth()->user()->empresa_id;
             $this->apiKey = DB::table('empresas')->where('id', $this->empresaId)->value('whatsapp_api_key');
         }
+        
+        // Verificar si usar el nuevo sistema de mensajería
+        $this->useUnifiedService = config('messaging.use_unified_service', false);
+        if ($this->useUnifiedService && $this->empresaId) {
+            $this->unifiedService = new UnifiedNotificationService();
+        }
+    }
+
+    /**
+     * Habilitar uso del servicio unificado de mensajería
+     */
+    public function useUnifiedService(bool $use = true): self
+    {
+        $this->useUnifiedService = $use;
+        if ($use && $this->empresaId) {
+            $this->unifiedService = new UnifiedNotificationService();
+        }
+        return $this;
     }
 
     public static function forCompany($empresaId): self
@@ -413,6 +436,44 @@ class CitaNotificationService
     // ===== ENVÍO DIRECTO (SÍNCRONO VÍA HTTP A NODE.JS) =====
 
     protected function enviar(string $telefono, string $mensaje): bool
+    {
+        // Si está habilitado el servicio unificado, usarlo
+        if ($this->useUnifiedService && $this->unifiedService) {
+            return $this->enviarViaUnifiedService($telefono, $mensaje);
+        }
+        
+        // Fallback al método legacy original
+        return $this->enviarLegacy($telefono, $mensaje);
+    }
+
+    /**
+     * Enviar usando el nuevo sistema de mensajería unificado
+     */
+    protected function enviarViaUnifiedService(string $telefono, string $mensaje): bool
+    {
+        try {
+            return $this->unifiedService->notify(
+                $this->empresaId,
+                'citas',
+                'nueva_cita',
+                'paciente',
+                $telefono,
+                $mensaje
+            );
+        } catch (\Exception $e) {
+            Log::error('CitaNotificationService: Error con UnifiedNotificationService', [
+                'telefono' => $telefono,
+                'error' => $e->getMessage()
+            ]);
+            // Fallback a método legacy
+            return $this->enviarLegacy($telefono, $mensaje);
+        }
+    }
+
+    /**
+     * Método legacy de envío directo vía HTTP a Node.js
+     */
+    protected function enviarLegacy(string $telefono, string $mensaje): bool
     {
         try {
             if (!$this->apiKey || !$this->empresaId) {

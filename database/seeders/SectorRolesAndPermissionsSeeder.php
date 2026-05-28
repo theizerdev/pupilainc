@@ -534,7 +534,15 @@ class SectorRolesAndPermissionsSeeder extends Seeder
                         'access whatsapp',
                         'view whatsapp notifications',
                         'manage whatsapp notifications',
-
+                    ]
+                ],
+                'messaging' => [
+                    'name' => 'Mensajería Multi-Provider',
+                    'permissions' => [
+                        'access messaging',
+                        'manage messaging connections',
+                        'manage messaging channels',
+                        'test messaging connection',
                     ]
                 ],
             ],

@@ -6,6 +6,14 @@ use App\Models\Empresa;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @deprecated Utilice `App\Services\Messaging\UnifiedNotificationService` en su lugar.
+ * 
+ * Este servicio es mantenido por compatibilidad backwards.
+ * Para nuevo código, use el sistema multi-proveedor de mensajería.
+ * 
+ * @see https://docs.pupilainc.com/messaging/migration
+ */
 class WhatsAppService
 {
     private $baseUrl;
@@ -29,6 +37,11 @@ class WhatsAppService
      */
     public function __construct($empresa = null)
     {
+        @trigger_error(
+            'WhatsAppService está deprecated. Use UnifiedNotificationService o MessagingConnectionManager en su lugar.',
+            E_USER_DEPRECATED
+        );
+
         $this->baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
         $this->timeout = config('whatsapp.timeout', 30);
 

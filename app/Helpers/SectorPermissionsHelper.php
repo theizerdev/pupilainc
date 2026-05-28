@@ -381,6 +381,16 @@ if (!function_exists('getSectorMenuItems')) {
                             ['label' => 'Notificaciones', 'permission' => 'view whatsapp notifications', 'route' => 'admin.whatsapp.notifications', 'active' => 'admin.whatsapp.notifications'],
                         ],
                     ],
+                    [
+                        'label' => 'Mensajería',
+                        'icon' => 'ri-message-2-line',
+                        'active' => 'admin.messaging.*',
+                        'permissions' => ['access messaging'],
+                        'children' => [
+                            ['label' => 'Conexiones', 'permission' => 'access messaging', 'route' => 'admin.messaging.connections', 'active' => 'admin.messaging.connections'],
+                            ['label' => 'Canales', 'permission' => 'access messaging', 'route' => 'admin.messaging.channels', 'active' => 'admin.messaging.channels'],
+                        ],
+                    ],
                 ]
             ],
             'monitoreo' => [
