@@ -22,8 +22,8 @@ class ModuleNotificationChannels extends Component
         'citas' => ['label' => 'Citas', 'actions' => ['creacion', 'recordatorio', 'confirmacion', 'cancelacion', 'reagendamiento']],
         'usuarios' => ['label' => 'Usuarios', 'actions' => ['creacion', 'bienvenida', 'recordatorio_password', '2fa']],
         'consultas' => ['label' => 'Consultas', 'actions' => ['inicio', 'finalizacion', 'resultados']],
-        'doctores' => ['label' => 'Doctores', 'actions' => ['asignacion', 'recordatorio', 'nota']],
-        'enfermeros' => ['label' => 'Enfermeros', 'actions' => ['asignacion', 'recordatorio']],
+        'doctores' => ['label' => 'Doctores', 'actions' => ['creacion', 'asignacion', 'recordatorio', 'nota']],
+        'enfermeros' => ['label' => 'Enfermeros', 'actions' => ['creacion', 'asignacion', 'recordatorio']],
         'pedidos' => ['label' => 'Pedidos', 'actions' => ['creacion', 'aprobacion', 'entrega']],
         'pagos' => ['label' => 'Pagos', 'actions' => ['confirmacion', 'recordatorio', 'recibo']],
     ];
@@ -59,12 +59,23 @@ class ModuleNotificationChannels extends Component
 
     public function loadConnections()
     {
-        $this->connections = MessagingConnection::forEmpresa($this->empresaId)
+
+        $connections = MessagingConnection::forEmpresa($this->empresaId)
             ->active()
             ->with('provider')
-            ->get()
-            ->toArray();
+            ->get();
+
+        // Index por ID para evitar búsquedas repetitivas en la vista
+        $this->connections = $connections->keyBy('id')->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'status' => $c->status,
+            'provider' => $c->provider ? [
+                'name' => $c->provider->name,
+            ] : null,
+        ])->toArray();
     }
+
 
     public function loadChannels()
     {
@@ -96,27 +107,37 @@ class ModuleNotificationChannels extends Component
         return $this->channels[$key] ?? null;
     }
 
-    public function getConnectionForChannel($module, $action, $recipient): ?array
+public function getConnectionForChannel($module, $action, $recipient): ?array
     {
         $channel = $this->getChannelValue($module, $action, $recipient);
         if (!$channel || empty($channel['connection_id'])) {
             return null;
         }
-        return collect($this->connections)->firstWhere('id', $channel['connection_id']);
+
+        return $this->connections[$channel['connection_id']] ?? null;
     }
 
-    public function openEditModal($module, $action, $recipient)
+
+public function openEditModal($module, $action, $recipient)
     {
         $this->editingModule = $module;
         $this->editingAction = $action;
         $this->editingRecipient = $recipient;
-        
+
         $channel = $this->getChannelValue($module, $action, $recipient);
         $this->selectedConnectionId = $channel['connection_id'] ?? '';
         $this->selectedPriority = $channel['priority'] ?? 1;
-        
+
         $this->showEditModal = true;
     }
+
+    public function closeEditModal()
+    {
+        $this->showEditModal = false;
+        $this->selectedConnectionId = '';
+        $this->selectedPriority = 1;
+    }
+
 
     public function saveChannelFromModal()
     {
