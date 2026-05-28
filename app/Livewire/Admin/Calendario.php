@@ -462,18 +462,22 @@ class Calendario extends Component
         $prioridad = $eventData['prioridad'] ?? 'normal';
         $esPrioridadAltaOEmergencia = in_array($prioridad, ['alta', 'emergencia']);
 
+        $ahora = Carbon::now($timezone);
+
         Log::info('Validando cita', [
             'fecha_inicio_raw' => $this->fecha_inicio,
-            'inicio_tz' => $inicioTz->toDateTimeString(),
-            'inicio_tz_name' => $inicioTz->timezoneName,
+            'inicio_tz' => $inicio,
+            'inicio_tz_name' => $inicio->timezoneName,
             'ahora' => $ahora->toDateTimeString(),
             'ahora_tz_name' => $ahora->timezoneName,
-            'timestamp_inicio' => $inicioTz->timestamp,
-            'timestamp_ahora' => $ahora->timestamp
+            'timestamp_inicio' => $inicio->getTimestamp(),
+            'timestamp_ahora' => $ahora->getTimestamp()
         ]);
 
-        // Validar que la cita no esté en el pasado (Comparación por timestamp para evitar errores de TZ)
-        if ($inicioTz->timestamp < $ahora->timestamp) {
+        // Validar que la cita no esté en el pasado (comparación robusta por timestamp)
+        if ($inicio->getTimestamp() < $ahora->getTimestamp()) {
+            $inicioTz = $inicio->copy()->timezone($timezone);
+
             $this->dispatch('show-alert', [
                 'type'    => 'warning',
                 'title'   => 'Fecha no permitida',
@@ -482,6 +486,7 @@ class Calendario extends Component
             ]);
             return;
         }
+
 
         // Validación de horario laboral - solo para prioridad normal
         if (!$esPrioridadAltaOEmergencia && !$this->validarHorarioMedico($this->medico_id, $inicio, $fin)) {
