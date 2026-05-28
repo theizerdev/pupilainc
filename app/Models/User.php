@@ -172,6 +172,22 @@ class User extends Authenticatable implements MustVerifyEmail, JWTSubject
     }
 
     /**
+     * Get the medico profile for the user.
+     */
+    public function medico()
+    {
+        return $this->hasOne(Medico::class);
+    }
+
+    /**
+     * Get the enfermero profile for the user.
+     */
+    public function enfermero()
+    {
+        return $this->hasOne(Enfermero::class);
+    }
+
+    /**
      * Get the empresa that owns the user.
      */
     public function empresa()

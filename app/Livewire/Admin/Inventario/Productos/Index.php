@@ -63,19 +63,44 @@ class Index extends Component
 
     public function delete($id)
     {
-        $this->authorize('delete productos');
-        $p = Producto::findOrFail($id);
-        if ($p->stockTotal() > 0) {
-            $this->dispatch('notify', ['type' => 'error', 'message' => 'No se puede eliminar: el producto tiene stock.', 'duration' => 4000]);
+        dd( $this->authorize('delete productos'));
+        try {
+            $this->authorize('delete productos');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'No tienes permiso para eliminar productos.', 'duration' => 4000]);
             return;
         }
+
+        $p = Producto::findOrFail($id);
+        $stockTotal = $p->stockTotal();
+        
+        if ($stockTotal > 0) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "No se puede eliminar '{$p->nombre}': tiene {$stockTotal} {$p->unidad_medida} de stock.",
+                'duration' => 5000
+            ]);
+            return;
+        }
+        
         $p->delete();
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Producto eliminado.', 'duration' => 3000]);
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "Producto '{$p->nombre}' eliminado correctamente.",
+            'duration' => 3000
+        ]);
     }
 
     public function deleteSelected()
     {
-        $this->authorize('delete productos');
+        
+        try {
+            $this->authorize('delete productos');
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'No tienes permiso para eliminar productos.', 'duration' => 4000]);
+            return;
+        }
+
         if (empty($this->selected)) {
             $this->dispatch('notify', ['type' => 'warning', 'message' => 'No hay productos seleccionados.', 'duration' => 3000]);
             return;
@@ -84,33 +109,52 @@ class Index extends Component
         $ids = $this->selected;
         $deleted = 0;
         $skipped = [];
+        $errors = [];
 
         foreach ($ids as $id) {
             $p = Producto::find($id);
-            if (! $p) continue;
-            if ($p->stockTotal() > 0) {
-                $skipped[] = $p->nombre;
+            
+            if (!$p) {
                 continue;
             }
-            $p->delete();
-            $deleted++;
+
+           
+            try {
+                $p->delete();
+                $deleted++;
+            } catch (\Exception $e) {
+                dd($e);
+                $errors[] = $p->nombre;
+            }
         }
 
         $this->selected = [];
 
         if ($deleted > 0) {
-            $message = "$deleted producto(s) eliminado(s).";
-            if (count($skipped)) {
-                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
-                if (count($skipped) > 5) $message .= '...';
+            $message = "$deleted producto(s) eliminado(s) correctamente.";
+            
+            if (count($skipped) > 0) {
+                $skippedNames = array_map(fn($s) => "{$s['nombre']} ({$s['stock']} {$s['unidad']})", array_slice($skipped, 0, 3));
+                $message .= ' No se eliminaron: ' . implode(', ', $skippedNames);
+                if (count($skipped) > 3) $message .= ' + ' . (count($skipped) - 3) . ' más';
             }
+            
+            if (count($errors) > 0) {
+                $message .= ' Errores: ' . implode(', ', array_slice($errors, 0, 3));
+            }
+            
             $this->dispatch('notify', ['type' => 'success', 'message' => $message, 'duration' => 5000]);
         } else {
-            $message = 'No se eliminaron productos. Algunos tienen stock o no existen.';
-            if (count($skipped)) {
-                $message .= ' No se eliminaron: ' . implode(', ', array_slice($skipped, 0, 5));
-                if (count($skipped) > 5) $message .= '...';
+            $message = 'No se eliminó ningún producto.';
+            
+            if (count($skipped) > 0) {
+                $skippedNames = array_map(fn($s) => "{$s['nombre']} ({$s['stock']} {$s['unidad']})", array_slice($skipped, 0, 3));
+                $message .= ' Todos tienen stock: ' . implode(', ', $skippedNames);
+                if (count($skipped) > 3) $message .= ' + ' . (count($skipped) - 3) . ' más';
+            } elseif (count($errors) > 0) {
+                $message .= ' Errores al eliminar.';
             }
+            
             $this->dispatch('notify', ['type' => 'error', 'message' => $message, 'duration' => 5000]);
         }
     }

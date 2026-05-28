@@ -591,7 +591,7 @@ class Calendario extends Component
                     $cita->crearConsultaSiNoExiste(true);
                 }
 
-                $notificacion = $this->notificarNuevaCita($cita);
+                /*$notificacion = $this->notificarNuevaCita($cita);
                 $cita->programarRecordatorios();
 
                 if ($notificacion['success'] && empty($notificacion['errors'])) {
@@ -615,7 +615,14 @@ class Calendario extends Component
                         'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors']),
                         'icon' => 'error'
                     ]);
-                }
+                }*/
+
+                $this->dispatch('show-alert', [
+                    'type' => 'success',
+                    'title' => 'Cita creada',
+                    'message' => 'Cita creada exitosamente.',
+                    'icon' => 'success'
+                ]);
             }
         }
 
@@ -728,11 +735,11 @@ class Calendario extends Component
         // Log de auditoría antes de eliminar
         $this->logCitaAction('delete', $cita);
 
-        $notificacion = $this->notificarCancelacion($cita);
+        /*$notificacion = $this->notificarCancelacion($cita);*/
         $cita->delete();
         $this->resetForm();
 
-        // Mostrar mensaje apropiado según el resultado de la notificación
+        /* Mostrar mensaje apropiado según el resultado de la notificación
         if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
                 'type' => 'success',
@@ -748,7 +755,12 @@ class Calendario extends Component
                 'type' => 'error',
                 'message' => 'Cita eliminada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
-        }
+        }*/
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Cita eliminada exitosamente'
+            ]);
 
         $this->dispatch('cita-saved');
     }
@@ -929,18 +941,18 @@ class Calendario extends Component
         }
 
         $cita->cambiarEstado($nuevoEstado);
-        $notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);
+        /*$notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);*/
 
-        $mensajeExtra = '';
+       /* $mensajeExtra = '';
         if ($preconsultaResult) {
             if ($preconsultaResult['whatsapp_enviado']) {
                 $mensajeExtra = ' Cuestionario preconsulta enviado por WhatsApp.';
             } elseif ($preconsultaResult['preconsulta_creada']) {
                 $mensajeExtra = ' Cuestionario preconsulta creado.';
             }
-        }
+        }*/
 
-        if ($notificacion['success'] && empty($notificacion['errors'])) {
+        /*if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado] . '. Notificaciones enviadas.' . $mensajeExtra
@@ -955,7 +967,12 @@ class Calendario extends Component
                 'type' => 'error',
                 'message' => 'Estado actualizado pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
-        }
+        }*/
+
+             $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado]
+            ]);
 
         $this->dispatch('cita-saved');
     }
@@ -972,10 +989,10 @@ class Calendario extends Component
         $cita = Cita::findOrFail($citaId);
         try {
             $service = CitaNotificationService::forCompany($cita->empresa_id);
-            $notificacion = $service->enviarRecordatorio($cita);
+            /*$notificacion = $service->enviarRecordatorio($cita);*/
 
             // Mostrar mensaje apropiado según el resultado de la notificación
-            if ($notificacion['success'] && empty($notificacion['errors'])) {
+            /*if ($notificacion['success'] && empty($notificacion['errors'])) {
                 $this->dispatch('show-toast', [
                     'type' => 'success',
                     'message' => 'Recordatorio enviado por WhatsApp.'
@@ -990,7 +1007,13 @@ class Calendario extends Component
                     'type' => 'error',
                     'message' => 'No se pudo enviar el recordatorio: ' . implode(', ', $notificacion['errors'])
                 ]);
-            }
+            }*/
+
+
+        $this->dispatch('show-toast', [
+            'type' => 'error',
+             'message' => 'No se pudo enviar el recordatorio.'
+          ]);
         } catch (\Exception $e) {
             Log::error('Error enviando recordatorio', ['error' => $e->getMessage()]);
             $this->dispatch('show-toast', [

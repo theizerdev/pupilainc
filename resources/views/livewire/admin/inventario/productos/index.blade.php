@@ -231,8 +231,9 @@
                 </button>
                 @can('delete productos')
                     <button type="button" class="btn btn-danger btn-sm"
-                            onclick="confirm('¿Eliminar los productos seleccionados permanentemente?') || event.stopImmediatePropagation()"
-                            wire:click="deleteSelected" @if(!count($selected)) disabled @endif>
+                            wire:click="deleteSelected"
+                            wire:confirm="¿Eliminar los productos seleccionados permanentemente? Esta acción no se puede deshacer."
+                            @if(!count($selected)) disabled @endif>
                         <i class="ri ri-delete-bin-line me-1"></i>Eliminar seleccionados
                         @if(count($selected))
                             <span class="badge bg-white text-danger ms-2">{{ count($selected) }}</span>
