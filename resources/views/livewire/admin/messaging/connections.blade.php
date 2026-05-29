@@ -81,11 +81,11 @@
             <div class="row g-3 align-items-end">
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold"><i class="ri ri-search-line me-1"></i>Buscar</label>
-                    <input type="text" class="form-control form-control-sm" wire:model.live.debounce.300ms="search" placeholder="Nombre de conexión...">
+                    <input type="text" class="form-control form-control-sm" wire:model.debounce.300ms="search" placeholder="Nombre de conexión...">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small fw-semibold">Estado</label>
-                    <select class="form-select form-select-sm" wire:model.live="statusFilter">
+                    <select class="form-select form-select-sm" wire:model="statusFilter">
                         <option value="">Todos</option>
                         <option value="active">Activas</option>
                         <option value="inactive">Inactivas</option>
@@ -94,7 +94,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="button" class="btn btn-sm btn-label-secondary w-100" wire:click="loadConnections">
+                    <button type="button" class="btn btn-sm btn-label-secondary w-100" wire:click="clearFilters" wire:loading.attr="disabled">
                         <i class="ri ri-refresh-line me-1"></i>Limpiar
                     </button>
                 </div>
@@ -179,7 +179,7 @@
                                                 <button class="dropdown-item" wire:click="testConnection({{ $connection['id'] }})" wire:loading.attr="disabled">
                                                     <i class="ri ri-flashlight-line me-1"></i> Probar
                                                 </button>
-                                                <button class="dropdown-item text-danger" wire:click="deleteConnection({{ $connection['id'] }})" wire:confirm="¿Eliminar esta conexión?">
+                                                <button class="dropdown-item text-danger" wire:click="deleteConnection({{ $connection['id'] }})" wire:loading.attr="disabled" wire:confirm="¿Eliminar esta conexión?">
                                                     <i class="ri ri-delete-bin-line me-1"></i> Eliminar
                                                 </button>
                                             </div>
@@ -204,6 +204,11 @@
 
     {{-- Modal --}}
     @if($showModal)
+    {{-- Twilio SMS fields --}}
+    @php
+        $selectedProvider = collect($providers)->firstWhere('id', $provider_id);
+        $selectedSlug = $selectedProvider['slug'] ?? null;
+    @endphp
         <div class="modal fade show" style="display:block;" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -229,18 +234,52 @@
                                 <label class="form-label">Nombre *</label>
                                 <input type="text" class="form-control" wire:model="name" placeholder="WhatsApp Principal">
                             </div>
+                             @if($selectedSlug != 'twilio')
                             <div class="col-md-8">
                                 <label class="form-label">URL del API *</label>
                                 <input type="url" class="form-control" wire:model="api_url" placeholder="http://82.165.213.124:8092">
                             </div>
+                            @endif
+                             @if($selectedSlug != 'twilio')        
                             <div class="col-md-4">
                                 <label class="form-label">Timeout (seg)</label>
                                 <input type="number" class="form-control" wire:model="timeout" min="5" max="300">
                             </div>
+
                             <div class="col-12">
                                 <label class="form-label">API Key *</label>
                                 <input type="password" class="form-control" wire:model="api_key" placeholder="Ingrese la API Key">
                             </div>
+                            @endif
+
+                            
+
+                            @if($selectedSlug === 'twilio')
+                                <div class="col-md-4 col-12 mt-3">
+                                    <label class="form-label">Canal *</label>
+                                    <select class="form-select" wire:model="channel">
+                                        <option value="sms">SMS</option>
+                                        <option value="whatsapp">WhatsApp</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8 col-12 mt-3">
+                                    <label class="form-label">Account SID *</label>
+                                    <input type="text" class="form-control" wire:model="account_sid" placeholder="AC...">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Auth Token *</label>
+                                    <input type="password" class="form-control" wire:model="auth_token" placeholder="Auth Token">
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label">From para SMS (Twilio verificado) *</label>
+                                    <input type="text" class="form-control" wire:model="from" placeholder="+1415...">
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label">From para WhatsApp</label>
+                                    <input type="text" class="form-control" wire:model="from_whatsapp" placeholder="+1415...">
+                                </div>
+                            @endif
+
                             <div class="col-12">
                                 <label class="form-label">Módulos por defecto</label>
                                 <div class="d-flex flex-wrap gap-2">
@@ -262,7 +301,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" wire:click="closeModal">Cancelar</button>
-                        <button type="button" class="btn btn-primary" wire:click="saveConnection">
+                        <button type="button" class="btn btn-primary" wire:click="saveConnection" wire:loading.attr="disabled">
                             <i class="ri ri-save-line me-1"></i>Guardar
                         </button>
                     </div>

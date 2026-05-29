@@ -38,11 +38,11 @@ return [
 
         'whatsapp_api' => [
             'driver' => 'mysql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_WHATSAPP_DATABASE', 'larawhatsapp_dev'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'host' => env('DB_HOSTAPI', '127.0.0.1'),
+            'port' => env('DB_PORTAPI', '3306'),
+            'database' => env('DB_DATABASEAPI', 'larawhatsapp_dev'),
+            'username' => env('DB_USERNAMEAPI', 'root'),
+            'password' => env('DB_PASSWORDAPI', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',

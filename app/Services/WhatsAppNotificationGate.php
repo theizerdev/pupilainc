@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ConfiguracionNotificacion;
 use App\Models\WhatsAppNotificationSetting;
+use App\Models\ModuleNotificationChannel;
 use Illuminate\Support\Facades\Schema;
 
 class WhatsAppNotificationGate
@@ -23,6 +24,18 @@ class WhatsAppNotificationGate
 
             if ($setting) {
                 return $setting->enabled;
+            }
+        }
+
+        // Si existe configuración de canal específico para este módulo/evento,
+        // respetarla (aunque esté deshabilitada).
+        if (Schema::hasTable('module_notification_channels')) {
+            $channel = ModuleNotificationChannel::forEmpresa($empresaId)
+                ->forEvent($module, $action, $recipient)
+                ->first();
+
+            if ($channel) {
+                return (bool) $channel->enabled;
             }
         }
 

@@ -62,11 +62,11 @@ class MessagingConnectionManager
             return $this->buildProviderFromConnection($channel->connection);
         }
 
-        // Fallback a la conexión default para la empresa
-        $connection = $this->getConnection($empresaId, $module);
-
-        if ($connection) {
-            return $this->buildProviderFromConnection($connection);
+        // Si no hay canal específico para este evento, usar la conexión activa
+        // por defecto del módulo o la primera conexión activa disponible.
+        $defaultConnection = $this->getConnection($empresaId, $module);
+        if ($defaultConnection) {
+            return $this->buildProviderFromConnection($defaultConnection);
         }
 
         return null;
@@ -162,12 +162,18 @@ class MessagingConnectionManager
     /**
      * Limpiar cache de conexiones
      */
-    public function clearCache(int $empresaId): void
+    public function clearCache(int $empresaId, ?string $moduleKey = null): void
     {
+        if ($moduleKey !== null) {
+            Cache::forget("messaging_connection_{$empresaId}_{$moduleKey}");
+            return;
+        }
+
         Cache::forget("messaging_connection_{$empresaId}_");
-        // Limpiar todos los módulos (aproximado)
-        for ($i = 0; $i < 20; $i++) {
-            Cache::forget("messaging_connection_{$empresaId}_{$i}");
+
+        $knownModules = ['citas', 'usuarios', 'consultas', 'doctores', 'enfermeros', 'pedidos'];
+        foreach ($knownModules as $module) {
+            Cache::forget("messaging_connection_{$empresaId}_{$module}");
         }
     }
 

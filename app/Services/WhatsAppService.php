@@ -45,8 +45,41 @@ class WhatsAppService
         $this->baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
         $this->timeout = config('whatsapp.timeout', 30);
 
-        // Resolver la empresa y obtener su API key
-        $this->resolveCompany($empresa);
+        if (is_array($empresa)) {
+            $this->resolveCredentials($empresa);
+        } else {
+            $this->resolveCompany($empresa);
+        }
+    }
+
+    public static function forCredentials(array $credentials): self
+    {
+        return new self($credentials);
+    }
+
+    /**
+     * Resuelve las credenciales provistas directamente
+     */
+    private function resolveCredentials(array $credentials): void
+    {
+        if (!empty($credentials['api_url'])) {
+            $this->baseUrl = $credentials['api_url'];
+        }
+
+        $this->timeout = $credentials['timeout'] ?? $this->timeout;
+        $this->companyId = $credentials['empresa_id'] ?? $credentials['company_id'] ?? 1;
+        $this->apiKey = $credentials['api_key'] ?? $credentials['apiKey'] ?? null;
+
+        if (!$this->apiKey && $this->companyId) {
+            $empresaModel = Empresa::find($this->companyId);
+            if ($empresaModel) {
+                $this->apiKey = $empresaModel->whatsapp_api_key;
+            }
+        }
+
+        if (!$this->apiKey) {
+            $this->apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
+        }
     }
 
     /**

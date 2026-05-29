@@ -31,18 +31,48 @@ class Connections extends Component
     // Form fields
     public $provider_id = '';
     public $name = '';
+
+    // WhatsApp (legacy)
     public $api_url = '';
     public $api_key = '';
+
+    // Twilio SMS
+    public $account_sid = '';
+    public $auth_token = '';
+    public $from = '';
+    public $from_whatsapp = '';
+    public $channel = 'sms';
+
     public $timeout = 30;
     public $is_default_for = [];
 
-    protected $rules = [
-        'provider_id' => 'required|exists:messaging_providers,id',
-        'name' => 'required|string|max:255',
-        'api_url' => 'required|url',
-        'api_key' => 'required|string',
-        'timeout' => 'nullable|integer|min:5|max:300',
-    ];
+    protected function baseRules(): array
+    {
+        return [
+            'provider_id' => 'required|exists:messaging_providers,id',
+            'name' => 'required|string|max:255',
+            'timeout' => 'nullable|integer|min:5|max:300',
+        ];
+    }
+
+    public function updatedProviderId()
+    {
+        $this->api_url = '';
+        $this->api_key = '';
+        $this->account_sid = '';
+        $this->auth_token = '';
+        $this->from = '';
+        $this->from_whatsapp = '';
+        $this->channel = 'sms';
+    }
+
+    public function clearFilters()
+    {
+        $this->search = '';
+        $this->statusFilter = '';
+        $this->loadConnections();
+    }
+
 
     public function mount()
     {
@@ -102,35 +132,79 @@ class Connections extends Component
     public function openEditModal($connectionId)
     {
         $connection = MessagingConnection::with('provider')->find($connectionId);
-        
+
         if (!$connection) return;
 
         $this->editingConnection = $connection;
         $this->provider_id = $connection->provider_id;
         $this->name = $connection->name;
-        
+
         // Desencriptar credenciales
         $credentials = $connection->credentials;
+
         $this->api_url = $credentials['api_url'] ?? '';
         $this->api_key = $credentials['api_key'] ?? '';
+
+        $this->account_sid = $credentials['account_sid'] ?? '';
+        $this->auth_token = $credentials['auth_token'] ?? '';
+        $this->from = $credentials['from'] ?? '';
+        $this->from_whatsapp = $credentials['from_whatsapp'] ?? '';
+        $this->channel = $credentials['channel'] ?? 'sms';
+
         $this->timeout = $credentials['timeout'] ?? 30;
         $this->is_default_for = $connection->is_default_for ?? [];
-        
+
         $this->showModal = true;
     }
 
+
     public function saveConnection()
     {
-        $this->validate();
+        // Validación base
+        $this->validate($this->baseRules());
 
-        $provider = MessagingProvider::find($this->provider_id);
-        
+        $providerModel = MessagingProvider::find($this->provider_id);
+        $providerSlug = $providerModel?->slug;
+
+        // Validación por provider
+        if ($providerSlug === 'twilio') {
+            $rules = [
+                'account_sid' => 'required|string',
+                'auth_token' => 'required|string',
+                'from' => 'required|string',
+                'channel' => 'required|in:sms,whatsapp',
+            ];
+
+            if ($this->channel === 'whatsapp') {
+                $rules['from_whatsapp'] = 'required|string';
+            }
+
+            $this->validate($rules);
+        } elseif (in_array($providerSlug, ['whatsapp_lite', 'whatsapp_meta'], true)) {
+            $this->validate([
+                'api_url' => 'required|url',
+                'api_key' => 'required|string',
+            ]);
+        }
+
         $credentials = [
-            'api_url' => $this->api_url,
-            'api_key' => $this->api_key,
+            // Comunes
             'timeout' => $this->timeout,
             'empresa_id' => $this->empresaId,
         ];
+
+        // Credenciales según provider
+        if ($providerSlug === 'twilio') {
+            $credentials['account_sid'] = $this->account_sid;
+            $credentials['auth_token'] = $this->auth_token;
+            $credentials['from'] = $this->from;
+            $credentials['channel'] = $this->channel;
+            $credentials['from_whatsapp'] = $this->from_whatsapp;
+        } else {
+            // WhatsApp legacy
+            $credentials['api_url'] = $this->api_url;
+            $credentials['api_key'] = $this->api_key;
+        }
 
         $data = [
             'empresa_id' => $this->empresaId,
@@ -150,8 +224,17 @@ class Connections extends Component
             $message = 'Conexión creada';
         }
 
-        $this->dispatch('connection-saved');
-        session()->flash('message', $message);
+        (new MessagingConnectionManager())->clearCache($this->empresaId);
+
+        $this->showModal = false;
+        $this->resetForm();
+        $this->loadConnections();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $message,
+            'duration' => 4000
+        ]);
     }
 
     public function testConnection($connectionId)
@@ -187,6 +270,7 @@ class Connections extends Component
         
         if ($connection) {
             $connection->delete();
+            (new MessagingConnectionManager())->clearCache($this->empresaId);
             $this->loadConnections();
             $this->dispatch('notify', [
                 'type' => 'success',
@@ -220,6 +304,7 @@ class Connections extends Component
         $connection->update(['is_default_for' => $defaults]);
 
         $this->loadConnections();
+        (new MessagingConnectionManager())->clearCache($this->empresaId);
         $this->dispatch('notify', [
             'type' => 'success',
             'message' => "Conexión设置为默认用于 {$moduleKey}",
@@ -234,6 +319,11 @@ class Connections extends Component
         $this->name = '';
         $this->api_url = '';
         $this->api_key = '';
+        $this->account_sid = '';
+        $this->auth_token = '';
+        $this->from = '';
+        $this->from_whatsapp = '';
+        $this->channel = 'sms';
         $this->timeout = 30;
         $this->is_default_for = [];
         $this->testResult = null;

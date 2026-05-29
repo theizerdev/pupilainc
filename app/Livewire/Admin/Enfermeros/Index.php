@@ -8,7 +8,7 @@ use App\Models\Sucursal;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Traits\HasDynamicLayout;
-use App\Services\WhatsAppService;
+use App\Services\UniversalNotificationService;
 
 class Index extends Component
 {
@@ -244,44 +244,22 @@ class Index extends Component
                 return;
             }
             
-            // Generar contraseña temporal (usando el documento de identidad)
-            $plainPassword = $enfermero->documento_identidad;
+            // Usar el servicio universal de notificaciones
+            $notificationService = new UniversalNotificationService();
             
-            // Crear y enviar mensaje de bienvenida
-            $mensaje = $this->crearMensajeBienvenida($user, $enfermero, $plainPassword);
-            $telefonoOriginal = $enfermero->telefono;
-            $telefono = $this->formatearTelefono($enfermero->telefono);
+            // Enviar mensaje de bienvenida
+            $resultado = $notificationService->sendNurseWelcomeMessage($enfermero);
             
-            // Log para depuración (se puede eliminar después)
-            \Log::info('Formateo de teléfono', [
-                'original' => $telefonoOriginal,
-                'formateado' => $telefono,
-                'pais' => auth()->user()?->empresa?->pais?->nombre ?? 'N/A',
-                'codigo_pais' => auth()->user()?->empresa?->pais?->codigo_telefonico ?? 'N/A'
-            ]);
-            
-            $whatsAppService = new WhatsAppService($user->empresa_id);
-            
-            if ($whatsAppService->isConfigured() && \App\Services\WhatsAppNotificationGate::allows($user->empresa_id, 'enfermeros', 'bienvenida', 'enfermero')) {
-                $resultado = $whatsAppService->sendMessage($telefono, $mensaje, true);
-                
-                if ($resultado) {
-                    $this->dispatch('notify', [
-                        'type' => 'success',
-                        'message' => 'Mensaje de bienvenida enviado exitosamente por WhatsApp.',
-                        'duration' => 3000
-                    ]);
-                } else {
-                    $this->dispatch('notify', [
-                        'type' => 'error',
-                        'message' => 'No se pudo enviar el mensaje de WhatsApp. Verifique la configuración.',
-                        'duration' => 3000
-                    ]);
-                }
+            if ($resultado) {
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => 'Mensaje de bienvenida enviado exitosamente por WhatsApp.',
+                    'duration' => 3000
+                ]);
             } else {
                 $this->dispatch('notify', [
-                    'type' => 'warning',
-                    'message' => 'WhatsApp no está configurado para esta empresa.',
+                    'type' => 'error',
+                    'message' => 'No se pudo enviar el mensaje de bienvenida. Verifique la configuración de notificaciones.',
                     'duration' => 3000
                 ]);
             }
@@ -314,7 +292,7 @@ class Index extends Component
         $mensaje .= "• Tipo de enfermero: {$enfermero->tipo_enfermero}\n";
         
         // Obtener especialidades
-        $especialidades = $enfermero->especialidades()->pluck('especialidad')->toArray();
+        $especialidades = $enfermero->especialidades()->pluck('nombre')->toArray();
         if (count($especialidades) > 0) {
             $mensaje .= "• Especialidades: " . implode(', ', $especialidades) . "\n";
         }

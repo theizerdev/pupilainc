@@ -11,6 +11,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use App\Traits\Exportable;
 use App\Traits\HasDynamicLayout;
+use App\Services\UniversalNotificationService;
 
 class Index extends Component
 {
@@ -164,8 +165,21 @@ class Index extends Component
             return;
         }
 
+        $previousStatus = $user->status;
         $user->status = !$user->status;
         $user->save();
+
+        // Enviar notificación por WhatsApp si el usuario tiene teléfono
+        if ($user->phone || $user->medico || $user->enfermero || $user->paciente) {
+            try {
+                $notificationService = new UniversalNotificationService();
+                
+                // Enviar notificación de cambio de estado
+                $notificationService->sendStatusChangeMessage($user, $user->status ? 'active' : 'inactive');
+            } catch (\Exception $e) {
+                \Log::error('Error enviando notificación WhatsApp de cambio de estado: ' . $e->getMessage());
+            }
+        }
 
         $this->dispatch('notify', [
             'type' => 'success',
@@ -192,19 +206,21 @@ class Index extends Component
         ]);
 
         // Enviar notificación por WhatsApp si el usuario tiene teléfono
-        if ($user->phone) {
+        if ($user->phone || $user->medico || $user->enfermero || $user->paciente) {
             try {
-                $whatsappService = app(\App\Services\WhatsAppService::class);
+                $notificationService = new UniversalNotificationService();
                 
-                // Si la empresa tiene su propia configuración, usarla
-                if ($user->empresa_id) {
-                    $whatsappService = \App\Services\WhatsAppService::forCompany($user->empresa_id);
-                }
-
-                if ($whatsappService->isConfigured() && \App\Services\WhatsAppNotificationGate::allows($user->empresa_id, 'usuarios', 'cuenta_desbloqueada', 'usuario')) {
-                    $mensaje = "Hola {$user->name}, tu cuenta ha sido desbloqueada exitosamente por el administrador. Ya puedes acceder al sistema nuevamente.";
-                    $whatsappService->sendMessage($user->phone, $mensaje);
-                }
+                // Enviar mensaje de bienvenida o reactivación
+                $mensaje = "Hola {$user->name}, tu cuenta ha sido desbloqueada exitosamente por el administrador. Ya puedes acceder al sistema nuevamente.";
+                
+                $notificationService->sendGenericNotification(
+                    $user->empresa_id,
+                    'usuarios',
+                    'cuenta_desbloqueada',
+                    'usuario',
+                    $user,
+                    $mensaje
+                );
             } catch (\Exception $e) {
                 \Log::error('Error enviando notificación WhatsApp de desbloqueo: ' . $e->getMessage());
             }

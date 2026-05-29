@@ -521,8 +521,8 @@ class Calendario extends Component
             $this->logCitaAction('update', $cita, $oldData);
 
             if ($estadoAnterior !== $this->estado) {
-                //$this->notificarCambioEstado($cita, $estadoAnterior);
                 $cita->cambiarEstado($this->estado);
+                $this->notificarCambioEstado($cita, $estadoAnterior);
             }
 
             if ($fechaAnterior !== $cita->fecha_inicio->toDateTimeString()) {
@@ -596,7 +596,7 @@ class Calendario extends Component
                     $cita->crearConsultaSiNoExiste(true);
                 }
 
-                /*$notificacion = $this->notificarNuevaCita($cita);
+                $notificacion = $this->notificarNuevaCita($cita);
                 $cita->programarRecordatorios();
 
                 if ($notificacion['success'] && empty($notificacion['errors'])) {
@@ -620,14 +620,7 @@ class Calendario extends Component
                         'message' => 'Cita creada pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors']),
                         'icon' => 'error'
                     ]);
-                }*/
-
-                $this->dispatch('show-alert', [
-                    'type' => 'success',
-                    'title' => 'Cita creada',
-                    'message' => 'Cita creada exitosamente.',
-                    'icon' => 'success'
-                ]);
+                }
             }
         }
 
@@ -946,18 +939,20 @@ class Calendario extends Component
         }
 
         $cita->cambiarEstado($nuevoEstado);
-        /*$notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);*/
 
-       /* $mensajeExtra = '';
+        // Notificar cambio de estado siempre que se cambie desde el calendario
+        $notificacion = $this->notificarCambioEstado($cita, $estadoAnterior);
+
+        $mensajeExtra = '';
         if ($preconsultaResult) {
             if ($preconsultaResult['whatsapp_enviado']) {
                 $mensajeExtra = ' Cuestionario preconsulta enviado por WhatsApp.';
             } elseif ($preconsultaResult['preconsulta_creada']) {
                 $mensajeExtra = ' Cuestionario preconsulta creado.';
             }
-        }*/
+        }
 
-        /*if ($notificacion['success'] && empty($notificacion['errors'])) {
+        if ($notificacion['success'] && empty($notificacion['errors'])) {
             $this->dispatch('show-toast', [
                 'type' => 'success',
                 'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado] . '. Notificaciones enviadas.' . $mensajeExtra
@@ -972,12 +967,7 @@ class Calendario extends Component
                 'type' => 'error',
                 'message' => 'Estado actualizado pero no se pudieron enviar las notificaciones: ' . implode(', ', $notificacion['errors'])
             ]);
-        }*/
-
-             $this->dispatch('show-toast', [
-                'type' => 'success',
-                'message' => 'Estado actualizado a: ' . Cita::ESTADO_LABELS[$nuevoEstado]
-            ]);
+        }
 
         $this->dispatch('cita-saved');
     }

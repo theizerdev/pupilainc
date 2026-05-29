@@ -193,19 +193,19 @@
                                 <label class="form-label">Prioridad</label>
                                 <input type="number" class="form-control" wire:model="selectedPriority" min="1" max="10">
                                 <small class="text-muted">1 = mayor prioridad</small>
+                                <small class="text-muted">1 = mayor prioridad</small>
                             </div>
                         </div>
-
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" wire:click="closeEditModal">Cancelar</button>
+                            <button type="button" class="btn btn-secondary" wire:click="$set('showEditModal', false)">Cancelar</button>
                             <button type="button" class="btn btn-primary" wire:click="saveChannelFromModal">
                                 <i class="ri ri-save-line me-1"></i>Guardar
                             </button>
                         </div>
                     </div>
                 </div>
-                <div class="modal-backdrop fade show"></div>
             </div>
+            <div class="modal-backdrop fade show"></div>
         @endif
 
         {{-- Info Box --}}
@@ -222,4 +222,3 @@
         </div>
     @endif
 </div>
-

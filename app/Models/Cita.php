@@ -450,10 +450,28 @@ class Cita extends Model
                 . "⏰ Le recomendamos completarlo mientras espera.\n\n"
                 . "Gracias por su confianza. 🙏";
 
-            $whatsappService = new \App\Services\WhatsAppService($this->empresa_id);
-            $resultado = $whatsappService->sendMessage($telefonoFormateado, $mensaje);
+            $sent = false;
+            $useUnified = config('messaging.use_unified_service', false);
 
-            return $resultado !== null;
+            if ($useUnified && $this->empresa_id) {
+                $unified = new \App\Services\Messaging\UnifiedNotificationService();
+                $sent = $unified->notify(
+                    $this->empresa_id,
+                    'citas',
+                    'preconsulta',
+                    'paciente',
+                    $telefonoFormateado,
+                    $mensaje
+                );
+            }
+
+            if (! $sent) {
+                $whatsappService = new \App\Services\WhatsAppService($this->empresa_id);
+                $result = $whatsappService->sendMessage($telefonoFormateado, $mensaje);
+                $sent = is_array($result) ? ($result['success'] ?? false) : ($result !== null);
+            }
+
+            return $sent;
         } catch (\Exception $e) {
             \Log::warning('Error enviando WhatsApp de preconsulta', ['error' => $e->getMessage()]);
             return false;
@@ -462,31 +480,43 @@ class Cita extends Model
 
     protected function formatearTelefono(string $telefono): string
     {
-        $telefonoLimpio = preg_replace('/[^0-9]/', '', $telefono);
+        // Normalizar y devolver con prefijo +<codigo_pais>
+        $raw = trim($telefono);
+        // Mantener '+' si existe y dígitos
+        $raw = preg_replace('/[^0-9+]/', '', $raw);
+
+        // Normalizar múltiples '+' al inicio
+        $raw = preg_replace('/^\++/', '+', $raw);
+
+        // Si ya tiene prefijo +, devolver tal cual (normalizado)
+        if (str_starts_with($raw, '+')) {
+            return $raw;
+        }
+
+        // Limpiar a solo dígitos
+        $telefonoLimpio = preg_replace('/[^0-9]/', '', $raw);
 
         try {
+            $codigoPais = '51';
             if ($this->empresa_id) {
                 $empresa = \App\Models\Empresa::with('pais')->find($this->empresa_id);
                 if ($empresa && $empresa->pais && $empresa->pais->codigo_telefonico) {
                     $codigoPais = preg_replace('/[^0-9]/', '', $empresa->pais->codigo_telefonico);
-                    if (!str_starts_with($telefonoLimpio, $codigoPais)) {
-                        if (str_starts_with($telefonoLimpio, '0')) {
-                            $telefonoLimpio = substr($telefonoLimpio, 1);
-                        }
-                        $telefonoLimpio = $codigoPais . $telefonoLimpio;
-                    }
-                    return $telefonoLimpio;
                 }
             }
         } catch (\Exception $e) {
-            \Log::error('Error formateando teléfono', ['error' => $e->getMessage()]);
+            \Log::error('Error obteniendo codigo pais para formatear telefono', ['error' => $e->getMessage()]);
         }
 
-        if (strlen($telefonoLimpio) === 10 && str_starts_with($telefonoLimpio, '0')) {
-            return '52' . $telefonoLimpio;
-        } elseif (strlen($telefonoLimpio) === 9 && !str_starts_with($telefonoLimpio, '5')) {
-            return '52' . $telefonoLimpio;
+        // Si ya comienza con el código de país, no duplicarlo
+        if ($codigoPais !== '' && str_starts_with($telefonoLimpio, $codigoPais)) {
+            return '+' . $telefonoLimpio;
         }
+
+        // Eliminar 0 inicial
+        $telefonoLimpio = ltrim($telefonoLimpio, '0');
+
+        return '+' . $codigoPais . $telefonoLimpio;
 
         return $telefonoLimpio;
     }

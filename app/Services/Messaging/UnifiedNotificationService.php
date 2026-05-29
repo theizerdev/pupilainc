@@ -49,6 +49,13 @@ class UnifiedNotificationService
         );
 
         if (!$provider) {
+            $connection = $this->connectionManager->getConnection($empresaId, $module);
+            if ($connection) {
+                $provider = $this->connectionManager->buildProviderFromConnection($connection);
+            }
+        }
+
+        if (!$provider) {
             Log::warning("No se encontró proveedor de mensajería", [
                 'empresa_id' => $empresaId,
                 'module' => $module,
@@ -59,7 +66,8 @@ class UnifiedNotificationService
 
         // Formatear número de teléfono
         $formattedPhone = $this->formatPhoneNumber($phoneNumber, $empresaId);
-
+    
+            
         try {
             $result = $provider->send($formattedPhone, $message, $context);
 
@@ -139,17 +147,27 @@ class UnifiedNotificationService
         // Eliminar espacios y caracteres especiales
         $phone = preg_replace('/[^0-9+]/', '', $phone);
 
-        // Si ya tiene +, retornarlo
+        // Normalizar múltiples signos '+' iniciales a uno solo
+        $phone = preg_replace('/^\++/', '+', $phone);
+
+        // Si ya tiene +, extraer solo los dígitos
         if (str_starts_with($phone, '+')) {
+            $phone = substr($phone, 1); // Remover el signo +
+        }
+
+        // Obtener configuración de país de la empresa (solo dígitos)
+        $empresa = Empresa::find($empresaId);
+        $countryCode = preg_replace('/[^0-9]/', '', $empresa?->pais?->codigo_telefonico ?? '51');
+
+        // Si el número ya empieza por el código de país, usarlo tal cual
+        if ($countryCode !== '' && str_starts_with($phone, $countryCode)) {
             return $phone;
         }
 
-        // Obtener configuración de país de la empresa
-        $empresa = Empresa::find($empresaId);
-        $countryCode = $empresa?->pais?->codigo_telefonico ?? '51';
+        // Eliminar 0 inicial si existe y concatenar código de país
+        $phone = ltrim($phone, '0');
 
-        // Agregar código de país
-        return '+' . $countryCode . ltrim($phone, '0');
+        return $countryCode . $phone;
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use App\Models\WhatsAppScheduledMessage;
+use App\Services\Messaging\UnifiedNotificationService;
 use App\Services\WhatsAppNotificationGate;
 use App\Services\WhatsAppService;
 use Carbon\Carbon;
@@ -38,6 +39,9 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
         Log::info("Procesando {$messages->count()} mensajes programados de WhatsApp");
 
         $defaultWhatsappService = app(WhatsAppService::class);
+        $unifiedService = new UnifiedNotificationService();
+        $useUnifiedService = config('messaging.use_unified_service', false);
+
         $processed = 0;
         $failed = 0;
 
@@ -63,50 +67,74 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
                     }
                 }
 
-                // Usar WhatsApp por empresa si está disponible
-                $whatsappService = $message->empresa_id
-                    ? WhatsAppService::forCompany($message->empresa_id)
-                    : $defaultWhatsappService;
+                $sent = false;
+                $sendMethod = 'legacy';
+                $action = $this->resolveNotificationAction($message->notification_type);
+                $recipientType = $this->resolveRecipientType($message->notification_type);
 
-                // Enviar mensaje
-                $result = $whatsappService->sendMessage(
-                    $message->recipient_phone,
-                    $content
-                );
+                if ($useUnifiedService && $message->empresa_id && $action && $recipientType) {
+                    $sendMethod = 'unified';
+                    $sent = $unifiedService->notify(
+                        $message->empresa_id,
+                        'citas',
+                        $action,
+                        $recipientType,
+                        $message->recipient_phone,
+                        $content
+                    );
+                }
 
-                if ($result['success']) {
+                if (! $sent) {
+                    $sendMethod = 'legacy';
+                    $whatsappService = $message->empresa_id
+                        ? WhatsAppService::forCompany($message->empresa_id)
+                        : $defaultWhatsappService;
+
+                    $result = $whatsappService->sendMessage(
+                        $message->recipient_phone,
+                        $content
+                    );
+
+                    $sent = is_array($result) ? ($result['success'] ?? false) : false;
+                }
+
+                if ($sent) {
                     $message->update([
                         'status' => 'sent',
                         'sent_at' => $now,
                         'error_message' => null,
                     ]);
                     
-                    // Incrementar contador de uso de la plantilla
                     if ($message->template) {
                         $message->template->incrementUsage();
                     }
                     
                     $processed++;
-                    Log::info("Mensaje programado enviado exitosamente: {$message->id}");
+                    Log::info("Mensaje programado enviado exitosamente: {$message->id}", [
+                        'method' => $sendMethod,
+                        'empresa_id' => $message->empresa_id,
+                        'notification_type' => $message->notification_type,
+                    ]);
                 } else {
-                    throw new \Exception($result['message'] ?? 'Error desconocido');
+                    throw new \Exception('No se pudo enviar el mensaje programado');
                 }
 
             } catch (\Exception $e) {
                 $failed++;
                 $errorMessage = $e->getMessage();
                 
-                Log::error("Error al enviar mensaje programado {$message->id}: {$errorMessage}");
+                Log::error("Error al enviar mensaje programado {$message->id}: {$errorMessage}", [
+                    'notification_type' => $message->notification_type,
+                    'empresa_id' => $message->empresa_id,
+                ]);
 
-                // Si se alcanzó el máximo de intentos, marcar como fallido
                 if ($message->attempts >= $message->max_attempts) {
                     $message->update([
                         'status' => 'failed',
                         'error_message' => $errorMessage,
                     ]);
                 } else {
-                    // Reprogramar para más tarde (exponencial backoff)
-                    $delay = pow(2, $message->attempts) * 5; // 5, 10, 20 minutos
+                    $delay = pow(2, $message->attempts) * 5;
                     $message->update([
                         'scheduled_at' => $now->copy()->addMinutes($delay),
                         'error_message' => $errorMessage,
@@ -153,5 +181,23 @@ class ProcessScheduledWhatsAppMessages implements ShouldQueue
         }
 
         return WhatsAppNotificationGate::allows($message->empresa_id, 'citas', $action, 'paciente');
+    }
+
+    private function resolveNotificationAction(string $notificationType): ?string
+    {
+        return match ($notificationType) {
+            'cita_recordatorio_12h' => 'recordatorio_12h',
+            'cita_recordatorio_6h' => 'recordatorio_6h',
+            'cita_recordatorio_1h' => 'recordatorio_1h',
+            'manual' => 'recordatorio_manual',
+            'nueva_cita' => 'nueva_cita',
+            default => $notificationType,
+        };
+    }
+
+    private function resolveRecipientType(string $notificationType): string
+    {
+        // Todos los mensajes de citas programadas actuales se envían al paciente.
+        return 'paciente';
     }
 }

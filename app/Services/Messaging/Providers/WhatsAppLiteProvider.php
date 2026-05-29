@@ -137,12 +137,12 @@ class WhatsAppLiteProvider implements MessagingProviderInterface
      */
     private function getWhatsAppService(): WhatsAppService
     {
-        if ($this->empresaId) {
-            $empresa = Empresa::find($this->empresaId);
-            return WhatsAppService::forCompany($empresa);
-        }
-
-        return new WhatsAppService();
+        return WhatsAppService::forCredentials([
+            'api_url' => $this->credentials['api_url'] ?? null,
+            'api_key' => $this->credentials['api_key'] ?? null,
+            'empresa_id' => $this->empresaId,
+            'timeout' => $this->timeout,
+        ]);
     }
 
     /**

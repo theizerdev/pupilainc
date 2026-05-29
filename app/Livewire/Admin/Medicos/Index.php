@@ -10,6 +10,7 @@ use App\Models\Sucursal;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Traits\HasDynamicLayout;
+use App\Services\UniversalNotificationService;
 
 class Index extends Component
 {
@@ -117,6 +118,60 @@ class Index extends Component
             $this->dispatch('notify', [
                 'type' => 'error',
                 'message' => 'Error al actualizar el estado: ' . $e->getMessage(),
+                'duration' => 5000
+            ]);
+        }
+    }
+
+    public function enviarMensajeBienvenida($id)
+    {
+        $this->authorize('edit medicos');
+        
+        try {
+            $medico = Medico::find($id);
+            
+            if (!$medico->user) {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'El médico no tiene usuario asociado.',
+                    'duration' => 3000
+                ]);
+                return;
+            }
+            
+            if (empty($medico->telefono)) {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'El médico no tiene teléfono registrado.',
+                    'duration' => 3000
+                ]);
+                return;
+            }
+            
+            // Usar el servicio universal de notificaciones
+            $notificationService = new UniversalNotificationService();
+            
+            // Enviar mensaje de bienvenida
+            $resultado = $notificationService->sendDoctorWelcomeMessage($medico);
+            
+            if ($resultado) {
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => 'Mensaje de bienvenida enviado exitosamente por WhatsApp.',
+                    'duration' => 3000
+                ]);
+            } else {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'No se pudo enviar el mensaje de bienvenida. Verifique la configuración de notificaciones.',
+                    'duration' => 3000
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Error al enviar mensaje: ' . $e->getMessage(),
                 'duration' => 5000
             ]);
         }

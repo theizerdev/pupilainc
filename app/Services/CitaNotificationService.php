@@ -6,13 +6,14 @@ use App\Models\Cita;
 use App\Models\CitaConfirmacion;
 use App\Models\Paciente;
 use App\Models\WhatsAppScheduledMessage;
+use App\Services\Messaging\MessagingConnectionManager;
 use App\Services\Messaging\UnifiedNotificationService;
+use App\Services\UniversalNotificationService; // Added new service
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
-
-use Illuminate\Support\Facades\Http;
 
 class CitaNotificationService
 {
@@ -24,6 +25,9 @@ class CitaNotificationService
     // Nuevo sistema de mensajería unificado
     protected ?UnifiedNotificationService $unifiedService = null;
     protected bool $useUnifiedService = false;
+    
+    // Nuevo servicio universal de notificaciones
+    protected ?UniversalNotificationService $universalService = null;
 
     public function __construct(?int $empresaId = null)
     {
@@ -41,6 +45,9 @@ class CitaNotificationService
         if ($this->useUnifiedService && $this->empresaId) {
             $this->unifiedService = new UnifiedNotificationService();
         }
+        
+        // Inicializar el servicio universal de notificaciones
+        $this->universalService = new UniversalNotificationService();
     }
 
     /**
@@ -135,7 +142,7 @@ class CitaNotificationService
 
         if ($this->puedeEnviarNotificacion('nueva_cita', 'paciente', $empresaId)) {
             $telefonos = $this->obtenerTelefonosPaciente($cita->paciente);
-
+           
             // Crear confirmación y enviar mensaje unificado (notificación + confirmación)
             $confirmacion = $this->crearConfirmacion($cita);
             if ($confirmacion) {
@@ -437,13 +444,37 @@ class CitaNotificationService
 
     protected function enviar(string $telefono, string $mensaje): bool
     {
-        // Si está habilitado el servicio unificado, usarlo
-        if ($this->useUnifiedService && $this->unifiedService) {
+        if ($this->shouldUseUnifiedService()) {
             return $this->enviarViaUnifiedService($telefono, $mensaje);
         }
-        
-        // Fallback al método legacy original
+
         return $this->enviarLegacy($telefono, $mensaje);
+    }
+
+    protected function shouldUseUnifiedService(): bool
+    {
+        // If already set to use unified, return true
+        if ($this->useUnifiedService && $this->unifiedService) {
+            return true;
+        }
+
+        if (!$this->empresaId) {
+            return false;
+        }
+
+        $manager = new MessagingConnectionManager();
+        $connection = $manager->getConnection($this->empresaId, 'citas');
+
+        // Force unified service if Twilio is configured
+        $useTwilio = DB::table('empresas')->where('id', $this->empresaId)->value('use_twilio');
+
+        if ($useTwilio || $connection) {
+            $this->useUnifiedService = true;
+            $this->unifiedService = $this->unifiedService ?? new UnifiedNotificationService();
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -616,6 +647,27 @@ class CitaNotificationService
     }
 
     /**
+     * Construir mensaje para notificar al médico sobre nueva cita
+     */
+    protected function construirMensajeNuevaCitaMedico(Cita $cita): string
+    {
+        $fecha = $cita->fecha_inicio->format('d/m/Y');
+        $hora = $cita->fecha_inicio->format('h:i A');
+        $especialidad = $cita->especialidad->nombre ?? '';
+
+        return "🏥 *Nueva Cita Asignada*\n\n"
+            . "Dr(a). *{$cita->medico->nombre_completo}*,\n\n"
+            . "Se le ha asignado una nueva cita:\n\n"
+            . "👤 Paciente: *{$cita->paciente->nombre_completo}*\n"
+            . ($especialidad ? "🏥 Especialidad: {$especialidad}\n" : "")
+            . "📅 Fecha: {$fecha}\n"
+            . "🕐 Hora: {$hora}\n"
+            . "📋 Motivo: {$cita->motivo}\n\n"
+            . "━━━━━━━━━━━━━━━━━━━━\n"
+            . "ℹ️ Esta cita está ahora en su agenda.";
+    }
+
+    /**
      * Construir mensaje para paciente de PRIMERA VEZ
      */
     protected function construirMensajePrimeraVez(Cita $cita): string
@@ -739,7 +791,7 @@ class CitaNotificationService
             . "👨‍⚕️ Médico: Dr(a). {$cita->medico->nombre_completo}\n"
             . "📅 Fecha: {$fecha} a las {$hora}\n\n"
             . "❌ Su cita ha sido cancelada.\n"
-            . "Si desea reprogramar, por favor comuníquese con nosotros.";
+            . "Si desea reprogramar, por favor comuníque con nosotros.";
     }
 
     protected function construirMensajeRecordatorio(Cita $cita, string $tiempoRestante = null): string
